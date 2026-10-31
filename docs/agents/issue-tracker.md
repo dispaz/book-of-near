@@ -13,7 +13,7 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone.
 
-> **Note (2026-10-31):** this project is not yet a git repository and has no GitHub remote. Run `git init` and add a GitHub remote before using these commands. The original MVP tickets still live as markdown in `.scratch/book-of-near-mvp/issues/` and have not been migrated to GitHub Issues.
+> **Note (2026-10-31):** the repo is `dispaz/book-of-near` (private). The MVP tickets were migrated from `.scratch/book-of-near-mvp/issues/` to GitHub issues #1–#33 (issue number = ticket number), with native blocked-by dependencies and priority labels `P0`, `P1`, `P2: first cut`, `P2: second cut`.
 
 ## Pull requests as a triage surface
 
