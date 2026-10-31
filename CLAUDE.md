@@ -13,7 +13,7 @@ Read `.scratch/book-of-near-mvp/spec.md` for the product, `GLOSSARY.md` for term
 - **Unverified facts** (see `docs/spikes-seed.md`) must not be coded as truth until issue #4 verifies them.
 
 ## Workflow
-1. Pick an open, unassigned issue labelled `ready-for-agent` with no open blockers (`issue_dependencies_summary.blocked_by` is 0); lower priority label first (`P0` before `P1` before `P2`), then lowest number. Claim it with `gh issue edit <n> --add-assignee @me`.
+1. Pick an open, unassigned issue labelled `ready-for-agent` with no open blockers (`issue_dependencies_summary.blocked_by` is 0); highest priority first (`P0` before `P1` before `P2`), then lowest number. Claim it with `gh issue edit <n> --add-assignee @me`.
 2. Build with TDD (`/tdd`). Test through the running app in demo mode first, then the Chain interface, the badge contract and the Worker endpoints.
 3. Tick every acceptance box in the issue body (`gh issue edit <n> --body-file ...`). Run lint, typecheck, tests and e2e.
 4. Append a short entry to `docs/progress.md`, commit with `Closes #<n>` in the message, push, and make sure the issue is closed (`gh issue close <n>` if it isn't).
