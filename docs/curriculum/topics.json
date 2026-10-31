@@ -1,0 +1,1100 @@
+{
+ "stages": [
+  {
+   "n": 0,
+   "name": "Blank Page",
+   "title": "Crypto foundations",
+   "who": "Zero crypto knowledge",
+   "act": "Generate a keypair in the browser and sign a message"
+  },
+  {
+   "n": 1,
+   "name": "Named",
+   "title": "First steps on NEAR",
+   "who": "Has a wallet, never used NEAR",
+   "act": "Create a testnet account, add a function-call key"
+  },
+  {
+   "n": 2,
+   "name": "Nightshade",
+   "title": "Under the hood",
+   "who": "Wants to know how it works",
+   "act": "Find which shard handled your transaction and trace its receipts"
+  },
+  {
+   "n": 3,
+   "name": "Wasm",
+   "title": "Builder (optional for non-devs)",
+   "who": "Developers",
+   "act": "Deploy a tiny contract and make a cross-contract call on testnet"
+  },
+  {
+   "n": 4,
+   "name": "Any Chain",
+   "title": "Chain abstraction",
+   "who": "Understands NEAR basics",
+   "act": "Derive your Ethereum address from your NEAR account, run an intent swap"
+  },
+  {
+   "n": 5,
+   "name": "Enclave",
+   "title": "AI and privacy",
+   "who": "Curious about AI on NEAR",
+   "act": "Ask the tutor via NEAR AI Cloud and verify its attestation"
+  },
+  {
+   "n": 6,
+   "name": "Citizen",
+   "title": "Ecosystem and governance",
+   "who": "Wants to take part",
+   "act": "Stake on testnet, read a House of Stake proposal"
+  },
+  {
+   "n": 7,
+   "name": "Book of NEAR",
+   "title": "Veteran capstone",
+   "who": "Completed 0–6 (3 optional)",
+   "act": "Trace one cross-chain intent end to end, then pass the final exam"
+  }
+ ],
+ "showpieces": [
+  {
+   "s": 0,
+   "t": "A",
+   "name": "Make a wallet",
+   "does": "Generate a key pair and a seed phrase in the browser, see how the address is derived, then sign and verify a message.",
+   "chain": "None (runs in the browser)",
+   "covers": [
+    "What a crypto wallet",
+    "Wallet creation",
+    "Key standards",
+    "Public/private keys",
+    "Self-custody"
+   ]
+  },
+  {
+   "s": 0,
+   "t": "B",
+   "name": "Send a transaction and watch it",
+   "does": "Build, sign and broadcast a transfer, then watch it move through the RPC and open it in NearBlocks. Uses a practice account the app funds from a testnet faucet.",
+   "chain": "Testnet, real transaction",
+   "covers": [
+    "Transaction lifecycle",
+    "What RPCs",
+    "How wallets interact",
+    "Transactions, fees",
+    "Reading a block explorer"
+   ]
+  },
+  {
+   "s": 0,
+   "t": "B",
+   "name": "Why moving money between chains is hard",
+   "does": "Two chains, one coin. Try to move it and see where trust or delay comes in. Sets up Stage 4.",
+   "chain": "None (animation)",
+   "covers": [
+    "Layer 1",
+    "DEXs",
+    "Consensus 101"
+   ]
+  },
+  {
+   "s": 1,
+   "t": "A",
+   "name": "Claim your name",
+   "does": "Pick a name and create your own testnet account, then compare it with a plain hex account.",
+   "chain": "Testnet, real transaction",
+   "covers": [
+    "Named accounts",
+    "Implicit accounts",
+    "NEAR token",
+    "Wallets: Meteor"
+   ]
+  },
+  {
+   "s": 1,
+   "t": "A",
+   "name": "A key that can do only one thing",
+   "does": "Add a function-call key limited to one contract and a small allowance, hand it to an AI agent, then try to trick the agent into overspending or calling something else. The chain refuses every attempt. Delete the key to finish.",
+   "chain": "Testnet, real transaction",
+   "covers": [
+    "Access keys",
+    "How NEAR apps connect"
+   ]
+  },
+  {
+   "s": 1,
+   "t": "B",
+   "name": "Inside a NEAR transaction",
+   "does": "Bundle several actions (create a sub-account, send NEAR, add a key) into one transaction and see them succeed or fail together.",
+   "chain": "Testnet, real transaction",
+   "covers": [
+    "NEAR transaction anatomy",
+    "Storage staking"
+   ]
+  },
+  {
+   "s": 2,
+   "t": "A",
+   "name": "Follow your transaction across shards",
+   "does": "3D showpiece. Pick your own earlier transaction and see which shard handled it, which chunk and block it landed in, and how fast it finalised.",
+   "chain": "Read-only (live RPC)",
+   "covers": [
+    "Sharding: Nightshade",
+    "Doomslug"
+   ]
+  },
+  {
+   "s": 2,
+   "t": "A",
+   "name": "A call that takes several blocks",
+   "does": "Make a cross-contract call and watch its receipts hop between blocks and shards, with the gas burned and the 30% paid to the contract.",
+   "chain": "Testnet, real transaction",
+   "covers": [
+    "Receipts and",
+    "Gas economics"
+   ]
+  },
+  {
+   "s": 2,
+   "t": "B",
+   "name": "Stateless validation, resharding and staking",
+   "does": "Animated explainer of how a validator checks a shard without its state and how shards split. Includes staking testnet NEAR and seeing the unstake delay.",
+   "chain": "Testnet, real transaction (stake)",
+   "covers": [
+    "Stateless validation",
+    "Dynamic resharding",
+    "Validators, epochs",
+    "How NEAR is governed"
+   ]
+  },
+  {
+   "s": 3,
+   "t": "B",
+   "name": "Deploy a contract in one click",
+   "does": "Deploy a ready-made contract to your own sub-account, call it, read its state, and trigger a callback and a failure.",
+   "chain": "Testnet, real transaction",
+   "covers": [
+    "Contracts in WebAssembly",
+    "Cross-contract calls",
+    "Contract state"
+   ]
+  },
+  {
+   "s": 3,
+   "t": "B",
+   "name": "Issue your own token",
+   "does": "Create a fungible token, send it gaslessly through a relayer, and see the storage registration NEAR requires.",
+   "chain": "Testnet, real transaction",
+   "covers": [
+    "Token standards",
+    "Meta-transactions"
+   ]
+  },
+  {
+   "s": 3,
+   "t": "B",
+   "name": "Race the RPC nodes",
+   "does": "Send the same query to several providers, compare speed, kill one and watch failover. Shows why wallets don't trust a single node.",
+   "chain": "Read-only (live RPC)",
+   "covers": [
+    "RPC providers vs",
+    "Data infrastructure"
+   ]
+  },
+  {
+   "s": 4,
+   "t": "A",
+   "name": "One account, every chain",
+   "does": "3D showpiece. Derive an Ethereum address from your NEAR account, then sign and send a Sepolia transaction through the signing network.",
+   "chain": "Testnet, real transaction",
+   "covers": [
+    "Chain Signatures",
+    "Multichain accounts"
+   ]
+  },
+  {
+   "s": 4,
+   "t": "A",
+   "name": "Swap across chains with an intent",
+   "does": "Request a live quote for a cross-chain swap, see the solvers compete, and optionally run a tiny real swap.",
+   "chain": "Mainnet, optional and small",
+   "covers": [
+    "NEAR Intents"
+   ]
+  },
+  {
+   "s": 4,
+   "t": "B",
+   "name": "Old bridge vs the NEAR way",
+   "does": "Side-by-side steps, time, fees and trust for a classic bridge and an intent, using live quote data. Ends with the private-swap option.",
+   "chain": "Read-only (live quote data)",
+   "covers": [
+    "Omni Bridge",
+    "Confidential Intents"
+   ]
+  },
+  {
+   "s": 5,
+   "t": "A",
+   "name": "Ask a private AI and verify it",
+   "does": "Chat with the tutor running on NEAR AI Cloud, then fetch the attestation and check the enclave and response signature yourself.",
+   "chain": "None (verification in the page)",
+   "covers": [
+    "TEEs and",
+    "NEAR AI Cloud",
+    "User-owned AI"
+   ]
+  },
+  {
+   "s": 5,
+   "t": "B",
+   "name": "An agent with no owner",
+   "does": "Animated walk-through of an agent inside a TEE that controls a multichain account, plus a read-only look at a deployed agent.",
+   "chain": "Read-only",
+   "covers": [
+    "Shade Agents"
+   ]
+  },
+  {
+   "s": 6,
+   "t": "B",
+   "name": "Read and vote on a proposal",
+   "does": "Browse live governance proposals and see how locked tokens turn into voting power. Voting is optional.",
+   "chain": "Read-only, optional vote",
+   "covers": [
+    "House of Stake"
+   ]
+  },
+  {
+   "s": 6,
+   "t": "B",
+   "name": "The live money map",
+   "does": "Live view of intents volume, stablecoins and major DeFi apps, with notes on oracles and launchpads.",
+   "chain": "Read-only (live data)",
+   "covers": [
+    "DeFi map"
+   ]
+  },
+  {
+   "s": 7,
+   "t": "A",
+   "name": "Trace one intent end to end",
+   "does": "Capstone. Follow a single cross-chain intent through accounts, keys, shards, receipts and signatures, then take the final exam and mint the Book of NEAR badge.",
+   "chain": "Mainnet (badge mint)",
+   "covers": [
+    "Capstone: trace"
+   ]
+  },
+  {
+   "s": 7,
+   "t": "B",
+   "name": "The honest scoreboard",
+   "does": "Weigh NEAR against Ethereum, Solana and Cosmos on the things you care about, with the real weak spots shown.",
+   "chain": "None",
+   "covers": [
+    "Capstone: the honest"
+   ]
+  }
+ ],
+ "topics": [
+  {
+   "name": "Money, ledgers and why blockchains exist",
+   "stage": 0,
+   "difficulty": 1,
+   "importance": 5,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "Universal concept; teach once, chain-agnostic.",
+   "verify": 0,
+   "source": null,
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": null
+  },
+  {
+   "name": "Hashing and blocks",
+   "stage": 0,
+   "difficulty": 2,
+   "importance": 4,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "Same on every chain.",
+   "verify": 0,
+   "source": null,
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": null
+  },
+  {
+   "name": "Public/private keys and signatures",
+   "stage": 0,
+   "difficulty": 2,
+   "importance": 5,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "Standard. NEAR mainly uses ed25519 keys and also supports secp256k1; Ethereum and Bitcoin use secp256k1, Solana ed25519.",
+   "verify": 0,
+   "source": "https://docs.near.org/protocol/access-keys",
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": "A"
+  },
+  {
+   "name": "What a crypto wallet is and how it works",
+   "stage": 0,
+   "difficulty": 1,
+   "importance": 5,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "Universal: a wallet holds keys and signs, the coins live on the chain. On NEAR the wallet also manages several access keys per account.",
+   "verify": 0,
+   "source": "https://docs.near.org/protocol/access-keys",
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": "A"
+  },
+  {
+   "name": "Wallet creation: private key, public key, address",
+   "stage": 0,
+   "difficulty": 2,
+   "importance": 5,
+   "innovation": 2,
+   "differs": "p",
+   "comparison": "Bitcoin and Ethereum addresses are hashes of the public key. A NEAR implicit account is the hex of the ed25519 public key itself, and a named account (alice.near) separates the address from any key completely.",
+   "verify": 0,
+   "source": "https://docs.near.org/protocol/access-keys",
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": "A"
+  },
+  {
+   "name": "Key standards: secp256k1, ed25519, BIP-39, BIP-32/44, SLIP-10",
+   "stage": 0,
+   "difficulty": 3,
+   "importance": 4,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "Standard cryptography. NEAR wallets use BIP-39 seed phrases with SLIP-10 ed25519 derivation on path m/44'/397'/0' (397 is NEAR's coin type). Ethereum uses secp256k1 with BIP-32 on m/44'/60'/0'/0/0.",
+   "verify": 1,
+   "source": "https://docs.near.org/protocol/access-keys",
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": "A"
+  },
+  {
+   "name": "Self-custody, seed phrase safety and scams",
+   "stage": 0,
+   "difficulty": 1,
+   "importance": 5,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "Standard; the scam-safety part matters more than anything chain-specific.",
+   "verify": 0,
+   "source": null,
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": "A"
+  },
+  {
+   "name": "How wallets interact with blockchains",
+   "stage": 0,
+   "difficulty": 2,
+   "importance": 5,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "Universal pattern: the wallet reads state and sends signed transactions through an RPC node, and connects to apps through a connector (WalletConnect on Ethereum, NEAR Connect on NEAR).",
+   "verify": 0,
+   "source": "https://docs.near.org/api/rpc/introduction",
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": "B"
+  },
+  {
+   "name": "What RPCs are and how they work (JSON-RPC)",
+   "stage": 0,
+   "difficulty": 2,
+   "importance": 4,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "Same idea everywhere: an HTTP endpoint on a node that answers queries and accepts transactions. NEAR's methods (query, block, chunk, send_tx, tx) differ in names only.",
+   "verify": 0,
+   "source": "https://docs.near.org/api/rpc/introduction",
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": "B"
+  },
+  {
+   "name": "Transaction lifecycle: construct, sign, broadcast, confirm",
+   "stage": 0,
+   "difficulty": 3,
+   "importance": 5,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "Universal steps. The NEAR-specific anatomy comes in Stage 1.",
+   "verify": 0,
+   "source": "https://docs.near.org/protocol/transactions",
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": "B"
+  },
+  {
+   "name": "Consensus 101: proof of work vs proof of stake",
+   "stage": 0,
+   "difficulty": 2,
+   "importance": 4,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "NEAR is proof of stake, like Ethereum, Solana and Cosmos chains.",
+   "verify": 0,
+   "source": null,
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": "B"
+  },
+  {
+   "name": "Transactions, fees and gas",
+   "stage": 0,
+   "difficulty": 2,
+   "importance": 5,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "Standard idea. NEAR's fees are tiny and predictable compared with Ethereum L1.",
+   "verify": 0,
+   "source": null,
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": "B"
+  },
+  {
+   "name": "Smart contracts",
+   "stage": 0,
+   "difficulty": 2,
+   "importance": 5,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "Standard concept.",
+   "verify": 0,
+   "source": null,
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": null
+  },
+  {
+   "name": "Tokens: fungible, NFTs, stablecoins",
+   "stage": 0,
+   "difficulty": 1,
+   "importance": 4,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "Standard concept.",
+   "verify": 0,
+   "source": null,
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": null
+  },
+  {
+   "name": "Reading a block explorer",
+   "stage": 0,
+   "difficulty": 1,
+   "importance": 4,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "Same skill everywhere (Etherscan, Solscan, NearBlocks).",
+   "verify": 0,
+   "source": "https://nearblocks.io/about",
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": "B"
+  },
+  {
+   "name": "DEXs, AMMs and liquidity",
+   "stage": 0,
+   "difficulty": 3,
+   "importance": 3,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "Standard DeFi concept.",
+   "verify": 0,
+   "source": null,
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": "B"
+  },
+  {
+   "name": "Layer 1, layer 2, bridges and why cross-chain is hard",
+   "stage": 0,
+   "difficulty": 3,
+   "importance": 4,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "Needed as the 'before' picture for NEAR Intents and Chain Signatures.",
+   "verify": 0,
+   "source": null,
+   "goingDeeper": false,
+   "stageName": "Blank Page",
+   "showpiece": "B"
+  },
+  {
+   "name": "Named accounts and sub-accounts (alice.near)",
+   "stage": 1,
+   "difficulty": 1,
+   "importance": 5,
+   "innovation": 4,
+   "differs": "p",
+   "comparison": "On Ethereum the account is a 0x hash and ENS is a naming layer on top. On NEAR the readable name is the account itself, and owners create sub-accounts. EOS also had native named accounts.",
+   "verify": 0,
+   "source": "https://docs.near.org/protocol/basics",
+   "goingDeeper": false,
+   "stageName": "Named",
+   "showpiece": "A"
+  },
+  {
+   "name": "Implicit accounts (64-hex) and Ethereum-style 0x accounts",
+   "stage": 1,
+   "difficulty": 2,
+   "importance": 3,
+   "innovation": 3,
+   "differs": "p",
+   "comparison": "Implicit accounts work like Ethereum addresses derived from a key. 0x 'ETH-implicit' accounts let an Ethereum wallet control a NEAR account through a wallet contract.",
+   "verify": 1,
+   "source": "https://docs.near.org/protocol/basics",
+   "goingDeeper": false,
+   "stageName": "Named",
+   "showpiece": "A"
+  },
+  {
+   "name": "Access keys: full-access vs function-call keys",
+   "stage": 1,
+   "difficulty": 2,
+   "importance": 5,
+   "innovation": 5,
+   "differs": "u",
+   "comparison": "Ethereum and Solana accounts have one key with full power; scoped keys there need smart wallets (ERC-4337). NEAR has many keys per account natively, including keys limited to one contract and an allowance. This is what makes 'log in without popups' work.",
+   "verify": 0,
+   "source": "https://docs.near.org/protocol/access-keys",
+   "goingDeeper": false,
+   "stageName": "Named",
+   "showpiece": "A"
+  },
+  {
+   "name": "NEAR transaction anatomy: signer, receiver, actions, nonce, block hash",
+   "stage": 1,
+   "difficulty": 3,
+   "importance": 5,
+   "innovation": 3,
+   "differs": "p",
+   "comparison": "One NEAR transaction carries a list of actions (create account, add key, deploy, call, transfer) that run together. The nonce belongs to the access key, not the account, and the transaction must cite a recent block hash so it expires after about a day. An Ethereum transaction is one call with an account-wide nonce.",
+   "verify": 1,
+   "source": "https://docs.near.org/protocol/transactions",
+   "goingDeeper": false,
+   "stageName": "Named",
+   "showpiece": "B"
+  },
+  {
+   "name": "How NEAR apps connect to wallets (NEAR Connect, key-based login, NEP-413)",
+   "stage": 1,
+   "difficulty": 2,
+   "importance": 4,
+   "innovation": 3,
+   "differs": "p",
+   "comparison": "Apps request a function-call key at login, so small actions need no wallet popup. Ethereum apps ask the wallet to sign every transaction. Apps can also ask for a signed message (NEP-413), like Sign-In with Ethereum (EIP-4361).",
+   "verify": 0,
+   "source": "https://docs.near.org/protocol/access-keys",
+   "goingDeeper": false,
+   "stageName": "Named",
+   "showpiece": "A"
+  },
+  {
+   "name": "NEAR token, yoctoNEAR units and supply",
+   "stage": 1,
+   "difficulty": 1,
+   "importance": 4,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "Standard native token. 1 NEAR = 10^24 yocto.",
+   "verify": 0,
+   "source": "https://docs.near.org/protocol/basics",
+   "goingDeeper": false,
+   "stageName": "Named",
+   "showpiece": "A"
+  },
+  {
+   "name": "Storage staking",
+   "stage": 1,
+   "difficulty": 3,
+   "importance": 4,
+   "innovation": 4,
+   "differs": "p",
+   "comparison": "Data stored on chain locks NEAR (1 NEAR per 100 KB) and is refunded when deleted. Solana's rent-exempt balance is similar. Ethereum charges once and stores forever.",
+   "verify": 0,
+   "source": "https://docs.near.org/protocol/storage/storage-staking",
+   "goingDeeper": false,
+   "stageName": "Named",
+   "showpiece": "B"
+  },
+  {
+   "name": "Wallets: Meteor, HOT, MyNearWallet, Intear, Ledger, passkey and email sign-in",
+   "stage": 1,
+   "difficulty": 1,
+   "importance": 4,
+   "innovation": 2,
+   "differs": "p",
+   "comparison": "Standard wallet landscape. HOT Wallet drives most NEAR transactions (about 65% in Q2 2026 per Nansen). Passkey and email onboarding compares with Privy, Web3Auth and Coinbase Smart Wallet; NEAR's FastAuth was an earlier version.",
+   "verify": 1,
+   "source": "https://nansen.ai/post/nansen-near-quarterly-report-q2-2026",
+   "goingDeeper": false,
+   "stageName": "Named",
+   "showpiece": "A"
+  },
+  {
+   "name": "Sharding: Nightshade (one chain, chunks per shard)",
+   "stage": 2,
+   "difficulty": 4,
+   "importance": 5,
+   "innovation": 5,
+   "differs": "u",
+   "comparison": "Ethereum dropped execution sharding in favour of rollups; Solana runs one global state; Polkadot and Cosmos use separate chains. NEAR splits one chain into shards, each block carrying a 'chunk' per shard, invisible to users.",
+   "verify": 0,
+   "source": "https://medium.com/nearprotocol/nightshade-2-0-e870c7a85c03",
+   "goingDeeper": false,
+   "stageName": "Nightshade",
+   "showpiece": "A"
+  },
+  {
+   "name": "Stateless validation (Nightshade 2.0)",
+   "stage": 2,
+   "difficulty": 5,
+   "importance": 4,
+   "innovation": 5,
+   "differs": "u",
+   "comparison": "Chunk validators check a 'state witness' without storing full state. Ethereum has researched statelessness (Verkle trees) but hasn't shipped it on L1. Live on NEAR mainnet since 2024.",
+   "verify": 0,
+   "source": "https://pages.near.org/?p=21503",
+   "goingDeeper": false,
+   "stageName": "Nightshade",
+   "showpiece": "B"
+  },
+  {
+   "name": "Dynamic resharding",
+   "stage": 2,
+   "difficulty": 4,
+   "importance": 3,
+   "innovation": 5,
+   "differs": "u",
+   "comparison": "Shards split or merge by load without governance votes (network upgrade 2.13, 2026). Mainnet went from 6 to 9 shards in late 2025. No major L1 resizes shards automatically.",
+   "verify": 1,
+   "source": "https://nansen.ai/post/nansen-near-quarterly-report-q2-2026",
+   "goingDeeper": false,
+   "stageName": "Nightshade",
+   "showpiece": "B"
+  },
+  {
+   "name": "Doomslug block production and finality",
+   "stage": 2,
+   "difficulty": 4,
+   "importance": 4,
+   "innovation": 4,
+   "differs": "p",
+   "comparison": "About 600 ms blocks and about 1.2 s finality. Solana has ~400 ms slots but slower full finality; Ethereum 12 s slots and ~13 min finality; CometBFT chains finalise in seconds.",
+   "verify": 1,
+   "source": "https://docs.near.org/protocol/basics",
+   "goingDeeper": false,
+   "stageName": "Nightshade",
+   "showpiece": "A"
+  },
+  {
+   "name": "Validators, epochs and staking (pools, liquid staking)",
+   "stage": 2,
+   "difficulty": 3,
+   "importance": 4,
+   "innovation": 3,
+   "differs": "p",
+   "comparison": "Proof-of-stake basics with NEAR-specific roles (block producers, chunk producers, chunk validators) and roughly 12-hour epochs. Liquid staking tokens (stNEAR, LiNEAR, rNEAR) work like Lido on Ethereum.",
+   "verify": 1,
+   "source": "https://docs.near.org/protocol/basics",
+   "goingDeeper": false,
+   "stageName": "Nightshade",
+   "showpiece": "B"
+  },
+  {
+   "name": "Receipts and asynchronous execution",
+   "stage": 2,
+   "difficulty": 4,
+   "importance": 5,
+   "innovation": 4,
+   "differs": "p",
+   "comparison": "On Ethereum and Solana, contract-to-contract calls are synchronous and atomic in one transaction. On NEAR they become receipts that can execute in later blocks on other shards, so a 'transaction' can partially succeed. Cosmos IBC is async too, but between chains.",
+   "verify": 0,
+   "source": "https://docs.near.org/protocol/basics",
+   "goingDeeper": false,
+   "stageName": "Nightshade",
+   "showpiece": "A"
+  },
+  {
+   "name": "Gas economics: 30% of fees go to the contract",
+   "stage": 2,
+   "difficulty": 2,
+   "importance": 3,
+   "innovation": 4,
+   "differs": "p",
+   "comparison": "Ethereum burns the base fee and gives contracts nothing. NEAR burns 70% and pays 30% to the called contract, a built-in developer revenue stream.",
+   "verify": 0,
+   "source": "https://docs.near.org/protocol/basics",
+   "goingDeeper": false,
+   "stageName": "Nightshade",
+   "showpiece": "A"
+  },
+  {
+   "name": "How NEAR is governed and paid: validator-vote upgrades and tokenomics",
+   "stage": 2,
+   "difficulty": 2,
+   "importance": 3,
+   "innovation": 3,
+   "differs": "p",
+   "comparison": "Upgrades activate once 80% of stake runs them, with no chain split, similar to Tezos or Cosmos governance upgrades while Ethereum coordinates hard forks. Issuance is standard proof of stake: validators voted the maximum inflation from 5% to 2.5% with protocol version 81 (Oct 2025).",
+   "verify": 0,
+   "source": "https://blog.nearone.org/announcement/2025/10/21/enhancing-near-tokenomics.html",
+   "goingDeeper": false,
+   "stageName": "Nightshade",
+   "showpiece": "B"
+  },
+  {
+   "name": "Roadmap: SPICE (consensus separated from execution)",
+   "stage": 2,
+   "difficulty": 5,
+   "importance": 2,
+   "innovation": 4,
+   "differs": "p",
+   "comparison": "Aims for ~200 ms blocks. Monad, Sui and Aptos already decouple execution, so the idea isn't new; doing it on a sharded chain is.",
+   "verify": 1,
+   "source": "https://nansen.ai/post/nansen-near-quarterly-report-q2-2026",
+   "goingDeeper": true,
+   "stageName": "Nightshade",
+   "showpiece": null
+  },
+  {
+   "name": "Post-quantum keys (ML-DSA) and key rotation",
+   "stage": 2,
+   "difficulty": 4,
+   "importance": 2,
+   "innovation": 4,
+   "differs": "p",
+   "comparison": "Because accounts can rotate keys, they can move to quantum-safe keys without changing address. Ethereum externally owned accounts cannot rotate keys.",
+   "verify": 1,
+   "source": "https://nansen.ai/post/nansen-near-quarterly-report-q2-2026",
+   "goingDeeper": true,
+   "stageName": "Nightshade",
+   "showpiece": null
+  },
+  {
+   "name": "Contracts in WebAssembly (Rust, JS/TS) and near-sdk",
+   "stage": 3,
+   "difficulty": 3,
+   "importance": 5,
+   "innovation": 3,
+   "differs": "p",
+   "comparison": "Ethereum uses the EVM and Solidity; Solana compiles Rust to its own VM. Cosmos CosmWasm also uses Wasm.",
+   "verify": 0,
+   "source": "https://docs.near.org/protocol/basics",
+   "goingDeeper": false,
+   "stageName": "Wasm",
+   "showpiece": "B"
+  },
+  {
+   "name": "Cross-contract calls, promises and callbacks",
+   "stage": 3,
+   "difficulty": 4,
+   "importance": 5,
+   "innovation": 4,
+   "differs": "p",
+   "comparison": "Follows from async receipts: you must handle callbacks and failures yourself. Very different from Solidity's synchronous calls.",
+   "verify": 0,
+   "source": "https://docs.near.org/protocol/basics",
+   "goingDeeper": false,
+   "stageName": "Wasm",
+   "showpiece": "B"
+  },
+  {
+   "name": "Contract state, storage management (NEP-145), upgrades and global contracts",
+   "stage": 3,
+   "difficulty": 3,
+   "importance": 4,
+   "innovation": 3,
+   "differs": "p",
+   "comparison": "Upgrading means redeploying code to the same account, so no proxy pattern like Ethereum's. Storage must be registered or paid for. Global contracts let many accounts reuse one deployed code, cutting storage for factories; Ethereum uses minimal proxies (EIP-1167).",
+   "verify": 1,
+   "source": "https://docs.near.org/protocol/storage/storage-staking",
+   "goingDeeper": false,
+   "stageName": "Wasm",
+   "showpiece": "B"
+  },
+  {
+   "name": "Token standards: NEP-141, NEP-171, NEP-245, NEP-297 events",
+   "stage": 3,
+   "difficulty": 3,
+   "importance": 4,
+   "innovation": 2,
+   "differs": "p",
+   "comparison": "Roughly ERC-20, ERC-721, ERC-1155. NEP-141 uses ft_transfer_call instead of approve plus transferFrom, and needs storage registration.",
+   "verify": 0,
+   "source": "https://docs.near.org/primitives/nft/standard.md",
+   "goingDeeper": false,
+   "stageName": "Wasm",
+   "showpiece": "B"
+  },
+  {
+   "name": "Meta-transactions and relayers (NEP-366)",
+   "stage": 3,
+   "difficulty": 3,
+   "importance": 4,
+   "innovation": 4,
+   "differs": "p",
+   "comparison": "Gasless transactions are built into the protocol. Ethereum needs ERC-4337 bundlers and paymasters.",
+   "verify": 0,
+   "source": "https://docs.near.org/protocol/basics",
+   "goingDeeper": false,
+   "stageName": "Wasm",
+   "showpiece": "B"
+  },
+  {
+   "name": "RPC providers vs running your own node",
+   "stage": 3,
+   "difficulty": 3,
+   "importance": 4,
+   "innovation": 2,
+   "differs": "n",
+   "comparison": "Same trade-off on every chain: providers (FastNEAR, Lava, Ankr and others) are easy but you trust and depend on them; your own nearcore node costs hardware and upkeep. NEAR specifics: regular vs archival nodes, and the free public endpoint is rate-limited, so production apps use providers with failover.",
+   "verify": 1,
+   "source": "https://docs.near.org/api/rpc/introduction",
+   "goingDeeper": false,
+   "stageName": "Wasm",
+   "showpiece": "B"
+  },
+  {
+   "name": "Data infrastructure: NEAR Lake, indexers, explorer APIs",
+   "stage": 3,
+   "difficulty": 3,
+   "importance": 4,
+   "innovation": 2,
+   "differs": "n",
+   "comparison": "Comparable to Ethereum's indexing stack (The Graph, Etherscan API).",
+   "verify": 0,
+   "source": "https://docs.near.org/data-infrastructure/tutorials/nft-indexer",
+   "goingDeeper": false,
+   "stageName": "Wasm",
+   "showpiece": "B"
+  },
+  {
+   "name": "Building a public non-custodial wallet: architecture",
+   "stage": 3,
+   "difficulty": 5,
+   "importance": 4,
+   "innovation": 3,
+   "differs": "p",
+   "comparison": "Common parts: key generation and encrypted storage (or passkeys/MPC), signing, RPC with failover, Ledger support, phishing protection. Extra on NEAR: creating named accounts (needs a funded creator or relayer), managing several access keys and their allowances, NEP-413 message signing, NEAR Connect integration, and Chain Signatures for other chains.",
+   "verify": 1,
+   "source": "https://docs.near.org/protocol/transactions",
+   "goingDeeper": false,
+   "stageName": "Wasm",
+   "showpiece": null
+  },
+  {
+   "name": "Aurora (EVM on NEAR)",
+   "stage": 3,
+   "difficulty": 3,
+   "importance": 2,
+   "innovation": 3,
+   "differs": "p",
+   "comparison": "An EVM running as a NEAR contract, so Solidity apps can deploy. Compare with EVM layers on Cosmos (Evmos) or Polkadot (Moonbeam).",
+   "verify": 1,
+   "source": null,
+   "goingDeeper": true,
+   "stageName": "Wasm",
+   "showpiece": null
+  },
+  {
+   "name": "Chain Signatures (MPC signing for other chains)",
+   "stage": 4,
+   "difficulty": 5,
+   "importance": 5,
+   "innovation": 5,
+   "differs": "u",
+   "comparison": "A NEAR account or contract controls addresses on Bitcoin, Ethereum, Solana and more, signed by a decentralised MPC network. Nearest equivalents: ICP's threshold ECDSA, Lit Protocol, ZetaChain TSS. The lesson also shows how a contract pauses and resumes (yield and resume, NEP-519) while the network signs.",
+   "verify": 1,
+   "source": "https://docs.near.org/chain-abstraction/chain-signatures",
+   "goingDeeper": false,
+   "stageName": "Any Chain",
+   "showpiece": "A"
+  },
+  {
+   "name": "NEAR Intents (verifier, solvers, 1Click)",
+   "stage": 4,
+   "difficulty": 5,
+   "importance": 5,
+   "innovation": 5,
+   "differs": "p",
+   "comparison": "Intent-based trading exists elsewhere (UniswapX, CoW Swap, Across). NEAR's version is a cross-chain settlement layer across 35+ chains, with over $22B cumulative volume.",
+   "verify": 0,
+   "source": "https://nansen.ai/post/nansen-near-quarterly-report-q2-2026",
+   "goingDeeper": false,
+   "stageName": "Any Chain",
+   "showpiece": "A"
+  },
+  {
+   "name": "Omni Bridge (successor to Rainbow Bridge)",
+   "stage": 4,
+   "difficulty": 4,
+   "importance": 3,
+   "innovation": 3,
+   "differs": "p",
+   "comparison": "Combines light clients with Chain Signatures. Compare Wormhole, LayerZero, Axelar.",
+   "verify": 1,
+   "source": null,
+   "goingDeeper": true,
+   "stageName": "Any Chain",
+   "showpiece": "B"
+  },
+  {
+   "name": "Confidential Intents (private shard plus TEE bridge)",
+   "stage": 4,
+   "difficulty": 5,
+   "importance": 3,
+   "innovation": 5,
+   "differs": "p",
+   "comparison": "Private swaps exist (Railgun, Aztec, Penumbra). NEAR's runs on a permissioned private shard bridged by trusted hardware, so you trust TEEs and those validators. About 42% of near.com swap volume is private by default.",
+   "verify": 1,
+   "source": "https://nansen.ai/post/nansen-near-quarterly-report-q2-2026",
+   "goingDeeper": false,
+   "stageName": "Any Chain",
+   "showpiece": "B"
+  },
+  {
+   "name": "Multichain accounts: one NEAR account, many chains",
+   "stage": 4,
+   "difficulty": 3,
+   "importance": 4,
+   "innovation": 4,
+   "differs": "p",
+   "comparison": "Built on Chain Signatures. Smart-wallet projects on other chains aim at the same UX but usually need a bridge or custody.",
+   "verify": 0,
+   "source": "https://docs.near.org/chain-abstraction/chain-signatures",
+   "goingDeeper": false,
+   "stageName": "Any Chain",
+   "showpiece": "A"
+  },
+  {
+   "name": "TEEs and remote attestation basics",
+   "stage": 5,
+   "difficulty": 4,
+   "importance": 4,
+   "innovation": 2,
+   "differs": "n",
+   "comparison": "General hardware technology (Intel TDX, NVIDIA confidential GPUs), not NEAR-specific. Prerequisite for the three topics after it.",
+   "verify": 0,
+   "source": "https://docs.near.ai/cloud/private-inference",
+   "goingDeeper": false,
+   "stageName": "Enclave",
+   "showpiece": "A"
+  },
+  {
+   "name": "NEAR AI Cloud: confidential inference and stake-to-compute",
+   "stage": 5,
+   "difficulty": 3,
+   "importance": 4,
+   "innovation": 4,
+   "differs": "p",
+   "comparison": "Models run inside Intel TDX plus H200 GPU enclaves with attestation you can verify yourself; OpenAI-compatible API. You can also stake NEAR to earn inference credits instead of paying per call. Compare Phala, Secret AI, Apple Private Cloud Compute (closed).",
+   "verify": 1,
+   "source": "https://docs.near.ai/cloud/private-inference",
+   "goingDeeper": false,
+   "stageName": "Enclave",
+   "showpiece": "A"
+  },
+  {
+   "name": "Shade Agents (TEE agents holding multichain keys)",
+   "stage": 5,
+   "difficulty": 5,
+   "importance": 3,
+   "innovation": 5,
+   "differs": "p",
+   "comparison": "Agents run in a TEE and control Chain Signature accounts, so no human holds the key. Compare Phala agents and Autonolas.",
+   "verify": 0,
+   "source": "https://docs.near.org/ai/shade-agents/concepts/ai-inference.md",
+   "goingDeeper": false,
+   "stageName": "Enclave",
+   "showpiece": "B"
+  },
+  {
+   "name": "User-owned AI and agents on NEAR",
+   "stage": 5,
+   "difficulty": 2,
+   "importance": 3,
+   "innovation": 3,
+   "differs": "p",
+   "comparison": "The NEAR AI vision. Many chains pitch AI agents; the private-inference and Chain Signatures pieces are the concrete differences.",
+   "verify": 1,
+   "source": null,
+   "goingDeeper": false,
+   "stageName": "Enclave",
+   "showpiece": "A"
+  },
+  {
+   "name": "House of Stake, veNEAR and DAOs",
+   "stage": 6,
+   "difficulty": 3,
+   "importance": 3,
+   "innovation": 3,
+   "differs": "p",
+   "comparison": "Vote-escrow model borrowed from Curve (veCRV). Small validators and veNEAR holders got extra rewards in the 2025 tokenomics change. DAOs (Sputnik, AstroDAO) compare with Snapshot plus Safe on Ethereum and get a short mention here.",
+   "verify": 1,
+   "source": "https://blog.nearone.org/announcement/2025/10/21/enhancing-near-tokenomics.html",
+   "goingDeeper": false,
+   "stageName": "Citizen",
+   "showpiece": "B"
+  },
+  {
+   "name": "DeFi map and market glossary: Rhea (Ref), lending, stablecoins, oracles, launchpads",
+   "stage": 6,
+   "difficulty": 3,
+   "importance": 3,
+   "innovation": 2,
+   "differs": "n",
+   "comparison": "Standard DeFi building blocks; native USDC and USDT exist on NEAR. Oracles (Pyth) are the same ones used across chains. Launchpads and memecoin factories follow the pump.fun pattern on Solana. Oracles and launchpads get a short mention here, with no lesson of their own.",
+   "verify": 1,
+   "source": "https://nansen.ai/post/nansen-near-quarterly-report-q2-2026",
+   "goingDeeper": false,
+   "stageName": "Citizen",
+   "showpiece": "B"
+  },
+  {
+   "name": "Capstone: trace a cross-chain intent end to end",
+   "stage": 7,
+   "difficulty": 5,
+   "importance": 5,
+   "innovation": 5,
+   "differs": "u",
+   "comparison": "Ties together accounts, keys, receipts, shards, Chain Signatures and Intents in one real transaction.",
+   "verify": 0,
+   "source": null,
+   "goingDeeper": false,
+   "stageName": "Book of NEAR",
+   "showpiece": "A"
+  },
+  {
+   "name": "Capstone: the honest take",
+   "stage": 7,
+   "difficulty": 3,
+   "importance": 4,
+   "innovation": 1,
+   "differs": "n",
+   "comparison": "NEAR's strengths and weaknesses (async complexity, TEE trust, ecosystem size, HOT concentration) versus competitors.",
+   "verify": 0,
+   "source": null,
+   "goingDeeper": false,
+   "stageName": "Book of NEAR",
+   "showpiece": "B"
+  }
+ ]
+}

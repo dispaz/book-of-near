@@ -1,0 +1,19 @@
+# Glossary
+
+- **Book of NEAR**: the product, an interactive course on NEAR.
+- **Stage**: a group of lessons (0 Blank Page, 1 Named, 2 Nightshade, 3 Wasm optimisation, 4 Any Chain, 5 Enclave (deferred), 6 Citizen (dropped), 7 Book of NEAR capstone). Ids 5 and 6 are reserved.
+- **Lesson**: one folder with a manifest, a scene, steps, a quiz and an Honest take.
+- **Showpiece**: a lesson with a real interactive action. 9 are tier A (must build).
+- **Honest take**: closing section of each lesson with NEAR's pros and cons.
+- **Scene kit**: shared Three.js/SVG toolkit (ink shader, blocks, accounts, stage bar, fallback).
+- **Stage bar**: bottom control bar (menu, back, play, caption, dots, next).
+- **Chain interface**: the single seam for all chain access. Two implementations: **TestnetChain** (real) and **DemoChain** (deterministic, in browser).
+- **Demo mode**: running with no wallet or network, using DemoChain.
+- **Practice account**: faucet-funded testnet account created for the learner.
+- **Badge**: NFT minted by the badge contract. One per stage, plus a final badge.
+- **Claim**: a Worker-signed message the contract verifies (ed25519) before minting.
+- **Rarity tier**: one of four levels of the final badge, computed by the Worker from verifiable inputs.
+- **Route**: a path through the final exam; each route requires a set of stages.
+- **Planned card**: a locked backlog topic shown in the menu.
+- **Worker**: the Cloudflare Worker (faucet, claim signer, exam grader, intents proxy).
+- **Spike**: a short ticket that verifies an unverified fact.

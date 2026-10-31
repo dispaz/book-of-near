@@ -1,0 +1,477 @@
+<title>Book of NEAR Curriculum Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a field-guide ledger. Narrow reading column for prose, full-width scrollable table for the topic register. Ink-on-paper to match the prototype's outline style. */
+:root{
+  --paper:#f6f7f5; --card:#ffffff; --ink:#15201f; --muted:#5b6866; --rule:#d5dcd9;
+  --accent:#0d6b62; --accent-soft:#dcefeb; --warn:#9a5b00; --warn-soft:#fbeed8; --no:#6d7775; --no-soft:#eceeed;
+  --uniq:#0d6b62; --uniq-soft:#d6eee9; --part:#3c5aa8; --part-soft:#e2e8f8;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#101615; --card:#172120; --ink:#e4ecea; --muted:#9aa9a6; --rule:#2c3a38;
+  --accent:#5cc6b8; --accent-soft:#1b3632; --warn:#e8b25c; --warn-soft:#3a2c16; --no:#9aa5a3; --no-soft:#252e2d;
+  --uniq:#5cc6b8; --uniq-soft:#1b3632; --part:#93acf0; --part-soft:#222c46; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#101615; --card:#172120; --ink:#e4ecea; --muted:#9aa9a6; --rule:#2c3a38;
+  --accent:#5cc6b8; --accent-soft:#1b3632; --warn:#e8b25c; --warn-soft:#3a2c16; --no:#9aa5a3; --no-soft:#252e2d;
+  --uniq:#5cc6b8; --uniq-soft:#1b3632; --part:#93acf0; --part-soft:#222c46; color-scheme:dark}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding-block:40px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(2rem,4.5vw,3.1rem);font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.65rem;font-weight:700}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0;max-width:68ch}
+a{color:var(--accent)}
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.eyebrow{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+section{display:flex;flex-direction:column;gap:18px}
+.lede{font-size:1.08rem;color:var(--muted)}
+header{display:flex;flex-direction:column;gap:14px;border-bottom:2px solid var(--ink);padding-bottom:28px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:8px}
+.fact{border:1px solid var(--rule);background:var(--card);border-radius:6px;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.fact b{font-family:var(--f-display);font-size:1.5rem;font-variant-numeric:tabular-nums}
+.fact span{color:var(--muted);font-size:.88rem}
+.legend{display:flex;flex-wrap:wrap;gap:10px 24px;font-size:.88rem;color:var(--muted)}
+.legend b{color:var(--ink)}
+/* stages */
+.stages{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.stage{background:var(--card);border:1px solid var(--rule);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.stage .num{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.stage .badge{display:flex;align-items:center;gap:10px}
+.medal{width:38px;height:38px;flex:none}
+.stage ul{margin:0;padding-left:18px;font-size:.9rem;display:flex;flex-direction:column;gap:2px}
+.stage .who{font-size:.82rem;color:var(--muted)}
+.paths{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.path{border-left:3px solid var(--accent);padding:4px 0 4px 12px;font-size:.92rem}
+/* table */
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.controls label{font-size:.85rem;color:var(--muted);display:flex;gap:6px;align-items:center}
+select,input[type=search]{font:inherit;font-size:.9rem;padding:6px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--card);color:var(--ink)}
+.count{font-family:var(--f-mono);font-size:.8rem;color:var(--muted);margin-left:auto}
+.tablebox{overflow-x:auto;border:1px solid var(--rule);border-radius:6px;background:var(--card)}
+table{border-collapse:collapse;width:100%;min-width:980px;font-size:.9rem}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--rule)}
+th{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--card);position:sticky;top:0;white-space:nowrap}
+th button{all:unset;cursor:pointer}
+th button:hover{color:var(--ink)}
+tr:last-child td{border-bottom:none}
+td.t{min-width:200px}
+td.t b{display:block;font-weight:600}
+td.t small{color:var(--muted);font-family:var(--f-mono);font-size:.72rem}
+td.cmp{min-width:340px;max-width:460px}
+.dots{display:inline-flex;gap:3px;align-items:center;white-space:nowrap}
+.dots i{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--ink);display:inline-block}
+.dots i.on{background:var(--ink)}
+.dots.n i{border-color:var(--accent)} .dots.n i.on{background:var(--accent)}
+.dots span{font-family:var(--f-mono);font-size:.75rem;margin-left:5px;color:var(--muted)}
+.pill{display:inline-block;font-family:var(--f-mono);font-size:.7rem;letter-spacing:.04em;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.p-u{background:var(--uniq-soft);color:var(--uniq)} .p-p{background:var(--part-soft);color:var(--part)} .p-n{background:var(--no-soft);color:var(--no)}
+.unc{display:inline-block;margin-top:4px;font-size:.75rem;color:var(--warn);background:var(--warn-soft);padding:1px 6px;border-radius:3px}
+.src{font-size:.78rem}
+.opt{display:inline-block;font-family:var(--f-mono);font-size:.68rem;letter-spacing:.04em;color:var(--muted);border:1px dashed var(--muted);border-radius:3px;padding:0 5px;margin-left:6px;white-space:nowrap}
+.tier{display:inline-block;font-family:var(--f-mono);font-size:.68rem;letter-spacing:.04em;border-radius:3px;padding:1px 6px;margin-left:6px;white-space:nowrap}
+.tA{background:var(--accent);color:var(--paper)} .tB{background:var(--part-soft);color:var(--part)}
+.planstage{display:flex;flex-direction:column;gap:10px;padding-top:6px}
+.shows{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px}
+.show{border:1px solid var(--rule);border-radius:6px;background:var(--card);padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0;font-size:.9rem}
+.showhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.showhead .tier{margin-left:0}
+.showhead b{font-family:var(--f-display);font-size:1rem}
+.show .chain{font-family:var(--f-mono);font-size:.76rem;color:var(--accent)}
+.show .trk{font-size:.8rem;color:var(--warn);background:var(--warn-soft);padding:2px 8px;border-radius:3px;align-self:flex-start}
+.show .covers{font-size:.8rem;color:var(--muted)}
+.fit{border-collapse:collapse;width:100%;min-width:640px;font-size:.88rem}
+.fit th,.fit td{padding:8px 10px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top;position:static}
+.fit td:first-child{font-weight:600;white-space:nowrap}
+.str{font-family:var(--f-mono);font-size:.72rem;padding:1px 7px;border-radius:99px;white-space:nowrap}
+.s-hi{background:var(--uniq-soft);color:var(--uniq)} .s-mid{background:var(--warn-soft);color:var(--warn)} .s-lo{background:var(--no-soft);color:var(--no)}
+.backlog{font-size:.85rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{border:1px solid var(--rule);border-radius:99px;padding:1px 9px;font-size:.78rem;color:var(--ink);background:var(--card)}
+.mention{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.mention div{border:1px solid var(--rule);border-radius:6px;padding:14px;background:var(--card);font-size:.9rem;display:flex;flex-direction:column;gap:4px}
+.mention b{font-family:var(--f-display)}
+/* nft */
+.verdict{background:var(--accent-soft);border-radius:6px;padding:18px 20px;display:flex;flex-direction:column;gap:8px}
+.verdict h3{color:var(--accent)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:22px}
+.block{display:flex;flex-direction:column;gap:10px;min-width:0}
+.block ul,.block ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;max-width:68ch}
+.cost{border-collapse:collapse;font-size:.9rem;min-width:0;width:100%}
+.cost td,.cost th{padding:7px 10px;border-bottom:1px solid var(--rule);position:static}
+.cost td:last-child{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.note{font-size:.84rem;color:var(--muted)}
+.risk{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.risk div{border:1px solid var(--rule);border-radius:6px;padding:14px;background:var(--card);display:flex;flex-direction:column;gap:6px;font-size:.9rem}
+.risk b{font-family:var(--f-display)}
+.sources ol{columns:2 340px;font-size:.85rem;padding-left:20px;margin:0}
+.sources li{break-inside:avoid;margin-bottom:6px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Curriculum research · NEAR Hackathon 2026 · as of 28 Oct 2026</div>
+  <h1>Book of NEAR: from zero to veteran</h1>
+  <p class="lede">Every topic a learner needs, from "what is a private key" to stateless validation and Shade Agents. Each one is scored for difficulty, importance and how innovative NEAR's approach is, with an honest note on how it compares to Ethereum, Solana, Cosmos and others. Then a staged learning order, and a feasibility check on minting an NFT badge for each finished stage.</p>
+  <div class="facts" id="facts"></div>
+  <div class="legend">
+    <span><b>D</b> concept difficulty (1 easy, 5 expert)</span>
+    <span><b>I</b> importance for understanding NEAR</span>
+    <span><b>N</b> innovation of NEAR's approach (1 standard, 5 first or unique)</span>
+    <span><span class="pill p-u">different</span> no close equivalent elsewhere</span>
+    <span><span class="pill p-p">partly</span> similar ideas exist, NEAR's take differs</span>
+    <span><span class="pill p-n">same</span> standard crypto concept</span>
+    <span><span class="unc">verify</span> number or status I could not confirm from an official source</span>
+  </div>
+</header>
+
+<section id="path">
+  <div class="eyebrow">Part 1</div>
+  <h2>Learning order: eight stages, eight badges</h2>
+  <p>Stages go from universal crypto basics to NEAR-specific depth. Each ends with one real on-chain action and a badge mint. The opening quiz can skip people ahead, so a veteran or developer doesn't sit through Stage 0.</p>
+  <div class="stages" id="stages"></div>
+  <h3>How the opening quiz routes people</h3>
+  <div class="paths">
+    <div class="path"><b>Newcomer:</b> Stages 0 → 1 → 2 → 4 → 5 → 6 → 7. Stage 3 (builder) is optional and unlocks the developer badge.</div>
+    <div class="path"><b>Crypto veteran:</b> a test-out quiz awards Stage 0 and 1, then 2 → 4 → 5 → 6 → 7. The value for them is sharding, intents and chain signatures.</div>
+    <div class="path"><b>Developer:</b> test out of 0, then 1 → 3 → 2 → 4 → 5 → 7. Stage 3 includes deploying a tiny contract on testnet.</div>
+  </div>
+</section>
+
+<section id="topics">
+  <div class="eyebrow">Part 2</div>
+  <h2>Topic register</h2>
+  <p>Sort any column. "Differs?" answers your question directly: does NEAR do this differently from what's on the market, and compared with whom. The highest-value topics for the hackathon pitch are the ones that score 4–5 on both importance and innovation.</p>
+  <div class="controls">
+    <label for="fStage">Stage <select id="fStage"><option value="all">All stages</option></select></label>
+    <label for="fDiff">Differs? <select id="fDiff"><option value="all">Any</option><option value="u">Different</option><option value="p">Partly</option><option value="n">Same</option></select></label>
+    <label for="fQ">Search <input type="search" id="fQ" placeholder="e.g. intents, keys"></label>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="tablebox">
+    <table>
+      <thead><tr>
+        <th><button data-k="name">Topic</button></th>
+        <th><button data-k="stage">Stage</button></th>
+        <th><button data-k="d">D</button></th>
+        <th><button data-k="i">I</button></th>
+        <th><button data-k="n">N</button></th>
+        <th><button data-k="diff">Differs?</button></th>
+        <th>How it compares</th>
+        <th>Source</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <h3>Mentioned inside another lesson, no lesson of their own</h3>
+  <p>These topics matter, but another lesson already teaches the idea they rest on. Each gets a short mention with a pointer, so a learner still meets it.</p>
+  <div class="mention">
+    <div><b>Oracles (Pyth)</b><span>Stage 6, DeFi map. Same oracles as on other chains.</span></div>
+    <div><b>DAOs (Sputnik, AstroDAO)</b><span>Stage 6, House of Stake and DAOs.</span></div>
+    <div><b>Launchpads and memecoins</b><span>Stage 6, DeFi map. A market pattern, not a technology.</span></div>
+    <div><b>Yield and resume (NEP-519)</b><span>Stage 4, inside the Chain Signatures lesson.</span></div>
+    <div><b>Stake-to-compute</b><span>Stage 5, inside the NEAR AI Cloud lesson.</span></div>
+    <div><b>Passkeys, email sign-in, FastAuth</b><span>Stage 1, wallets lesson.</span></div>
+    <div><b>NEP-413 signed messages</b><span>Stage 1, wallet connection lesson.</span></div>
+    <div><b>Liquid staking</b><span>Stage 2, validators and staking lesson.</span></div>
+    <div><b>Global contracts</b><span>Stage 3, contract state and upgrades lesson.</span></div>
+    <div><b>Who's who (Foundation, Near One, NEAR AI, Defuse, HOT)</b><span>One glossary page, no quiz.</span></div>
+  </div>
+  <p class="note">Dropped entirely: NEAR DA and BOS / NEAR Social. Neither is needed for anything later; BOS gets one line in the honest take as history.</p>
+</section>
+
+<section id="plan">
+  <div class="eyebrow">Part 3</div>
+  <h2>Showpiece plan: what to build first</h2>
+  <p>Only lessons with something to do get a full page: a live read from the chain, a real transaction, or an animation you can drive. Each stage has two or three of them. Every other topic stays in the book as a backlog item, starting as a short text card with a quiz and growing into a full lesson if time allows.</p>
+  <p class="note" id="plan-sum"></p>
+  <p class="note"><b>Updated 30 Oct:</b> the agreed MVP scope has changed from this showpiece list. Stage 5 is deferred, Stage 6 is dropped, and every card in Stages 1, 3 and 4 is in. The current scope and build plan are in the <a href="https://claude.ai/artifact/QvgZ6qufEn3bxcG4gHYu55" target="_blank" rel="noopener">Book of NEAR Implementation Plan</a>.</p>
+  <p class="note">Transactions run on testnet so learners spend nothing, using a practice account the app funds from a faucet. The only mainnet actions are the badge mint and the optional tiny swap. Tier A is a stretch for 14 days solo, which is why the stage bar and lesson template should be built once and reused.</p>
+  <h3>Hackathon fit</h3>
+  <p>The hackathon has 13 tracks and allows entering several. Judging is two steps: Claude Code and Codex first check that the project runs and does what its README says, then human judges including NEAR's founder and well-known investors decide. Past NEAR hackathons scored technical work, design, impact, originality and sustainability. The tracks that fit a learning product, strongest first:</p>
+  <div class="tablebox"><table class="fit">
+    <thead><tr><th>Track</th><th>Fit</th><th>Why, and what it needs</th></tr></thead>
+    <tbody>
+    <tr><td>13 Open Innovation</td><td><span class="str s-hi">strong</span></td><td>No category suits an interactive curriculum. Originality is explicitly rewarded here. This is the home track.</td></tr>
+    <tr><td>10 NFTs That Do Something</td><td><span class="str s-hi">strong, if built</span></td><td>The track asks for NFTs that carry credentials or grant access. Our badges do both, but only if something visibly checks them: unlock the builder lessons or a perk by reading badge ownership from the chain, and make the Book of NEAR badge update as stages complete. A plain minted image would not count.</td></tr>
+    <tr><td>03 Privacy &amp; Private AI</td><td><span class="str s-mid">good</span></td><td>The tutor runs on NEAR AI Cloud and each answer can show a verified attestation. Keep the tutor free of stored learner data, and show the check in the UI rather than only claiming it.</td></tr>
+    <tr><td>06 AI Security &amp; Defense</td><td><span class="str s-mid">good, cheap to add</span></td><td>The track lists function-call keys and spending limits. The key lesson now ends with a challenge: try to trick an AI agent that holds a limited key. It costs one extra interaction in a lesson we are building anyway.</td></tr>
+    <tr><td>01 Unstoppable DeFi</td><td><span class="str s-lo">weak</span></td><td>The intent swap and Chain Signatures lessons use this track's technology, but we teach it, we don't ship a DeFi product. Judges would compare us with real exchanges.</td></tr>
+    <tr><td>02 Investment Thesis</td><td><span class="str s-lo">weak</span></td><td>Judged on evidence for a long-term NEAR case. The live money map would be a thin entry. Don't chase it.</td></tr>
+    <tr><td>04, 05, 07, 08, 09, 11, 12</td><td><span class="str s-lo">none</span></td><td>Agent businesses, swarms, payments, games, memecoins and DAOs are different products.</td></tr>
+    </tbody>
+  </table></div>
+  <ul class="note" style="max-width:68ch;display:flex;flex-direction:column;gap:6px">
+    <li><b>Make it runnable from the README.</b> The first reviewer is an AI that follows the README. Give it one install command, a demo mode that needs no wallet, and a fallback for when the testnet faucet is down. A lesson that only works with a funded wallet may count as broken.</li>
+    <li><b>Show the NEAR founders what they care about.</b> Chain Signatures, Intents and private AI are NEAR's current focus, so those showpieces carry the demo video.</li>
+    <li><b>Aim at three entries, not seven.</b> Open Innovation, NFTs That Do Something and Privacy &amp; Private AI, with the AI-agent challenge as a bonus claim for Track 06. Each extra track needs its own README section that shows the evidence.</li>
+    <li>Judging details come from the hackathon site and may change. A person can enter up to two independent projects, but this one entry should carry all the tracks.</li>
+  </ul>
+  <h3>Showpieces by stage</h3>
+  <div id="plan-body"></div>
+</section>
+
+<section id="nft">
+  <div class="eyebrow">Part 4</div>
+  <h2>NFT badges per stage: is it feasible?</h2>
+  <div class="verdict">
+    <h3>Yes for minting and explorer visibility. "Official" status is a pitch, not a deliverable.</h3>
+    <p>A NEP-171 contract that mints one badge per stage is a small, well-trodden build (about a day). Because NearBlocks and wallets index any contract that follows NEP-171 and emits standard NEP-297 events, the badges show up under the learner's account on NearBlocks and in NFT-aware wallets with no partnership needed. What does not exist today is a special "badge" or achievement slot on an explorer address page. Getting one means pitching NearBlocks or Pikespeak, and that won't be settled by 14 Nov. Present it as roadmap.</p>
+  </div>
+
+  <div class="grid2">
+    <div class="block">
+      <h3>Which standard</h3>
+      <ul>
+        <li><b>NEP-171 + NEP-177 + NEP-297</b> (core, metadata, events): the standard everything indexes. Badges become visible in explorers and wallets automatically. Recommended.</li>
+        <li><b>NEP-393 (Soulbound Token)</b>: a NEAR standard built for credentials, with issuers, classes, revocation and "soul transfer" for account recovery. Used by the I-Am-Human registry (<code>registry.i-am-human.near</code>). Tooling and explorer support are thin, and SBTs use their own events, so they likely won't appear as NFTs on NearBlocks. <span class="unc">verify NEP status and explorer support</span></li>
+        <li><b>Practical middle ground</b>: a NEP-171 contract whose <code>nft_transfer</code> and <code>nft_transfer_call</code> panic. Displays everywhere like an NFT, but cannot move. You can add an owner-only "re-issue" call for lost accounts.</li>
+      </ul>
+    </div>
+    <div class="block">
+      <h3>Soulbound or transferable?</h3>
+      <p>You asked for badges people could exchange. The catch is that a tradeable credential can be bought, so it no longer proves anyone learned anything. Recommended split:</p>
+      <ul>
+        <li><b>Stage badges: non-transferable.</b> They are the proof of learning that an explorer or another app could trust.</li>
+        <li><b>"Book of NEAR" completion: a transferable collector edition</b> minted alongside a non-transferable completion credential. People can trade or show off the collectible, while the credential stays with the learner.</li>
+        <li>"Used somewhere later": other apps can check <code>nft_tokens_for_owner</code> on your contract to gate perks (Discord roles, allowlists, discounts). That works only if the badge is non-transferable.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="block">
+      <h3>Cost per badge (mainnet estimate)</h3>
+      <table class="cost">
+        <tr><td>Storage staking (1 NEAR locks 100 KB). A badge with owner, title, description and media link plus hash is roughly 500–800 bytes</td><td>≈ 0.005–0.008 Ⓝ</td></tr>
+        <tr><td>Gas for one mint call (about 10–20 Tgas at the minimum gas price)</td><td>≈ 0.001–0.002 Ⓝ</td></tr>
+        <tr><td><b>Total per badge</b></td><td><b>≈ 0.01 Ⓝ</b></td></tr>
+        <tr><td>1,000 learners × 8 badges, if you sponsor everything</td><td>≈ 80 Ⓝ</td></tr>
+      </table>
+      <p class="note">Estimates from the documented storage price and default gas price; measure on testnet before committing. Keep images off-chain (IPFS or your Cloudflare site, with <code>media_hash</code>). Inlining an SVG on-chain would multiply storage cost.</p>
+    </div>
+    <div class="block">
+      <h3>Who pays</h3>
+      <ul>
+        <li><b>Learner attaches ~0.01 Ⓝ</b>: simplest, but a true newcomer has no NEAR yet.</li>
+        <li><b>Sponsored</b>: the contract pays storage from its own balance, and a relayer (NEP-366 meta-transactions) pays gas, so the mint is free for the learner. Cap it at one badge per account per stage and set a total budget. A hackathon budget of 10–20 Ⓝ covers 1,000–2,000 badges.</li>
+        <li>Recommended: sponsor Stages 0–1 so newcomers get a first badge free, and have later stages ask the learner to sign and pay, which doubles as their first real transaction.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="block">
+      <h3>How it shows up in explorers</h3>
+      <ul>
+        <li><b>NearBlocks</b>: indexes fungible tokens, NFTs and multi-tokens. A compliant contract's mints appear in the account's NFT token transactions and token holdings, and the contract gets an NFT token page. The exact layout is from memory, so check it on testnet with a dummy mint. <span class="unc">verify layout</span></li>
+        <li><b>Pikespeak</b>: account analytics including NFT holdings for standard contracts. <span class="unc">verify</span></li>
+        <li><b>Wallets</b> (Meteor, MyNearWallet, HOT): NFT galleries read NEP-171 and NEP-177 metadata, so the badge art appears there too.</li>
+        <li><b>A dedicated "badge" on the address</b>, like a verified tick or achievements row, does not exist today. That needs the explorer team to build it.</li>
+      </ul>
+    </div>
+    <div class="block">
+      <h3>Path to "official" badges</h3>
+      <ol>
+        <li>Ship a clean contract: NEP-171, 177 and 297, a clear <code>issuer</code> account, one public read method such as <code>has_completed(account, stage)</code>, and an open-source repo.</li>
+        <li>Give it a recognisable account name (for example <code>book.yourname.near</code>), collection metadata and an icon, so it looks legitimate in explorers.</li>
+        <li>Demo it: in the X post, open your own address on NearBlocks and show the eight badges.</li>
+        <li>After the hackathon, post a proposal on the NEAR governance forum (gov.near.org) and contact NearBlocks and Pikespeak with an "education achievements" spec. Optionally register as an NEP-393 issuer.</li>
+        <li>The pitch to NEAR Foundation or DevHub: an ecosystem-wide credential for "understands NEAR", useful for grants, ambassador programs and hiring.</li>
+      </ol>
+    </div>
+  </div>
+
+  <h3>Risks and hackathon fit</h3>
+  <div class="risk">
+    <div><b>Gaming and sybil farming</b><span>Quiz answers in the browser are trivially scripted. Mitigation: a backend checks quiz results and the learner's real testnet transactions, then signs a claim (account, stage, nonce). The contract checks the signature with <code>env::ed25519_verify</code>, allows one mint per account per stage, and requires stage N−1 first. Non-transferable badges remove the resale motive.</span></div>
+    <div><b>Cost</b><span>Bounded and small: about 0.01 Ⓝ per badge. Put a budget cap and a per-account limit in the contract so a bot can't drain the sponsor balance.</span></div>
+    <div><b>Mainnet or testnet</b><span>Do the lessons' practice transactions on testnet. Mint badges on mainnet: it's cheap, it's what judges can click on NearBlocks, and it counts as a real on-chain action. Deploy to testnet first during development.</span></div>
+    <div><b>Hackathon rules</b><span>The contract must be written after 1 Nov. Today's work is design only. The badge contract plus relayer adds roughly 1–2 days of scope, which is fine within a 14-day window if the modules are kept to 5–8.</span></div>
+    <div><b>Judging upside</b><span>It turns an explainer into a product with real mainnet usage, a measurable metric (badges minted), and a clean demo moment. It also fits the "real on-chain actions" requirement you set earlier.</span></div>
+    <div><b>Claims to keep honest</b><span>Don't call the badges "official" or use NEAR branding in the art without permission. Say "proposed for explorer integration".</span></div>
+  </div>
+</section>
+
+<section class="sources" id="sources">
+  <div class="eyebrow">Sources</div>
+  <h2>Where the facts come from</h2>
+  <ol id="srclist"></ol>
+  <p class="note">Scores are my judgement, not measurements. Rows marked "verify" rely on secondary reports or my own background knowledge; check them against docs.near.org before they go into lesson copy.</p>
+</section>
+</div>
+
+<script>
+const SRC={
+  docs:["NEAR docs: Protocol and accounts","https://docs.near.org/protocol/basics"],
+  keys:["NEAR docs: Access keys","https://docs.near.org/protocol/access-keys"],
+  storage:["NEAR docs: Storage staking","https://docs.near.org/protocol/storage/storage-staking"],
+  nightshade:["NEAR blog: Nightshade 2.0 and stateless validation on mainnet","https://pages.near.org/?p=21503"],
+  ns2:["Nightshade 2.0 design (NEAR Medium)","https://medium.com/nearprotocol/nightshade-2-0-e870c7a85c03"],
+  nansen:["Nansen: NEAR Protocol Q2 2026 report","https://nansen.ai/post/nansen-near-quarterly-report-q2-2026"],
+  tokenomics:["Near One: tokenomics upgrade v2.9.0 (inflation 5% to 2.5%)","https://blog.nearone.org/announcement/2025/10/21/enhancing-near-tokenomics.html"],
+  nft:["NEAR docs: NFT standard (NEP-171/177/178)","https://docs.near.org/primitives/nft/standard.md"],
+  sbt:["I-Am-Human registry (NEP-393 SBT)","https://github.com/near-ndc/i-am-human"],
+  sbtgov:["NEAR forum: soulbound token standard discussion","https://gov.near.org/t/discussion-of-soulbound-token-standard/31223"],
+  aicloud:["NEAR AI docs: private inference","https://docs.near.ai/cloud/private-inference"],
+  stake:["NEAR AI docs: staking for inference","https://docs.near.ai/cloud/staking-for-inference/overview.md"],
+  shade:["NEAR docs: Shade Agents","https://docs.near.org/ai/shade-agents/concepts/ai-inference.md"],
+  nearblocks:["NearBlocks: about","https://nearblocks.io/about"],
+  rpc:["NEAR docs: RPC API","https://docs.near.org/api/rpc/introduction"],
+  tx:["NEAR docs: Transactions","https://docs.near.org/protocol/transactions"],
+  indexer:["NEAR docs: NFT indexer tutorial","https://docs.near.org/data-infrastructure/tutorials/nft-indexer"],
+  chainsig:["NEAR docs: Chain Signatures","https://docs.near.org/chain-abstraction/chain-signatures"],
+  intents:["NEAR docs: NEAR Intents","https://docs.near-intents.org"],
+  research:["Earlier project research (hackathon rules, stack)","https://claude.ai/artifact/JLKDVjvRRe3En7MjeRuetn"],
+  none:null
+};
+const STAGES=[
+  {n:0,name:"Blank Page",title:"Crypto foundations",who:"Zero crypto knowledge",act:"Generate a keypair in the browser and sign a message"},
+  {n:1,name:"Named",title:"First steps on NEAR",who:"Has a wallet, never used NEAR",act:"Create a testnet account, add a function-call key"},
+  {n:2,name:"Nightshade",title:"Under the hood",who:"Wants to know how it works",act:"Find which shard handled your transaction and trace its receipts"},
+  {n:3,name:"Wasm",title:"Builder (optional for non-devs)",who:"Developers",act:"Deploy a tiny contract and make a cross-contract call on testnet"},
+  {n:4,name:"Any Chain",title:"Chain abstraction",who:"Understands NEAR basics",act:"Derive your Ethereum address from your NEAR account, run an intent swap"},
+  {n:5,name:"Enclave",title:"AI and privacy",who:"Curious about AI on NEAR",act:"Ask the tutor via NEAR AI Cloud and verify its attestation"},
+  {n:6,name:"Citizen",title:"Ecosystem and governance",who:"Wants to take part",act:"Stake on testnet, read a House of Stake proposal"},
+  {n:7,name:"Book of NEAR",title:"Veteran capstone",who:"Completed 0–6 (3 optional)",act:"Trace one cross-chain intent end to end, then pass the final exam"}
+];
+// [name, stage, D, I, N, diff(u/p/n), comparison, uncertain?, src]
+const T=[
+ ["Money, ledgers and why blockchains exist",0,1,5,1,"n","Universal concept; teach once, chain-agnostic.",0,"none"],
+ ["Hashing and blocks",0,2,4,1,"n","Same on every chain.",0,"none"],
+ ["Public/private keys and signatures",0,2,5,1,"n","Standard. NEAR mainly uses ed25519 keys and also supports secp256k1; Ethereum and Bitcoin use secp256k1, Solana ed25519.",0,"keys"],
+ ["What a crypto wallet is and how it works",0,1,5,1,"n","Universal: a wallet holds keys and signs, the coins live on the chain. On NEAR the wallet also manages several access keys per account.",0,"keys"],
+ ["Wallet creation: private key, public key, address",0,2,5,2,"p","Bitcoin and Ethereum addresses are hashes of the public key. A NEAR implicit account is the hex of the ed25519 public key itself, and a named account (alice.near) separates the address from any key completely.",0,"keys"],
+ ["Key standards: secp256k1, ed25519, BIP-39, BIP-32/44, SLIP-10",0,3,4,1,"n","Standard cryptography. NEAR wallets use BIP-39 seed phrases with SLIP-10 ed25519 derivation on path m/44'/397'/0' (397 is NEAR's coin type). Ethereum uses secp256k1 with BIP-32 on m/44'/60'/0'/0/0.",1,"keys"],
+ ["Self-custody, seed phrase safety and scams",0,1,5,1,"n","Standard; the scam-safety part matters more than anything chain-specific.",0,"none"],
+ ["How wallets interact with blockchains",0,2,5,1,"n","Universal pattern: the wallet reads state and sends signed transactions through an RPC node, and connects to apps through a connector (WalletConnect on Ethereum, NEAR Connect on NEAR).",0,"rpc"],
+ ["What RPCs are and how they work (JSON-RPC)",0,2,4,1,"n","Same idea everywhere: an HTTP endpoint on a node that answers queries and accepts transactions. NEAR's methods (query, block, chunk, send_tx, tx) differ in names only.",0,"rpc"],
+ ["Transaction lifecycle: construct, sign, broadcast, confirm",0,3,5,1,"n","Universal steps. The NEAR-specific anatomy comes in Stage 1.",0,"tx"],
+ ["Consensus 101: proof of work vs proof of stake",0,2,4,1,"n","NEAR is proof of stake, like Ethereum, Solana and Cosmos chains.",0,"none"],
+ ["Transactions, fees and gas",0,2,5,1,"n","Standard idea. NEAR's fees are tiny and predictable compared with Ethereum L1.",0,"none"],
+ ["Smart contracts",0,2,5,1,"n","Standard concept.",0,"none"],
+ ["Tokens: fungible, NFTs, stablecoins",0,1,4,1,"n","Standard concept.",0,"none"],
+ ["Reading a block explorer",0,1,4,1,"n","Same skill everywhere (Etherscan, Solscan, NearBlocks).",0,"nearblocks"],
+ ["DEXs, AMMs and liquidity",0,3,3,1,"n","Standard DeFi concept.",0,"none"],
+ ["Layer 1, layer 2, bridges and why cross-chain is hard",0,3,4,1,"n","Needed as the 'before' picture for NEAR Intents and Chain Signatures.",0,"none"],
+
+ ["Named accounts and sub-accounts (alice.near)",1,1,5,4,"p","On Ethereum the account is a 0x hash and ENS is a naming layer on top. On NEAR the readable name is the account itself, and owners create sub-accounts. EOS also had native named accounts.",0,"docs"],
+ ["Implicit accounts (64-hex) and Ethereum-style 0x accounts",1,2,3,3,"p","Implicit accounts work like Ethereum addresses derived from a key. 0x 'ETH-implicit' accounts let an Ethereum wallet control a NEAR account through a wallet contract.",1,"docs"],
+ ["Access keys: full-access vs function-call keys",1,2,5,5,"u","Ethereum and Solana accounts have one key with full power; scoped keys there need smart wallets (ERC-4337). NEAR has many keys per account natively, including keys limited to one contract and an allowance. This is what makes 'log in without popups' work.",0,"keys"],
+ ["NEAR transaction anatomy: signer, receiver, actions, nonce, block hash",1,3,5,3,"p","One NEAR transaction carries a list of actions (create account, add key, deploy, call, transfer) that run together. The nonce belongs to the access key, not the account, and the transaction must cite a recent block hash so it expires after about a day. An Ethereum transaction is one call with an account-wide nonce.",1,"tx"],
+ ["How NEAR apps connect to wallets (NEAR Connect, key-based login, NEP-413)",1,2,4,3,"p","Apps request a function-call key at login, so small actions need no wallet popup. Ethereum apps ask the wallet to sign every transaction. Apps can also ask for a signed message (NEP-413), like Sign-In with Ethereum (EIP-4361).",0,"keys"],
+ ["NEAR token, yoctoNEAR units and supply",1,1,4,1,"n","Standard native token. 1 NEAR = 10^24 yocto.",0,"docs"],
+ ["Storage staking",1,3,4,4,"p","Data stored on chain locks NEAR (1 NEAR per 100 KB) and is refunded when deleted. Solana's rent-exempt balance is similar. Ethereum charges once and stores forever.",0,"storage"],
+ ["Wallets: Meteor, HOT, MyNearWallet, Intear, Ledger, passkey and email sign-in",1,1,4,2,"p","Standard wallet landscape. HOT Wallet drives most NEAR transactions (about 65% in Q2 2026 per Nansen). Passkey and email onboarding compares with Privy, Web3Auth and Coinbase Smart Wallet; NEAR's FastAuth was an earlier version.",1,"nansen"],
+
+ ["Sharding: Nightshade (one chain, chunks per shard)",2,4,5,5,"u","Ethereum dropped execution sharding in favour of rollups; Solana runs one global state; Polkadot and Cosmos use separate chains. NEAR splits one chain into shards, each block carrying a 'chunk' per shard, invisible to users.",0,"ns2"],
+ ["Stateless validation (Nightshade 2.0)",2,5,4,5,"u","Chunk validators check a 'state witness' without storing full state. Ethereum has researched statelessness (Verkle trees) but hasn't shipped it on L1. Live on NEAR mainnet since 2024.",0,"nightshade"],
+ ["Dynamic resharding",2,4,3,5,"u","Shards split or merge by load without governance votes (network upgrade 2.13, 2026). Mainnet went from 6 to 9 shards in late 2025. No major L1 resizes shards automatically.",1,"nansen"],
+ ["Doomslug block production and finality",2,4,4,4,"p","About 600 ms blocks and about 1.2 s finality. Solana has ~400 ms slots but slower full finality; Ethereum 12 s slots and ~13 min finality; CometBFT chains finalise in seconds.",1,"docs"],
+ ["Validators, epochs and staking (pools, liquid staking)",2,3,4,3,"p","Proof-of-stake basics with NEAR-specific roles (block producers, chunk producers, chunk validators) and roughly 12-hour epochs. Liquid staking tokens (stNEAR, LiNEAR, rNEAR) work like Lido on Ethereum.",1,"docs"],
+ ["Receipts and asynchronous execution",2,4,5,4,"p","On Ethereum and Solana, contract-to-contract calls are synchronous and atomic in one transaction. On NEAR they become receipts that can execute in later blocks on other shards, so a 'transaction' can partially succeed. Cosmos IBC is async too, but between chains.",0,"docs"],
+ ["Gas economics: 30% of fees go to the contract",2,2,3,4,"p","Ethereum burns the base fee and gives contracts nothing. NEAR burns 70% and pays 30% to the called contract, a built-in developer revenue stream.",0,"docs"],
+ ["How NEAR is governed and paid: validator-vote upgrades and tokenomics",2,2,3,3,"p","Upgrades activate once 80% of stake runs them, with no chain split, similar to Tezos or Cosmos governance upgrades while Ethereum coordinates hard forks. Issuance is standard proof of stake: validators voted the maximum inflation from 5% to 2.5% with protocol version 81 (Oct 2025).",0,"tokenomics"],
+ ["Roadmap: SPICE (consensus separated from execution)",2,5,2,4,"p","Aims for ~200 ms blocks. Monad, Sui and Aptos already decouple execution, so the idea isn't new; doing it on a sharded chain is.",1,"nansen",1],
+ ["Post-quantum keys (ML-DSA) and key rotation",2,4,2,4,"p","Because accounts can rotate keys, they can move to quantum-safe keys without changing address. Ethereum externally owned accounts cannot rotate keys.",1,"nansen",1],
+
+ ["Contracts in WebAssembly (Rust, JS/TS) and near-sdk",3,3,5,3,"p","Ethereum uses the EVM and Solidity; Solana compiles Rust to its own VM. Cosmos CosmWasm also uses Wasm.",0,"docs"],
+ ["Cross-contract calls, promises and callbacks",3,4,5,4,"p","Follows from async receipts: you must handle callbacks and failures yourself. Very different from Solidity's synchronous calls.",0,"docs"],
+ ["Contract state, storage management (NEP-145), upgrades and global contracts",3,3,4,3,"p","Upgrading means redeploying code to the same account, so no proxy pattern like Ethereum's. Storage must be registered or paid for. Global contracts let many accounts reuse one deployed code, cutting storage for factories; Ethereum uses minimal proxies (EIP-1167).",1,"storage"],
+ ["Token standards: NEP-141, NEP-171, NEP-245, NEP-297 events",3,3,4,2,"p","Roughly ERC-20, ERC-721, ERC-1155. NEP-141 uses ft_transfer_call instead of approve plus transferFrom, and needs storage registration.",0,"nft"],
+ ["Meta-transactions and relayers (NEP-366)",3,3,4,4,"p","Gasless transactions are built into the protocol. Ethereum needs ERC-4337 bundlers and paymasters.",0,"docs"],
+ ["RPC providers vs running your own node",3,3,4,2,"n","Same trade-off on every chain: providers (FastNEAR, Lava, Ankr and others) are easy but you trust and depend on them; your own nearcore node costs hardware and upkeep. NEAR specifics: regular vs archival nodes, and the free public endpoint is rate-limited, so production apps use providers with failover.",1,"rpc"],
+ ["Data infrastructure: NEAR Lake, indexers, explorer APIs",3,3,4,2,"n","Comparable to Ethereum's indexing stack (The Graph, Etherscan API).",0,"indexer"],
+ ["Building a public non-custodial wallet: architecture",3,5,4,3,"p","Common parts: key generation and encrypted storage (or passkeys/MPC), signing, RPC with failover, Ledger support, phishing protection. Extra on NEAR: creating named accounts (needs a funded creator or relayer), managing several access keys and their allowances, NEP-413 message signing, NEAR Connect integration, and Chain Signatures for other chains.",1,"tx"],
+ ["Aurora (EVM on NEAR)",3,3,2,3,"p","An EVM running as a NEAR contract, so Solidity apps can deploy. Compare with EVM layers on Cosmos (Evmos) or Polkadot (Moonbeam).",1,"none",1],
+
+ ["Chain Signatures (MPC signing for other chains)",4,5,5,5,"u","A NEAR account or contract controls addresses on Bitcoin, Ethereum, Solana and more, signed by a decentralised MPC network. Nearest equivalents: ICP's threshold ECDSA, Lit Protocol, ZetaChain TSS. The lesson also shows how a contract pauses and resumes (yield and resume, NEP-519) while the network signs.",1,"chainsig"],
+ ["NEAR Intents (verifier, solvers, 1Click)",4,5,5,5,"p","Intent-based trading exists elsewhere (UniswapX, CoW Swap, Across). NEAR's version is a cross-chain settlement layer across 35+ chains, with over $22B cumulative volume.",0,"nansen"],
+ ["Omni Bridge (successor to Rainbow Bridge)",4,4,3,3,"p","Combines light clients with Chain Signatures. Compare Wormhole, LayerZero, Axelar.",1,"none",1],
+ ["Confidential Intents (private shard plus TEE bridge)",4,5,3,5,"p","Private swaps exist (Railgun, Aztec, Penumbra). NEAR's runs on a permissioned private shard bridged by trusted hardware, so you trust TEEs and those validators. About 42% of near.com swap volume is private by default.",1,"nansen"],
+ ["Multichain accounts: one NEAR account, many chains",4,3,4,4,"p","Built on Chain Signatures. Smart-wallet projects on other chains aim at the same UX but usually need a bridge or custody.",0,"chainsig"],
+
+ ["TEEs and remote attestation basics",5,4,4,2,"n","General hardware technology (Intel TDX, NVIDIA confidential GPUs), not NEAR-specific. Prerequisite for the three topics after it.",0,"aicloud"],
+ ["NEAR AI Cloud: confidential inference and stake-to-compute",5,3,4,4,"p","Models run inside Intel TDX plus H200 GPU enclaves with attestation you can verify yourself; OpenAI-compatible API. You can also stake NEAR to earn inference credits instead of paying per call. Compare Phala, Secret AI, Apple Private Cloud Compute (closed).",1,"aicloud"],
+ ["Shade Agents (TEE agents holding multichain keys)",5,5,3,5,"p","Agents run in a TEE and control Chain Signature accounts, so no human holds the key. Compare Phala agents and Autonolas.",0,"shade"],
+ ["User-owned AI and agents on NEAR",5,2,3,3,"p","The NEAR AI vision. Many chains pitch AI agents; the private-inference and Chain Signatures pieces are the concrete differences.",1,"none"],
+
+ ["House of Stake, veNEAR and DAOs",6,3,3,3,"p","Vote-escrow model borrowed from Curve (veCRV). Small validators and veNEAR holders got extra rewards in the 2025 tokenomics change. DAOs (Sputnik, AstroDAO) compare with Snapshot plus Safe on Ethereum and get a short mention here.",1,"tokenomics"],
+ ["DeFi map and market glossary: Rhea (Ref), lending, stablecoins, oracles, launchpads",6,3,3,2,"n","Standard DeFi building blocks; native USDC and USDT exist on NEAR. Oracles (Pyth) are the same ones used across chains. Launchpads and memecoin factories follow the pump.fun pattern on Solana. Oracles and launchpads get a short mention here, with no lesson of their own.",1,"nansen"],
+
+ ["Capstone: trace a cross-chain intent end to end",7,5,5,5,"u","Ties together accounts, keys, receipts, shards, Chain Signatures and Intents in one real transaction.",0,"none"],
+ ["Capstone: the honest take",7,3,4,1,"n","NEAR's strengths and weaknesses (async complexity, TEE trust, ecosystem size, HOT concentration) versus competitors.",0,"none"]
+];
+const DIFF={u:["different","p-u"],p:["partly","p-p"],n:["same","p-n"]};
+const $=s=>document.querySelector(s);
+const dots=(v,c="")=>`<span class="dots ${c}" aria-label="${v} of 5">${[1,2,3,4,5].map(k=>`<i class="${k<=v?"on":""}"></i>`).join("")}<span>${v}</span></span>`;
+const medal=(n)=>`<svg class="medal" viewBox="0 0 40 40" aria-hidden="true"><polygon points="20,2 36,11 36,29 20,38 4,29 4,11" fill="var(--accent-soft)" stroke="var(--ink)" stroke-width="1.5"/><polygon points="20,8 31,14 31,26 20,32 9,26 9,14" fill="none" stroke="var(--accent)" stroke-width="1.2"/><text x="20" y="24.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink)">${n}</text></svg>`;
+
+const SHOW=[{"s": 0, "t": "A", "name": "Make a wallet", "does": "Generate a key pair and a seed phrase in the browser, see how the address is derived, then sign and verify a message.", "chain": "None (runs in the browser)", "covers": ["What a crypto wallet", "Wallet creation", "Key standards", "Public/private keys", "Self-custody"]}, {"s": 0, "t": "B", "name": "Send a transaction and watch it", "does": "Build, sign and broadcast a transfer, then watch it move through the RPC and open it in NearBlocks. Uses a practice account the app funds from a testnet faucet.", "chain": "Testnet, real transaction", "covers": ["Transaction lifecycle", "What RPCs", "How wallets interact", "Transactions, fees", "Reading a block explorer"]}, {"s": 0, "t": "B", "name": "Why moving money between chains is hard", "does": "Two chains, one coin. Try to move it and see where trust or delay comes in. Sets up Stage 4.", "chain": "None (animation)", "covers": ["Layer 1", "DEXs", "Consensus 101"]}, {"s": 1, "t": "A", "name": "Claim your name", "does": "Pick a name and create your own testnet account, then compare it with a plain hex account.", "chain": "Testnet, real transaction", "covers": ["Named accounts", "Implicit accounts", "NEAR token", "Wallets: Meteor"]}, {"s": 1, "t": "A", "name": "A key that can do only one thing", "does": "Add a function-call key limited to one contract and a small allowance, hand it to an AI agent, then try to trick the agent into overspending or calling something else. The chain refuses every attempt. Delete the key to finish.", "chain": "Testnet, real transaction", "covers": ["Access keys", "How NEAR apps connect"]}, {"s": 1, "t": "B", "name": "Inside a NEAR transaction", "does": "Bundle several actions (create a sub-account, send NEAR, add a key) into one transaction and see them succeed or fail together.", "chain": "Testnet, real transaction", "covers": ["NEAR transaction anatomy", "Storage staking"]}, {"s": 2, "t": "A", "name": "Follow your transaction across shards", "does": "3D showpiece. Pick your own earlier transaction and see which shard handled it, which chunk and block it landed in, and how fast it finalised.", "chain": "Read-only (live RPC)", "covers": ["Sharding: Nightshade", "Doomslug"]}, {"s": 2, "t": "A", "name": "A call that takes several blocks", "does": "Make a cross-contract call and watch its receipts hop between blocks and shards, with the gas burned and the 30% paid to the contract.", "chain": "Testnet, real transaction", "covers": ["Receipts and", "Gas economics"]}, {"s": 2, "t": "B", "name": "Stateless validation, resharding and staking", "does": "Animated explainer of how a validator checks a shard without its state and how shards split. Includes staking testnet NEAR and seeing the unstake delay.", "chain": "Testnet, real transaction (stake)", "covers": ["Stateless validation", "Dynamic resharding", "Validators, epochs", "How NEAR is governed"]}, {"s": 3, "t": "B", "name": "Deploy a contract in one click", "does": "Deploy a ready-made contract to your own sub-account, call it, read its state, and trigger a callback and a failure.", "chain": "Testnet, real transaction", "covers": ["Contracts in WebAssembly", "Cross-contract calls", "Contract state"]}, {"s": 3, "t": "B", "name": "Issue your own token", "does": "Create a fungible token, send it gaslessly through a relayer, and see the storage registration NEAR requires.", "chain": "Testnet, real transaction", "covers": ["Token standards", "Meta-transactions"]}, {"s": 3, "t": "B", "name": "Race the RPC nodes", "does": "Send the same query to several providers, compare speed, kill one and watch failover. Shows why wallets don't trust a single node.", "chain": "Read-only (live RPC)", "covers": ["RPC providers vs", "Data infrastructure"]}, {"s": 4, "t": "A", "name": "One account, every chain", "does": "3D showpiece. Derive an Ethereum address from your NEAR account, then sign and send a Sepolia transaction through the signing network.", "chain": "Testnet, real transaction", "covers": ["Chain Signatures", "Multichain accounts"]}, {"s": 4, "t": "A", "name": "Swap across chains with an intent", "does": "Request a live quote for a cross-chain swap, see the solvers compete, and optionally run a tiny real swap.", "chain": "Mainnet, optional and small", "covers": ["NEAR Intents"]}, {"s": 4, "t": "B", "name": "Old bridge vs the NEAR way", "does": "Side-by-side steps, time, fees and trust for a classic bridge and an intent, using live quote data. Ends with the private-swap option.", "chain": "Read-only (live quote data)", "covers": ["Omni Bridge", "Confidential Intents"]}, {"s": 5, "t": "A", "name": "Ask a private AI and verify it", "does": "Chat with the tutor running on NEAR AI Cloud, then fetch the attestation and check the enclave and response signature yourself.", "chain": "None (verification in the page)", "covers": ["TEEs and", "NEAR AI Cloud", "User-owned AI"]}, {"s": 5, "t": "B", "name": "An agent with no owner", "does": "Animated walk-through of an agent inside a TEE that controls a multichain account, plus a read-only look at a deployed agent.", "chain": "Read-only", "covers": ["Shade Agents"]}, {"s": 6, "t": "B", "name": "Read and vote on a proposal", "does": "Browse live governance proposals and see how locked tokens turn into voting power. Voting is optional.", "chain": "Read-only, optional vote", "covers": ["House of Stake"]}, {"s": 6, "t": "B", "name": "The live money map", "does": "Live view of intents volume, stablecoins and major DeFi apps, with notes on oracles and launchpads.", "chain": "Read-only (live data)", "covers": ["DeFi map"]}, {"s": 7, "t": "A", "name": "Trace one intent end to end", "does": "Capstone. Follow a single cross-chain intent through accounts, keys, shards, receipts and signatures, then take the final exam and mint the Book of NEAR badge.", "chain": "Mainnet (badge mint)", "covers": ["Capstone: trace"]}, {"s": 7, "t": "B", "name": "The honest scoreboard", "does": "Weigh NEAR against Ethereum, Solana and Cosmos on the things you care about, with the real weak spots shown.", "chain": "None", "covers": ["Capstone: the honest"]}];
+const EXTRA={
+ "A key that can do only one thing":"Also counts toward Track 06, AI Security & Defense",
+ "Ask a private AI and verify it":"Also counts toward Track 03, Privacy & Private AI",
+ "Trace one intent end to end":"Also counts toward Track 10, NFTs That Do Something (badge mint and gate)",
+ "The live money map":"Weak fit for Track 02, Investment Thesis. Not worth chasing."
+};
+const showTag={};
+SHOW.forEach(sh=>sh.covers.forEach(c=>T.forEach((t,i)=>{if(t[0].startsWith(c)&&(!showTag[i]||sh.t==="A"))showTag[i]=sh.t;})));
+(function(){
+  const out=STAGES.map(st=>{
+    const shows=SHOW.filter(x=>x.s===st.n);
+    const back=T.filter((t,i)=>t[1]===st.n&&!showTag[i]);
+    return `<div class="planstage"><h3>Stage ${st.n}: ${st.title}</h3>
+      <div class="shows">${shows.map(x=>`<div class="show"><div class="showhead"><span class="tier t${x.t}">Tier ${x.t}</span><b>${x.name}</b></div>
+        <p>${x.does}</p><div class="chain">On-chain: ${x.chain}</div>
+        ${EXTRA[x.name]?`<div class="trk">${EXTRA[x.name]}</div>`:""}<div class="covers">Teaches: ${x.covers.map(c=>T.find(t=>t[0].startsWith(c))[0]).join("; ")}</div></div>`).join("")}</div>
+      ${back.length?`<div class="backlog"><b>Backlog for this stage</b> (text card and quiz first, full lesson if time allows): ${back.map(t=>`<span class="chip">${t[0]}${t[9]?" (going deeper)":""}</span>`).join("")}</div>`:""}
+    </div>`}).join("");
+  document.getElementById("plan-body").innerHTML=out;
+  const a=SHOW.filter(x=>x.t==="A").length,b=SHOW.length-a;
+  document.getElementById("plan-sum").textContent=`${a} tier A showpieces and ${b} tier B. Tier A is the must-build set; tier B gets built in order if time allows.`;
+})();
+// facts
+const uniq=T.filter(t=>t[5]==="u").length, star=T.filter(t=>t[3]>=4&&t[4]>=4).length;
+$("#facts").innerHTML=[[T.length,"topics scored"],[STAGES.length,"stages, one badge each"],[uniq,"topics with no close equivalent elsewhere"],[star,"topics scoring 4+ on both importance and innovation"]].map(([b,s])=>`<div class="fact"><b>${b}</b><span>${s}</span></div>`).join("");
+
+// stages
+$("#stages").innerHTML=STAGES.map(s=>{
+  const items=T.filter(t=>t[1]===s.n);
+  return `<div class="stage"><div class="badge">${medal(s.n)}<div><div class="num">Stage ${s.n} · badge "${s.name}"</div><h3>${s.title}</h3></div></div>
+  <div class="who">For: ${s.who}</div>
+  <ul>${items.map(t=>`<li>${t[0]}${t[9]?' <span class="opt">going deeper</span>':""}</li>`).join("")}</ul>
+  <div class="who"><b>On-chain action:</b> ${s.act}</div></div>`}).join("");
+STAGES.forEach(s=>$("#fStage").insertAdjacentHTML("beforeend",`<option value="${s.n}">${s.n} · ${s.title}</option>`));
+
+// sources
+const used=Object.entries(SRC).filter(([k,v])=>v);
+$("#srclist").innerHTML=used.map(([k,v])=>`<li id="s-${k}"><a href="${v[1]}" target="_blank" rel="noopener">${v[0]}</a></li>`).join("");
+
+// table
+let sortK="stage",sortDir=1;
+const keyIdx={name:0,stage:1,d:2,i:3,n:4,diff:5};
+const diffRank={u:0,p:1,n:2};
+function render(){
+  const st=$("#fStage").value, df=$("#fDiff").value, q=$("#fQ").value.trim().toLowerCase();
+  let rows=T.filter(t=>(st==="all"||t[1]==+st)&&(df==="all"||t[5]===df)&&(!q||(t[0]+" "+t[6]).toLowerCase().includes(q)));
+  const k=keyIdx[sortK];
+  rows.sort((a,b)=>{let x=a[k],y=b[k]; if(sortK==="diff"){x=diffRank[x];y=diffRank[y]} if(typeof x==="string")return x.localeCompare(y)*sortDir; return ((x-y)||(a[1]-b[1]))*sortDir;});
+  $("#rows").innerHTML=rows.map(t=>{const s=SRC[t[8]];return `<tr>
+    <td class="t"><b>${t[0]}</b>${t[9]?'<span class="opt">going deeper</span>':""}${showTag[T.indexOf(t)]?`<span class="tier t${showTag[T.indexOf(t)]}">showpiece ${showTag[T.indexOf(t)]}</span>`:""}</td>
+    <td><small style="font-family:var(--f-mono)">${t[1]} · ${STAGES[t[1]].name}</small></td>
+    <td>${dots(t[2])}</td><td>${dots(t[3])}</td><td>${dots(t[4],"n")}</td>
+    <td><span class="pill ${DIFF[t[5]][1]}">${DIFF[t[5]][0]}</span></td>
+    <td class="cmp">${t[6]}${t[7]?'<br><span class="unc">verify</span>':""}</td>
+    <td class="src">${s?`<a href="${s[1]}" target="_blank" rel="noopener">${s[0].split(":")[0]}</a>`:"<span class='note'>background</span>"}</td></tr>`}).join("");
+  $("#count").textContent=`${rows.length} of ${T.length}`;
+}
+document.querySelectorAll("th button").forEach(b=>b.addEventListener("click",()=>{const k=b.dataset.k; if(sortK===k)sortDir*=-1; else{sortK=k;sortDir=(k==="name"||k==="stage"||k==="diff")?1:-1} render();}));
+["#fStage","#fDiff","#fQ"].forEach(s=>$(s).addEventListener("input",render));
+render();
+</script>
