@@ -21,6 +21,16 @@ function short(id: string) {
   return id.length > 20 ? `${id.slice(0, 6)}…${id.slice(-4)}` : id;
 }
 
+/**
+ * Where the transfer goes. Demo: the app's placeholder return account. Testnet: the account in
+ * VITE_RETURN_ACCOUNT_ID (the owner's faucet account) or, until that exists, the practice account
+ * itself, so the NEAR never goes to a third party.
+ */
+function receiver(network: string, self: string): string {
+  if (network !== "testnet") return DEMO_RETURN_ACCOUNT;
+  return (import.meta.env.VITE_RETURN_ACCOUNT_ID as string | undefined) || self;
+}
+
 export default function Scene({ step, setGate, reducedMotion }: SceneProps) {
   const chain = useChain();
   const [me, setMe] = useState<PracticeAccount | null>(null);
@@ -29,6 +39,8 @@ export default function Scene({ step, setGate, reducedMotion }: SceneProps) {
   const [result, setResult] = useState<TxOutcome | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Testnet practice accounts hold little NEAR (the Worker faucet gives 0.5), so send less there.
+  const amount = chain.network === "testnet" ? "0.01" : "1";
 
   useEffect(() => {
     let live = true;
@@ -48,7 +60,7 @@ export default function Scene({ step, setGate, reducedMotion }: SceneProps) {
     setSending(true);
     setError(null);
     try {
-      const out = await transfer(chain, DEMO_RETURN_ACCOUNT, parseNear("1"), {
+      const out = await transfer(chain, receiver(chain.network, me.accountId), parseNear(amount), {
         pace: reducedMotion ? "instant" : "realtime",
         onPhase: (e) => setLit((prev) => ({ ...prev, [e.phase]: e.atMs })),
       });
@@ -122,7 +134,7 @@ export default function Scene({ step, setGate, reducedMotion }: SceneProps) {
 
       {step === 1 ? (
         <SceneAction onClick={send} disabled={!me || sending || !!result}>
-          {sending ? "Sending…" : "Send 1 NEAR"}
+          {sending ? "Sending…" : `Send ${amount} NEAR`}
         </SceneAction>
       ) : null}
     </div>

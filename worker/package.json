@@ -1,0 +1,21 @@
+{
+  "name": "book-of-near-worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "near-kit": "0.20.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261008.1",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.5",
+    "wrangler": "4.149.0"
+  }
+}
