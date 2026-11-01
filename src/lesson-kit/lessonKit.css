@@ -1,0 +1,117 @@
+/* Lesson kit panels (Check, HonestTake). Ink style, see src/ui/ink.css.
+   A panel floats in the scene area and keeps clear of the lesson title (top left), the docked step card
+   (bottom left) and the stage bar (bottom): right column on wide screens, top band on narrow ones. */
+.lesson-panel {
+  position: absolute;
+  z-index: 2;
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  top: calc(108px + env(safe-area-inset-top, 0px));
+  max-height: calc(100% - 108px - 102px - 52% - env(safe-area-inset-bottom, 0px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  background: var(--paper-2);
+  border: 1.5px solid var(--ink);
+  border-top: 6px solid var(--accent);
+  border-radius: 18px;
+  box-shadow: 0 4px 0 var(--ink);
+  padding: 12px 16px 14px;
+  font: 500 16px/1.4 var(--serif);
+}
+@media (max-width: 560px) {
+  .lesson-panel {
+    max-height: calc(100% - 108px - 102px - 44% - env(safe-area-inset-bottom, 0px));
+    font-size: 15px;
+  }
+}
+@media (min-width: 900px) {
+  .lesson-panel {
+    left: auto;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    top: calc(72px + env(safe-area-inset-top, 0px));
+    width: min(440px, calc(100% - 400px - 72px));
+    max-height: calc(100% - 72px - 100px - env(safe-area-inset-bottom, 0px));
+  }
+}
+.lesson-panel .panel-title {
+  margin: 0 0 8px;
+  font: 700 11px var(--ui);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.lesson-panel h3 {
+  margin: 10px 0 4px;
+  font: 700 17px var(--serif);
+}
+.lesson-panel ul {
+  margin: 0;
+  padding-left: 20px;
+}
+.lesson-panel li + li {
+  margin-top: 4px;
+}
+
+/* ---------- Check ---------- */
+.check-q + .check-q {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1.5px dashed #16141f33;
+}
+.check-prompt {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin: 0 0 6px;
+  font-weight: 700;
+}
+.check-n {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: var(--accent);
+  font: 700 12px var(--ui);
+}
+.check-option {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 4px 6px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.check-option:hover {
+  background: #16141f0d;
+}
+.check-option input {
+  margin-top: 4px;
+  accent-color: var(--ink);
+}
+.check-feedback {
+  margin: 6px 0 0;
+  padding: 6px 10px;
+  border-left: 4px solid var(--red);
+  background: #fff;
+  font: 500 14px/1.4 var(--ui);
+}
+.check-feedback.right {
+  border-left-color: var(--green);
+}
+.check .btn {
+  margin-top: 12px;
+}
+
+/* ---------- Honest take ---------- */
+.honest-vs {
+  margin: 0;
+  font-style: italic;
+}
+.honest-take .unverified {
+  font: 700 12px var(--ui);
+  color: var(--mute);
+}
