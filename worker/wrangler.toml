@@ -1,0 +1,22 @@
+# Book of NEAR Worker: the testnet faucet (issue #7). Later: badge claim signer, exam grader,
+# intents proxy. Secrets are NEVER in this file: see README.md (`wrangler secret put ...`).
+name = "book-of-near-worker"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Browser origins allowed to call the Worker (comma separated). Any http://localhost:<port> is
+# always allowed for development.
+ALLOWED_ORIGINS = "https://book-of-near.pages.dev"
+# NEAR sent to each new practice account.
+FAUCET_AMOUNT = "0.5"
+# Rate limits: accounts per IP address per UTC day, and accounts per UTC day in total.
+PER_IP_DAILY = "3"
+GLOBAL_DAILY = "50"
+
+# Counters for the rate limits. Create the namespace once with
+#   npx wrangler kv namespace create FAUCET_LIMITS
+# and paste the id it prints here. `wrangler dev` uses a local simulation, so no id is needed there.
+[[kv_namespaces]]
+binding = "FAUCET_LIMITS"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"

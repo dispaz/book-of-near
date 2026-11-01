@@ -1,0 +1,52 @@
+.mode-switch {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.mode-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.mode-toggle {
+  border: 0;
+  background: none;
+  padding: 2px 4px;
+  font: 700 12px var(--ui);
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.mode-toggle:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.mode-toggle:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.mode-notice {
+  width: min(280px, calc(100vw - 32px));
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 3px 0 var(--ink);
+  padding: 10px 12px;
+  font: 500 13px / 1.4 var(--ui);
+}
+.mode-notice p {
+  margin: 0 0 6px;
+  overflow-wrap: anywhere;
+}
+.mode-notice-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.lesson-tools {
+  align-items: flex-start;
+}

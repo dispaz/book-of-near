@@ -10,7 +10,8 @@ import {
 } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { registry } from "../app/registry";
-import { initialMode } from "../app/mode";
+import { useChainMode } from "../chain/ChainContext";
+import { ModeSwitch } from "../chain/ModeSwitch";
 import type { LessonManifest, SceneProps } from "../app/types";
 import { StageBar } from "./StageBar";
 import { SceneBoundary } from "./SceneBoundary";
@@ -82,7 +83,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
     if (dock) ro.observe(dock);
     return () => ro.disconnect();
   }, [root]);
-  const mode = useMemo(initialMode, []);
+  const mode = useChainMode().active;
   const webgl = useMemo(() => (lesson.needsWebGL ? hasWebGL() : true), [lesson.needsWebGL]);
 
   const gated = (i: number) => !!lesson.steps[i]?.action?.gate && !opened.has(i);
@@ -200,9 +201,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
             Flat view
           </button>
         ) : null}
-        <span className="pill" data-testid="mode-pill" title="Demo mode: no wallet, no network">
-          {mode === "demo" ? "Demo mode" : "Testnet"}
-        </span>
+        <ModeSwitch />
       </div>
 
       <div className="lesson-dock">
