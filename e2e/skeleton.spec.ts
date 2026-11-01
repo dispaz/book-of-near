@@ -1,16 +1,35 @@
 import { expect, test } from "@playwright/test";
 
+// A returning visitor with a route sees the contents at "/" (new visitors get the opening quiz).
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    if (!localStorage.getItem("bon:v1")) {
+      localStorage.setItem(
+        "bon:v1",
+        JSON.stringify({ v: 1, route: "newcomer", completions: [], evidence: {} }),
+      );
+    }
+  });
+});
+
 test.describe("@smoke walking skeleton", () => {
   test("contents lists stage 0 and both placeholder lessons", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Book of NEAR", level: 1 })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Hello, ledger/ })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Add a line/ })).toBeVisible();
+    await expect(
+      page.getByRole("navigation", { name: "Contents" }).getByRole("link", { name: /Hello, ledger/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("navigation", { name: "Contents" }).getByRole("link", { name: /Add a line/ }),
+    ).toBeVisible();
   });
 
   test("stage bar walks through the placeholder lesson", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: /Hello, ledger/ }).click();
+    await page
+      .getByRole("navigation", { name: "Contents" })
+      .getByRole("link", { name: /Hello, ledger/ })
+      .click();
     const caption = page.getByTestId("caption");
     await expect(caption).toHaveText("A ledger is a list of who owns what.");
     await expect(page.getByRole("button", { name: "Previous step" })).toBeDisabled();

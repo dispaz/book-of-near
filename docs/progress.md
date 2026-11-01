@@ -11,3 +11,18 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Secret scanner `scripts/check-secrets.mjs` runs from `.githooks/pre-commit` (set by `npm install`). Manual check: a throwaway repo commit with a fake `ed25519:` key was rejected ("a.ts:1 NEAR private key").
 - `.claude/settings.json` runs typecheck + eslint after Edit/Write.
 - **Not done:** deploy to Cloudflare Pages. The owner must create the account, run `npx wrangler login` and `npx wrangler pages project create book-of-near --production-branch main`, then `npm run deploy`.
+
+## 2026-11-01 · #5 Opening quiz, routes, progress and table of contents
+- `src/progress/` is the single stage-completion interface: `progress.recordCompletion / completions / isComplete / reportEvidence / recordPosition / resumeTarget / route / setRoute / subscribe`, React hook `useProgress()`. Stored in localStorage under `bon:v1` (try/catch, works in memory when storage is blocked). `CompletionRecord = { lessonId, stage, route, mode, completedAt, testedOut?, evidence? }`. One record per lesson (latest wins).
+- E2E reads records through `window.__bookOfNear.progress` (read-only: `route()`, `completions()`, `isComplete(id)`, `resumeTarget()`).
+- Routes: `newcomer | veteran | developer`. `/` redirects to the quiz at `/start` when no route is stored, else shows contents. `/test-out` is the stage 0 test-out (5 questions from the stage 0 checks, pass 4); passing records every non-hidden stage 0 lesson (planned ones included) with `testedOut: true`. Stage 3 is tagged optional unless the route is developer. E2E tests that open `/` must seed a route (see `seedRoute` in `e2e/progress.spec.ts`).
+- Lesson page: the last step shows "Finish lesson" (disabled while that step's gate is closed); it records the completion with `mode` and the stored route, then offers the next lesson. Scenes may call the new optional `SceneProps.reportEvidence({ txHash })`; evidence is merged into that lesson's next record. Never pass keys or seed words. The current lesson and step are saved for "Continue where you left off".
+- Planned manifests (status `planned`, no scene). Lesson agents: replace `manifest.ts` in place and keep the id.
+  - #8 `l-0-1-blockchain-basics`, #9 `l-0-2-make-a-wallet`, #10 `l-0-3-send-a-transaction`
+  - #14 `l-1-1-claim-your-name`, #15 `l-1-2-function-call-key`, #16 `l-1-3-inside-a-transaction`
+  - #17 `l-2-1-follow-across-shards`, #18 `l-2-2-call-across-blocks`
+  - #19 `l-3-1-deploy-a-contract`, #20 `l-3-2-issue-a-token`, #21 `l-3-3-race-the-rpc`
+  - #22 `l-4-1-one-account-every-chain`, #24 `l-4-2-intent-swap`, #25 `l-4-3-old-bridge-vs-near`
+  - #26 `l-7-1-trace-an-intent`
+  - Backlog topics outside the MVP (order ≥ 10, for #30 to enrich with comparison notes and going-deeper tags): `backlog-0-cross-chain-is-hard`, `backlog-0-smart-contracts`, `backlog-0-tokens`, `backlog-2-stateless-validation`, `backlog-2-spice`, `backlog-2-post-quantum-keys`, `backlog-3-wallet-architecture`, `backlog-3-aurora`, `backlog-7-honest-scoreboard`. Topics covered by MVP lessons are not duplicated.
+- When the real stage 0 lessons land, hide or delete the placeholders: the newcomer start is the first open (not planned, not hidden) lesson of stage 0.

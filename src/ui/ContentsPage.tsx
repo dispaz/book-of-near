@@ -1,9 +1,33 @@
 import type { CSSProperties } from "react";
 import { Link } from "react-router";
 import { registry } from "../app/registry";
+import { useProgress } from "../progress";
+import { isOpen, isOptionalStage, ROUTE_INFO, startLesson } from "../progress/routes";
+import "../progress/progress.css";
 
-/** The book's table of contents: every stage with its lessons. */
+const LockIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" className="chip-icon">
+    <rect x="5" y="11" width="14" height="9" rx="2" />
+    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+  </svg>
+);
+const TickIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" className="chip-icon tick">
+    <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </svg>
+);
+
+/** The book's table of contents: every stage with its lessons, planned ones as locked cards. */
 export function ContentsPage() {
+  const { route, completions, position } = useProgress();
+  const done = new Set(completions.map((c) => c.lessonId));
+  const resume = position ? registry.lessons.get(position.lessonId) : undefined;
+  const canResume = !!resume && isOpen(resume);
+  const start =
+    registry.stages.flatMap((s) => s.lessons).find((l) => isOpen(l) && !done.has(l.id)) ??
+    startLesson(registry, 0);
+  const stage0Done = !!registry.stages[0]?.lessons.every((l) => l.hidden || done.has(l.id));
+
   return (
     <main className="page">
       <div className="page-inner">
@@ -13,34 +37,99 @@ export function ContentsPage() {
           Learn how NEAR works by doing it. Each lesson is a small scene you can touch. Everything runs in
           demo mode, so you need no wallet and no money.
         </p>
+        <div className="path-bar">
+          {route ? (
+            <p className="path-name">
+              Your path: <strong>{ROUTE_INFO[route].name}</strong>
+            </p>
+          ) : null}
+          <Link className="pill" to="/start">
+            Change my path
+          </Link>
+          {route && route !== "newcomer" && !stage0Done ? (
+            <Link className="pill" to="/test-out">
+              Test out of stage 0
+            </Link>
+          ) : null}
+        </div>
+        <div className="resume">
+          {canResume ? (
+            <Link className="btn primary" to={`/lesson/${resume.id}?step=${position!.step}`}>
+              Continue where you left off: {resume.title}
+            </Link>
+          ) : start ? (
+            <Link className="btn primary" to={`/lesson/${start.id}`}>
+              {done.size > 0 ? "Next up" : "Start reading"}: {start.title}
+            </Link>
+          ) : null}
+        </div>
         <nav aria-label="Contents">
-          {registry.stages.map((s) => (
-            <section
-              key={s.id}
-              className="stage-card"
-              style={{ "--stage-accent": s.accent } as CSSProperties}
-              aria-labelledby={`stage-${s.id}`}
-            >
-              <p className="eyebrow">Stage {s.id}</p>
-              <h2 id={`stage-${s.id}`}>
-                {s.name}: {s.title}
-              </h2>
-              <ul className="lessons">
-                {s.lessons
-                  .filter((l) => !l.hidden && l.status !== "planned")
-                  .map((l) => (
-                    <li key={l.id}>
-                      <Link className="lesson-chip" to={`/lesson/${l.id}`}>
-                        <span className="num">
-                          {s.id}.{l.order}
-                        </span>
-                        {l.title}
-                      </Link>
-                    </li>
-                  ))}
-              </ul>
-            </section>
-          ))}
+          {registry.stages.map((s) => {
+            const visible = s.lessons.filter((l) => !l.hidden);
+            const finished = visible.filter((l) => done.has(l.id)).length;
+            return (
+              <section
+                key={s.id}
+                className="stage-card"
+                style={{ "--stage-accent": s.accent } as CSSProperties}
+                aria-labelledby={`stage-${s.id}-n stage-${s.id}`}
+              >
+                <div className="stage-head">
+                  <p className="eyebrow" id={`stage-${s.id}-n`}>
+                    Stage {s.id}
+                  </p>
+                  {isOptionalStage(route, s.id) ? <span className="tag">Optional for your path</span> : null}
+                  {finished > 0 ? (
+                    <span className="tag done">
+                      {finished} of {visible.length} done
+                    </span>
+                  ) : null}
+                </div>
+                <h2 id={`stage-${s.id}`}>
+                  {s.name}: {s.title}
+                </h2>
+                <ul className="lessons">
+                  {visible.map((l) => {
+                    const num = l.order < 10 ? `${s.id}.${l.order}` : "";
+                    if (l.status === "planned") {
+                      return (
+                        <li key={l.id}>
+                          <div className="lesson-chip locked" data-lesson-id={l.id}>
+                            <span className="num">{num}</span>
+                            <span className="chip-body">
+                              <span className="chip-title">{l.title}</span>
+                              {l.summary ? <span className="chip-summary">{l.summary}</span> : null}
+                            </span>
+                            <span className="chip-state">
+                              <LockIcon />
+                              <span className="chip-soon">Coming soon</span>
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    }
+                    const isDone = done.has(l.id);
+                    return (
+                      <li key={l.id}>
+                        <Link className={isDone ? "lesson-chip done" : "lesson-chip"} to={`/lesson/${l.id}`}>
+                          <span className="num">{num}</span>
+                          <span className="chip-body">
+                            <span className="chip-title">{l.title}</span>
+                          </span>
+                          {isDone ? (
+                            <span className="chip-state">
+                              <TickIcon />
+                              <span className="visually-hidden">(done)</span>
+                            </span>
+                          ) : null}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
         </nav>
       </div>
     </main>

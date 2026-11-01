@@ -10,9 +10,14 @@ import "@fontsource/dm-sans/700.css";
 import "./ui/ink.css";
 import { ContentsPage } from "./ui/ContentsPage";
 import { LessonPage } from "./ui/LessonPage";
+import { HomePage } from "./progress/HomePage";
+import { OpeningQuiz } from "./progress/OpeningQuiz";
+import { TestOut } from "./progress/TestOut";
 
 const router = createBrowserRouter([
-  { path: "/", element: <ContentsPage /> },
+  { path: "/", element: <HomePage /> },
+  { path: "/start", element: <OpeningQuiz /> },
+  { path: "/test-out", element: <TestOut /> },
   { path: "/lesson/:id", element: <LessonPage /> },
   { path: "*", element: <ContentsPage /> },
 ]);
