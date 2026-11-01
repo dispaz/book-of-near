@@ -1,0 +1,532 @@
+/* Lesson 0.1: the toy ledger. Ink outlines on paper, the stage accent as the one highlight, red only for
+   broken links (the lesson's "something is wrong" signal).
+   Wide screens: a column to the right of the docked lesson card. Narrow screens: a band between the title
+   and the dock (--bb-dock is measured by the scene). */
+.bb {
+  position: absolute;
+  top: calc(112px + env(safe-area-inset-top, 0px));
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--bb-dock, 45%) + 8px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .bb {
+    top: calc(104px + env(safe-area-inset-top, 0px));
+    left: 448px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    justify-content: center;
+    gap: 14px;
+  }
+  /* Check and Honest take use the right column: the finished chain sits on the left, above the card. */
+  .bb.summary {
+    top: calc(124px + env(safe-area-inset-top, 0px));
+    left: max(16px, env(safe-area-inset-left, 0px));
+    width: 400px;
+    right: auto;
+    bottom: auto;
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 899px) {
+  .bb.summary {
+    display: none;
+  }
+}
+.bb p {
+  margin: 0;
+}
+.bb code,
+.bb-edit {
+  font:
+    600 13px ui-monospace,
+    Menlo,
+    monospace;
+}
+
+/* ---------- Notebooks ---------- */
+.bb-notebooks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.bb-notebook {
+  width: 100%;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 10px 10px 10px 18px;
+  border: 2px solid var(--ink);
+  border-radius: 6px 12px 12px 6px;
+  background: repeating-linear-gradient(180deg, transparent 0 21px, #4d6bff26 21px 22px), #fffdf7;
+  box-shadow:
+    inset 8px 0 0 -4px var(--ink),
+    3px 3px 0 var(--ink);
+  font: 500 15px/22px var(--serif);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+div.bb-notebook {
+  cursor: default;
+}
+button.bb-notebook:hover {
+  transform: translateY(-2px);
+}
+.bb-notebook.open {
+  background-color: #fff;
+}
+.bb-nb-title {
+  font: 600 22px/1 var(--hand);
+}
+.bb-nb-lines {
+  display: flex;
+  flex-direction: column;
+}
+.bb-nb-closed {
+  color: var(--mute);
+  font: 500 13px var(--ui);
+}
+.bb-nb-mark {
+  font: 700 13px var(--ui);
+}
+.bb-notebook.bad {
+  border-color: var(--red);
+  box-shadow:
+    inset 8px 0 0 -4px var(--red),
+    0 0 0 4px #d8433b33,
+    3px 3px 0 var(--red);
+}
+.bb-notebook.bad .bb-nb-mark,
+.bb-notebook.bad code {
+  color: var(--red);
+}
+.bb-notebook.fixed {
+  animation: bb-replace 0.6s ease-out;
+}
+@keyframes bb-replace {
+  0% {
+    opacity: 0.2;
+    transform: rotate(-2deg);
+  }
+}
+.bb-result {
+  padding: 8px 12px;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  background: var(--glass);
+  font: 500 15px/1.4 var(--serif);
+}
+
+/* ---------- People and balances ---------- */
+.bb-people {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.bb-person {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: var(--accent);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.bb-person-name {
+  font: 600 22px/1 var(--hand);
+}
+.bb-person-coins {
+  font: 500 13px var(--ui);
+  white-space: nowrap;
+}
+@media (max-width: 420px) {
+  .bb-person {
+    padding: 6px 8px;
+  }
+  .bb-person-name {
+    font-size: 20px;
+  }
+  .bb-person-coins {
+    font-size: 12px;
+  }
+}
+.bb-num {
+  display: inline-block;
+  font: 700 18px var(--ui);
+  animation: bb-pop 0.6s ease-out;
+}
+@keyframes bb-pop {
+  0% {
+    transform: scale(1.5);
+  }
+}
+.bb-coin {
+  position: absolute;
+  top: 50%;
+  width: 0;
+  height: 0;
+  left: calc((var(--to) + 0.5) * 33.333%);
+  animation: bb-coin-x 0.6s ease-in-out both;
+  pointer-events: none;
+}
+.bb-coin > span {
+  position: absolute;
+  left: -12px;
+  top: -12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f2c230;
+  border: 2px solid var(--ink);
+  animation: bb-coin-y 0.6s ease-in-out both;
+}
+@keyframes bb-coin-x {
+  from {
+    left: calc((var(--from) + 0.5) * 33.333%);
+  }
+  to {
+    left: calc((var(--to) + 0.5) * 33.333%);
+  }
+}
+@keyframes bb-coin-y {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-30px);
+  }
+  90% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------- The chain ---------- */
+.bb-chain-wrap {
+  min-width: 0;
+}
+.bb-chain-title {
+  font: 700 11px var(--ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin-bottom: 4px !important;
+}
+.bb-chain {
+  list-style: none;
+  margin: 0;
+  padding: 2px 4px 6px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.bb-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.bb-item[data-new] {
+  animation: bb-drop 0.6s ease-out;
+}
+@keyframes bb-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+}
+.bb-block {
+  display: grid;
+  grid-template-columns: 26px 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: #fffdf7;
+  box-shadow: 3px 3px 0 var(--ink);
+  font: 500 14px var(--ui);
+  color: var(--ink);
+  text-align: left;
+}
+button.bb-block {
+  cursor: pointer;
+}
+button.bb-block:hover,
+.bb-block.selected {
+  background: #fff;
+  box-shadow:
+    3px 3px 0 var(--ink),
+    0 0 0 4px var(--accent);
+}
+.bb-block.editing {
+  box-shadow:
+    3px 3px 0 var(--ink),
+    0 0 0 4px var(--accent);
+}
+.bb-block-n {
+  font: 700 15px var(--ui);
+}
+.bb-block-tx {
+  font:
+    600 13px ui-monospace,
+    Menlo,
+    monospace;
+  white-space: nowrap;
+}
+.bb-field {
+  font-size: 11px;
+  color: var(--mute);
+  white-space: nowrap;
+}
+.bb-field code {
+  color: var(--ink);
+  padding: 1px 3px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.bb-field.changed code {
+  background: var(--accent);
+}
+.bb-block.linkbad {
+  border-color: var(--red);
+  box-shadow: 3px 3px 0 var(--red);
+}
+.bb-block.linkbad .bb-block-n {
+  color: var(--red);
+}
+.bb-field.bad,
+.bb-field.bad code {
+  color: var(--red);
+}
+.bb-field.bad code {
+  text-decoration: line-through wavy var(--red);
+}
+.bb-edit {
+  width: 3.2em;
+  padding: 2px 4px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: #fff;
+  text-align: center;
+}
+.bb-edit:focus-visible,
+.bb-details input:focus-visible,
+.bb-txform input:focus-visible,
+.bb-txform select:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 1px;
+}
+.bb-link {
+  align-self: center;
+  display: block;
+  width: 24px;
+  height: 22px;
+  margin: 1px 0;
+  transform: rotate(90deg);
+}
+.bb-link svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.bb-link.broken svg {
+  stroke: var(--red);
+}
+.bb-link .crack {
+  stroke-width: 2.5;
+}
+.bb-link.plain svg {
+  opacity: 0.45;
+}
+.hint {
+  animation: bb-hint 1.2s ease-in-out infinite;
+}
+@keyframes bb-hint {
+  50% {
+    box-shadow:
+      3px 3px 0 var(--ink),
+      0 0 0 6px var(--accent);
+  }
+}
+
+/* Wide screens: the chain runs left to right (the summary beside the Check stays a compact list). */
+@media (min-width: 900px) {
+  .bb:not(.summary) .bb-chain {
+    flex-direction: row;
+    align-items: stretch;
+    overflow-x: auto;
+  }
+  .bb:not(.summary) .bb-item {
+    flex-direction: row;
+    align-items: center;
+  }
+  .bb:not(.summary) .bb-block {
+    width: 150px;
+    min-height: 112px;
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: 4px;
+  }
+  .bb:not(.summary) .bb-block-tx {
+    white-space: normal;
+  }
+  .bb:not(.summary) .bb-link {
+    width: 34px;
+    height: 24px;
+    margin: 0 2px;
+    transform: none;
+  }
+}
+@media (max-width: 899px) {
+  .bb-block {
+    padding: 5px 8px;
+    gap: 6px;
+  }
+  .bb-block-tx {
+    font-size: 12px;
+    white-space: normal;
+  }
+  .bb-status {
+    font-size: 18px !important;
+  }
+}
+
+/* ---------- Block details and the hash sandbox ---------- */
+.bb-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--ink);
+  border-top: 5px solid var(--accent);
+  border-radius: 12px;
+  background: var(--glass);
+  font: 500 15px/1.4 var(--serif);
+}
+.bb-sandbox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font: 700 13px var(--ui);
+}
+.bb-sandbox input {
+  flex: 1;
+  min-width: 140px;
+  padding: 6px 8px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  font:
+    600 15px ui-monospace,
+    Menlo,
+    monospace;
+  background: #fff;
+}
+.bb-details code.diff {
+  background: var(--accent);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+.bb-note {
+  font: 500 13px var(--ui);
+  color: var(--mute);
+}
+
+/* ---------- Status note ---------- */
+.bb-status {
+  font: 600 20px/1.2 var(--hand);
+}
+
+/* ---------- Transaction form (docked above the lesson card) ---------- */
+.bb-txform {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 14px;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  font: 600 15px var(--ui);
+}
+.bb-txrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.bb-txparties {
+  font: 600 22px/1 var(--hand);
+}
+.bb-txform select,
+.bb-txform input {
+  padding: 6px 6px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: #fff;
+  font: 600 15px var(--ui);
+  color: var(--ink);
+}
+.bb-txform input {
+  width: 3.4em;
+  text-align: center;
+}
+.bb-amount {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bb-txform .btn {
+  margin-left: auto;
+}
+.bb-error {
+  margin: 0;
+  padding: 6px 10px;
+  border-left: 4px solid var(--red);
+  background: #fff;
+  color: var(--red);
+  font: 600 14px var(--ui);
+}
+
+/* ---------- Reduced motion: end states only ---------- */
+.bb.still *,
+.bb.still {
+  animation: none !important;
+  transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bb *,
+  .bb-txform {
+    animation: none !important;
+    transition: none !important;
+  }
+}

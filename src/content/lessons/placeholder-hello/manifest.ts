@@ -7,7 +7,7 @@ export default {
   title: "Hello, ledger",
   status: "ready",
   needsChain: false,
-  hidden: false,
+  hidden: true,
   summary: "A placeholder lesson that shows the stage bar.",
   steps: [
     {
