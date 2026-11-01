@@ -6,3 +6,4 @@ test-results
 docs
 package-lock.json
 *.md
+.claude/worktrees

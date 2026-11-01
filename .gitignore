@@ -12,3 +12,4 @@ playwright-report/
 test-results/
 target/
 *.tsbuildinfo
+.claude/worktrees/

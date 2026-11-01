@@ -13,6 +13,7 @@ export default tseslint.config(
       ".scratch",
       "docs",
       "worker/.wrangler",
+      ".claude",
     ],
   },
   js.configs.recommended,
