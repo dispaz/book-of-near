@@ -18,7 +18,8 @@
     "e2e": "playwright install chromium && playwright test",
     "check-secrets": "node scripts/check-secrets.mjs --staged",
     "deploy": "npm run build && npx wrangler pages deploy dist --project-name book-of-near",
-    "prepare": "git config core.hooksPath .githooks || true"
+    "prepare": "git config core.hooksPath .githooks || true",
+    "new-lesson": "node scripts/new-lesson.mjs"
   },
   "dependencies": {
     "@fontsource/caveat": "^5.3.0",
