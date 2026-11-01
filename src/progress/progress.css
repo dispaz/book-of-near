@@ -1,0 +1,212 @@
+/* Opening quiz, test-out, contents progress and the finish card. Ink style, see ink.css. */
+
+/* ---------- Quiz and test-out ---------- */
+.quiz {
+  max-width: 680px;
+}
+.quiz form {
+  margin-top: 18px;
+}
+.quiz-q {
+  border: 1.5px solid var(--ink);
+  border-radius: 18px;
+  background: var(--paper-2);
+  box-shadow: 0 4px 0 var(--ink);
+  padding: 14px 16px 16px;
+  margin: 0 0 16px;
+  min-width: 0;
+}
+.quiz-q legend {
+  float: left;
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 0;
+  font: 700 19px/1.3 var(--serif);
+}
+.quiz-q legend + * {
+  clear: both;
+}
+.quiz-n {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: var(--accent);
+  font: 700 13px var(--ui);
+}
+.quiz-hint {
+  margin: 6px 0 0 36px;
+  font: 500 14px/1.4 var(--ui);
+  color: var(--mute);
+}
+.quiz-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.quiz-options.stacked {
+  flex-direction: column;
+}
+.quiz-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  background: #fff;
+  font: 500 16px/1.35 var(--serif);
+  cursor: pointer;
+}
+.quiz-option input {
+  flex: none;
+  margin: 3px 0 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--ink);
+}
+.quiz-option:has(input:checked) {
+  background: #fff4e8;
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+.quiz-option:has(input:focus-visible) {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+.quiz-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+.quiz-covers {
+  font: 500 17px/1.5 var(--serif);
+  max-width: 60ch;
+}
+
+/* ---------- Contents: path, resume, locked and done cards ---------- */
+.path-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 14px 0 6px;
+}
+.path-name {
+  margin: 0;
+  font: 500 15px var(--ui);
+}
+.resume {
+  margin: 14px 0 22px;
+}
+.resume .btn {
+  max-width: 100%;
+}
+.stage-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+.stage-head .eyebrow {
+  margin: 0;
+}
+.tag {
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  padding: 1px 9px;
+  font: 700 11px var(--ui);
+  background: #fff;
+}
+.tag.done {
+  background: var(--stage-accent, var(--accent));
+}
+.lesson-chip .chip-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lesson-chip .chip-summary {
+  font: 500 13px/1.35 var(--ui);
+  color: var(--mute);
+}
+.lesson-chip .chip-state {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: 700 12px var(--ui);
+  color: var(--mute);
+}
+.chip-icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.lesson-chip.locked {
+  background: transparent;
+  border-style: dashed;
+  color: #3b3846;
+  cursor: default;
+}
+.lesson-chip.locked:hover {
+  background: transparent;
+}
+.lesson-chip.done .chip-state {
+  color: var(--ink);
+}
+.lesson-chip.done .tick,
+.finish .tick {
+  stroke: var(--ink);
+  background: var(--stage-accent, var(--accent));
+  border-radius: 50%;
+  padding: 2px;
+}
+
+/* ---------- Finish card (last step of a lesson) ---------- */
+.finish {
+  margin-top: 6px;
+}
+.finish-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 700 17px var(--serif);
+}
+.finish .tick {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.finish-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 560px) {
+  /* Keep the lock icon, hide its label visually so titles get the width. */
+  .lesson-chip .chip-soon {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}

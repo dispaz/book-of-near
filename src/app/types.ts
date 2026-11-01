@@ -27,6 +27,8 @@ export interface SceneProps {
   /** Flat top-down camera mode (3D scenes); 2D scenes may ignore it. */
   flat: boolean;
   mode: ChainMode;
+  /** Attach evidence (for example `{ txHash }`) to this lesson's completion record. Never keys or seed words. */
+  reportEvidence?: (evidence: Record<string, string>) => void;
 }
 
 export type SceneModule = { default: ComponentType<SceneProps> };

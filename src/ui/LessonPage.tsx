@@ -18,6 +18,8 @@ import { TextFallback } from "./TextFallback";
 import { hasWebGL, useReducedMotion } from "./hooks";
 import { StageMenu } from "./StageMenu";
 import { ActionSlot } from "./SceneAction";
+import { progress } from "../progress";
+import { FinishLesson, useRecordPosition } from "../progress/FinishLesson";
 
 const PLAY_MS = 2200;
 const sceneCache = new Map<string, ComponentType<SceneProps>>();
@@ -124,8 +126,14 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [step, canNext, goTo]);
 
+  useRecordPosition(lesson.id, step);
+  const reportEvidence = useCallback(
+    (ev: Record<string, string>) => progress.reportEvidence(lesson.id, ev),
+    [lesson.id],
+  );
+
   const Scene = sceneFor(lesson);
-  const sceneProps: SceneProps = { step, goTo, setGate, reducedMotion, flat, mode };
+  const sceneProps: SceneProps = { step, goTo, setGate, reducedMotion, flat, mode, reportEvidence };
   const Fallback = lesson.fallback;
   const fallback = (reason: string) =>
     Fallback ? (
@@ -182,6 +190,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
             {current.action?.gate && !opened.has(step) ? ` · Your turn: ${current.action.label}` : ""}
           </p>
           {current.explain ? <p data-testid="explain">{current.explain}</p> : null}
+          {step === last ? <FinishLesson lesson={lesson} mode={mode} disabled={!canNext} /> : null}
           <details className="read-as-text">
             <summary>Read as text</summary>
             <ol>
