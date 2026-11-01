@@ -10,6 +10,7 @@ import "@fontsource/dm-sans/700.css";
 import "./ui/ink.css";
 import { ContentsPage } from "./ui/ContentsPage";
 import { LessonPage } from "./ui/LessonPage";
+import { ChainProvider } from "./chain/ChainContext";
 
 const router = createBrowserRouter([
   { path: "/", element: <ContentsPage /> },
@@ -19,6 +20,8 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <ChainProvider>
+      <RouterProvider router={router} />
+    </ChainProvider>
   </StrictMode>,
 );
