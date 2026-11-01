@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = process.env.BASE_URL ?? "http://localhost:4173";
+// Each worktree can pick its own port (E2E_PORT) so parallel agents never test each other's build.
+const port = Number(process.env.E2E_PORT ?? 4173);
+const baseURL = process.env.BASE_URL ?? `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: "e2e",

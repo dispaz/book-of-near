@@ -13,6 +13,7 @@ import { LessonPage } from "./ui/LessonPage";
 import { HomePage } from "./progress/HomePage";
 import { OpeningQuiz } from "./progress/OpeningQuiz";
 import { TestOut } from "./progress/TestOut";
+import { ChainProvider } from "./chain/ChainContext";
 
 const router = createBrowserRouter([
   { path: "/", element: <HomePage /> },
@@ -24,6 +25,8 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <ChainProvider>
+      <RouterProvider router={router} />
+    </ChainProvider>
   </StrictMode>,
 );
