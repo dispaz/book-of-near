@@ -45,8 +45,15 @@ test.describe("chain: placeholder transfer (demo mode)", () => {
   });
 
   test("is hidden from the contents", async ({ page }) => {
+    await page.addInitScript(() =>
+      localStorage.setItem(
+        "bon:v1",
+        JSON.stringify({ v: 1, route: "newcomer", completions: [], evidence: {} }),
+      ),
+    );
     await page.goto("/");
-    await expect(page.getByRole("link", { name: /Hello, ledger/ })).toBeVisible();
+    const contents = page.getByRole("navigation", { name: "Contents" });
+    await expect(contents.getByRole("link", { name: /Hello, ledger/ })).toBeVisible();
     await expect(page.getByRole("link", { name: /Send a test transfer/ })).toHaveCount(0);
   });
 });
