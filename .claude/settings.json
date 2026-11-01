@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && out=$(npm run -s typecheck 2>&1 && npx eslint --quiet src e2e scripts 2>&1) || { echo \"$out\" | tail -40 >&2; exit 2; }"
+          }
+        ]
+      }
+    ]
+  }
+}

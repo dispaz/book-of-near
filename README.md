@@ -2,7 +2,7 @@
 
 An interactive, 3D (ink-outline) course that teaches NEAR from zero to expert. Learners do real testnet actions, then mint NFT badges as proof of learning. Built solo with Claude Code for the NEAR Hackathon 2026 (build window 1 Nov 00:00 UTC to 14 Nov 23:59 UTC).
 
-**Status:** planning only. Implementation starts on 1 Nov 2026. See [START-HERE.md](START-HERE.md).
+**Status:** in development (build window 1 to 14 Nov 2026).
 
 ## What is in this folder
 
@@ -24,10 +24,13 @@ An interactive, 3D (ink-outline) course that teaches NEAR from zero to expert. L
 
 Stages 0 to 4 plus a capstone and final exam: 15 lessons, 5 stage badges, 1 final badge with four rarity tiers. Everything else is shown as locked "planned" cards.
 
-## Quick start (filled in by ticket 01)
+## Quick start
+
+Needs Node 22 or newer. Everything runs in demo mode: no wallet, no network, no keys.
 
 ```
 npm install && npm run dev      # app in demo mode, no wallet needed
-npm test                        # unit and contract tests
+npm test                        # unit tests
+npm run lint && npm run typecheck
 npm run e2e                     # Playwright against demo mode
 ```

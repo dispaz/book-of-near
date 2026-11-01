@@ -1,0 +1,433 @@
+/* Ink style, taken from docs/prototype/ink-stage.html: ink outlines on pale paper, one accent per stage. */
+:root {
+  --ink: #16141f;
+  --paper: #efeadd;
+  --paper-2: #f6f2e8;
+  --desk: #d8dfd6;
+  --wood: #e9e1cf;
+  --orange: #ff8a3d;
+  --blue: #4d6bff;
+  --pink: #ff5fa2;
+  --green: #2fa36b;
+  --red: #d8433b;
+  --glass: #ffffffcc;
+  --mute: #5d5a68;
+  --accent: var(--orange);
+  --serif: "Newsreader", Georgia, serif;
+  --hand: "Caveat", cursive;
+  --ui: "DM Sans", system-ui, sans-serif;
+  color-scheme: light;
+}
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--ui);
+  -webkit-font-smoothing: antialiased;
+}
+a {
+  color: inherit;
+}
+button {
+  font: inherit;
+  color: inherit;
+}
+:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Pages ---------- */
+.page {
+  min-height: 100%;
+  padding: calc(28px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-left, 0px)) 48px;
+  background: var(--paper);
+}
+.page-inner {
+  max-width: 880px;
+  margin: 0 auto;
+}
+.eyebrow {
+  margin: 0 0 4px;
+  font: 700 11px var(--ui);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+h1,
+h2,
+h3 {
+  font-family: var(--serif);
+  text-wrap: balance;
+}
+.page h1 {
+  font-size: clamp(30px, 6vw, 46px);
+  line-height: 1.05;
+  margin: 0 0 10px;
+}
+.lede {
+  font: 500 clamp(17px, 2.4vw, 20px) / 1.45 var(--serif);
+  max-width: 60ch;
+  color: #2b2836;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  padding: 9px 18px;
+  background: #fff;
+  font: 700 14px var(--ui);
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 3px 0 var(--ink);
+  transition:
+    transform 0.08s,
+    box-shadow 0.08s;
+}
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 var(--ink);
+}
+.btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.btn.primary {
+  background: var(--accent);
+}
+.btn.ink {
+  background: var(--ink);
+  color: #fff;
+}
+
+/* ---------- Stage cards (contents) ---------- */
+.stage-card {
+  border: 1.5px solid var(--ink);
+  border-radius: 18px;
+  background: var(--paper-2);
+  padding: 16px 18px;
+  margin: 14px 0;
+  box-shadow: 0 4px 0 var(--ink);
+  border-top: 8px solid var(--stage-accent, var(--accent));
+}
+.stage-card h2 {
+  margin: 0;
+  font-size: 22px;
+}
+.stage-card .lessons {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 8px;
+}
+.lesson-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  background: #fff;
+  text-decoration: none;
+  font: 500 16px var(--serif);
+}
+.lesson-chip:hover {
+  background: #fffaf2;
+}
+.lesson-chip .num {
+  font: 700 12px var(--ui);
+  color: var(--mute);
+  min-width: 2.2em;
+}
+
+/* ---------- Lesson stage ---------- */
+.lesson {
+  position: relative;
+  height: 100%;
+  min-height: 520px;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--wood) 0, var(--wood) 34%, var(--desk) 34.1%, #c9d2c8 100%);
+}
+.scene-area {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+.scene-area > svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.lesson-title {
+  position: absolute;
+  left: max(16px, env(safe-area-inset-left, 0px));
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  max-width: min(460px, calc(100% - 140px));
+  pointer-events: none;
+  z-index: 2;
+}
+.lesson-title h1 {
+  margin: 0;
+  font: 700 clamp(22px, 4vw, 32px) / 1.1 var(--serif);
+}
+.lesson-title .home-link {
+  pointer-events: auto;
+}
+.lesson-tools {
+  position: absolute;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  display: flex;
+  gap: 8px;
+  z-index: 3;
+}
+.pill {
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--glass);
+  backdrop-filter: blur(8px);
+  padding: 6px 12px;
+  font: 700 12px var(--ui);
+  cursor: pointer;
+  text-decoration: none;
+}
+.pill[aria-pressed="true"] {
+  background: var(--ink);
+  color: #fff;
+}
+.lesson-dock {
+  position: absolute;
+  left: max(16px, env(safe-area-inset-left, 0px));
+  bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  width: min(400px, calc(100% - 32px));
+  max-height: 52%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 3;
+}
+.action-slot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.action-slot:empty {
+  display: none;
+}
+.lesson-card {
+  min-height: 0;
+  overflow: auto;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid var(--ink);
+  border-radius: 18px;
+  padding: 12px 16px;
+  font: 500 16px/1.45 var(--serif);
+  z-index: 2;
+}
+.lesson-card p {
+  margin: 0 0 8px;
+}
+.lesson-card .step-label {
+  font: 700 11px var(--ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.read-as-text {
+  margin-top: 6px;
+  font: 500 14px var(--ui);
+}
+.read-as-text ol {
+  font: 500 15px/1.45 var(--serif);
+  padding-left: 20px;
+}
+.scene-action {
+  position: absolute;
+  left: 50%;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 3;
+}
+@media (min-width: 900px) {
+  .scene-action {
+    left: auto;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    transform: none;
+  }
+}
+
+/* ---------- Stage bar (floating, bottom) ---------- */
+.stage-bar {
+  position: absolute;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: min(720px, calc(100% - 32px));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  padding: 8px 14px;
+  box-shadow: 0 10px 24px #0003;
+  z-index: 4;
+}
+.stage-bar button {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.stage-bar button:hover {
+  background: #16141f14;
+}
+.stage-bar button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.stage-bar svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.stage-bar .caption {
+  flex: 1;
+  min-width: 0;
+  font: 500 clamp(14px, 2.4vw, 17px) / 1.25 var(--serif);
+  padding: 0 6px;
+}
+.stage-bar .dots {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.stage-bar .dots button {
+  width: 9px;
+  height: 9px;
+  border-radius: 5px;
+  padding: 0;
+  background: #16141f33;
+  transition:
+    width 0.25s,
+    background 0.25s;
+}
+.stage-bar .dots button[aria-current="step"] {
+  width: 26px;
+  background: var(--ink);
+}
+.stage-menu {
+  position: absolute;
+  left: 50%;
+  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: min(460px, calc(100% - 32px));
+  max-height: 60%;
+  overflow: auto;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid var(--ink);
+  border-radius: 18px;
+  padding: 12px 16px;
+  z-index: 5;
+}
+.stage-menu h2 {
+  font: 700 11px var(--ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin: 10px 0 4px;
+}
+.stage-menu ol {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 6px;
+  font-family: var(--serif);
+  font-size: 16px;
+}
+.stage-menu a {
+  text-decoration: none;
+}
+.stage-menu a[aria-current="page"] {
+  font-weight: 700;
+}
+@media (max-width: 560px) {
+  .stage-bar .dots {
+    display: none;
+  }
+  .stage-bar {
+    padding: 6px 8px;
+  }
+  .lesson-dock {
+    max-height: 44%;
+  }
+  .lesson-card {
+    font-size: 15px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ---------- Text fallback ---------- */
+.fallback {
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+  padding: 100px max(16px, env(safe-area-inset-left, 0px)) 180px;
+  font: 500 17px/1.5 var(--serif);
+  overflow: auto;
+}
+.fallback ol {
+  max-width: 60ch;
+}
+.fallback li[aria-current="step"] {
+  font-weight: 700;
+}

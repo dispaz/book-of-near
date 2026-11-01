@@ -1,0 +1,3 @@
+#!/bin/sh
+# Blocks commits that add private keys, seed phrases or tokens. See scripts/check-secrets.mjs.
+exec node scripts/check-secrets.mjs --staged

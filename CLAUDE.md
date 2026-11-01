@@ -22,7 +22,13 @@ Read `.scratch/book-of-near-mvp/spec.md` for the product, `GLOSSARY.md` for term
 Acceptance boxes ticked, tests green, works in demo mode, fallback and reduced-motion checked, no secrets, progress logged.
 
 ## Commands
-Filled in by issue #1 (dev, build, test, e2e, deploy).
+- `npm install && npm run dev`: install and run the app (demo mode, http://localhost:5173). `npm install` also points git at `.githooks` (secret scanner).
+- `npm run typecheck`, `npm run lint` (ESLint + Prettier check; `npm run format` fixes formatting).
+- `npm test`: Vitest unit tests (`src/**/*.test.ts(x)`, `scripts/**/*.test.ts`).
+- `npm run e2e`: Playwright against a production build (`vite preview` on :4173). `BASE_URL=https://... npx playwright test --grep @smoke` runs the smoke test against a live URL.
+- `npm run build`, `npm run deploy` (Cloudflare Pages, project `book-of-near`; needs `npx wrangler login` first).
+- Lessons live in `src/content/lessons/<id>/manifest.ts` (+ lazy `Scene.tsx`); stages in `src/content/stages/<n>-<slug>/stage.ts`. Both are discovered automatically. Scene contract: `SceneProps` in `src/app/types.ts`; step actions go through `SceneAction`; gates via `setGate(true)`.
+- Lesson scripts (researched copy, check questions, honest takes, demo data) are in `docs/lessons/stage-<n>/`.
 
 ## Agent skills
 

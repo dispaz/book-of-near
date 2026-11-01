@@ -1,0 +1,210 @@
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentType,
+  type CSSProperties,
+} from "react";
+import { Link, useParams, useSearchParams } from "react-router";
+import { registry } from "../app/registry";
+import { initialMode } from "../app/mode";
+import type { LessonManifest, SceneProps } from "../app/types";
+import { StageBar } from "./StageBar";
+import { SceneBoundary } from "./SceneBoundary";
+import { TextFallback } from "./TextFallback";
+import { hasWebGL, useReducedMotion } from "./hooks";
+import { StageMenu } from "./StageMenu";
+import { ActionSlot } from "./SceneAction";
+
+const PLAY_MS = 2200;
+const sceneCache = new Map<string, ComponentType<SceneProps>>();
+
+function sceneFor(lesson: LessonManifest): ComponentType<SceneProps> | null {
+  if (!lesson.scene) return null;
+  let c = sceneCache.get(lesson.id);
+  if (!c) {
+    c = lazy(lesson.scene);
+    sceneCache.set(lesson.id, c);
+  }
+  return c;
+}
+
+export function LessonPage() {
+  const { id = "" } = useParams();
+  const lesson = registry.lessons.get(id);
+  if (!lesson || lesson.status === "planned") {
+    return (
+      <main className="page">
+        <div className="page-inner">
+          <h1>Lesson not found</h1>
+          <p className="lede">This page is not written yet.</p>
+          <Link className="btn" to="/">
+            Back to contents
+          </Link>
+        </div>
+      </main>
+    );
+  }
+  return <Lesson key={lesson.id} lesson={lesson} />;
+}
+
+function Lesson({ lesson }: { lesson: LessonManifest }) {
+  const stage = registry.stageOf(lesson.id)!;
+  const [params, setParams] = useSearchParams();
+  const last = lesson.steps.length - 1;
+  const step = Math.min(last, Math.max(0, Number(params.get("step") ?? "1") - 1 || 0));
+  const reducedMotion = useReducedMotion();
+  const [flat, setFlat] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [opened, setOpened] = useState<Set<number>>(() => new Set());
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const mode = useMemo(initialMode, []);
+  const webgl = useMemo(() => (lesson.needsWebGL ? hasWebGL() : true), [lesson.needsWebGL]);
+
+  const gated = (i: number) => !!lesson.steps[i]?.action?.gate && !opened.has(i);
+  // Steps up to and including the first closed gate are reachable.
+  const canNext = !gated(step);
+
+  const goTo = useCallback(
+    (n: number) => {
+      const target = Math.min(last, Math.max(0, n));
+      setParams(
+        (p) => {
+          const next = new URLSearchParams(p);
+          next.set("step", String(target + 1));
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [last, setParams],
+  );
+
+  const setGate = useCallback(
+    (open: boolean) =>
+      setOpened((prev) => {
+        if (prev.has(step) === open) return prev;
+        const next = new Set(prev);
+        if (open) next.add(step);
+        else next.delete(step);
+        return next;
+      }),
+    [step],
+  );
+
+  // Play: advance every PLAY_MS, stop at the last step or at a closed gate.
+  useEffect(() => {
+    if (!playing) return;
+    if (step >= last || !canNext) {
+      setPlaying(false);
+      return;
+    }
+    const t = window.setTimeout(() => goTo(step + 1), PLAY_MS);
+    return () => window.clearTimeout(t);
+  }, [playing, step, last, canNext, goTo]);
+
+  // Keyboard: arrows move, space plays. Ignore keys typed into form fields.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) && e.key === " ") return;
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      if (e.key === "ArrowRight" && canNext) goTo(step + 1);
+      else if (e.key === "ArrowLeft") goTo(step - 1);
+      else if (e.key === " ") {
+        e.preventDefault();
+        setPlaying((p) => !p);
+      } else if (e.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [step, canNext, goTo]);
+
+  const Scene = sceneFor(lesson);
+  const sceneProps: SceneProps = { step, goTo, setGate, reducedMotion, flat, mode };
+  const Fallback = lesson.fallback;
+  const fallback = (reason: string) =>
+    Fallback ? (
+      <Fallback {...sceneProps} />
+    ) : (
+      <TextFallback steps={lesson.steps} step={step} reason={reason} />
+    );
+  const current = lesson.steps[step]!;
+
+  return (
+    <main className="lesson" style={{ "--accent": stage.accent } as CSSProperties} data-lesson={lesson.id}>
+      <ActionSlot.Provider value={slot}>
+        <div className="scene-area" data-testid="scene-area">
+          {!Scene ? (
+            fallback("This lesson has no scene yet. Here are its steps as text.")
+          ) : !webgl ? (
+            fallback("Your browser can't draw the 3D scene. Here are the steps as text.")
+          ) : (
+            <SceneBoundary fallback={fallback("The scene could not load. Here are the steps as text.")}>
+              <Suspense fallback={<p className="visually-hidden">Loading scene…</p>}>
+                <Scene {...sceneProps} />
+              </Suspense>
+            </SceneBoundary>
+          )}
+        </div>
+      </ActionSlot.Provider>
+
+      <header className="lesson-title">
+        <p className="eyebrow">
+          <Link className="home-link" to="/">
+            Book of NEAR
+          </Link>{" "}
+          · Stage {stage.id} · {stage.name}
+        </p>
+        <h1>{lesson.title}</h1>
+      </header>
+
+      <div className="lesson-tools">
+        {lesson.needsWebGL && webgl ? (
+          <button className="pill" aria-pressed={flat} onClick={() => setFlat((f) => !f)}>
+            Flat view
+          </button>
+        ) : null}
+        <span className="pill" data-testid="mode-pill" title="Demo mode: no wallet, no network">
+          {mode === "demo" ? "Demo mode" : "Testnet"}
+        </span>
+      </div>
+
+      <div className="lesson-dock">
+        <div className="action-slot" ref={setSlot} />
+        <section className="lesson-card" aria-label="Step details">
+          <p className="step-label">
+            Step {step + 1} of {lesson.steps.length}
+            {current.action?.gate && !opened.has(step) ? ` · Your turn: ${current.action.label}` : ""}
+          </p>
+          {current.explain ? <p data-testid="explain">{current.explain}</p> : null}
+          <details className="read-as-text">
+            <summary>Read as text</summary>
+            <ol>
+              {lesson.steps.map((s, i) => (
+                <li key={i}>{s.caption}</li>
+              ))}
+            </ol>
+          </details>
+        </section>
+      </div>
+
+      {menuOpen ? <StageMenu currentId={lesson.id} onPick={() => setMenuOpen(false)} /> : null}
+
+      <StageBar
+        steps={lesson.steps}
+        step={step}
+        canNext={canNext}
+        playing={playing}
+        menuOpen={menuOpen}
+        onStep={goTo}
+        onTogglePlay={() => setPlaying((p) => !p)}
+        onToggleMenu={() => setMenuOpen((o) => !o)}
+      />
+    </main>
+  );
+}
