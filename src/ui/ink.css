@@ -231,7 +231,8 @@ h3 {
 .lesson-dock {
   position: absolute;
   left: max(16px, env(safe-area-inset-left, 0px));
-  bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  /* --bar-h is measured by LessonPage; 56px is the one-line stage bar. */
+  bottom: calc(16px + var(--bar-h, 56px) + 16px + env(safe-area-inset-bottom, 0px));
   width: min(400px, calc(100% - 32px));
   max-height: 52%;
   display: flex;
@@ -363,7 +364,7 @@ h3 {
 .stage-menu {
   position: absolute;
   left: 50%;
-  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(16px + var(--bar-h, 56px) + 12px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   width: min(460px, calc(100% - 32px));
   max-height: 60%;

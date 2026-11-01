@@ -21,7 +21,11 @@
 }
 @media (max-width: 560px) {
   .lesson-panel {
-    max-height: calc(100% - 108px - 102px - 44% - env(safe-area-inset-bottom, 0px));
+    /* Fill the space between the title and the docked step card (--dock-h, --bar-h set by LessonPage). */
+    max-height: calc(
+      100% - 108px - 16px - var(--bar-h, 56px) - 16px - var(--dock-h, 44%) - 12px -
+        env(safe-area-inset-bottom, 0px)
+    );
     font-size: 15px;
   }
 }

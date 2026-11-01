@@ -64,6 +64,24 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [opened, setOpened] = useState<Set<number>>(() => new Set());
   const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const [root, setRoot] = useState<HTMLElement | null>(null);
+
+  // Publish the stage bar and dock heights as CSS variables, so the step card, menu and lesson panels
+  // stay clear of a stage bar that grows with a long caption (phones).
+  useEffect(() => {
+    if (!root || typeof ResizeObserver === "undefined") return;
+    const bar = root.querySelector<HTMLElement>(".stage-bar");
+    const dock = root.querySelector<HTMLElement>(".lesson-dock");
+    const update = () => {
+      if (bar) root.style.setProperty("--bar-h", `${bar.offsetHeight}px`);
+      if (dock) root.style.setProperty("--dock-h", `${dock.offsetHeight}px`);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    if (bar) ro.observe(bar);
+    if (dock) ro.observe(dock);
+    return () => ro.disconnect();
+  }, [root]);
   const mode = useMemo(initialMode, []);
   const webgl = useMemo(() => (lesson.needsWebGL ? hasWebGL() : true), [lesson.needsWebGL]);
 
@@ -144,7 +162,12 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
   const current = lesson.steps[step]!;
 
   return (
-    <main className="lesson" style={{ "--accent": stage.accent } as CSSProperties} data-lesson={lesson.id}>
+    <main
+      ref={setRoot}
+      className="lesson"
+      style={{ "--accent": stage.accent } as CSSProperties}
+      data-lesson={lesson.id}
+    >
       <ActionSlot.Provider value={slot}>
         <div className="scene-area" data-testid="scene-area">
           {!Scene ? (
