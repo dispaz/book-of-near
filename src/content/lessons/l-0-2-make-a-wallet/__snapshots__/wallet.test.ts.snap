@@ -1,0 +1,3 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`sign and verify > is deterministic (RFC 8032) 1`] = `"c6DKkwUxZS8ZDnQGUpHsrvAkRq7u2xuJswrDc5bhUDcbUrShngdY5Co7rMZgUeyNUw3ZEkrHNpCDT8UvxUarZCs"`;
