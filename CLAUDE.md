@@ -30,6 +30,16 @@ Acceptance boxes ticked, tests green, works in demo mode, fallback and reduced-m
 - Lessons live in `src/content/lessons/<id>/manifest.ts` (+ lazy `Scene.tsx`); stages in `src/content/stages/<n>-<slug>/stage.ts`. Both are discovered automatically. Scene contract: `SceneProps` in `src/app/types.ts`; step actions go through `SceneAction`; gates via `setGate(true)`.
 - Lesson scripts (researched copy, check questions, honest takes, demo data) are in `docs/lessons/stage-<n>/`.
 
+## Verified facts (issue #4, 1 Nov 2026)
+Full call shapes, tx hashes and numbers: `docs/spikes-seed.md` → "Result log". Don't rediscover these.
+- **Versions:** `near-kit` 0.20.2 (ESM, browser-bundle OK, read `dist/*.d.ts`, no README), `chainsig.js` 1.1.16 (heavy, lazy-load), `@hot-labs/near-connect` 0.12.0, `viem` 2.x.
+- **RPC:** testnet `rpc.testnet.fastnear.com` → `test.rpc.fastnear.com` → `rpc.testnet.near.org` (archival: `archival-rpc.testnet.fastnear.com`). Mainnet `rpc.mainnet.fastnear.com` → `free.rpc.fastnear.com` → `rpc.mainnet.near.org` → `near.drpc.org`. All CORS `*`. Lava/ankr/publicnode/pagoda are dead. FastNEAR has no rate-limit headers.
+- **Top-level `.testnet` names:** `near.call("testnet", "create_account", { new_account_id, new_public_key }, { attachedDeposit, gas: "30 Tgas" })` from any funded account. Public fallback faucet: `POST https://helper.testnet.near.org/account {newAccountId, newAccountPublicKey}` (10 NEAR, CORS open, undocumented limits).
+- **near-kit gotchas:** `getBalance()` returns the *available* balance as a 2-decimal string; use `getAccount()`/`view_account` for yocto. Import `fromNearConnect` from `"near-kit"` (no `near-kit/wallets` export). Gas strings need units (`"30 Tgas"`).
+- **Shards:** tx status has no shard id. Shard of an account = `shard_ids[count(boundary_accounts <= id)]` from `EXPERIMENTAL_protocol_config.shard_layout.V3`; read at run time (testnet has 10 shards, non-contiguous ids). Chunk = the block's `chunks[]` entry with that `shard_id`.
+- **Chain Signatures:** `v1.signer-prod.testnet` / `v1.signer`. Deposit 1 yocto (`experimental_signature_deposit` is gone), ~8.5 Tgas burnt, ~5 s. `ChainSignatureContract({ networkId, fallbackRpcUrls })` takes no key; `sign()` needs a `signerAccount { accountId, signAndSendTransactions }` adapter (see log). Derived Sepolia addresses start with 0 ETH, so broadcast needs funding.
+- **1Click:** `/v0/tokens` and dry `/v0/quote` work without a key (1200 req/min unauth, CORS `*`). Returns one best quote, not competing solver bids. Unkeyed quotes carry `appFees` fee 20.
+
 ## Agent skills
 
 ### Issue tracker
