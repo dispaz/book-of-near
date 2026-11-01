@@ -53,7 +53,9 @@ test.describe("chain: placeholder transfer (demo mode)", () => {
     );
     await page.goto("/");
     const contents = page.getByRole("navigation", { name: "Contents" });
-    await expect(contents.getByRole("link", { name: /Hello, ledger/ })).toBeVisible();
+    await expect(
+      contents.getByRole("link", { name: /How a blockchain and a transaction work/ }),
+    ).toBeVisible();
     await expect(page.getByRole("link", { name: /Send a test transfer/ })).toHaveCount(0);
   });
 });

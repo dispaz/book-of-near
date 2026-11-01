@@ -13,23 +13,19 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe("@smoke walking skeleton", () => {
-  test("contents lists stage 0 and both placeholder lessons", async ({ page }) => {
+  test("contents lists stage 0 and hides the developer placeholders", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Book of NEAR", level: 1 })).toBeVisible();
+    const contents = page.getByRole("navigation", { name: "Contents" });
     await expect(
-      page.getByRole("navigation", { name: "Contents" }).getByRole("link", { name: /Hello, ledger/ }),
+      contents.getByRole("link", { name: /How a blockchain and a transaction work/ }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("navigation", { name: "Contents" }).getByRole("link", { name: /Add a line/ }),
-    ).toBeVisible();
+    await expect(contents.getByRole("link", { name: /Hello, ledger/ })).toHaveCount(0);
+    await expect(contents.getByRole("link", { name: /Add a line/ })).toHaveCount(0);
   });
 
   test("stage bar walks through the placeholder lesson", async ({ page }) => {
-    await page.goto("/");
-    await page
-      .getByRole("navigation", { name: "Contents" })
-      .getByRole("link", { name: /Hello, ledger/ })
-      .click();
+    await page.goto("/lesson/placeholder-hello");
     const caption = page.getByTestId("caption");
     await expect(caption).toHaveText("A ledger is a list of who owns what.");
     await expect(page.getByRole("button", { name: "Previous step" })).toBeDisabled();
@@ -61,8 +57,12 @@ test.describe("@smoke walking skeleton", () => {
   test("menu opens and moves to another lesson", async ({ page }) => {
     await page.goto("/lesson/placeholder-hello");
     await page.getByRole("button", { name: "Lessons menu" }).click();
-    await page.getByRole("dialog", { name: "Lessons" }).getByRole("link", { name: "Add a line" }).click();
-    await expect(page.getByRole("heading", { name: "Add a line", level: 1 })).toBeVisible();
+    const menu = page.getByRole("dialog", { name: "Lessons" });
+    await expect(menu.getByRole("link", { name: "Add a line" })).toHaveCount(0);
+    await menu.getByRole("link", { name: "How a blockchain and a transaction work" }).click();
+    await expect(
+      page.getByRole("heading", { name: "How a blockchain and a transaction work", level: 1 }),
+    ).toBeVisible();
   });
 });
 

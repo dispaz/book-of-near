@@ -7,6 +7,7 @@ export default {
   title: "Add a line",
   status: "ready",
   needsChain: false,
+  hidden: true,
   summary: "A placeholder lesson with a gated step.",
   steps: [
     { caption: "Here is an empty page of the ledger." },
