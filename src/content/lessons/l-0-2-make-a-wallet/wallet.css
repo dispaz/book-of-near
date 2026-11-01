@@ -1,0 +1,409 @@
+/* Lesson 0.2 "Make a wallet". Ink style; the panel reuses .lesson-panel from the lesson kit. */
+.wallet-scene {
+  position: absolute;
+  inset: 0;
+}
+
+/* The drawing sits in the free column between the step card (left) and the panel (right). */
+.wallet-art {
+  display: none;
+  position: absolute;
+  left: 440px;
+  right: 488px;
+  top: 96px;
+  bottom: 112px;
+  width: calc(100% - 928px);
+  height: calc(100% - 208px);
+}
+@media (min-width: 1100px) and (min-height: 560px) {
+  .wallet-art {
+    display: block;
+  }
+}
+.wallet-art .wa-box rect,
+.wallet-art circle {
+  transition:
+    fill 0.4s,
+    opacity 0.4s;
+}
+.wallet-art .wa-pop {
+  animation: wa-pop 0.35s ease-out;
+}
+.wallet-art.still .wa-pop {
+  animation: none;
+}
+@keyframes wa-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.wallet-panel {
+  font-size: 15px;
+}
+.wallet-panel p {
+  margin: 0 0 8px;
+}
+.wallet-panel .w-label {
+  margin: 0 0 2px;
+  font: 700 12px var(--ui);
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.wallet-panel .w-note {
+  font-weight: 500;
+  color: var(--mute);
+}
+.wallet-panel .w-small {
+  font: 500 13px/1.4 var(--ui);
+  color: var(--mute);
+}
+.wallet-panel .w-hint {
+  font: 500 14px/1.4 var(--ui);
+  color: var(--mute);
+  font-style: italic;
+}
+.w-mono {
+  display: block;
+  font:
+    500 13px/1.45 ui-monospace,
+    "SF Mono",
+    Menlo,
+    Consolas,
+    monospace;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  background: #fff;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+.w-mono.inline {
+  display: inline;
+  padding: 0 4px;
+  border-width: 1px;
+}
+.w-mono.masked {
+  letter-spacing: 0.08em;
+  color: var(--mute);
+}
+
+/* ---------- Warning ---------- */
+.w-warning {
+  position: relative;
+  border: 3px solid var(--accent);
+  outline: 1.5px solid var(--ink);
+  border-radius: 14px;
+  background: #fff;
+  padding: 12px 14px 12px 64px;
+}
+.w-warning-sign {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--accent);
+  font: 700 26px/1 var(--serif);
+}
+.w-warning h3 {
+  margin: 0 0 6px;
+  font: 700 19px/1.25 var(--serif);
+}
+.w-ack {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border: 1.5px dashed var(--ink);
+  border-radius: 10px;
+  font: 700 15px/1.3 var(--ui);
+  cursor: pointer;
+}
+.w-ack input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--ink);
+}
+
+/* ---------- Throwaway banner ---------- */
+.w-throwaway {
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  background: repeating-linear-gradient(-45deg, #fff 0 10px, #ff8a3d22 10px 20px);
+  border: 2.5px solid var(--ink);
+  border-left: 10px solid var(--accent);
+  border-radius: 10px;
+}
+.w-throwaway p {
+  margin: 0;
+  font: 500 14px/1.4 var(--ui);
+}
+.w-throwaway strong {
+  font: 700 15px var(--ui);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.w-throwaway .w-small {
+  margin-top: 4px;
+  color: var(--ink);
+}
+.w-throwaway.compact {
+  padding: 4px 10px;
+}
+.w-throwaway.compact strong {
+  font-size: 13px;
+}
+
+/* ---------- Keys ---------- */
+.w-keyrow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+.w-icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  color: var(--ink);
+}
+.w-keytext {
+  min-width: 0;
+  flex: 1;
+}
+.w-link {
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: 700 13px var(--ui);
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.w-offline {
+  font: 500 13px/1.4 var(--ui);
+}
+.w-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--green);
+  color: #fff;
+  font: 700 11px var(--ui);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ---------- Seed phrase paper ---------- */
+.w-paper {
+  position: relative;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: #fffdf7;
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.w-paper-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+.w-stamp {
+  transform: rotate(-6deg);
+  padding: 1px 8px;
+  border: 2.5px solid var(--red);
+  border-radius: 6px;
+  color: var(--red);
+  font: 700 12px var(--ui);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: #fffdf7;
+}
+.w-words {
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: w;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px 8px;
+}
+.w-words li {
+  counter-increment: w;
+  font:
+    600 14px ui-monospace,
+    Menlo,
+    monospace;
+  white-space: nowrap;
+}
+.w-words li::before {
+  content: counter(w) ". ";
+  color: var(--mute);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+/* ---------- Results ---------- */
+.w-result {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-left: 5px solid var(--green);
+  background: #fff;
+  border-radius: 6px;
+  font: 500 14px/1.4 var(--ui);
+}
+.w-result.bad {
+  border-left-color: var(--red);
+}
+.w-result code {
+  overflow-wrap: anywhere;
+}
+.w-result p {
+  margin: 0 0 4px;
+}
+
+/* ---------- Address ---------- */
+.w-convert {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.w-convert li {
+  margin-bottom: 8px;
+  transition: opacity 0.4s;
+}
+.w-convert li.pending {
+  opacity: 0.35;
+}
+.w-address {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: var(--accent);
+  text-align: left;
+  cursor: pointer;
+  font:
+    700 14px/1.4 ui-monospace,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+/* ---------- Compare cards ---------- */
+.w-cards {
+  display: grid;
+  gap: 8px;
+}
+.w-card {
+  padding: 8px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 3px 0 var(--ink);
+  font: 500 14px/1.35 var(--ui);
+  color: var(--ink);
+}
+.w-card.flipped {
+  background: var(--paper-2);
+  border-style: dashed;
+}
+.w-card-head {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+.w-chain {
+  padding: 0 6px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.w-len {
+  margin-left: auto;
+  font: 500 12px var(--ui);
+  color: var(--mute);
+}
+.w-card-rule {
+  margin: 6px 0 0;
+}
+.w-card .w-link {
+  margin-top: 6px;
+}
+
+/* ---------- Sign and verify ---------- */
+.w-field {
+  display: block;
+  margin-bottom: 8px;
+}
+.w-field input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  background: #fff;
+  font: 500 16px var(--ui);
+}
+
+/* ---------- Self-custody ---------- */
+.w-custody .w-big {
+  font: 700 19px/1.25 var(--serif);
+}
+.w-custody ul {
+  margin: 0 0 8px;
+}
+.w-empty .btn {
+  margin-top: 4px;
+}
+
+/* Narrow screens: the panel fills the room between the title and the docked step card. */
+@media (max-width: 899px) {
+  .wallet-scene .lesson-panel {
+    max-height: calc(100% - 108px - 92px - 12px - var(--w-dock, 44%) - env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 560px) {
+  .w-warning {
+    padding: 10px 12px 10px 52px;
+  }
+  .w-warning-sign {
+    width: 32px;
+    height: 32px;
+    font-size: 20px;
+    left: 10px;
+  }
+  .w-warning h3 {
+    font-size: 17px;
+  }
+  .w-icon {
+    width: 30px;
+    height: 30px;
+  }
+}
+.w-mono.inline {
+  white-space: nowrap;
+  word-break: normal;
+}
