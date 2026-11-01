@@ -10,7 +10,16 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"]],
   use: { baseURL, trace: "retain-on-failure" },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        // 3D scenes: let headless Chromium fall back to software WebGL on machines without a GPU (CI).
+        launchOptions: { args: ["--enable-unsafe-swiftshader"] },
+      },
+    },
+  ],
   webServer: process.env.BASE_URL
     ? undefined
     : {

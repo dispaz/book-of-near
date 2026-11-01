@@ -195,6 +195,10 @@ h3 {
   pointer-events: none;
   z-index: 2;
 }
+/* Two pills on the right (Flat view + mode): leave them room on narrow screens. */
+.lesson:has(.lesson-tools > :nth-child(2)) .lesson-title {
+  max-width: min(460px, calc(100% - 220px));
+}
 .lesson-title h1 {
   margin: 0;
   font: 700 clamp(22px, 4vw, 32px) / 1.1 var(--serif);

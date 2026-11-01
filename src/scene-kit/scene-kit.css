@@ -1,0 +1,146 @@
+/* Scene kit: overlay labels, pick buttons and the status note. Shared by the 3D stage and the SVG kit. */
+.sk-stage,
+.sk-svg-stage {
+  position: absolute;
+  inset: 0;
+  /* Own stacking context, so labels never float over the lesson's bars and cards. */
+  isolation: isolate;
+  z-index: 0;
+}
+.sk-stage canvas {
+  touch-action: none;
+}
+.sk-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.sk-anchor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+.sk-label {
+  white-space: nowrap;
+  font: 600 21px var(--hand);
+  color: var(--ink);
+  text-shadow:
+    0 0 6px var(--paper),
+    0 0 2px var(--paper);
+}
+.sk-label.small {
+  font: 700 11px var(--ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.sk-label.hint {
+  font: 700 12px var(--ui);
+  background: var(--ink);
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 999px;
+  text-shadow: none;
+  animation: sk-pulse 1.2s ease-in-out infinite;
+}
+@keyframes sk-pulse {
+  50% {
+    margin-top: -8px;
+  }
+}
+
+/* Pick buttons sit on top of their 3D object. Invisible and click-through for the mouse (the canvas
+   does the picking), but focusable: keyboard and screen reader users pick objects with them. */
+.sk-pick {
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.sk-pick:focus-visible {
+  opacity: 1;
+  outline: 3px dashed var(--blue);
+  outline-offset: 4px;
+}
+.sk-pick span {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 10px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font: 700 12px var(--ui);
+  background: var(--ink);
+  color: #fff;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.sk-status {
+  position: absolute;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  top: calc(60px + env(safe-area-inset-top, 0px));
+  max-width: min(320px, calc(100% - 32px));
+  margin: 0;
+  font: 600 22px/1.1 var(--hand);
+  color: var(--ink);
+  text-align: right;
+  text-shadow:
+    0 0 6px var(--paper),
+    0 0 2px var(--paper);
+  pointer-events: none;
+}
+.sk-status:empty {
+  display: none;
+}
+
+/* SVG kit */
+.sk-svg-stage {
+  background: var(--paper);
+}
+/* The drawing fills the free space between the lesson title and the step card. */
+.sk-svg-stage > svg {
+  position: absolute;
+  top: calc(124px + env(safe-area-inset-top, 0px));
+  left: 16px;
+  width: calc(100% - 32px);
+  height: calc(100% - 124px - 190px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  display: block;
+}
+.sk-svg-stage .sk-note {
+  position: absolute;
+  left: 50%;
+  top: calc(100px + env(safe-area-inset-top, 0px));
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  font: 500 13px var(--ui);
+  color: var(--mute);
+  text-align: center;
+}
+.sk-svg-pick {
+  cursor: pointer;
+}
+.sk-svg-pick:focus {
+  outline: none;
+}
+.sk-svg-pick:focus-visible .sk-svg-focus {
+  stroke: var(--blue);
+  stroke-width: 3;
+  stroke-dasharray: 6 5;
+  fill: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-label.hint {
+    animation: none;
+  }
+}
