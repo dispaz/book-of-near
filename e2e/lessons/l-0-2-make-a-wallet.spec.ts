@@ -255,7 +255,9 @@ test.describe(`lesson ${ID}`, () => {
     await expect(panel(page).getByTestId("rebuilt-key")).toHaveText(fresh!);
   });
 
-  test("testnet mode makes a random key, not the docs example", async ({ page }) => {
+  test("@testnet testnet mode makes a random key, not the docs example", async ({ page }) => {
+    // Needs the real testnet: without it the app correctly falls back to demo mode (and the docs key).
+    test.skip(!process.env.TESTNET, "set TESTNET=1 to run against the real testnet");
     await page.goto(`/lesson/${ID}?mode=testnet`);
     await page.getByRole("checkbox", { name: /these keys are for practice only/ }).check();
     await nextStep(page);
