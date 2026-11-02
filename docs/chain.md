@@ -15,7 +15,7 @@ const out = await transfer(chain, "book-of-near.testnet", parseNear("1"), {
 formatTgas(totalGasBurnt(out)); // "0.45"
 ```
 
-`src/content/lessons/placeholder-transfer/` is a working example (hidden lesson, `/lesson/placeholder-transfer`).
+`src/content/lessons/l-0-3-send-a-transaction/` is a working example (lesson 0.3).
 
 ## Files
 

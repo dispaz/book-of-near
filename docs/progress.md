@@ -113,3 +113,7 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Framing (`framing.ts`, unit tested): the view measures the free part of the page (between title, dock, panel, status and stage bar), fits each step's focus box into it and shifts the picture with `camera.setViewOffset`. Narrow free areas (phones, the column beside the Check) fold the chain into a 2×2 loop with side cards and show balances as a pill strip.
 - E2E: walk, reduced motion and 390×760 in both views; switch 2D→3D after a gate and back (step, gate, values, Ben's edit survive); `?webgl=0` → 2D, no switch; no `WebGLRenderer` in 2D until 3D is picked. 3D tests use `test.slow()` (SwiftShader).
 - Known: on phones the three tool pills push the lesson title to 3 lines, and the Check panel (top 108px) then overlaps the title. Shared layout (src/ui, lesson-kit), not fixed here.
+
+## 2026-11-02 · Placeholders removed
+- Deleted the developer placeholder lessons (`placeholder-hello`, `placeholder-blocks`, `placeholder-transfer`) and `e2e/chain-transfer.spec.ts`. The skeleton, scene-contract, progress and testnet-fallback e2e tests now run on lessons 0.1 and 0.3. The "scene fails" test aborts the lazy Scene chunk instead of a test-only `?scene-error` switch. `scene-kit-demo` stays as the hidden 3D reference.
+- Scope notes added to #16 (replay protection instead of re-explaining nonce/block hash) and #17 (open the learner's own 0.3 transaction instead of timing a new one).

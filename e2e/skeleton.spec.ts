@@ -12,97 +12,94 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+const LESSON = "/lesson/l-0-1-blockchain-basics";
+const FIRST = /^Ana, Ben and Cy keep one notebook/;
+const SECOND = /^Send 3 coins from Ana to Ben/;
+
 test.describe("@smoke walking skeleton", () => {
-  test("contents lists stage 0 and hides the developer placeholders", async ({ page }) => {
+  test("contents lists the stage 0 lessons", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Book of NEAR", level: 1 })).toBeVisible();
     const contents = page.getByRole("navigation", { name: "Contents" });
-    await expect(
-      contents.getByRole("link", { name: /How a blockchain and a transaction work/ }),
-    ).toBeVisible();
-    await expect(contents.getByRole("link", { name: /Hello, ledger/ })).toHaveCount(0);
-    await expect(contents.getByRole("link", { name: /Add a line/ })).toHaveCount(0);
+    for (const title of [
+      "How a blockchain and a transaction work",
+      "Make a wallet",
+      "Send a transaction and watch it",
+    ])
+      await expect(contents.getByRole("link", { name: new RegExp(title) })).toBeVisible();
+    await expect(contents.getByRole("link", { name: /Scene kit demo/ })).toHaveCount(0);
   });
 
-  test("stage bar walks through the placeholder lesson", async ({ page }) => {
-    await page.goto("/lesson/placeholder-hello");
+  test("the stage bar walks a lesson: gate, next, back, keyboard, last step", async ({ page }) => {
+    await page.goto(`${LESSON}?view=2d`);
     const caption = page.getByTestId("caption");
-    await expect(caption).toHaveText("A ledger is a list of who owns what.");
+    const next = page.getByRole("button", { name: "Next step" });
+    await expect(caption).toHaveText(FIRST);
     await expect(page.getByRole("button", { name: "Previous step" })).toBeDisabled();
-    await page.getByRole("button", { name: "Next step" }).click();
-    await expect(caption).toHaveText(/Each new line/);
-    await page.getByRole("button", { name: "Next step" }).click();
-    await expect(caption).toHaveText(/blockchain at heart/);
-    await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
+    await expect(next).toBeDisabled();
+    await page.getByRole("button", { name: "Open Ben's notebook" }).click();
+    await next.click();
+    await expect(caption).toHaveText(SECOND);
     await page.keyboard.press("ArrowLeft");
-    await expect(caption).toHaveText(/Each new line/);
+    await expect(caption).toHaveText(FIRST);
+    await page.goto(`${LESSON}?view=2d&step=9`);
+    await expect(caption).toHaveText(/^Honest take/);
+    await expect(next).toBeDisabled();
   });
 
   test("the bar holds only contents, the two arrows and the caption", async ({ page }) => {
-    await page.goto("/lesson/placeholder-hello");
+    await page.goto(`${LESSON}?view=2d`);
     const bar = page.getByRole("navigation", { name: "Lesson steps" });
     await expect(bar.getByRole("button")).toHaveCount(3);
     await expect(bar.getByRole("button", { name: "Contents" })).toBeVisible();
     await expect(bar.getByRole("button", { name: "Previous step" })).toBeVisible();
     await expect(bar.getByRole("button", { name: "Next step" })).toBeVisible();
-    await expect(bar.getByTestId("caption")).toHaveText(/A ledger is a list/);
+    await expect(bar.getByTestId("caption")).toHaveText(FIRST);
   });
 
   test("the step lives in the URL", async ({ page }) => {
-    await page.goto("/lesson/placeholder-hello?step=2");
-    await expect(page.getByTestId("caption")).toHaveText(/Each new line/);
+    await page.goto(`${LESSON}?view=2d&step=2`);
+    await expect(page.getByTestId("caption")).toHaveText(SECOND);
   });
 
   test("menu opens and moves to another lesson", async ({ page }) => {
-    await page.goto("/lesson/placeholder-hello");
+    await page.goto(`${LESSON}?view=2d`);
     await page.getByRole("button", { name: "Contents" }).click();
     const menu = page.getByRole("dialog", { name: "Contents" });
-    await expect(menu.getByRole("link", { name: "Add a line" })).toHaveCount(0);
-    await menu.getByRole("link", { name: "How a blockchain and a transaction work" }).click();
-    await expect(
-      page.getByRole("heading", { name: "How a blockchain and a transaction work", level: 1 }),
-    ).toBeVisible();
+    await menu.getByRole("link", { name: "Make a wallet" }).click();
+    await expect(page.getByRole("heading", { name: "Make a wallet", level: 1 })).toBeVisible();
   });
 });
 
 test.describe("scene contract", () => {
-  test("a gated step holds Next until the learner acts", async ({ page }) => {
-    await page.goto("/lesson/placeholder-blocks?step=2");
-    const next = page.getByRole("button", { name: "Next step" });
-    await expect(next).toBeDisabled();
-    await page.locator(".action-slot").getByRole("button", { name: "Add a line" }).click();
-    await expect(page.locator("[data-scene-state]")).toHaveAttribute("data-scene-state", "lines:1");
-    await expect(next).toBeEnabled();
-    await next.click();
-    await expect(page.getByTestId("caption")).toHaveText(/Well done/);
-  });
-
-  test("a scene error shows the text fallback with the captions", async ({ page }) => {
-    await page.goto("/lesson/placeholder-blocks?scene-error=1");
+  test("a scene that fails to load shows the text version with the captions", async ({ page }) => {
+    // Break the lazy scene chunks: the lesson must still teach, as text.
+    await page.route(/\/assets\/Scene[^/]*\.js$/, (r) => r.abort());
+    await page.goto(`${LESSON}?view=2d`);
     const fb = page.getByTestId("text-fallback");
     await expect(fb).toBeVisible();
-    await expect(fb).toContainText("Here is an empty page of the ledger.");
-    await expect(page.getByTestId("caption")).toHaveText(/empty page/);
+    await expect(fb).toContainText("Ana, Ben and Cy keep one notebook");
+    await expect(page.getByTestId("caption")).toHaveText(FIRST);
   });
 
   test("reduced motion keeps the arrows working and the text version present", async ({ browser }) => {
     const ctx = await browser.newContext({ reducedMotion: "reduce" });
     const page = await ctx.newPage();
-    await page.goto("/lesson/placeholder-hello");
+    await page.goto(`${LESSON}?view=2d&step=2`);
     await page.getByText("Read as text").click();
-    await expect(page.locator(".read-as-text li")).toHaveCount(3);
-    await page.getByRole("button", { name: "Next step" }).click();
-    await expect(page.getByTestId("caption")).toHaveText(/Each new line/);
+    await expect(page.locator(".read-as-text li")).toHaveCount(9);
+    await page.getByRole("button", { name: "Previous step" }).click();
+    await expect(page.getByTestId("caption")).toHaveText(FIRST);
     await ctx.close();
   });
 
-  test("no 3D code loads on the contents page or a 2D lesson", async ({ page }) => {
+  test("no 3D code loads on the contents page or a lesson in 2D", async ({ page }) => {
     const scripts: string[] = [];
     page.on("response", async (r) => {
       if (r.url().endsWith(".js") && r.status() === 200) scripts.push(await r.text().catch(() => ""));
     });
     await page.goto("/");
-    await page.goto("/lesson/placeholder-hello");
+    await page.goto(`${LESSON}?view=2d`);
     await expect(page.getByTestId("caption")).toBeVisible();
     expect(scripts.some((s) => s.includes("WebGLRenderer"))).toBe(false);
   });

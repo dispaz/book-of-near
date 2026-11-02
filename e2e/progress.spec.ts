@@ -93,7 +93,7 @@ test.describe("contents and progress", () => {
 
   test("Finish shows only on the last step", async ({ page }) => {
     await seedRoute(page, "newcomer");
-    await page.goto("/lesson/placeholder-hello?step=1");
+    await page.goto("/lesson/l-0-1-blockchain-basics?step=1");
     await expect(page.getByRole("button", { name: "Finish lesson" })).toHaveCount(0);
   });
 
@@ -134,9 +134,8 @@ test.describe("veteran test-out", () => {
     expect(stage0.length).toBeGreaterThanOrEqual(3);
     expect(stage0.every((r) => r.testedOut === true && r.route === "veteran")).toBe(true);
     expect(stage0.map((r) => r.lessonId)).toContain("l-0-1-blockchain-basics");
-    // Hidden developer placeholders are never marked done.
-    expect(stage0.map((r) => r.lessonId)).not.toContain("placeholder-hello");
-    expect(stage0.map((r) => r.lessonId)).not.toContain("placeholder-blocks");
+    // Hidden developer lessons (the scene kit demo) are never marked done.
+    expect(stage0.map((r) => r.lessonId)).not.toContain("scene-kit-demo");
   });
 
   test("a failed test keeps stage 0 open and records nothing", async ({ page }) => {
