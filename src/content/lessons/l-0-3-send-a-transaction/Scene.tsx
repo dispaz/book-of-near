@@ -1,10 +1,19 @@
-import { useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  lazy,
+  Suspense,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import type { SceneProps } from "../../../app/types";
 import { ActionSlot, SceneAction } from "../../../ui/SceneAction";
 import { Check, HonestTake, type CheckQuestion } from "../../../lesson-kit";
-import { useChain, useChainMode } from "../../../chain/ChainContext";
-import { actions, totalGasBurnt, totalTokensBurnt } from "../../../chain/ops";
+import { useChain } from "../../../chain/ChainContext";
+import { totalGasBurnt, totalTokensBurnt } from "../../../chain/ops";
 import { formatTgas } from "../../../chain/units";
 import type {
   PhaseEvent,
@@ -15,41 +24,35 @@ import type {
   UnsignedTransaction,
 } from "../../../chain/types";
 import {
-  DEFAULT_AMOUNT,
   duration,
   explorerUrl,
-  kindError,
   near,
-  readAmount,
-  senderBalance,
   short,
   TRANSFER_FEE,
   TRANSFER_HELD,
   TRANSFER_TGAS,
   type KindError,
 } from "./tx";
+import {
+  ACCOUNT,
+  BUILD,
+  CHECK,
+  EXPLORER,
+  FEE,
+  FINAL,
+  HONEST,
+  INCLUDED,
+  LIGHTS,
+  SEND,
+  SIGN,
+  useTransaction,
+  type BalanceStage,
+  type Light,
+} from "./useTransaction";
 import "./scene.css";
 
-// Step numbers (0-based) from manifest.ts.
-const ACCOUNT = 0;
-const BUILD = 1;
-const FEE = 2;
-const SIGN = 3;
-const SEND = 4;
-const INCLUDED = 5;
-const FINAL = 6;
-const EXPLORER = 7;
-const CHECK = 8;
-const HONEST = 9;
-
-type Light = "built" | "signed" | "broadcast" | "included" | "final";
-const LIGHTS: { phase: Light; label: string }[] = [
-  { phase: "built", label: "Build" },
-  { phase: "signed", label: "Sign" },
-  { phase: "broadcast", label: "Broadcast" },
-  { phase: "included", label: "Included" },
-  { phase: "final", label: "Final" },
-];
+/** The 3D view, loaded only when the learner picks 3D, so 2D never downloads three.js. */
+const Scene3D = lazy(() => import("./Scene3D"));
 
 const QUESTIONS: CheckQuestion[] = [
   {
@@ -109,279 +112,76 @@ export default function Scene(props: SceneProps) {
   return <TransactionScene key={chain.network} {...props} switched={switched} />;
 }
 
+/**
+ * One state (useTransaction) drawn two ways. The pipeline, the facts, the status, the docked controls,
+ * the check and the honest take are shared; the picture of the accounts and the transaction is either
+ * flat cards (2D) or the 3D scene.
+ */
 function TransactionScene({
   step,
   goTo,
   setGate,
   reducedMotion,
   mode,
+  view,
+  flat,
   reportEvidence,
   switched,
 }: SceneProps & { switched: boolean }) {
-  const chain = useChain();
-  const { setMode } = useChainMode();
-  const network = chain.network;
-  const testnet = network === "testnet";
-
-  const [me, setMe] = useState<PracticeAccount | null>(null);
-  const [start, setStart] = useState<bigint | null>(null);
-  const [receiver, setReceiver] = useState<string | null>(null);
-  const [receiverStart, setReceiverStart] = useState<bigint | null>(null);
-  const [amountText, setAmountText] = useState(DEFAULT_AMOUNT);
-  const [amountProblem, setAmountProblem] = useState<string | null>(null);
-  const [amount, setAmount] = useState<bigint | null>(null);
-  const [built, setBuilt] = useState<UnsignedTransaction | null>(null);
-  const [feeSeen, setFeeSeen] = useState(false);
-  const [signed, setSigned] = useState<SignedTransaction | null>(null);
-  const [events, setEvents] = useState<Partial<Record<TxPhase, PhaseEvent>>>({});
-  const [outcome, setOutcome] = useState<TxOutcome | null>(null);
-  const [finalBalance, setFinalBalance] = useState<bigint | null>(null);
-  const [busy, setBusy] = useState<null | "build" | "sign" | "send">(null);
-  const [error, setError] = useState<KindError | null>(null);
-  const [explored, setExplored] = useState(false);
-  const [passed, setPassed] = useState(false);
-
-  // The practice account and the receiver, read through the Chain interface.
-  useEffect(() => {
-    let live = true;
-    (async () => {
-      try {
-        const acc = await chain.practiceAccount();
-        const to = await chain.returnAccount();
-        const [mine, theirs] = await Promise.all([
-          chain.viewAccount(acc.accountId),
-          to === acc.accountId ? null : chain.viewAccount(to).catch(() => null),
-        ]);
-        if (!live) return;
-        setMe(acc);
-        setStart(mine.amount);
-        setReceiver(to);
-        setReceiverStart(theirs?.amount ?? null);
-      } catch (e) {
-        if (live) setError(kindError(e, chain.network));
-      }
-    })();
-    return () => {
-      live = false;
-    };
-  }, [chain]);
-
-  const sent = !!outcome && outcome.status.type !== "Failure";
-  const done = [
-    start !== null,
-    !!built,
-    feeSeen,
-    !!signed,
-    !!events.included,
-    !!events.final,
-    !!events.final,
-    explored,
-    passed,
-    sent,
-  ];
-  const stepDone = done[step] ?? false;
-  useEffect(() => {
-    setGate(stepDone);
-  }, [stepDone, setGate]);
-
-  async function build() {
-    const r = readAmount(amountText);
-    if (!r.ok) {
-      setAmountProblem(r.problem);
-      return;
-    }
-    if (!me || !receiver) return;
-    setBusy("build");
-    setError(null);
-    try {
-      const tx = await chain.buildTransaction({
-        signerId: me.accountId,
-        receiverId: receiver,
-        actions: [actions.transfer(r.amount)],
-      });
-      setAmount(r.amount);
-      setBuilt(tx);
-    } catch (e) {
-      setError(kindError(e, network));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function sign() {
-    if (!built) return;
-    setBusy("sign");
-    setError(null);
-    try {
-      setSigned(await chain.signTransaction(built));
-    } catch (e) {
-      setError(kindError(e, network));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function send() {
-    if (!signed || !me) return;
-    setBusy("send");
-    setError(null);
-    setEvents({});
-    try {
-      const out = await chain.sendSignedTransaction(signed, {
-        pace: reducedMotion ? "instant" : "realtime",
-        onPhase: (e) => {
-          // Build and sign happened earlier, at the learner's pace.
-          if (e.phase === "built" || e.phase === "signed") return;
-          setEvents((prev) => ({ ...prev, [e.phase]: e }));
-        },
-      });
-      setOutcome(out);
-      if (out.status.type === "Failure") {
-        setError({
-          title: "The transfer ran but failed",
-          detail: `${out.status.error.message} The fee was still paid. Build a new transaction to try again.`,
-        });
-        return;
-      }
-      reportEvidence?.({ txHash: out.transaction.hash, mode: network });
-      setFinalBalance((await chain.viewAccount(me.accountId)).amount);
-    } catch (e) {
-      setError(kindError(e, network));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  /** Throw the transaction away and build a new one (after an error, e.g. a too-large amount). */
-  function startOver() {
-    setBuilt(null);
-    setSigned(null);
-    setEvents({});
-    setOutcome(null);
-    setFinalBalance(null);
-    setError(null);
-    if (step > BUILD) goTo(BUILD);
-  }
-
-  function continueInDemo() {
-    setMode("demo");
-    if (step > BUILD) goTo(BUILD);
-  }
-
-  // ---------- what the pipeline shows ----------
-  const lit: Record<Light, boolean> = {
-    built: !!built,
-    signed: !!signed,
-    broadcast: !!events.broadcast,
-    included: !!events.included,
-    final: !!events.final,
-  };
-  const litCount = LIGHTS.filter((l) => lit[l.phase]).length;
-  const failedAt = error && busy === null && signed && !events.final ? LIGHTS[litCount]?.phase : undefined;
-  const node = events.included?.node ?? events.broadcast?.node;
-  const nodeName =
-    node ?? (testnet ? "a public testnet RPC node" : "a demo node (simulated in your browser)");
+  const tx = useTransaction({ step, goTo, setGate, reducedMotion, reportEvidence, switched });
+  const { me, receiver, selfSend, events, outcome, testnet, error, built, signed, busy, status } = tx;
+  const summary = step >= CHECK;
+  const three = view === "3d" && !summary;
   const finalMs = events.final?.atMs;
 
-  const stage: "before" | "included" | "final" =
-    events.final && finalBalance !== null ? "final" : events.included ? "included" : "before";
-  const selfSend = !!me && receiver === me.accountId;
-  const senderNow =
-    start !== null && amount !== null
-      ? senderBalance(start, amount, stage, finalBalance ?? undefined)
-      : start;
-  const receiverNow =
-    receiverStart !== null && amount !== null && events.included ? receiverStart + amount : receiverStart;
-  const refund =
-    start !== null && amount !== null && finalBalance !== null
-      ? finalBalance - senderBalance(start, amount, "included")
-      : null;
-
-  const summary = step >= CHECK;
-  const state = [
-    `step:${step}`,
-    `account:${start !== null ? "ready" : "loading"}`,
-    `lit:${
-      LIGHTS.filter((l) => lit[l.phase])
-        .map((l) => l.phase)
-        .join(",") || "none"
-    }`,
-    `error:${error ? "yes" : "no"}`,
-    `network:${network}`,
-  ].join(";");
-
-  // ---------- the status line under the pipeline ----------
-  let status: ReactNode = null;
-  if (error) status = null;
-  else if (switched && !built && step <= BUILD && step > ACCOUNT)
-    status = "You are in demo mode now. Build the transaction again; nothing goes to a real network.";
-  else if (step === ACCOUNT)
-    status =
-      start === null
-        ? testnet
-          ? "Opening your testnet practice account…"
-          : "Opening your practice account…"
-        : "Your account is ready. Press Next.";
-  else if (step === BUILD)
-    status = built ? "Built. The Build light is on." : "Check the amount, then press Build.";
-  else if (step === FEE) status = feeSeen ? "Fee noted. Next: sign it." : null;
-  else if (step === SIGN && !built) status = "Build the transaction first (step 2).";
-  else if (step === SIGN) status = signed ? "Signed on your device. No network was used." : "Press Sign.";
-  else if (step === SEND && !signed) status = "Sign the transaction first (step 4).";
-  else if (step === SEND)
-    status =
-      busy === "send" && !events.broadcast
-        ? "Sending…"
-        : events.final
-          ? `Final, ${duration(events.final.atMs)} after Send. Press Next to look at each stage.`
-          : events.included
-            ? "In a block. Waiting for Final…"
-            : events.broadcast
-              ? "The RPC node has it. Waiting for a validator to put it in a block…"
-              : "Press Send.";
-  else if ((step === INCLUDED || step === FINAL) && !signed) status = "Send the transaction first (step 5).";
-  else if (step === INCLUDED)
-    status = events.final
-      ? "Now it is final too. Press Next."
-      : events.included
-        ? "Waiting for Final…"
-        : "Waiting for a block…";
-  else if (step === EXPLORER && !sent) status = "Send the transaction first (step 5).";
+  const accounts = (
+    <Accounts
+      narrow={step === INCLUDED || step === FINAL}
+      me={me}
+      receiver={receiver}
+      selfSend={selfSend}
+      senderNow={tx.senderNow}
+      receiverNow={tx.receiverNow}
+      amount={tx.shownAmount}
+      stage={tx.stage}
+      moving={!!events.included}
+      testnet={testnet}
+    />
+  );
 
   return (
     <>
       <div
-        className={`stx${reducedMotion ? " still" : ""}${summary ? " summary" : ""}`}
+        className={`stx${reducedMotion ? " still" : ""}${summary ? " summary" : ""}${three ? " three" : ""}`}
         data-testid="tx-scene"
-        data-scene-state={state}
+        data-scene-state={tx.state}
+        data-view={view}
         data-mode={mode}
         role="group"
         aria-label="Your transaction, from build to final"
       >
-        {summary ? null : (
-          <Accounts
-            narrow={step === INCLUDED || step === FINAL}
-            me={me}
-            receiver={receiver}
-            selfSend={selfSend}
-            senderNow={senderNow}
-            receiverNow={receiverNow}
-            amount={amount ?? readAmountOr(amountText)}
-            stage={stage}
-            moving={!!events.included}
-            testnet={testnet}
-          />
+        {summary ? null : three ? (
+          // The 3D scene draws the accounts; the same facts stay readable as text for screen readers.
+          <div className="visually-hidden">{accounts}</div>
+        ) : (
+          accounts
         )}
 
         <Pipeline
-          lit={lit}
+          lit={tx.lit}
           events={events}
-          failedAt={failedAt}
-          litCount={litCount}
+          failedAt={tx.failedAt}
+          litCount={tx.litCount}
           hintFrom={step >= BUILD}
         />
 
-        {status ? (
+        {three ? (
+          <div className="stx-3d" data-testid="tx-3d">
+            <Suspense fallback={<p className="stx-3d-loading">Loading the 3D scene…</p>}>
+              <Scene3D tx={tx} flat={flat} reducedMotion={reducedMotion} />
+            </Suspense>
+          </div>
+        ) : status ? (
           <p className="stx-status" aria-live="polite" data-testid="scene-status">
             {status}
           </p>
@@ -401,17 +201,17 @@ function TransactionScene({
             me={me}
             receiver={receiver}
             selfSend={selfSend}
-            amount={amount}
+            amount={tx.amount}
             built={built}
             signed={signed}
             events={events}
             outcome={outcome}
-            nodeName={nodeName}
-            start={start}
-            finalBalance={finalBalance}
-            refund={refund}
+            nodeName={tx.nodeName}
+            start={tx.start}
+            finalBalance={tx.finalBalance}
+            refund={tx.refund}
             testnet={testnet}
-            explored={explored}
+            explored={tx.explored}
             failed={!!error}
           />
         )}
@@ -423,49 +223,46 @@ function TransactionScene({
           error={error}
           testnet={testnet}
           rebuild={!!built}
-          onDemo={continueInDemo}
-          onRetry={startOver}
+          onDemo={tx.continueInDemo}
+          onRetry={tx.startOver}
         />
       ) : null}
       {step === BUILD ? (
         <AmountForm
-          value={amountText}
-          problem={amountProblem}
+          value={tx.amountText}
+          problem={tx.amountProblem}
           built={!!built}
           ready={!!me && !!receiver}
           busy={busy === "build"}
-          onChange={(t) => {
-            setAmountText(t);
-            setAmountProblem(null);
-          }}
-          onBuild={build}
+          onChange={tx.setAmountText}
+          onBuild={tx.build}
         />
       ) : null}
       {step === FEE ? (
-        <SceneAction onClick={() => setFeeSeen(true)} disabled={feeSeen}>
-          {feeSeen ? "Got it ✓" : "Got it"}
+        <SceneAction onClick={tx.seeFee} disabled={tx.feeSeen}>
+          {tx.feeSeen ? "Got it ✓" : "Got it"}
         </SceneAction>
       ) : null}
       {step === SIGN ? (
-        <SceneAction onClick={sign} disabled={!built || !!signed || busy !== null}>
+        <SceneAction onClick={tx.sign} disabled={!built || !!signed || busy !== null}>
           {busy === "sign" ? "Signing…" : signed ? "Signed ✓" : "Sign"}
         </SceneAction>
       ) : null}
       {step === SEND && !error ? (
-        <SceneAction onClick={send} disabled={!signed || !!events.broadcast || busy !== null || !!error}>
+        <SceneAction onClick={tx.send} disabled={!signed || !!events.broadcast || busy !== null || !!error}>
           {busy === "send" ? "Sending…" : events.broadcast ? "Sent ✓" : "Send"}
         </SceneAction>
       ) : null}
-      {step === EXPLORER && sent && outcome ? (
+      {step === EXPLORER && tx.sent && outcome ? (
         testnet ? (
-          <ExplorerLink hash={outcome.transaction.hash} onOpen={() => setExplored(true)} />
+          <ExplorerLink hash={outcome.transaction.hash} onOpen={tx.explore} />
         ) : (
-          <SceneAction onClick={() => setExplored(true)} disabled={explored}>
+          <SceneAction onClick={tx.explore} disabled={tx.explored}>
             Open the demo explorer
           </SceneAction>
         )
       ) : null}
-      {(step === EXPLORER || step === HONEST) && !sent ? (
+      {(step === EXPLORER || step === HONEST) && !tx.sent ? (
         <SceneAction onClick={() => goTo(signed ? SEND : built ? SIGN : BUILD)}>
           Go back and send it
         </SceneAction>
@@ -474,9 +271,9 @@ function TransactionScene({
       {step === CHECK ? (
         <Check
           questions={QUESTIONS}
-          passed={passed}
+          passed={tx.passed}
           onPass={() => {
-            setPassed(true);
+            tx.pass();
             setGate(true);
           }}
         />
@@ -501,11 +298,6 @@ function TransactionScene({
   );
 }
 
-function readAmountOr(text: string): bigint | null {
-  const r = readAmount(text);
-  return r.ok ? r.amount : null;
-}
-
 // ---------- Accounts ----------
 
 function Accounts({
@@ -528,7 +320,7 @@ function Accounts({
   senderNow: bigint | null;
   receiverNow: bigint | null;
   amount: bigint | null;
-  stage: "before" | "included" | "final";
+  stage: BalanceStage;
   moving: boolean;
   testnet: boolean;
 }) {

@@ -544,3 +544,74 @@
 .stx > * {
   flex: none;
 }
+
+/* ---------- 3D view: the same column, with the 3D scene where the account cards were ---------- */
+.stx-3d {
+  position: relative;
+  height: 250px;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #f3efe4;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.stx-3d .sk-status {
+  top: 8px;
+  right: 12px;
+  max-width: calc(100% - 24px);
+  font-size: 19px;
+}
+.stx-3d-loading {
+  padding: 12px;
+  font: 500 14px var(--ui);
+  color: var(--mute);
+}
+@media (min-width: 900px) {
+  /* Wide: pipeline on top, then the 3D scene beside a narrow facts column. */
+  .stx.three {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+    grid-template-rows: auto minmax(0, 1fr);
+    align-content: stretch;
+    overflow: hidden;
+  }
+  .stx.three > .stx-pipe-wrap {
+    grid-column: 1 / -1;
+  }
+  .stx.three > .stx-3d {
+    grid-column: 1;
+    grid-row: 2;
+    height: auto;
+    min-height: 0;
+  }
+  .stx.three > .stx-detail {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    max-height: 100%;
+    overflow-y: auto;
+  }
+  .stx.three .stx-detail dl {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 899px) {
+  /* Phones: the 3D window takes the room the account cards had; labels a size smaller. */
+  .stx > .stx-3d {
+    flex: none;
+    height: max(150px, calc(100% - 100px));
+  }
+  .stx-3d .sk-label {
+    font-size: 17px;
+  }
+  .stx-3d .sk-label.small {
+    font-size: 9px;
+  }
+  .stx-3d .sk-label.hint {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+  .stx-3d .sk-status {
+    font-size: 16px;
+  }
+}
