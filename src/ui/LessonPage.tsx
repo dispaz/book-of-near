@@ -16,7 +16,9 @@ import type { LessonManifest, SceneProps } from "../app/types";
 import { StageBar } from "./StageBar";
 import { SceneBoundary } from "./SceneBoundary";
 import { TextFallback } from "./TextFallback";
-import { hasWebGL, useReducedMotion } from "./hooks";
+import { hasWebGL, useMediaQuery, useReducedMotion } from "./hooks";
+import { useSceneView } from "./view";
+import { ViewSwitch } from "./ViewSwitch";
 import { StageMenu } from "./StageMenu";
 import { ActionSlot } from "./SceneAction";
 import { fillStep } from "../app/fillVars";
@@ -95,7 +97,21 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
     return () => ro.disconnect();
   }, [root]);
   const mode = useChainMode().active;
-  const webgl = useMemo(() => (lesson.needsWebGL ? hasWebGL() : true), [lesson.needsWebGL]);
+  const twoViews = !!lesson.views?.includes("2d") && !!lesson.views?.includes("3d");
+  const glAvailable = useMemo(
+    () => (lesson.needsWebGL || twoViews ? hasWebGL() : true),
+    [lesson.needsWebGL, twoViews],
+  );
+  const webgl = lesson.needsWebGL ? glAvailable : true;
+  const wide = useMediaQuery("(min-width: 900px)");
+  const [chosenView, setView] = useSceneView({
+    available: twoViews,
+    webgl: glAvailable,
+    reducedMotion,
+    wide,
+  });
+  // 3D-only lessons are always 3D; two-view lessons fall back to 2D without WebGL.
+  const view = lesson.needsWebGL ? "3d" : twoViews && glAvailable ? chosenView : "2d";
 
   const gated = (i: number) => !!lesson.steps[i]?.action?.gate && !opened.has(i);
   // Steps up to and including the first closed gate are reachable.
@@ -163,7 +179,17 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
   );
 
   const Scene = sceneFor(lesson);
-  const sceneProps: SceneProps = { step, goTo, setGate, reducedMotion, flat, mode, reportEvidence, setVars };
+  const sceneProps: SceneProps = {
+    step,
+    goTo,
+    setGate,
+    reducedMotion,
+    view,
+    flat,
+    mode,
+    reportEvidence,
+    setVars,
+  };
   const Fallback = lesson.fallback;
   const fallback = (reason: string) =>
     Fallback ? <Fallback {...sceneProps} /> : <TextFallback steps={steps} step={step} reason={reason} />;
@@ -203,7 +229,8 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
       </header>
 
       <div className="lesson-tools">
-        {lesson.needsWebGL && webgl ? (
+        {twoViews && glAvailable ? <ViewSwitch view={view} onChange={setView} /> : null}
+        {view === "3d" && (webgl || twoViews) ? (
           <button className="pill" aria-pressed={flat} onClick={() => setFlat((f) => !f)}>
             Flat view
           </button>

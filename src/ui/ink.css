@@ -436,3 +436,15 @@ h3 {
 .fallback li[aria-current="step"] {
   font-weight: 700;
 }
+
+/* 2D / 3D switch: two joined pills. */
+.view-switch {
+  display: inline-flex;
+}
+.view-switch .pill:first-child {
+  border-radius: 999px 0 0 999px;
+}
+.view-switch .pill:last-child {
+  border-radius: 0 999px 999px 0;
+  margin-left: -1.5px;
+}
