@@ -20,6 +20,14 @@ export const NEAR_PATH = "m/44'/397'/0'";
 /** Public example printed in NEAR's docs (docs.near.org). Anyone can use it, so it never holds funds. */
 export const DEMO_PHRASE = "kit creek invite deputy fetch resource marble sweet camp thumb mushroom swift"; // secret-scan:allow public demo key from docs.near.org
 
+/** What every view shows for the private key until the learner presses Show. */
+export const MASKED_SECRET = `ed25519:${"•".repeat(16)} (hidden)`;
+
+/** The private key as a view may show it: masked unless the learner chose to reveal it. */
+export function shownSecret(kp: Pick<PracticeKeyPair, "secretKey">, reveal: boolean): string {
+  return reveal ? kp.secretKey : MASKED_SECRET;
+}
+
 export interface PracticeKeyPair {
   phrase: string;
   /** 32-byte ed25519 private seed. Wiped by `wipe`. */

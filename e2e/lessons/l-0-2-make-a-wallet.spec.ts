@@ -131,8 +131,38 @@ async function expectNoSecretsStored(page: Page) {
   }
 }
 
+const VIEWS = ["2d", "3d"] as const;
+type View = (typeof VIEWS)[number];
+
+/** Opens the lesson in one view. In 3D, waits until the lazy 3D chunk has drawn the canvas. */
+async function open(page: Page, view: View, query = "") {
+  await page.goto(`/lesson/${ID}?view=${view}${query ? `&${query}` : ""}`);
+  await expectView(page, view);
+}
+
+async function expectView(page: Page, view: View) {
+  await expect(
+    page.getByRole("group", { name: "Scene view" }).getByRole("button", { name: view.toUpperCase() }),
+  ).toHaveAttribute("aria-pressed", "true");
+  if (view === "3d") await expect(page.locator(".sk-stage canvas")).toBeVisible();
+  else {
+    await expect(page.locator(".sk-stage")).toHaveCount(0);
+    await expect(page.locator(".wallet-scene")).toHaveClass(/view-2d/);
+  }
+}
+
+/** Collects the JavaScript the page downloads, to check where three.js loads. */
+function collectScripts(page: Page) {
+  const scripts: string[] = [];
+  page.on("response", async (r) => {
+    if (r.url().endsWith(".js") && r.status() === 200) scripts.push(await r.text().catch(() => ""));
+  });
+  return scripts;
+}
+
 test.describe(`lesson ${ID}`, () => {
   test("is in the contents and walks to Finish in demo mode", async ({ page }) => {
+    test.slow(); // wide screens open in 3D by default
     await page.goto("/");
     await page.getByRole("navigation", { name: "Contents" }).getByRole("link", { name: TITLE }).click();
     await expect(page).toHaveURL(new RegExp(`/lesson/${ID}`));
@@ -144,23 +174,57 @@ test.describe(`lesson ${ID}`, () => {
     await expectNoSecretsStored(page);
   });
 
-  test("works offline and sends no network request after the lesson loads", async ({ page, context }) => {
-    await page.goto(`/lesson/${ID}`);
-    await expect(scene(page)).toHaveAttribute("data-scene-state", "warning");
-    await page.waitForLoadState("networkidle");
-    const requests: { method: string; url: string; body: string | null }[] = [];
-    page.on("request", (r) => requests.push({ method: r.method(), url: r.url(), body: r.postData() }));
-    await context.setOffline(true);
-    await walk(page);
-    // The browser may still fetch a font file it had not needed yet (for example the italic in the
-    // Honest take). That is a static file from this site and sends nothing. Anything else fails.
-    const origin = new URL(page.url()).origin;
-    const lazyFont = (r: (typeof requests)[number]) =>
-      r.method === "GET" && r.url.startsWith(`${origin}/assets/`) && /\.woff2?$/.test(r.url);
-    expect(requests.filter((r) => !lazyFont(r))).toEqual([]);
-    expect(requests.every((r) => r.body === null)).toBe(true);
-    await expectNoSecretsStored(page);
-  });
+  for (const view of VIEWS) {
+    test.describe(`in ${view}`, () => {
+      // Headless Chromium draws WebGL in software (SwiftShader): a full 3D walk needs more time.
+      test.beforeEach(() => test.slow(view === "3d", "software WebGL"));
+      test("walks to Finish without storing a secret", async ({ page }) => {
+        await open(page, view);
+        await walk(page);
+        expect(await completionOf(page, ID)).toMatchObject({ stage: STAGE, mode: "demo" });
+        await expectNoSecretsStored(page);
+      });
+
+      test("works offline and sends no network request after the lesson loads", async ({ page, context }) => {
+        // The 3D view is a lazy chunk from this site: it loads with the lesson, before going offline.
+        await open(page, view);
+        await expect(scene(page)).toHaveAttribute("data-scene-state", "warning");
+        await page.waitForLoadState("networkidle");
+        const requests: { method: string; url: string; body: string | null }[] = [];
+        page.on("request", (r) => requests.push({ method: r.method(), url: r.url(), body: r.postData() }));
+        await context.setOffline(true);
+        await walk(page);
+        // The browser may still fetch a font file it had not needed yet (for example the italic in the
+        // Honest take). That is a static file from this site and sends nothing. Anything else fails.
+        const origin = new URL(page.url()).origin;
+        const lazyFont = (r: (typeof requests)[number]) =>
+          r.method === "GET" && r.url.startsWith(`${origin}/assets/`) && /\.woff2?$/.test(r.url);
+        expect(requests.filter((r) => !lazyFont(r))).toEqual([]);
+        expect(requests.every((r) => r.body === null)).toBe(true);
+        await expectNoSecretsStored(page);
+      });
+
+      test("walks with reduced motion", async ({ browser }) => {
+        const context = await browser.newContext({ reducedMotion: "reduce" });
+        const page = await context.newPage();
+        await seedRoute(page);
+        await open(page, view);
+        await walk(page);
+        expect(await completionOf(page, ID)).toMatchObject({ stage: STAGE });
+        await context.close();
+      });
+
+      test("walks on a phone-sized screen", async ({ browser }) => {
+        const context = await browser.newContext({ viewport: { width: 390, height: 760 } });
+        const page = await context.newPage();
+        await seedRoute(page);
+        await open(page, view);
+        await walk(page);
+        expect(await completionOf(page, ID)).toMatchObject({ stage: STAGE });
+        await context.close();
+      });
+    });
+  }
 
   test("Generate stays locked until the warning is acknowledged", async ({ page }) => {
     await page.goto(`/lesson/${ID}?step=2`);
@@ -202,23 +266,152 @@ test.describe(`lesson ${ID}`, () => {
     await expect(panel(page).getByText(/printed in NEAR's docs/)).toHaveCount(0);
   });
 
-  test("walks with reduced motion", async ({ browser }) => {
-    const context = await browser.newContext({ reducedMotion: "reduce" });
-    const page = await context.newPage();
-    await seedRoute(page);
-    await page.goto(`/lesson/${ID}`);
-    await walk(page);
-    expect(await completionOf(page, ID)).toMatchObject({ stage: STAGE });
-    await context.close();
+  test("switching 2D → 3D → 2D mid-lesson keeps keys, values and open gates", async ({ page }) => {
+    test.slow();
+    await open(page, "2d");
+    const next = page.getByRole("button", { name: "Next step" });
+    await page.getByRole("checkbox", { name: /these keys are for practice only/ }).check();
+    await nextStep(page);
+    await page.getByRole("button", { name: "Generate", exact: true }).click();
+    await nextStep(page);
+    await page.getByRole("button", { name: "Rebuild from words" }).click();
+    await nextStep(page);
+    await page.getByRole("button", { name: "Turn it into an address" }).click();
+    await expect(panel(page).getByTestId("implicit-account")).toHaveText(DEMO_IMPLICIT, { timeout: 10_000 });
+    await nextStep(page);
+    for (let i = 0; i < 3; i++)
+      await panel(page)
+        .getByRole("button", { name: /^Show the .* rule$/ })
+        .first()
+        .click();
+    await nextStep(page);
+    await page.getByRole("textbox", { name: "Message" }).fill("Pay Ben 5 NEAR");
+    await page.getByRole("button", { name: "Sign", exact: true }).click();
+    const signature = await panel(page).getByTestId("signature").textContent();
+    await expect(next).toBeEnabled();
+
+    // Gate passed in 2D. Switch to 3D: same step, same values, gate still open.
+    await page.getByRole("button", { name: "3D", exact: true }).click();
+    await expectView(page, "3d");
+    await expect(page).toHaveURL(/step=6/);
+    await expect(next).toBeEnabled();
+    await expect(scene(page)).toHaveAttribute("data-scene-state", "signed");
+    await expect(page.getByRole("textbox", { name: "Message" })).toHaveValue("Pay Ben 5 NEAR");
+    await expect(panel(page).getByTestId("signature")).toHaveText(signature!);
+    await expect(page.locator(".sk-overlay")).toContainText("Pay Ben 5 NEAR");
+
+    // Earlier gates stay open too: go back two steps and forward again without redoing anything.
+    await page.getByRole("button", { name: "Previous step" }).click();
+    await expect(next).toBeEnabled();
+    await expect(panel(page).getByTestId("implicit-front")).toHaveText(DEMO_IMPLICIT);
+    await nextStep(page);
+
+    // Verify in 3D, then switch back to 2D: the verdict and the gate survive.
+    await nextStep(page);
+    await page.getByRole("button", { name: "Verify", exact: true }).click();
+    await expect(panel(page).getByRole("status")).toHaveText(/Signature matches this message/);
+    await page.getByRole("button", { name: "2D", exact: true }).click();
+    await expectView(page, "2d");
+    await expect(scene(page)).toHaveAttribute("data-scene-state", "verified-pass");
+    await expect(panel(page).getByRole("status")).toHaveText(/Signature matches this message/);
+    await expect(next).toBeDisabled();
+    await page.getByRole("textbox", { name: "Message to check" }).fill("Pay Ben 6 NEAR");
+    await page.getByRole("button", { name: "Verify", exact: true }).click();
+    await expect(scene(page)).toHaveAttribute("data-scene-state", "tamper-caught");
+    await expect(next).toBeEnabled();
+    await expectNoSecretsStored(page);
   });
 
-  test("walks on a phone-sized screen", async ({ browser }) => {
-    const context = await browser.newContext({ viewport: { width: 390, height: 760 } });
-    const page = await context.newPage();
-    await seedRoute(page);
-    await page.goto(`/lesson/${ID}`);
-    await walk(page);
-    expect(await completionOf(page, ID)).toMatchObject({ stage: STAGE });
-    await context.close();
+  test("3D objects are pickable and drive the same lesson state", async ({ page }) => {
+    test.slow();
+    await open(page, "3d");
+    const overlay = page.locator(".sk-overlay");
+    const pick = (name: string) => overlay.getByRole("button", { name, exact: true });
+    const next = page.getByRole("button", { name: "Next step" });
+    await page.getByRole("checkbox", { name: /these keys are for practice only/ }).check();
+    await nextStep(page);
+    await page.getByRole("button", { name: "Generate", exact: true }).click();
+
+    // The private key stays masked in 3D labels too, until the learner reveals it.
+    await expect(overlay).toContainText("Private key");
+    await expect(overlay).toContainText("ed25519:••••");
+    await expect(overlay).not.toContainText(DEMO_SECRET_PREFIX.slice(0, 15));
+    await pick("Show the private key").press("Enter");
+    await expect(panel(page).getByTestId("secret-key")).toContainText(DEMO_SECRET_PREFIX);
+    await expect(overlay).toContainText(DEMO_SECRET_PREFIX.slice(0, 15));
+    await pick("Hide the private key").press("Enter");
+    await expect(overlay).not.toContainText(DEMO_SECRET_PREFIX.slice(0, 15));
+    await nextStep(page);
+
+    // The seed words rebuild the key when picked.
+    await pick("Seed words: rebuild the key").press("Enter");
+    await expect(panel(page).getByTestId("rebuilt-key")).toHaveText(DEMO_PUBLIC);
+    await nextStep(page);
+    await page.getByRole("button", { name: "Turn it into an address" }).click();
+    await expect(panel(page).getByTestId("implicit-account")).toHaveText(DEMO_IMPLICIT, { timeout: 10_000 });
+    await nextStep(page);
+
+    // Three address blocks side by side: picking each shows its rule and opens the gate.
+    for (const name of [
+      "Ethereum address block",
+      "NEAR implicit account block",
+      "NEAR named account block",
+    ]) {
+      await expect(next).toBeDisabled();
+      await pick(name).press("Enter");
+      await expect(pick(name)).toHaveAttribute("aria-pressed", "true");
+    }
+    await expect(panel(page).getByText(/last 20 bytes/)).toBeVisible();
+    await nextStep(page);
+
+    // The key stamps the card.
+    await pick("Sign with the private key").press("Enter");
+    await expect(scene(page)).toHaveAttribute("data-scene-state", "signed");
+    await expect(overlay).toContainText("signature");
+    await nextStep(page);
+
+    // Verify, then let the card change one letter: the seal cracks.
+    await page.getByRole("button", { name: "Verify", exact: true }).click();
+    await expect(overlay).toContainText("Signature matches");
+    await pick("Change one letter on the card").press("Enter");
+    await expect(page.getByRole("textbox", { name: "Message to check" })).not.toHaveValue(
+      "Hello from Book of NEAR",
+    );
+    await page.getByRole("button", { name: "Verify", exact: true }).click();
+    await expect(overlay).toContainText("Does not match");
+    await expect(scene(page)).toHaveAttribute("data-scene-state", "tamper-caught");
+    await nextStep(page);
+
+    // The bin takes the keys away.
+    await pick("Drop the keys in the bin").press("Enter");
+    await expect(scene(page)).toHaveAttribute("data-scene-state", "cleared");
+    await expect(overlay).toContainText("Keys thrown away");
+    await expect(overlay).not.toContainText("Private key");
+    await expect(next).toBeEnabled();
+    await expectNoSecretsStored(page);
+  });
+
+  test("2D never downloads three.js; 3D loads it lazily", async ({ page }) => {
+    const scripts = collectScripts(page);
+    await open(page, "2d");
+    await page.waitForLoadState("networkidle");
+    expect(scripts.some((s) => s.includes("WebGLRenderer"))).toBe(false);
+    await page.getByRole("button", { name: "3D", exact: true }).click();
+    await expectView(page, "3d");
+    expect(scripts.some((s) => s.includes("WebGLRenderer"))).toBe(true);
+  });
+
+  test("without WebGL the lesson runs in 2D with no view switch", async ({ page }) => {
+    const scripts = collectScripts(page);
+    await page.goto(`/lesson/${ID}?webgl=0&view=3d`);
+    await expect(scene(page)).toHaveAttribute("data-scene-state", "warning");
+    await expect(page.getByRole("group", { name: "Scene view" })).toHaveCount(0);
+    await expect(page.locator(".sk-stage")).toHaveCount(0);
+    await page.getByRole("checkbox", { name: /these keys are for practice only/ }).check();
+    await nextStep(page);
+    await page.getByRole("button", { name: "Generate", exact: true }).click();
+    await expect(panel(page).getByTestId("public-key")).toHaveText(DEMO_PUBLIC);
+    await page.waitForLoadState("networkidle");
+    expect(scripts.some((s) => s.includes("WebGLRenderer"))).toBe(false);
   });
 });

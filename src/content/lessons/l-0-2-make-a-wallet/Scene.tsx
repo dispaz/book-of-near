@@ -1,39 +1,15 @@
-import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
+import { lazy, Suspense, useEffect, useId, useRef, type ReactNode, type RefObject } from "react";
 import type { SceneProps } from "../../../app/types";
 import { SceneAction } from "../../../ui/SceneAction";
 import { Check, HonestTake, type CheckQuestion } from "../../../lesson-kit";
-import {
-  DEMO_PHRASE,
-  NEAR_PATH,
-  changeOneLetter,
-  keyPairFromPhrase,
-  newPhrase,
-  practiceEthAddress,
-  sign,
-  verify,
-  wipe,
-  type PracticeKeyPair,
-} from "./wallet";
-import { WalletArt, type ArtFocus } from "./WalletArt";
+import { NEAR_PATH, newPhrase, shownSecret, type PracticeKeyPair } from "./wallet";
+import { CONVERT_STAGES, STEP, useWallet, type Verdict, type Wallet } from "./useWallet";
+import { WalletArt } from "./WalletArt";
+import { useFreeFrame } from "./frame";
 import "./wallet.css";
 
-// Step numbers (0-based) from manifest.ts.
-const STEP = {
-  warning: 0,
-  generate: 1,
-  seed: 2,
-  address: 3,
-  compare: 4,
-  sign: 5,
-  verify: 6,
-  custody: 7,
-  check: 8,
-  honest: 9,
-} as const;
-
-const MESSAGE = "Hello from Book of NEAR";
-const CONVERT_STAGES = 4;
-const CONVERT_MS = 700;
+// The 3D view loads only when the learner picks it, so 2D never downloads three.js.
+const Scene3D = lazy(() => import("./Scene3D"));
 
 const QUESTIONS: CheckQuestion[] = [
   {
@@ -79,26 +55,6 @@ const QUESTIONS: CheckQuestion[] = [
   },
 ];
 
-/** Counts network requests the page starts after `since` (performance timeline). */
-function useRequestsSince(since: number | null): number {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    if (since === null || typeof PerformanceObserver === "undefined") return;
-    const obs = new PerformanceObserver(() =>
-      setCount(performance.getEntriesByType("resource").filter((e) => e.startTime >= since).length),
-    );
-    try {
-      obs.observe({ type: "resource" });
-    } catch {
-      /* unsupported */
-    }
-    return () => obs.disconnect();
-  }, [since]);
-  return since === null ? 0 : count;
-}
-
-type Verdict = "pass" | "fail" | null;
-
 /**
  * On narrow screens the panel sits above the docked step card. Expose the card's real height as
  * --w-dock so the panel can use all the room between them instead of a fixed guess.
@@ -114,29 +70,14 @@ function useDockHeight(ref: RefObject<HTMLDivElement | null>) {
   }, [ref]);
 }
 
-export default function Scene({ step, goTo, setGate, reducedMotion, mode }: SceneProps) {
-  // Everything secret lives in this component's memory only. Never in storage, URL or evidence.
-  const [ack, setAck] = useState(false);
-  const [keys, setKeys] = useState<PracticeKeyPair | null>(null);
-  const [isDocsExample, setIsDocsExample] = useState(false);
-  const [showSecret, setShowSecret] = useState(false);
-  const [madeAt, setMadeAt] = useState<number | null>(null);
-  const [rebuilt, setRebuilt] = useState<string | null>(null);
-  const [convert, setConvert] = useState(0);
-  const [converting, setConverting] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [ethAddress, setEthAddress] = useState("");
-  const [flipped, setFlipped] = useState<boolean[]>([false, false, false]);
-  const [message, setMessage] = useState(MESSAGE);
-  const [signed, setSigned] = useState<{ message: string; signature: string } | null>(null);
-  const [checkMessage, setCheckMessage] = useState(MESSAGE);
-  const [verdict, setVerdict] = useState<Verdict>(null);
-  const [saw, setSaw] = useState({ pass: false, fail: false });
-  const [cleared, setCleared] = useState(false);
-  const [passed, setPassed] = useState(false);
-  const requests = useRequestsSince(madeAt);
+export default function Scene({ step, goTo, setGate, reducedMotion, mode, view, flat }: SceneProps) {
+  // One state for both views: switching 2D and 3D keeps every key, value and gate.
+  const w = useWallet({ step, setGate, reducedMotion, mode });
+  const { keys, signed, verdict, cleared } = w;
   const rootRef = useRef<HTMLDivElement>(null);
   useDockHeight(rootRef);
+  // The free part of the screen, so the 3D picture sits between the cards instead of under them.
+  const frame = useFreeFrame(rootRef, [step, view]);
 
   // Keep each new result in view: on phones the panel is short and scrolls.
   useEffect(() => {
@@ -146,389 +87,51 @@ export default function Scene({ step, goTo, setGate, reducedMotion, mode }: Scen
     const p = panel.getBoundingClientRect();
     const r = el.getBoundingClientRect();
     if (r.bottom > p.bottom) panel.scrollTop += r.bottom - p.bottom + 12;
-  }, [step, rebuilt, convert, signed, verdict, cleared]);
-
-  const loadKeys = (phrase: string, docsExample: boolean) => {
-    if (keys) wipe(keys);
-    setKeys(keyPairFromPhrase(phrase));
-    setIsDocsExample(docsExample);
-    setMadeAt(performance.now());
-    setEthAddress(practiceEthAddress());
-    setShowSecret(false);
-    setRebuilt(null);
-    setConvert(0);
-    setConverting(false);
-    setCopied(false);
-    setFlipped([false, false, false]);
-    setSigned(null);
-    setVerdict(null);
-    setSaw({ pass: false, fail: false });
-    setCleared(false);
-  };
-
-  const generate = () => {
-    if (!ack) return;
-    // Demo mode shows the public example from NEAR's docs; testnet mode makes a fresh random phrase.
-    loadKeys(mode === "demo" ? DEMO_PHRASE : newPhrase(), mode === "demo");
-    setGate(true);
-  };
-
-  // The conversion animation in step 4. Timers stop when the learner leaves the step.
-  useEffect(() => {
-    if (!converting || step !== STEP.address) return;
-    const t = window.setTimeout(() => {
-      const next = convert + 1;
-      setConvert(next);
-      if (next >= CONVERT_STAGES) {
-        setConverting(false);
-        setGate(true);
-      }
-    }, CONVERT_MS);
-    return () => window.clearTimeout(t);
-  }, [converting, convert, step, setGate]);
-
-  const startConvert = () => {
-    if (reducedMotion) {
-      setConvert(CONVERT_STAGES);
-      setGate(true);
-    } else {
-      setConvert(1);
-      setConverting(true);
-    }
-  };
-  const skipConvert = () => {
-    setConvert(CONVERT_STAGES);
-    setConverting(false);
-    setGate(true);
-  };
-
-  const doVerify = () => {
-    if (!keys || !signed) return;
-    const ok = verify(keys.publicKey, checkMessage, signed.signature);
-    setVerdict(ok ? "pass" : "fail");
-    const next = { pass: saw.pass || ok, fail: saw.fail || !ok };
-    setSaw(next);
-    if (next.pass && next.fail) setGate(true);
-  };
-
-  const throwAway = () => {
-    if (keys) wipe(keys);
-    setKeys(null);
-    setSigned(null);
-    setRebuilt(null);
-    setEthAddress("");
-    setShowSecret(false);
-    setMadeAt(null);
-    setCleared(true);
-    setGate(true);
-  };
-
-  const state = !keys
-    ? cleared
-      ? "cleared"
-      : ack
-        ? "acknowledged"
-        : "warning"
-    : saw.pass && saw.fail
-      ? "tamper-caught"
-      : verdict
-        ? `verified-${verdict}`
-        : signed
-          ? "signed"
-          : flipped.every(Boolean)
-            ? "compared"
-            : convert >= CONVERT_STAGES
-              ? "address"
-              : rebuilt
-                ? "rebuilt"
-                : "keys";
-
-  const focus: ArtFocus =
-    step === STEP.warning || (!keys && step <= STEP.generate)
-      ? "warning"
-      : !keys
-        ? "gone"
-        : step === STEP.seed
-          ? "words"
-          : step === STEP.address || step === STEP.compare
-            ? "address"
-            : step === STEP.sign
-              ? "sign"
-              : step === STEP.verify
-                ? "verify"
-                : "keys";
-
-  const needsKeys = step >= STEP.seed && step <= STEP.custody && !keys && !(step === STEP.custody && cleared);
-
-  let body: ReactNode = null;
-  if (step === STEP.warning) {
-    body = (
-      <WarningCard
-        ack={ack}
-        onAck={(v) => {
-          setAck(v);
-          setGate(v);
-        }}
-      />
-    );
-  } else if (needsKeys) {
-    body = (
-      <div className="w-empty">
-        <p>
-          <strong>No practice keys on this page right now.</strong> We never save them, so they are gone after
-          a reload or after you throw them away.
-        </p>
-        <button className="btn" onClick={() => goTo(STEP.generate)}>
-          Make new keys
-        </button>
-      </div>
-    );
-  } else if (step === STEP.generate) {
-    body = !ack ? (
-      <div className="w-empty">
-        <p>
-          <strong>Read the warning first.</strong> Generate stays locked until you tick the box.
-        </p>
-        <button className="btn" onClick={() => goTo(STEP.warning)}>
-          Go to the warning
-        </button>
-      </div>
-    ) : keys ? (
-      <>
-        <Throwaway docsExample={isDocsExample} />
-        <KeyRow
-          icon="key"
-          title="Private key"
-          note="Secret. It signs."
-          testId="secret-key"
-          value={showSecret ? keys.secretKey : `ed25519:${"•".repeat(16)} (hidden)`}
-          masked={!showSecret}
-          extra={
-            <button className="w-link" aria-pressed={showSecret} onClick={() => setShowSecret((s) => !s)}>
-              {showSecret ? "Hide private key" : "Show private key"}
-            </button>
-          }
-        />
-        <KeyRow
-          icon="lock"
-          title="Public key"
-          note="Share it. It checks signatures."
-          testId="public-key"
-          value={keys.publicKey}
-        />
-        <p className="w-offline">
-          <span className="w-badge">Offline</span> Made in this browser. Network requests since you pressed
-          Generate: <strong data-testid="network-count">{requests}</strong>
-        </p>
-        {mode === "demo" && isDocsExample ? (
-          <button className="w-link" onClick={() => loadKeys(newPhrase(), false)}>
-            Make a random key instead
-          </button>
-        ) : (
-          <button className="w-link" onClick={() => loadKeys(newPhrase(), false)}>
-            Make another random key
-          </button>
-        )}
-      </>
-    ) : (
-      <p className="w-hint">Press Generate below. Your keys will appear here.</p>
-    );
-  } else if (step === STEP.seed && keys) {
-    body = (
-      <>
-        <Throwaway docsExample={isDocsExample} compact />
-        <div className="w-paper">
-          <p className="w-paper-head">
-            <span className="w-label">Seed phrase · 12 words (BIP-39)</span>
-            <span className="w-stamp">Practice only</span>
-          </p>
-          <ol className="w-words" data-testid="seed-words">
-            {keys.phrase.split(" ").map((w, i) => (
-              <li key={i}>{w}</li>
-            ))}
-          </ol>
-          <p className="w-small">
-            Path <code>{NEAR_PATH}</code> → ed25519 key
-          </p>
-        </div>
-        {rebuilt ? (
-          <p className="w-result ok" role="status" data-reveal>
-            <span aria-hidden="true">✓ </span>Rebuilt from the words. Same public key:{" "}
-            <code data-testid="rebuilt-key">{rebuilt}</code>
-          </p>
-        ) : (
-          <p className="w-hint">Press Rebuild from words. The browser turns the 12 words back into keys.</p>
-        )}
-      </>
-    );
-  } else if (step === STEP.address && keys) {
-    body = (
-      <AddressSteps
-        keys={keys}
-        stage={convert}
-        converting={converting}
-        onSkip={skipConvert}
-        copied={copied}
-        onCopy={() => {
-          navigator.clipboard?.writeText(keys.implicitAccount).then(
-            () => setCopied(true),
-            () => setCopied(false),
-          );
-        }}
-      />
-    );
-  } else if (step === STEP.compare && keys) {
-    body = (
-      <CompareCards
-        flipped={flipped}
-        onFlip={(i) => {
-          const next = flipped.map((f, j) => (j === i ? !f : f));
-          setFlipped(next);
-          // Opening the gate needs every card seen once; flipping back does not close it again.
-          if (next.every(Boolean)) setGate(true);
-        }}
-        eth={ethAddress}
-        implicit={keys.implicitAccount}
-      />
-    );
-  } else if (step === STEP.sign && keys) {
-    body = (
-      <>
-        <Throwaway docsExample={isDocsExample} compact />
-        <label className="w-field">
-          <span className="w-label">Message</span>
-          <input value={message} maxLength={80} onChange={(e) => setMessage(e.target.value)} />
-        </label>
-        {signed ? (
-          <div className="w-result ok" role="status" data-reveal>
-            <p>
-              <span aria-hidden="true">✓ </span>Signed with your private key. Signature (64 bytes, base58):
-            </p>
-            <code className="w-mono" data-testid="signature">
-              {signed.signature}
-            </code>
-            {signed.message !== message ? (
-              <p className="w-small">You changed the message. Press Sign again to sign the new text.</p>
-            ) : null}
-          </div>
-        ) : (
-          <p className="w-hint">Press Sign. Your private key turns this message into a signature.</p>
-        )}
-      </>
-    );
-  } else if (step === STEP.verify && keys) {
-    body = signed ? (
-      <VerifyBox
-        signed={signed}
-        publicKey={keys.publicKey}
-        checkMessage={checkMessage}
-        onChange={(v) => {
-          setCheckMessage(v);
-          setVerdict(null);
-        }}
-        onTamper={() => {
-          setCheckMessage(changeOneLetter(signed.message));
-          setVerdict(null);
-        }}
-        verdict={verdict}
-        saw={saw}
-      />
-    ) : (
-      <div className="w-empty">
-        <p>Sign a message first.</p>
-        <button className="btn" onClick={() => goTo(STEP.sign)}>
-          Go to signing
-        </button>
-      </div>
-    );
-  } else if (step === STEP.custody) {
-    body = cleared ? (
-      <p className="w-result ok" role="status" data-reveal>
-        <span aria-hidden="true">✓ </span>Keys and words are gone from this page. Nothing was saved, so nobody
-        can get them back. Not even you. That is self-custody.
-      </p>
-    ) : (
-      <>
-        <div className="w-custody">
-          <p className="w-big">Who holds the key holds the account.</p>
-          <ul>
-            <li>Nobody can freeze your key.</li>
-            <li>Nobody can reset it for you.</li>
-            <li>Lose the words, lose the keys.</li>
-          </ul>
-        </div>
-        <p className="w-hint">Press Throw the keys away. They are only practice keys.</p>
-      </>
-    );
-  }
+  }, [step, w.rebuilt, w.convert, signed, verdict, cleared]);
 
   const panelTitle = step === STEP.warning ? "Read this first" : "Practice wallet";
   const showPanel = step < STEP.check;
 
   return (
-    <div ref={rootRef} className="wallet-scene" data-scene-state={state} data-mode={mode}>
-      <WalletArt
-        focus={focus}
-        verdict={step === STEP.verify ? verdict : null}
-        reducedMotion={reducedMotion}
-      />
+    <div ref={rootRef} className={`wallet-scene view-${view}`} data-scene-state={w.state} data-mode={mode}>
+      {view === "3d" ? (
+        <Suspense fallback={<p className="visually-hidden">Loading the 3D view…</p>}>
+          <Scene3D w={w} step={step} reducedMotion={reducedMotion} flat={flat} frame={frame} />
+        </Suspense>
+      ) : (
+        <WalletArt
+          focus={w.focus}
+          verdict={step === STEP.verify ? verdict : null}
+          reducedMotion={reducedMotion}
+        />
+      )}
       {showPanel ? (
         <section className="lesson-panel wallet-panel" aria-label={panelTitle} data-step={step}>
           <h2 className="panel-title">{panelTitle}</h2>
-          {body}
+          <PanelBody w={w} step={step} goTo={goTo} mode={mode} />
         </section>
       ) : null}
 
       {step === STEP.generate && !keys ? (
-        <SceneAction onClick={generate} disabled={!ack}>
+        <SceneAction onClick={w.generate} disabled={!w.ack}>
           Generate
         </SceneAction>
       ) : null}
-      {step === STEP.seed && keys ? (
-        <SceneAction
-          onClick={() => {
-            const again = keyPairFromPhrase(keys.phrase);
-            setRebuilt(again.publicKey);
-            const same = again.publicKey === keys.publicKey;
-            wipe(again);
-            if (same) setGate(true);
-          }}
-        >
-          Rebuild from words
-        </SceneAction>
-      ) : null}
-      {step === STEP.address && keys && convert === 0 ? (
-        <SceneAction onClick={startConvert}>Turn it into an address</SceneAction>
+      {step === STEP.seed && keys ? <SceneAction onClick={w.rebuild}>Rebuild from words</SceneAction> : null}
+      {step === STEP.address && keys && w.convert === 0 ? (
+        <SceneAction onClick={w.startConvert}>Turn it into an address</SceneAction>
       ) : null}
       {step === STEP.sign && keys ? (
-        <SceneAction
-          onClick={() => {
-            setSigned({ message, signature: sign(keys, message) });
-            setCheckMessage(message);
-            setVerdict(null);
-            setSaw({ pass: false, fail: false });
-            setGate(true);
-          }}
-          disabled={!message.trim()}
-        >
+        <SceneAction onClick={w.doSign} disabled={!w.message.trim()}>
           Sign
         </SceneAction>
       ) : null}
-      {step === STEP.verify && keys && signed ? <SceneAction onClick={doVerify}>Verify</SceneAction> : null}
+      {step === STEP.verify && keys && signed ? <SceneAction onClick={w.doVerify}>Verify</SceneAction> : null}
       {step === STEP.custody && keys && !cleared ? (
-        <SceneAction onClick={throwAway}>Throw the keys away</SceneAction>
+        <SceneAction onClick={w.throwAway}>Throw the keys away</SceneAction>
       ) : null}
 
-      {step === STEP.check ? (
-        <Check
-          questions={QUESTIONS}
-          passed={passed}
-          onPass={() => {
-            setPassed(true);
-            setGate(true);
-          }}
-        />
-      ) : null}
+      {step === STEP.check ? <Check questions={QUESTIONS} passed={w.passed} onPass={w.pass} /> : null}
       {step === STEP.honest ? (
         <HonestTake
           comparedWith="Ethereum"
@@ -546,6 +149,187 @@ export default function Scene({ step, goTo, setGate, reducedMotion, mode }: Scen
       ) : null}
     </div>
   );
+}
+
+/** The panel's content for the current step. Both views show it. */
+function PanelBody({
+  w,
+  step,
+  goTo,
+  mode,
+}: {
+  w: Wallet;
+  step: number;
+  goTo: (n: number) => void;
+  mode: SceneProps["mode"];
+}) {
+  const { keys, signed, cleared } = w;
+  if (step === STEP.warning) return <WarningCard ack={w.ack} onAck={w.acknowledge} />;
+  if (w.needsKeys)
+    return (
+      <div className="w-empty">
+        <p>
+          <strong>No practice keys on this page right now.</strong> We never save them, so they are gone after
+          a reload or after you throw them away.
+        </p>
+        <button className="btn" onClick={() => goTo(STEP.generate)}>
+          Make new keys
+        </button>
+      </div>
+    );
+  if (step === STEP.generate) {
+    if (!w.ack)
+      return (
+        <div className="w-empty">
+          <p>
+            <strong>Read the warning first.</strong> Generate stays locked until you tick the box.
+          </p>
+          <button className="btn" onClick={() => goTo(STEP.warning)}>
+            Go to the warning
+          </button>
+        </div>
+      );
+    if (!keys) return <p className="w-hint">Press Generate below. Your keys will appear here.</p>;
+    return (
+      <>
+        <Throwaway docsExample={w.isDocsExample} />
+        <KeyRow
+          icon="key"
+          title="Private key"
+          note="Secret. It signs."
+          testId="secret-key"
+          value={shownSecret(keys, w.showSecret)}
+          masked={!w.showSecret}
+          extra={
+            <button className="w-link" aria-pressed={w.showSecret} onClick={w.toggleSecret}>
+              {w.showSecret ? "Hide private key" : "Show private key"}
+            </button>
+          }
+        />
+        <KeyRow
+          icon="lock"
+          title="Public key"
+          note="Share it. It checks signatures."
+          testId="public-key"
+          value={keys.publicKey}
+        />
+        <p className="w-offline">
+          <span className="w-badge">Offline</span> Made in this browser. Network requests since you pressed
+          Generate: <strong data-testid="network-count">{w.requests}</strong>
+        </p>
+        <button className="w-link" onClick={() => w.loadKeys(newPhrase(), false)}>
+          {mode === "demo" && w.isDocsExample ? "Make a random key instead" : "Make another random key"}
+        </button>
+      </>
+    );
+  }
+  if (step === STEP.seed && keys)
+    return (
+      <>
+        <Throwaway docsExample={w.isDocsExample} compact />
+        <div className="w-paper">
+          <p className="w-paper-head">
+            <span className="w-label">Seed phrase · 12 words (BIP-39)</span>
+            <span className="w-stamp">Practice only</span>
+          </p>
+          <ol className="w-words" data-testid="seed-words">
+            {keys.phrase.split(" ").map((word, i) => (
+              <li key={i}>{word}</li>
+            ))}
+          </ol>
+          <p className="w-small">
+            Path <code>{NEAR_PATH}</code> → ed25519 key
+          </p>
+        </div>
+        {w.rebuilt ? (
+          <p className="w-result ok" role="status" data-reveal>
+            <span aria-hidden="true">✓ </span>Rebuilt from the words. Same public key:{" "}
+            <code data-testid="rebuilt-key">{w.rebuilt}</code>
+          </p>
+        ) : (
+          <p className="w-hint">Press Rebuild from words. The browser turns the 12 words back into keys.</p>
+        )}
+      </>
+    );
+  if (step === STEP.address && keys)
+    return (
+      <AddressSteps
+        keys={keys}
+        stage={w.convert}
+        converting={w.converting}
+        onSkip={w.skipConvert}
+        copied={w.copied}
+        onCopy={w.copy}
+      />
+    );
+  if (step === STEP.compare && keys)
+    return (
+      <CompareCards flipped={w.flipped} onFlip={w.flip} eth={w.ethAddress} implicit={keys.implicitAccount} />
+    );
+  if (step === STEP.sign && keys)
+    return (
+      <>
+        <Throwaway docsExample={w.isDocsExample} compact />
+        <label className="w-field">
+          <span className="w-label">Message</span>
+          <input value={w.message} maxLength={80} onChange={(e) => w.setMessage(e.target.value)} />
+        </label>
+        {signed ? (
+          <div className="w-result ok" role="status" data-reveal>
+            <p>
+              <span aria-hidden="true">✓ </span>Signed with your private key. Signature (64 bytes, base58):
+            </p>
+            <code className="w-mono" data-testid="signature">
+              {signed.signature}
+            </code>
+            {signed.message !== w.message ? (
+              <p className="w-small">You changed the message. Press Sign again to sign the new text.</p>
+            ) : null}
+          </div>
+        ) : (
+          <p className="w-hint">Press Sign. Your private key turns this message into a signature.</p>
+        )}
+      </>
+    );
+  if (step === STEP.verify && keys)
+    return signed ? (
+      <VerifyBox
+        signed={signed}
+        publicKey={keys.publicKey}
+        checkMessage={w.checkMessage}
+        onChange={w.changeCheckMessage}
+        onTamper={w.tamper}
+        verdict={w.verdict}
+        saw={w.saw}
+      />
+    ) : (
+      <div className="w-empty">
+        <p>Sign a message first.</p>
+        <button className="btn" onClick={() => goTo(STEP.sign)}>
+          Go to signing
+        </button>
+      </div>
+    );
+  if (step === STEP.custody)
+    return cleared ? (
+      <p className="w-result ok" role="status" data-reveal>
+        <span aria-hidden="true">✓ </span>Keys and words are gone from this page. Nothing was saved, so nobody
+        can get them back. Not even you. That is self-custody.
+      </p>
+    ) : (
+      <>
+        <div className="w-custody">
+          <p className="w-big">Who holds the key holds the account.</p>
+          <ul>
+            <li>Nobody can freeze your key.</li>
+            <li>Nobody can reset it for you.</li>
+            <li>Lose the words, lose the keys.</li>
+          </ul>
+        </div>
+        <p className="w-hint">Press Throw the keys away. They are only practice keys.</p>
+      </>
+    );
+  return null;
 }
 
 function WarningCard({ ack, onAck }: { ack: boolean; onAck: (v: boolean) => void }) {

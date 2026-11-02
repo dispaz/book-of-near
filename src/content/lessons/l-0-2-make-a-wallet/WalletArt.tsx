@@ -1,5 +1,5 @@
 /** Ink drawing of the wallet chain: words → private key → public key → address. Wide screens only. */
-export type ArtFocus = "warning" | "words" | "keys" | "address" | "sign" | "verify" | "gone";
+import type { ArtFocus } from "./useWallet";
 
 const INK = "#16141f";
 
