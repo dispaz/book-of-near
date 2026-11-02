@@ -48,6 +48,9 @@ so the same tests drive both.
 
 ## Building a lesson scene
 
+Most lessons offer a 2D and a 3D view of one shared state (see `docs/lesson-template.md`, "Two views"). The 3D view uses the primitives above inside `<InkStage>`; the 2D view uses the SVG primitives. `SceneProps.view` says which to draw.
+
+
 1. Put the scene's state in a small hook with no three.js (see `scene-kit-demo/demo.ts`), with pure
    helpers unit tested. Derive the end state of each step from `step`, so jumping to a step via the URL
    shows the right picture.

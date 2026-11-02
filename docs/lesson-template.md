@@ -9,7 +9,7 @@ Every lesson has the same five-part shape. Scaffold one with `/new-lesson` or
 | --- | --- |
 | Researched script (steps, check, Honest take, demo data, sources) | `docs/lessons/stage-<n>/<n>.<order>.md` (for example `stage-0/0.1.md`); unnumbered lessons use `<id>.md` |
 | Manifest (steps, captions, gates) | `src/content/lessons/<id>/manifest.ts` |
-| Scene (2D SVG unless it is a showpiece) | `src/content/lessons/<id>/Scene.tsx` |
+| Scene (one state, a 2D SVG view and a lazy 3D view) | `src/content/lessons/<id>/Scene.tsx` |
 | End-to-end test (demo mode) | `e2e/lessons/<id>.spec.ts`, helpers in `e2e/lessons/helpers.ts` |
 | Shared building blocks | `src/lesson-kit/`: `<Check>`, `<HonestTake>` |
 
@@ -53,6 +53,15 @@ Every lesson ends with one. It lists NEAR's **strengths and weaknesses** for thi
   renders "(unverified)". In captions and explains write "(unverified)" after the claim, or leave it out.
 - When sources disagree (for example block time "about 600 ms" vs "about a second"), say the safer
   version ("about one second or less") and note the conflict in the script.
+
+## Two views: 2D and 3D
+
+Almost every lesson offers both views (`views: ["2d", "3d"]` in the manifest). The lesson page shows a 2D / 3D switch, remembers the choice and passes `view` to the scene. Rules:
+- Keep the lesson state in ONE place (a hook or reducer in `Scene.tsx`) and render `view === "3d" ? <Scene3D …/> : <Scene2D …/>` from it, so switching mid-lesson keeps every gate, value and result.
+- Load the 3D view with `React.lazy(() => import("./Scene3D"))`, so 2D never downloads three.js.
+- Both views show the same facts and offer the same actions (the shared `SceneAction` buttons and forms live outside the views, or are reused by both). Tests must pass in both: run the lesson walk with `?view=2d` and `?view=3d`.
+- Without WebGL the page forces 2D. Under reduced motion the 3D view jumps to end states.
+- 2D-only is allowed for lessons that are mostly text or forms; note why in the manifest.
 
 ## The learner's own values
 

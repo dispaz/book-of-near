@@ -17,14 +17,23 @@ const state = (page: Page) => page.locator("[data-scene-state]");
 
 /** Records every value data-scene-state takes, so a test can check what happened in between. */
 async function recordStates(page: Page) {
+  // Watch the whole document, not one element: under load React may swap the stage element (Suspense),
+  // and an observer on the old element would miss every later state.
   await page.evaluate(() => {
     const w = window as unknown as { __states: string[] };
+    const read = () => {
+      for (const el of document.querySelectorAll("[data-scene-state]")) {
+        const v = el.getAttribute("data-scene-state") ?? "";
+        if (w.__states.at(-1) !== v) w.__states.push(v);
+      }
+    };
     w.__states = [];
-    const el = document.querySelector("[data-scene-state]")!;
-    w.__states.push(el.getAttribute("data-scene-state") ?? "");
-    new MutationObserver(() => w.__states.push(el.getAttribute("data-scene-state") ?? "")).observe(el, {
+    read();
+    new MutationObserver(read).observe(document.body, {
       attributes: true,
       attributeFilter: ["data-scene-state"],
+      subtree: true,
+      childList: true,
     });
   });
   return () => page.evaluate(() => (window as unknown as { __states: string[] }).__states);

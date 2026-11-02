@@ -2,6 +2,8 @@ import type { ComponentType } from "react";
 
 export type LessonStatus = "ready" | "card" | "planned";
 export type ChainMode = "demo" | "testnet";
+/** How a scene is drawn: flat 2D SVG, or the 3D scene kit. */
+export type SceneView = "2d" | "3d";
 
 /** One step of a lesson. The caption shows in the stage bar; `explain` shows in the lesson card. */
 export interface Step {
@@ -24,6 +26,11 @@ export interface SceneProps {
   setGate: (open: boolean) => void;
   /** True when the learner prefers reduced motion: jump to end states, no tweening. */
   reducedMotion: boolean;
+  /**
+   * Which view to draw. Lessons with `views: ["2d", "3d"]` keep ONE state and draw it either way, so
+   * switching mid-lesson keeps the learner's progress. Load the 3D view lazily so 2D never pulls in three.js.
+   */
+  view: SceneView;
   /** Flat top-down camera mode (3D scenes); 2D scenes may ignore it. */
   flat: boolean;
   mode: ChainMode;
@@ -58,7 +65,11 @@ export interface LessonManifest {
   vars?: Record<string, string>;
   /** Lazy scene import, so 3D code never loads before a scene opens. Planned cards have none. */
   scene?: () => Promise<SceneModule>;
-  /** The scene draws with WebGL: show the fallback when WebGL is missing. */
+  /**
+   * Views the scene can draw. Default ["2d"]. With both, the lesson page shows a 2D / 3D switch.
+   */
+  views?: SceneView[];
+  /** The scene draws ONLY with WebGL (3D-only lesson): show the fallback when WebGL is missing. */
   needsWebGL?: boolean;
   /** Fallback shown when the scene cannot run. Defaults to the caption list. */
   fallback?: ComponentType<SceneProps>;
