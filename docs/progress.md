@@ -87,3 +87,7 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Code review of ab3a53e..73e4b48 (standards + spec). Fixed: `Chain.returnAccount()` replaces lessons reading `VITE_RETURN_ACCOUNT_ID` / `DEMO_RETURN_ACCOUNT` (0.3 and the placeholder transfer); 0.1 honest take now gives the safe block-time wording; completion record takes `mode` from the evidence when a scene reported one.
 - Worker: mistyped limits fall back to defaults (never "no limit"); localhost CORS only with `ALLOW_LOCALHOST=1` (local dev); without the `FAUCET_LIMITS` KV binding or a `cf-connecting-ip` header it refuses outside local dev.
 - Known, not fixed: on testnet the "included" phase event fires when execution is seen (about one block after inclusion) because send_tx INCLUDED returns no block hash; its `atMs` is the real inclusion time. KV counters are eventually consistent, so a burst across locations can overshoot the caps slightly (a Durable Object would make them exact). `POST /faucet` still accepts a named `accountId` that the app does not use yet. Lessons 0.1/0.2 each measure the dock themselves; they could use LessonPage's `--dock-h` instead.
+
+## 2026-11-02 · Simpler stage bar
+- The stage bar now holds only Contents, back, the step caption and next. Removed: play/pause (with its autoplay timer and the Space shortcut) and the step dots. `?step=N` still jumps to a step.
+- The bar's menu button and its panel are both called "Contents"; the panel's home link is now "← All stages". GLOSSARY and spec story 5 updated.

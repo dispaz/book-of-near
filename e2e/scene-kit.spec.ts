@@ -141,6 +141,7 @@ test.describe("scene kit demo (fallback)", () => {
     await page.getByRole("button", { name: "Ben's account" }).click();
     await expect(state(page)).toHaveAttribute("data-scene-state", /selected=ben/);
 
+    // Steps 1 and 2 have no gate, so Next walks straight to step 3 without a reload.
     await page.getByRole("button", { name: "Next step" }).click();
     await page.getByRole("button", { name: "Next step" }).click();
     await page.locator(".action-slot").getByRole("button", { name: "Send coin" }).click();

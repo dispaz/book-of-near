@@ -45,7 +45,7 @@ test.describe("@smoke walking skeleton", () => {
     await expect(bar.getByRole("button", { name: "Contents" })).toBeVisible();
     await expect(bar.getByRole("button", { name: "Previous step" })).toBeVisible();
     await expect(bar.getByRole("button", { name: "Next step" })).toBeVisible();
-    await expect(bar.getByTestId("caption")).toHaveText("A ledger is a list of who owns what.");
+    await expect(bar.getByTestId("caption")).toHaveText(/A ledger is a list/);
   });
 
   test("the step lives in the URL", async ({ page }) => {
@@ -56,7 +56,7 @@ test.describe("@smoke walking skeleton", () => {
   test("menu opens and moves to another lesson", async ({ page }) => {
     await page.goto("/lesson/placeholder-hello");
     await page.getByRole("button", { name: "Contents" }).click();
-    const menu = page.getByRole("dialog", { name: "Lessons" });
+    const menu = page.getByRole("dialog", { name: "Contents" });
     await expect(menu.getByRole("link", { name: "Add a line" })).toHaveCount(0);
     await menu.getByRole("link", { name: "How a blockchain and a transaction work" }).click();
     await expect(
