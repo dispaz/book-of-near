@@ -7,6 +7,8 @@ import { useStage } from "./context";
 import { COLORS } from "./theme";
 
 const TRAIL = 14;
+/** Longest time step one frame may advance a hop, in seconds. */
+const MAX_STEP = 1 / 20;
 
 /**
  * Something that travels: a coin, a transaction, a receipt. It sits at `to`. When `to` changes it
@@ -40,7 +42,7 @@ export function Traveller({
   const group = useRef<Group>(null);
   const glowRef = useRef<Sprite>(null);
   const trail = useRef<(Sprite | null)[]>([]);
-  const hop = useRef<{ from: Vec3; to: Vec3; t0: number } | null>(null);
+  const hop = useRef<{ from: Vec3; to: Vec3; elapsed: number } | null>(null);
   const placed = useRef(false);
   const arrive = useRef(onArrive);
   useLayoutEffect(() => {
@@ -62,16 +64,18 @@ export function Traveller({
       arrive.current?.();
       return;
     }
-    hop.current = { from: [g.position.x, g.position.y, g.position.z], to: target, t0: -1 };
+    hop.current = { from: [g.position.x, g.position.y, g.position.z], to: target, elapsed: 0 };
   }, [x, y, z, reducedMotion]);
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
     const g = group.current;
     if (!g) return;
     const h = hop.current;
     if (h) {
-      if (h.t0 < 0) h.t0 = clock.elapsedTime;
-      const u = Math.min(1, (clock.elapsedTime - h.t0) / duration);
+      // Advance by the frame time, capped at MAX_STEP: a slow or stalled frame (busy phone, background
+      // tab) slows the hop down instead of skipping it, so the learner always sees the coin travel.
+      h.elapsed += Math.min(delta, MAX_STEP);
+      const u = Math.min(1, h.elapsed / duration);
       g.position.set(...arcPoint(h.from, h.to, arc, easeInOut(u)));
       if (u >= 1) {
         hop.current = null;
