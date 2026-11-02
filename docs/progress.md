@@ -98,3 +98,11 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 ## 2026-11-02 · Simpler stage bar
 - The stage bar now holds only Contents, back, the step caption and next. Removed: play/pause (with its autoplay timer and the Space shortcut) and the step dots. `?step=N` still jumps to a step.
 - The bar's menu button and its panel are both called "Contents"; the panel's home link is now "← All stages". GLOSSARY and spec story 5 updated.
+
+## 2026-11-02 · #34 Lesson 0.2 in 3D
+- `views: ["2d", "3d"]`. All lesson state moved into one hook, `useWallet.ts` (keys stay in React memory only). `Scene.tsx` keeps the shared panel, docked actions, Check and Honest take, and swaps only the picture: `WalletArt` (2D) or a lazy `Scene3D.tsx` (3D). Pure 3D layout, cameras and label rules in `wallet3d.ts` (unit tested).
+- 3D story: 12 word tiles fold into a gold key whose teeth sit under a paper cover (lifts only while revealed; labels use the same `shownSecret` masking as the panel), the key casts a padlock (public key), the padlock grows an orange address block stage by stage. Step 5 clears the chain and shows three blocks whose height is the address length (Ethereum 42, implicit 64, named 11). Signing hops a seal from the key onto a message card; verify turns it green, a changed letter cracks it red. Throw away drops words and keys into a bin and leaves empty spots.
+- Picks (also labelled buttons): Show or Hide the private key; Seed words (rebuild); the three address blocks; Sign with the key; Change one letter on the card; Drop the keys in the bin.
+- `frame.ts` measures the free area between title, panel, step card and stage bar; `FrameShift` (in Scene3D) uses `camera.setViewOffset` to centre and fit the picture there. Could move to the scene kit if other lessons want it. On phones in 3D the panel leaves a band for the picture and fewer labels show.
+- Scene3D preloads the Caveat label font on mount, so it never counts as a request after Generate.
+- E2E: walks in both views (offline, reduced motion, 390x760), 2D→3D→2D switch, 3D picks and masking, lazy three.js, `?webgl=0`. 3D tests use `test.slow()` (software WebGL). The existing "testnet mode makes a random key" test is flaky here: helper.testnet.near.org is unreachable from this machine, so testnet falls back to demo.

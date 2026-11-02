@@ -73,4 +73,6 @@ export default {
     },
   ],
   scene: () => import("./Scene"),
+  // Both views draw one shared state (useWallet.ts). The 3D view (Scene3D.tsx) loads only when chosen.
+  views: ["2d", "3d"],
 } satisfies LessonManifest;
