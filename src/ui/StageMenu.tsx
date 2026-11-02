@@ -1,12 +1,12 @@
 import { Link } from "react-router";
 import { registry } from "../app/registry";
 
-/** Panel opened from the stage bar's menu button: every stage and its lessons. */
+/** Panel opened from the stage bar's Contents button: every stage and its lessons. */
 export function StageMenu({ currentId, onPick }: { currentId: string; onPick: () => void }) {
   return (
-    <div className="stage-menu" role="dialog" aria-label="Lessons">
+    <div className="stage-menu" role="dialog" aria-label="Contents">
       <Link to="/" onClick={onPick}>
-        ← Contents
+        ← All stages
       </Link>
       {registry.stages.map((s) => {
         const visible = s.lessons.filter((l) => !l.hidden && l.status !== "planned");

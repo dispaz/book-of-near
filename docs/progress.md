@@ -95,3 +95,6 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - 3D window: wide screens put it beside a narrow facts column under the pipeline; phones put it under the pipeline and fit it to the visible band. In 3D the InkStage status note is the `scene-status` (no duplicate test id), and the account cards stay in the DOM as visually hidden text.
 - E2E: every lesson test runs with `?view=2d` and `?view=3d` (contents walk, light order, Finish gate, reduced motion, 390x760, testnet failure); plus 2D→3D→2D switch mid-lesson (step, amount 0.02, tx hash, open gates), 3D pick actions, `?webgl=0` (2D, no switch) and "2D never loads WebGLRenderer".
 - Shared issue seen (not fixed, LessonPage): at 390px the 2D/3D switch overlaps the eyebrow line ("Book of NEAR · Stage 0 · Blank page") above the title.
+## 2026-11-02 · Simpler stage bar
+- The stage bar now holds only Contents, back, the step caption and next. Removed: play/pause (with its autoplay timer and the Space shortcut) and the step dots. `?step=N` still jumps to a step.
+- The bar's menu button and its panel are both called "Contents"; the panel's home link is now "← All stages". GLOSSARY and spec story 5 updated.

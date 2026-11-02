@@ -24,7 +24,7 @@ The MVP contains five stages (0 to 4) with 15 lessons, a capstone and a final ex
 2. As a crypto veteran, I want to test out of the basics, so that I reach the NEAR-specific material quickly.
 3. As a developer, I want a route that includes the builder lessons, so that I learn how contracts and tokens work on NEAR.
 4. As a learner, I want a table of contents that shows every stage and lesson, including planned ones, so that I see the whole book and my progress.
-5. As a learner, I want a persistent stage bar (menu, back, play, caption, dots, next) in every lesson, so that I always know how to move.
+5. As a learner, I want a persistent stage bar (contents, back, caption, next) in every lesson, so that I always know how to move.
 6. As a learner, I want my progress remembered in the browser, so that I can leave and return.
 7. As a newcomer, I want to move coins on a toy ledger and see blocks link together, so that I understand what a blockchain is.
 8. As a newcomer, I want to edit an old block and see the hashes break, so that I understand why history is hard to change.

@@ -10,7 +10,7 @@ export interface Step {
   caption: string;
   explain?: string;
   /**
-   * Something the learner must do in this step. With `gate: true` Next and Play stay
+   * Something the learner must do in this step. With `gate: true` Next stays
    * locked until the scene calls `setGate(true)`.
    */
   action?: { label: string; gate?: boolean };

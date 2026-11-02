@@ -6,7 +6,7 @@
 - **Showpiece**: a lesson with a real interactive action. 9 are tier A (must build).
 - **Honest take**: closing section of each lesson with NEAR's pros and cons.
 - **Scene kit**: shared Three.js/SVG toolkit (ink shader, blocks, accounts, stage bar, fallback).
-- **Stage bar**: bottom control bar (menu, back, play, caption, dots, next).
+- **Stage bar**: bottom control bar (contents, back, caption of the current step, next).
 - **Chain interface**: the single seam for all chain access. Two implementations: **TestnetChain** (real) and **DemoChain** (deterministic, in browser).
 - **Demo mode**: running with no wallet or network, using DemoChain.
 - **Practice account**: faucet-funded testnet account created for the learner.
