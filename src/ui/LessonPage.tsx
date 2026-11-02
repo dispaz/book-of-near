@@ -19,6 +19,7 @@ import { TextFallback } from "./TextFallback";
 import { hasWebGL, useReducedMotion } from "./hooks";
 import { StageMenu } from "./StageMenu";
 import { ActionSlot } from "./SceneAction";
+import { fillStep } from "../app/fillVars";
 import { progress } from "../progress";
 import { FinishLesson, useRecordPosition } from "../progress/FinishLesson";
 
@@ -63,6 +64,16 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [opened, setOpened] = useState<Set<number>>(() => new Set());
   const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const [vars, setVarsState] = useState<Record<string, string>>(() => ({ ...lesson.vars }));
+  const setVars = useCallback(
+    (next: Record<string, string>) =>
+      setVarsState((prev) =>
+        Object.entries(next).every(([k, v]) => prev[k] === v) ? prev : { ...prev, ...next },
+      ),
+    [],
+  );
+  // Every learner-facing step text, with `{name}` placeholders filled from the learner's own values.
+  const steps = useMemo(() => lesson.steps.map((s) => fillStep(s, vars)), [lesson.steps, vars]);
   const [root, setRoot] = useState<HTMLElement | null>(null);
 
   // Publish the stage bar and dock heights as CSS variables, so the step card, menu and lesson panels
@@ -135,15 +146,11 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
   );
 
   const Scene = sceneFor(lesson);
-  const sceneProps: SceneProps = { step, goTo, setGate, reducedMotion, flat, mode, reportEvidence };
+  const sceneProps: SceneProps = { step, goTo, setGate, reducedMotion, flat, mode, reportEvidence, setVars };
   const Fallback = lesson.fallback;
   const fallback = (reason: string) =>
-    Fallback ? (
-      <Fallback {...sceneProps} />
-    ) : (
-      <TextFallback steps={lesson.steps} step={step} reason={reason} />
-    );
-  const current = lesson.steps[step]!;
+    Fallback ? <Fallback {...sceneProps} /> : <TextFallback steps={steps} step={step} reason={reason} />;
+  const current = steps[step]!;
 
   return (
     <main
@@ -199,7 +206,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
           <details className="read-as-text">
             <summary>Read as text</summary>
             <ol>
-              {lesson.steps.map((s, i) => (
+              {steps.map((s, i) => (
                 <li key={i}>{s.caption}</li>
               ))}
             </ol>
@@ -210,7 +217,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
       {menuOpen ? <StageMenu currentId={lesson.id} onPick={() => setMenuOpen(false)} /> : null}
 
       <StageBar
-        steps={lesson.steps}
+        steps={steps}
         step={step}
         canNext={canNext}
         menuOpen={menuOpen}

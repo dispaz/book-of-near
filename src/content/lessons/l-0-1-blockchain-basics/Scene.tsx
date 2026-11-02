@@ -92,7 +92,7 @@ const QUESTIONS: CheckQuestion[] = [
 
 const nextDefault = (chain: Chain): Tx => DEFAULT_TXS[chain.length - 1] ?? DEFAULT_TXS[0]!;
 
-export default function Scene({ step, setGate, reducedMotion, mode }: SceneProps) {
+export default function Scene({ step, setGate, reducedMotion, mode, setVars }: SceneProps) {
   const [chain, setChain] = useState<Chain>(genesisChain);
   const [ben, setBen] = useState<Chain | null>(null);
   const [opened, setOpened] = useState<Person | null>(null);
@@ -115,16 +115,19 @@ export default function Scene({ step, setGate, reducedMotion, mode }: SceneProps
   }, [step, chain.length]);
 
   const benChain = ben ?? chain;
+  // What the learner actually sent in block #1, and a different amount for Ben to pretend he got.
+  const sent = chain[1]?.tx?.amount ?? 3;
+  const tamperTo = sent === 9 ? 10 : 9;
+  useEffect(() => setVars?.({ sent: String(sent), tamper: String(tamperTo) }), [sent, tamperTo, setVars]);
   const benDiffers = !compareCopies(chain, benChain);
 
   // The comparison needs a changed copy: if Ben undid his edit, put the script's edit back.
   useEffect(() => {
     if (step !== COMPARE || compared || chain.length < MAX_BLOCKS || benDiffers) return;
-    const amount = chain[1]?.tx?.amount === 9 ? 10 : 9;
-    setBen(tamperAmount(chain, 1, amount));
-    setTamperText(String(amount));
+    setBen(tamperAmount(chain, 1, tamperTo));
+    setTamperText(String(tamperTo));
     setAutoTampered(true);
-  }, [step, compared, chain, benDiffers]);
+  }, [step, compared, chain, benDiffers, tamperTo]);
 
   const benCheck = useMemo(() => verify(benChain), [benChain]);
   const allRed = benCheck.allLaterBroken(1);
@@ -204,13 +207,13 @@ export default function Scene({ step, setGate, reducedMotion, mode }: SceneProps
         ? "Block #3 is on the chain. Each block points back to the hash before it."
         : `Send ${MAX_BLOCKS - chain.length} more. Each one gets its own block.`;
   else if (step === TAMPER && tamperText !== null && !/^\d{1,4}$/.test(tamperText.trim()))
-    status = "Type a whole number, such as 9.";
+    status = `Type a whole number, such as ${tamperTo}.`;
   else if (step === TAMPER)
     status = allRed
       ? "#1's hash changed, so #2's link broke. That changed #2's hash, so #3's link broke too."
       : broken.length
         ? "Still broken further on. Every later block would need redoing."
-        : "Change the 3 in block #1 to 9 and watch the links.";
+        : `Change the ${sent} in block #1 to ${tamperTo} and watch the links.`;
 
   return (
     <>

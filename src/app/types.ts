@@ -27,6 +27,11 @@ export interface SceneProps {
   /** Flat top-down camera mode (3D scenes); 2D scenes may ignore it. */
   flat: boolean;
   mode: ChainMode;
+  /**
+   * Report values the learner chose (for example the amount they sent), so captions and texts that use
+   * `{name}` placeholders show the learner's numbers instead of the manifest's defaults.
+   */
+  setVars?: (vars: Record<string, string>) => void;
   /** Attach evidence (for example `{ txHash }`) to this lesson's completion record. Never keys or seed words. */
   reportEvidence?: (evidence: Record<string, string>) => void;
 }
@@ -46,6 +51,11 @@ export interface LessonManifest {
   /** One-line summary for cards and the table of contents. */
   summary?: string;
   steps: Step[];
+  /**
+   * Default values for `{name}` placeholders in captions, explains and action labels. A scene replaces
+   * them with the learner's own values through `setVars`.
+   */
+  vars?: Record<string, string>;
   /** Lazy scene import, so 3D code never loads before a scene opens. Planned cards have none. */
   scene?: () => Promise<SceneModule>;
   /** The scene draws with WebGL: show the fallback when WebGL is missing. */

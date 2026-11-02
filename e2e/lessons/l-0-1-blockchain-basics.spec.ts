@@ -168,3 +168,28 @@ test.describe(`lesson ${ID}`, () => {
     await expect(page.locator(".read-as-text")).toContainText("Pretend you are Ben");
   });
 });
+
+test("later texts use the amount the learner actually sent", async ({ page }) => {
+  await page.goto(`/lesson/${ID}`);
+  await page.getByRole("button", { name: "Open Ben's notebook" }).click();
+  await nextStep(page);
+  await page.getByLabel("Amount (coins)").fill("5");
+  await action(page, "Send").click();
+  await expect(page.getByTestId("balance-Ben")).toHaveText("10");
+  await nextStep(page);
+  await page.getByRole("button", { name: "Open block #1" }).click();
+  await expect(page.getByRole("region", { name: "Block #1" })).toContainText("Ana->Ben 5");
+  await nextStep(page);
+  await page.getByLabel("Change the text").fill("Ana->Ben 6");
+  await nextStep(page);
+  await action(page, "Send").click();
+  await action(page, "Send").click();
+  await expect(scene(page)).toHaveAttribute("data-scene-state", /blocks:4/);
+  await nextStep(page);
+
+  // Step 6 talks about the 5 coins sent, not the default 3.
+  await expect(page.getByTestId("caption")).toHaveText(/Ana sent you 9 coins, not 5\./);
+  await expect(page.getByText("Change the 5 in block #1 to 9")).toBeVisible();
+  await page.getByText("Read as text").click();
+  await expect(page.locator(".read-as-text li").nth(5)).toContainText("not 5");
+});
