@@ -17,7 +17,7 @@ Errors are JSON `{ error }` in plain English: 400 bad input, 403 origin not allo
 - `GLOBAL_DAILY` accounts per UTC day in total (default 50, so at most 25 NEAR a day at 0.5 NEAR).
 - A slot is taken **before** the account is created, so failed and repeated attempts count too.
 - Counters live in the `FAUCET_LIMITS` KV namespace. KV is eventually consistent across Cloudflare locations; the global cap may overshoot by a few accounts in a burst from many places. Use a Durable Object if that ever matters.
-- CORS: only `ALLOWED_ORIGINS` (comma list in `wrangler.toml`) and `http://localhost:<any port>`. Other browser origins get 403.
+- CORS: only `ALLOWED_ORIGINS` (comma list in `wrangler.toml`). `http://localhost:<any port>` is allowed only when `ALLOW_LOCALHOST=1` (set in `.dev.vars` for local dev, never in production). Other browser origins get 403. Missing or mistyped limits fall back to the defaults.
 
 ## Develop
 

@@ -4,7 +4,6 @@ import type { SceneProps } from "../../../app/types";
 import { ActionSlot, SceneAction } from "../../../ui/SceneAction";
 import { Check, HonestTake, type CheckQuestion } from "../../../lesson-kit";
 import { useChain, useChainMode } from "../../../chain/ChainContext";
-import { DEMO_RETURN_ACCOUNT } from "../../../chain/DemoChain";
 import { actions, totalGasBurnt, totalTokensBurnt } from "../../../chain/ops";
 import { formatTgas } from "../../../chain/units";
 import type {
@@ -22,7 +21,6 @@ import {
   kindError,
   near,
   readAmount,
-  receiverFor,
   senderBalance,
   short,
   TRANSFER_FEE,
@@ -149,12 +147,7 @@ function TransactionScene({
     (async () => {
       try {
         const acc = await chain.practiceAccount();
-        const to = receiverFor(
-          chain.network,
-          acc.accountId,
-          DEMO_RETURN_ACCOUNT,
-          import.meta.env.VITE_RETURN_ACCOUNT_ID as string | undefined,
-        );
+        const to = await chain.returnAccount();
         const [mine, theirs] = await Promise.all([
           chain.viewAccount(acc.accountId),
           to === acc.accountId ? null : chain.viewAccount(to).catch(() => null),

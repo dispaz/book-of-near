@@ -64,6 +64,8 @@ export interface TestnetChainOptions {
   store?: PracticeStore;
   /** Faucets to try, in order, when there is no practice account yet. */
   funders?: Funder[];
+  /** The app's account that receives practice transfers (VITE_RETURN_ACCOUNT_ID). */
+  returnAccountId?: AccountId;
   /** How long to wait for a new account to show up at final finality. */
   accountWaitMs?: number;
   now?: () => number;
@@ -78,6 +80,7 @@ export class TestnetChain implements Chain {
   private readonly keys = new KeyStore();
   private readonly now: () => number;
   private readonly accountWaitMs: number;
+  private readonly returnAccountId: AccountId | undefined;
   private practice: Promise<PracticeAccount> | null = null;
   private layout: Promise<ShardLayout> | null = null;
   private readonly blockInfo = new Map<string, BlockInfo>();
@@ -92,6 +95,11 @@ export class TestnetChain implements Chain {
     this.funders = opts.funders ?? [];
     this.now = opts.now ?? (() => performance.now());
     this.accountWaitMs = opts.accountWaitMs ?? 20_000;
+    this.returnAccountId = opts.returnAccountId?.trim() || undefined;
+  }
+
+  async returnAccount(): Promise<AccountId> {
+    return this.returnAccountId ?? (await this.practiceAccount()).accountId;
   }
 
   // ---------- RPC helpers ----------

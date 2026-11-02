@@ -283,6 +283,11 @@ export interface Chain {
 
   /** The learner's practice account, created and funded on first use. */
   practiceAccount(): Promise<PracticeAccount>;
+  /**
+   * Where lessons send practice transfers: the app's own account, so NEAR never goes to a stranger.
+   * On testnet, while no app account is configured, this is the practice account itself.
+   */
+  returnAccount(): Promise<AccountId>;
   /** Rejects with ChainError "AccountDoesNotExist". */
   viewAccount(accountId: AccountId): Promise<AccountView>;
   accountExists(accountId: AccountId): Promise<boolean>;

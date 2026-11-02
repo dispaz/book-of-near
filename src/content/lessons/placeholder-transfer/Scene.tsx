@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import type { SceneProps } from "../../../app/types";
 import { SceneAction } from "../../../ui/SceneAction";
 import { useChain } from "../../../chain/ChainContext";
-import { DEMO_RETURN_ACCOUNT } from "../../../chain/DemoChain";
 import { isChainError } from "../../../chain/errors";
 import { inclusionBlock, totalGasBurnt, totalTokensBurnt, transfer } from "../../../chain/ops";
 import type { PracticeAccount, TxOutcome, TxPhase } from "../../../chain/types";
@@ -19,16 +18,6 @@ const SHOWN: { phase: TxPhase; label: string }[] = [
 
 function short(id: string) {
   return id.length > 20 ? `${id.slice(0, 6)}…${id.slice(-4)}` : id;
-}
-
-/**
- * Where the transfer goes. Demo: the app's placeholder return account. Testnet: the account in
- * VITE_RETURN_ACCOUNT_ID (the owner's faucet account) or, until that exists, the practice account
- * itself, so the NEAR never goes to a third party.
- */
-function receiver(network: string, self: string): string {
-  if (network !== "testnet") return DEMO_RETURN_ACCOUNT;
-  return (import.meta.env.VITE_RETURN_ACCOUNT_ID as string | undefined) || self;
 }
 
 export default function Scene({ step, setGate, reducedMotion }: SceneProps) {
@@ -60,7 +49,7 @@ export default function Scene({ step, setGate, reducedMotion }: SceneProps) {
     setSending(true);
     setError(null);
     try {
-      const out = await transfer(chain, receiver(chain.network, me.accountId), parseNear(amount), {
+      const out = await transfer(chain, await chain.returnAccount(), parseNear(amount), {
         pace: reducedMotion ? "instant" : "realtime",
         onPhase: (e) => setLit((prev) => ({ ...prev, [e.phase]: e.atMs })),
       });

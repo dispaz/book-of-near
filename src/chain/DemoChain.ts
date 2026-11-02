@@ -238,6 +238,10 @@ export class DemoChain implements Chain {
 
   // ---------- Reads ----------
 
+  async returnAccount(): Promise<AccountId> {
+    return DEMO_RETURN_ACCOUNT;
+  }
+
   async practiceAccount(): Promise<PracticeAccount> {
     return { ...this.practice };
   }

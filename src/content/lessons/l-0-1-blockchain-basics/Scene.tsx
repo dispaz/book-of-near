@@ -314,7 +314,7 @@ export default function Scene({ step, setGate, reducedMotion, mode }: SceneProps
           strengths={[
             "Tamper-evident history. Any change to an old block breaks every later link, so anyone can spot it by recomputing hashes.",
             "No single owner. Nobody has to trust one bank's private copy of the ledger. Everyone can check the same public history.",
-            "NEAR is fast for a blockchain. NEAR's docs give a block time of about 600 ms and finality (the point where a block cannot change) of about 1.2 s. Ethereum makes a block every 12 s; Bitcoin aims for one every 10 minutes.",
+            "NEAR is fast for a blockchain. It makes a new block about every second or less (NEAR's docs give figures between 0.6 and 1 s) and reaches finality, the point where a block cannot change, in about 1.2 s. Ethereum makes a block every 12 s; Bitcoin aims for one every 10 minutes.",
           ]}
           weaknesses={[
             "Slower and costlier than a normal database. Many computers must store and agree on every change. One company's database is far quicker and cheaper when you can trust its owner. This is true of NEAR too.",

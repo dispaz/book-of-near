@@ -82,6 +82,13 @@ describe("progress store", () => {
     expect(p.completions()[0]!.evidence).toEqual({ txHash: "abc", explorer: "https://example" });
   });
 
+  it("keeps the mode the evidence was made in, even if the learner switched mode before Finish", () => {
+    const p = createProgress(memoryStorage());
+    p.reportEvidence("a", { txHash: "abc", mode: "testnet" });
+    p.recordCompletion({ ...record("a"), mode: "demo" });
+    expect(p.completions()[0]!.mode).toBe("testnet");
+  });
+
   it("notifies subscribers and gives a stable snapshot between changes", () => {
     const p = createProgress(memoryStorage());
     const fn = vi.fn();

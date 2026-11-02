@@ -1,11 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import { implicitIdOf, type FaucetSender } from "./faucet";
-import { handle, type Env } from "./index";
+import { allowedOrigin, handle, limitFrom, type Env } from "./index";
 import { memoryCounters } from "./limits";
 
 const KEY = "ed25519:Ex4stLtTe43ynFmxGweGzMWLvRmRSUP6EjU6nvAdY2vg"; // public key from docs/lessons/stage-0/0.3.md
 const IMPLICIT = "cf4342372b583606057805490c97d4778bc4ac444a76f32154634558ab57c3c5";
-const env: Env = { ALLOWED_ORIGINS: "https://book-of-near.pages.dev", PER_IP_DAILY: "3", GLOBAL_DAILY: "5" };
+const env: Env = {
+  ALLOWED_ORIGINS: "https://book-of-near.pages.dev",
+  ALLOW_LOCALHOST: "1",
+  PER_IP_DAILY: "3",
+  GLOBAL_DAILY: "5",
+};
 
 function fakeSender(): FaucetSender & { calls: string[] } {
   const calls: string[] = [];
@@ -145,5 +150,45 @@ describe("implicitIdOf", () => {
     expect(implicitIdOf(KEY)).toBe(IMPLICIT);
     expect(implicitIdOf("ed25519:abc")).toBeNull();
     expect(implicitIdOf(42)).toBeNull();
+  });
+});
+
+describe("config hardening", () => {
+  it("falls back to the default limit when a value is missing or mistyped", () => {
+    expect(limitFrom(undefined, 3)).toBe(3);
+    expect(limitFrom("", 3)).toBe(3);
+    expect(limitFrom("three", 3)).toBe(3);
+    expect(limitFrom("2.5", 3)).toBe(3);
+    expect(limitFrom("-1", 3)).toBe(3);
+    expect(limitFrom("7", 3)).toBe(7);
+    expect(limitFrom("0", 3)).toBe(0);
+  });
+
+  it("refuses localhost origins unless ALLOW_LOCALHOST is set", () => {
+    const prod: Env = { ALLOWED_ORIGINS: "https://book-of-near.pages.dev" };
+    expect(allowedOrigin("http://localhost:5173", prod)).toBeNull();
+    expect(allowedOrigin("https://book-of-near.pages.dev", prod)).toBe("https://book-of-near.pages.dev");
+    expect(allowedOrigin("http://localhost:5173", { ...prod, ALLOW_LOCALHOST: "1" })).toBe(
+      "http://localhost:5173",
+    );
+  });
+
+  it("refuses to run without persistent counters outside local dev", async () => {
+    const prod: Env = { ALLOWED_ORIGINS: "https://book-of-near.pages.dev" };
+    const res = await handle(post({ publicKey: KEY }, "1.1.1.1", "https://book-of-near.pages.dev"), prod, {
+      sender: null,
+    });
+    expect(res.status).toBe(503);
+  });
+
+  it("refuses a request with no client address outside local dev", async () => {
+    const prod: Env = { ALLOWED_ORIGINS: "https://book-of-near.pages.dev" };
+    const req = new Request("https://w.example/faucet", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "https://book-of-near.pages.dev" },
+      body: JSON.stringify({ publicKey: KEY }),
+    });
+    const res = await handle(req, prod, { sender: null, counters: memoryCounters() });
+    expect(res.status).toBe(400);
   });
 });

@@ -5,8 +5,8 @@ main = "src/index.ts"
 compatibility_date = "2026-10-01"
 
 [vars]
-# Browser origins allowed to call the Worker (comma separated). Any http://localhost:<port> is
-# always allowed for development.
+# Browser origins allowed to call the Worker (comma separated). http://localhost:<port> is allowed
+# only when ALLOW_LOCALHOST=1 (set it in .dev.vars for local dev, never here).
 ALLOWED_ORIGINS = "https://book-of-near.pages.dev"
 # NEAR sent to each new practice account.
 FAUCET_AMOUNT = "0.5"

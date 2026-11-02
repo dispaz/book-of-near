@@ -43,6 +43,7 @@ formatTgas(totalGasBurnt(out)); // "0.45"
 | Method | Returns | Notes |
 | --- | --- | --- |
 | `practiceAccount()` | `{ accountId, publicKey }` | Demo: the fixed key from `docs/lessons/stage-0/0.3.md`, an implicit (64-hex) account with 5 NEAR. |
+| `returnAccount()` | `AccountId` | Where lessons send practice transfers. Demo: `book-of-near.testnet`. Testnet: `VITE_RETURN_ACCOUNT_ID`, or the practice account itself while that is unset. Lessons must use this, never read env or chain constants. |
 | `viewAccount(id)` | `AccountView` | `amount`, `locked`, `codeHash`, `storageUsage`, block. Rejects `AccountDoesNotExist`. |
 | `accountExists(id)` | `boolean` | For live name availability. |
 | `listKeys(id)` | `AccessKeyInfo[]` | `publicKey`, `nonce`, `permission` (`FullAccess` or `FunctionCall` with `receiverId`, `methodNames`, `allowance`). |

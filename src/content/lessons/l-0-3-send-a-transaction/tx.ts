@@ -4,7 +4,7 @@
  */
 import { isChainError } from "../../../chain/errors";
 import { formatNear, parseNear } from "../../../chain/units";
-import type { AccountId, ChainNetwork, Yocto } from "../../../chain/types";
+import type { ChainNetwork, Yocto } from "../../../chain/types";
 
 /** Amount rules from docs/lessons/stage-0/0.3.md, step 2. */
 export const DEFAULT_AMOUNT = "0.01";
@@ -52,20 +52,6 @@ export function duration(ms: number): string {
 /** NearBlocks page for a testnet transaction (pattern from NEAR docs, Networks page). */
 export function explorerUrl(hash: string): string {
   return `https://testnet.nearblocks.io/txns/${hash}`;
-}
-
-/**
- * Where the transfer goes. Demo: the app's return account. Testnet: VITE_RETURN_ACCOUNT_ID (the app's
- * faucet account) or, while that is unset, the practice account itself, so NEAR never goes to a stranger.
- */
-export function receiverFor(
-  network: ChainNetwork,
-  self: AccountId,
-  demoReturn: AccountId,
-  configured?: string,
-) {
-  if (network !== "testnet") return demoReturn;
-  return configured?.trim() || self;
 }
 
 /**

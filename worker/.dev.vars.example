@@ -2,3 +2,4 @@
 # A funded TESTNET account that pays for practice accounts, and its full-access private key.
 FAUCET_ACCOUNT_ID=your-faucet.testnet
 FAUCET_PRIVATE_KEY=
+ALLOW_LOCALHOST=1

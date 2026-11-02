@@ -81,7 +81,13 @@ export function createProgress(storage: KeyValueStorage | null): Progress {
     recordCompletion: (record) => {
       const pending = state.evidence[record.lessonId];
       const evidence = pending || record.evidence ? { ...pending, ...record.evidence } : undefined;
-      const full: CompletionRecord = evidence ? { ...record, evidence } : record;
+      // The mode is where the evidence was made (a testnet tx stays testnet even if the learner
+      // switched to demo before pressing Finish), else the mode active at Finish.
+      const evidenceMode =
+        evidence?.mode === "demo" || evidence?.mode === "testnet" ? evidence.mode : undefined;
+      const full: CompletionRecord = evidence
+        ? { ...record, mode: evidenceMode ?? record.mode, evidence }
+        : record;
       const rest = { ...state.evidence };
       delete rest[record.lessonId];
       commit({

@@ -17,5 +17,9 @@ export function defaultFunders(workerUrl = import.meta.env.VITE_WORKER_URL as st
 }
 
 export function createTestnetChain(): TestnetChain {
-  return new TestnetChain({ store: localPracticeStore(), funders: defaultFunders() });
+  return new TestnetChain({
+    store: localPracticeStore(),
+    funders: defaultFunders(),
+    returnAccountId: import.meta.env.VITE_RETURN_ACCOUNT_ID as string | undefined,
+  });
 }

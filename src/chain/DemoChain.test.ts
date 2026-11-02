@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { recordScenario, runChainContract } from "./contract.test-kit";
-import { DemoChain, demoContractCode, GENESIS_HEIGHT } from "./DemoChain";
+import { DEMO_RETURN_ACCOUNT, DemoChain, demoContractCode, GENESIS_HEIGHT } from "./DemoChain";
 import { totalGasBurnt, totalTokensBurnt, transfer } from "./ops";
 import type { PhaseEvent } from "./types";
 import { formatNear, formatTgas, parseNear } from "./units";
@@ -60,5 +60,11 @@ describe("DemoChain demo data (docs/lessons/stage-0/0.3.md)", () => {
   it("spreads accounts over six shards", async () => {
     const layout = await new DemoChain().shardLayout();
     expect(layout.shardIds).toHaveLength(6);
+  });
+});
+
+describe("returnAccount", () => {
+  it("is the app's return account in demo mode", async () => {
+    expect(await new DemoChain({ seed: "r" }).returnAccount()).toBe(DEMO_RETURN_ACCOUNT);
   });
 });

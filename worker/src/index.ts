@@ -13,6 +13,8 @@ export interface Env {
   FAUCET_PRIVATE_KEY?: string;
   FAUCET_LIMITS?: KvLike;
   ALLOWED_ORIGINS?: string;
+  /** "1" lets any http://localhost:<port> origin call the Worker. Set only for local dev (.dev.vars). */
+  ALLOW_LOCALHOST?: string;
   FAUCET_AMOUNT?: string;
   PER_IP_DAILY?: string;
   GLOBAL_DAILY?: string;
@@ -28,12 +30,18 @@ const LOCALHOST = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
 export function allowedOrigin(origin: string | null, env: Env): string | null {
   if (!origin) return null;
-  if (LOCALHOST.test(origin)) return origin;
+  if (env.ALLOW_LOCALHOST === "1" && LOCALHOST.test(origin)) return origin;
   const list = (env.ALLOWED_ORIGINS ?? "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
   return list.includes(origin) ? origin : null;
+}
+
+/** A daily limit from config. A missing or mistyped value falls back to the default, never to "no limit". */
+export function limitFrom(value: string | undefined, fallback: number): number {
+  const n = Number(value);
+  return value !== undefined && value.trim() !== "" && Number.isInteger(n) && n >= 0 ? n : fallback;
 }
 
 function json(status: number, body: unknown, origin: string | null): Response {
@@ -81,14 +89,23 @@ export async function handle(request: Request, env: Env, o: Overrides = {}): Pro
         : configured
           ? nearSender(env.FAUCET_ACCOUNT_ID!, env.FAUCET_PRIVATE_KEY!)
           : null;
+    const dev = env.ALLOW_LOCALHOST === "1";
+    // In-memory counters reset whenever the isolate restarts, so they are only acceptable in local dev.
     const counters =
       o.counters ??
-      (env.FAUCET_LIMITS ? kvCounters(env.FAUCET_LIMITS) : (fallbackCounters ??= memoryCounters()));
-    const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
+      (env.FAUCET_LIMITS
+        ? kvCounters(env.FAUCET_LIMITS)
+        : dev
+          ? (fallbackCounters ??= memoryCounters())
+          : null);
+    if (!counters) return json(503, { error: "The faucet is not set up yet." }, origin);
+    // Cloudflare always sets cf-connecting-ip. Without it we can't rate-limit per address, so refuse.
+    const ip = request.headers.get("cf-connecting-ip") ?? (dev ? "local" : null);
+    if (!ip) return json(400, { error: "Unknown client address." }, origin);
     const reply = await faucet(body, ip, {
       sender,
       counters,
-      limits: { perIpDaily: Number(env.PER_IP_DAILY ?? 3), globalDaily: Number(env.GLOBAL_DAILY ?? 50) },
+      limits: { perIpDaily: limitFrom(env.PER_IP_DAILY, 3), globalDaily: limitFrom(env.GLOBAL_DAILY, 50) },
       amount: env.FAUCET_AMOUNT ?? "0.5",
       now: o.now,
     });

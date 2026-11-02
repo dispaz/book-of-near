@@ -7,7 +7,6 @@ import {
   kindError,
   near,
   readAmount,
-  receiverFor,
   senderBalance,
   short,
   TRANSFER_FEE,
@@ -57,12 +56,6 @@ describe("display helpers", () => {
   });
   it("links to NearBlocks on testnet", () => {
     expect(explorerUrl("abc")).toBe("https://testnet.nearblocks.io/txns/abc");
-  });
-  it("sends to the return account, never to a stranger", () => {
-    expect(receiverFor("demo", "me", "book-of-near.testnet")).toBe("book-of-near.testnet");
-    expect(receiverFor("testnet", "me", "book-of-near.testnet", "faucet.testnet")).toBe("faucet.testnet");
-    expect(receiverFor("testnet", "me", "book-of-near.testnet", "")).toBe("me");
-    expect(receiverFor("testnet", "me", "book-of-near.testnet")).toBe("me");
   });
 });
 
