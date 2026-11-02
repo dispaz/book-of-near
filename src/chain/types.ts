@@ -104,6 +104,8 @@ export interface PhaseEvent {
   status?: TxExecutionStatus;
   blockHeight?: number;
   blockHash?: CryptoHash;
+  /** The RPC node the transaction went through (host name), from broadcast on. DemoChain leaves it out. */
+  node?: string;
 }
 
 /** Milliseconds since build, per phase. `executed` = last non-refund receipt applied. */

@@ -361,7 +361,7 @@ export class TestnetChain implements Chain {
     const hash = transactionHash(tx);
 
     const broadcastAt = at();
-    emit({ phase: "broadcast", atMs: broadcastAt, txHash: hash, status: "NONE" });
+    emit({ phase: "broadcast", atMs: broadcastAt, txHash: hash, status: "NONE", node: hostOf(this.rpc.url) });
     try {
       await this.call("send_tx", { signed_tx_base64: base64.encode(bytes), wait_until: "INCLUDED" });
     } catch (e) {
@@ -383,6 +383,7 @@ export class TestnetChain implements Chain {
       atMs: includedAt,
       txHash: hash,
       status: "INCLUDED",
+      node: hostOf(this.rpc.url),
       blockHash: inclusion,
       blockHeight: inclusionBlock.height,
     });
@@ -553,4 +554,13 @@ function round(ms: number) {
 
 function sleep(ms: number) {
   return new Promise<void>((r) => setTimeout(r, ms));
+}
+
+/** "https://rpc.testnet.fastnear.com" → "rpc.testnet.fastnear.com". */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
 }
