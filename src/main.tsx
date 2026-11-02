@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { createBrowserRouter, RouterProvider } from "react-router";
+import { createBrowserRouter, createHashRouter, RouterProvider } from "react-router";
 import "@fontsource/newsreader/500.css";
 import "@fontsource/newsreader/700.css";
 import "@fontsource/newsreader/500-italic.css";
@@ -15,7 +15,10 @@ import { OpeningQuiz } from "./progress/OpeningQuiz";
 import { TestOut } from "./progress/TestOut";
 import { ChainProvider } from "./chain/ChainContext";
 
-const router = createBrowserRouter([
+// The claude.ai review copy (`npm run build:artifact`) is served as one page, so it routes on the hash.
+const createRouter = import.meta.env.MODE === "artifact" ? createHashRouter : createBrowserRouter;
+
+const router = createRouter([
   { path: "/", element: <HomePage /> },
   { path: "/start", element: <OpeningQuiz /> },
   { path: "/test-out", element: <TestOut /> },

@@ -13,3 +13,4 @@ test-results/
 target/
 *.tsbuildinfo
 .claude/worktrees/
+dist-artifact/

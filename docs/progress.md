@@ -117,3 +117,6 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 ## 2026-11-02 · Placeholders removed
 - Deleted the developer placeholder lessons (`placeholder-hello`, `placeholder-blocks`, `placeholder-transfer`) and `e2e/chain-transfer.spec.ts`. The skeleton, scene-contract, progress and testnet-fallback e2e tests now run on lessons 0.1 and 0.3. The "scene fails" test aborts the lazy Scene chunk instead of a test-only `?scene-error` switch. `scene-kit-demo` stays as the hidden 3D reference.
 - Scope notes added to #16 (replay protection instead of re-explaining nonce/block hash) and #17 (open the learner's own 0.3 transaction instead of timing a new one).
+
+## 2026-11-02 · claude.ai review copy
+- `npm run build:artifact` builds `dist-artifact/` for the private review page on claude.ai (https://claude.ai/artifact/1hqfjM4Fxve6pXEo1mSHUx): hash routing (`MODE === "artifact"`), relative asset paths, `index.html` turned into a fragment, and `files.json` listing the files to publish. Only demo mode works there (no network). Republish after UI changes.
