@@ -1,0 +1,298 @@
+/* Lesson 0.1, 3D view. The canvas fills the scene area; the free part of it (measured by Scene3D and
+   passed as --bb3-l / --bb3-r / --bb3-b) holds the scene, the status note and the details panel. */
+.bb3 {
+  position: absolute;
+  inset: 0;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+.bb3 code,
+.bb3 .bb-edit {
+  font:
+    600 12px ui-monospace,
+    Menlo,
+    monospace;
+}
+
+/* The status note sits at the bottom of the free area, the panel just above it. */
+.bb3 .sk-status {
+  top: auto;
+  left: var(--bb3-l, 16px);
+  right: var(--bb3-r, 16px);
+  bottom: var(--bb3-b, 45%);
+  max-width: none;
+  text-align: left;
+  font-size: 21px;
+}
+.bb3-panel {
+  position: absolute;
+  z-index: 1;
+  left: var(--bb3-l, 16px);
+  right: var(--bb3-r, 16px);
+  bottom: calc(var(--bb3-b, 45%) + var(--bb3-sh, 0px));
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bb3-panel:empty {
+  display: none;
+}
+.bb3-panel p {
+  margin: 0;
+}
+.bb3-panel .bb-details,
+.bb3-panel .bb-result {
+  background: var(--paper-2, #fffdf7);
+}
+.bb3-panel code {
+  font-size: 13px;
+}
+.bb3.summary .sk-status {
+  display: none;
+}
+
+/* ---------- Tags that follow the 3D objects ---------- */
+.bb3-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: max-content;
+  pointer-events: none;
+  font: 500 12px/1.3 var(--ui);
+  color: var(--ink);
+}
+.bb3-tag.below {
+  transform: translate(-50%, 6px);
+}
+.bb3-tag.center {
+  transform: translate(-50%, -50%);
+}
+.bb3-tag.right {
+  transform: translate(0, -50%);
+}
+.bb3-tag.left {
+  transform: translate(-100%, -50%);
+}
+.bb3-tag input {
+  pointer-events: auto;
+}
+
+/* A block's card, hanging under the block. */
+.bb3-tag.block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 132px;
+  padding: 4px 8px;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  background: #fffdf7;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.bb3-tag.block .n {
+  font: 700 14px var(--ui);
+}
+.bb3-tag.block .tx {
+  font:
+    600 12px ui-monospace,
+    Menlo,
+    monospace;
+}
+.bb3-tag.block .f {
+  font-size: 11px;
+  color: var(--mute);
+  white-space: nowrap;
+}
+.bb3-tag.block .f code {
+  color: var(--ink);
+  padding: 0 3px;
+  border-radius: 4px;
+}
+.bb3-tag.block .f.changed code {
+  background: var(--accent);
+}
+.bb3-tag.block .f.bad,
+.bb3-tag.block .f.bad code {
+  color: var(--red);
+}
+.bb3-tag.block .f.bad code {
+  text-decoration: line-through wavy var(--red);
+}
+.bb3-tag.block.bad {
+  border-color: var(--red);
+  box-shadow: 2px 2px 0 var(--red);
+}
+.bb3-tag.block.bad .n {
+  color: var(--red);
+}
+
+/* The link badge on a hash link: a tick, or a red cross when it is broken. */
+.bb3-link {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: #fffdf7;
+  font: 700 13px var(--ui);
+}
+.bb3-link.broken {
+  border-color: var(--red);
+  background: var(--red);
+  color: #fff;
+}
+
+/* A person's balance and a notebook's page. */
+.bb3-tag.person {
+  padding: 2px 8px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: #fffdf7;
+  font: 500 13px var(--ui);
+  white-space: nowrap;
+}
+.bb3-tag.person strong {
+  font: 700 16px var(--ui);
+}
+.bb3-nb {
+  display: flex;
+  flex-direction: column;
+  min-width: 92px;
+  padding: 4px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 6px 10px 10px 6px;
+  background: repeating-linear-gradient(180deg, transparent 0 19px, #4d6bff26 19px 20px), #fffdf7;
+  font: 500 14px/20px var(--serif);
+}
+.bb3-nb b {
+  font: 600 19px/1.1 var(--hand);
+}
+.bb3-nb .mute {
+  color: var(--mute);
+  font: 500 12px var(--ui);
+}
+
+/* A copy's label at the compare step. */
+.bb3-copy {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  background: #fffdf7;
+  box-shadow: 2px 2px 0 var(--ink);
+  font: 500 12px var(--ui);
+  white-space: nowrap;
+}
+.bb3-copy b {
+  font: 600 19px/1.1 var(--hand);
+}
+.bb3-copy .mark {
+  font-weight: 700;
+}
+.bb3-copy.bad {
+  border-color: var(--red);
+  box-shadow:
+    0 0 0 4px #d8433b33,
+    2px 2px 0 var(--red);
+}
+.bb3-copy.bad .mark,
+.bb3-copy.bad code {
+  color: var(--red);
+}
+
+/* Narrow free area (phones, the summary column): smaller tags. */
+.bb3-balances {
+  position: absolute;
+  z-index: 1;
+  top: var(--bb3-t, 112px);
+  left: var(--bb3-l, 16px);
+  right: var(--bb3-r, 16px);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: 500 14px var(--ui);
+}
+.bb3-balances > span:not(.unit) {
+  padding: 2px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 2px 2px 0 var(--ink);
+  font: 600 18px/1.2 var(--hand);
+}
+.bb3-balances strong {
+  font: 700 15px var(--ui);
+}
+.bb3-balances .unit {
+  color: var(--mute);
+  font-size: 12px;
+}
+.bb3.compact .bb3-tag.block {
+  display: block;
+  max-width: 98px;
+  padding: 3px 5px;
+}
+.bb3.compact .bb3-tag.block > span {
+  display: block;
+}
+.bb3.compact .bb3-tag.block .n {
+  display: inline;
+  margin-right: 4px;
+}
+.bb3.compact .bb3-tag.block .tx {
+  display: inline;
+}
+.bb3.compact .bb3-tag.block:has(input) {
+  max-width: 140px;
+}
+.bb3.compact .bb3-tag .bb-edit {
+  width: 2.6em;
+  padding: 0 2px;
+  font-size: 11px;
+}
+.bb3.compact .bb3-tag.block .tx,
+.bb3.compact .bb3-tag.block code {
+  font-size: 10px;
+}
+.bb3.compact .bb3-tag.block .f {
+  font-size: 9.5px;
+}
+.bb3.compact .bb3-tag.block .n {
+  font-size: 12px;
+}
+.bb3.compact .bb3-tag.person {
+  font-size: 11px;
+}
+.bb3.compact .bb3-tag.person strong {
+  font-size: 14px;
+}
+.bb3.compact .bb3-nb {
+  min-width: 0;
+  padding: 3px 6px;
+  font-size: 12px;
+  line-height: 17px;
+}
+.bb3.compact .bb3-nb b {
+  font-size: 16px;
+}
+.bb3.compact .bb3-copy {
+  padding: 3px 6px;
+  font-size: 10.5px;
+}
+.bb3.compact .bb3-copy b {
+  font-size: 15px;
+}
+.bb3.compact .sk-status {
+  font-size: 18px;
+}
+@media (max-width: 899px) {
+  .bb3-panel .bb-details {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+}

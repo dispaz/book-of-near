@@ -66,5 +66,7 @@ export default {
       caption: "Honest take: what blockchains, NEAR included, do well and do badly.",
     },
   ],
+  // Both views draw one shared state (useLedgerLesson); 3D loads lazily from Scene.tsx.
+  views: ["2d", "3d"],
   scene: () => import("./Scene"),
 } satisfies LessonManifest;
