@@ -6,7 +6,7 @@
   z-index: 2;
   left: max(16px, env(safe-area-inset-left, 0px));
   right: max(16px, env(safe-area-inset-right, 0px));
-  top: calc(108px + env(safe-area-inset-top, 0px));
+  top: calc(var(--head-h, 108px) + env(safe-area-inset-top, 0px));
   max-height: calc(100% - 108px - 102px - 52% - env(safe-area-inset-bottom, 0px));
   overflow: auto;
   overscroll-behavior: contain;
@@ -23,7 +23,7 @@
   .lesson-panel {
     /* Fill the space between the title and the docked step card (--dock-h, --bar-h set by LessonPage). */
     max-height: calc(
-      100% - 108px - 16px - var(--bar-h, 56px) - 16px - var(--dock-h, 44%) - 12px -
+      100% - var(--head-h, 108px) - 16px - var(--bar-h, 56px) - 16px - var(--dock-h, 44%) - 12px -
         env(safe-area-inset-bottom, 0px)
     );
     font-size: 15px;

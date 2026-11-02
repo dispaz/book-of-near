@@ -381,12 +381,15 @@
 /* Narrow screens: the panel fills the room between the title and the docked step card. */
 @media (max-width: 899px) {
   .wallet-scene .lesson-panel {
-    max-height: calc(100% - 108px - 92px - 12px - var(--w-dock, 44%) - env(safe-area-inset-bottom, 0px));
+    max-height: calc(
+      100% - var(--head-h, 108px) - 92px - 12px - var(--w-dock, 44%) - env(safe-area-inset-bottom, 0px)
+    );
   }
   /* 3D on a phone: the panel leaves a band above the step card for the picture, and scrolls. */
   .wallet-scene.view-3d .wallet-panel {
     max-height: calc(
-      (100% - 108px - 92px - 12px - var(--w-dock, 44%) - env(safe-area-inset-bottom, 0px)) * 0.5
+      (100% - var(--head-h, 108px) - 92px - 12px - var(--w-dock, 44%) - env(safe-area-inset-bottom, 0px)) *
+        0.5
     );
   }
 }

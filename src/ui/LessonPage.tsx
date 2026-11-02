@@ -84,7 +84,17 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
     if (!root || typeof ResizeObserver === "undefined") return;
     const bar = root.querySelector<HTMLElement>(".stage-bar");
     const dock = root.querySelector<HTMLElement>(".lesson-dock");
+    const title = root.querySelector<HTMLElement>(".lesson-title");
+    const tools = root.querySelector<HTMLElement>(".lesson-tools");
     const update = () => {
+      // --tools-h: the pill row (phones put the title under it); --head-h: where the header ends, so
+      // lesson panels start below the title instead of at a fixed offset.
+      if (tools) root.style.setProperty("--tools-h", `${tools.offsetHeight}px`);
+      const bottom = Math.max(
+        title ? title.offsetTop + title.offsetHeight : 0,
+        tools ? tools.offsetTop + tools.offsetHeight : 0,
+      );
+      if (bottom) root.style.setProperty("--head-h", `${bottom + 12}px`);
       if (bar) root.style.setProperty("--bar-h", `${bar.offsetHeight}px`);
       if (dock) root.style.setProperty("--dock-h", `${dock.offsetHeight}px`);
     };
@@ -92,6 +102,8 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
     const ro = new ResizeObserver(update);
     if (bar) ro.observe(bar);
     if (dock) ro.observe(dock);
+    if (title) ro.observe(title);
+    if (tools) ro.observe(tools);
     return () => ro.disconnect();
   }, [root]);
   const mode = useChainMode().active;

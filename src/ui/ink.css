@@ -195,9 +195,23 @@ h3 {
   pointer-events: none;
   z-index: 2;
 }
-/* Two pills on the right (Flat view + mode): leave them room on narrow screens. */
+/* Two pills on the right (Flat view + mode): leave them room. */
 .lesson:has(.lesson-tools > :nth-child(2)) .lesson-title {
   max-width: min(460px, calc(100% - 220px));
+}
+/* Phones: the pills get their own row at the top and the title sits under it at full width. */
+@media (max-width: 560px) {
+  .lesson-tools {
+    left: max(16px, env(safe-area-inset-left, 0px));
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .lesson-title,
+  .lesson:has(.lesson-tools > :nth-child(2)) .lesson-title {
+    top: calc(16px + var(--tools-h, 32px) + 8px + env(safe-area-inset-top, 0px));
+    max-width: calc(100% - 32px);
+  }
 }
 .lesson-title h1 {
   margin: 0;
