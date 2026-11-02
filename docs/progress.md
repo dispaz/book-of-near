@@ -91,3 +91,8 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 ## 2026-11-02 · Simpler stage bar
 - The stage bar now holds only Contents, back, the step caption and next. Removed: play/pause (with its autoplay timer and the Space shortcut) and the step dots. `?step=N` still jumps to a step.
 - The bar's menu button and its panel are both called "Contents"; the panel's home link is now "← All stages". GLOSSARY and spec story 5 updated.
+
+## 2026-11-02 · Release workflow
+- `.github/workflows/release.yml`: a push or merge to `release` runs lint, typecheck, unit tests, Worker typecheck/tests and e2e (demo, production build). Then it builds, deploys to Cloudflare Pages (branch `release`), optionally deploys the Worker (`DEPLOY_WORKER=true`), smoke-tests the live URL, and tags `vX.Y.Z` with a GitHub Release.
+- Versioning: `scripts/release-version.mjs` (tested). MAJOR.MINOR from `package.json`, PATCH = next after the highest matching tag. The build ships `dist/version.json` and `VITE_APP_VERSION`.
+- **Not done (owner):** Cloudflare token + account id as repo secrets, Pages production branch `release`, `git push origin main:release`. Steps in `docs/release.md`.

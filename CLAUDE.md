@@ -27,6 +27,7 @@ Acceptance boxes ticked, tests green, works in demo mode, fallback and reduced-m
 - `npm test`: Vitest unit tests (`src/**/*.test.ts(x)`, `scripts/**/*.test.ts`).
 - `npm run e2e`: Playwright against a production build (`vite preview` on :4173). `BASE_URL=https://... npx playwright test --grep @smoke` runs the smoke test against a live URL.
 - `npm run build`, `npm run deploy` (Cloudflare Pages, project `book-of-near`; needs `npx wrangler login` first).
+- Releases: merging to `release` runs all checks, deploys to Cloudflare Pages and tags `vX.Y.Z` (`.github/workflows/release.yml`, `docs/release.md`).
 - Lessons live in `src/content/lessons/<id>/manifest.ts` (+ lazy `Scene.tsx`); stages in `src/content/stages/<n>-<slug>/stage.ts`. Both are discovered automatically. Scene contract: `SceneProps` in `src/app/types.ts`; step actions go through `SceneAction`; gates via `setGate(true)`.
 - Lesson scripts (researched copy, check questions, honest takes, demo data) are in `docs/lessons/stage-<n>/`.
 
