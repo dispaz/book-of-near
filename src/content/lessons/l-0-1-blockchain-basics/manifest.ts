@@ -10,6 +10,8 @@ export default {
   status: "ready",
   needsChain: false,
   summary: "Move coins on a toy ledger, watch blocks link by hash, then try to change history.",
+  // The scene replaces these with what the learner actually sent (see SceneProps.setVars).
+  vars: { sent: "3", tamper: "9" },
   steps: [
     {
       caption: "Ana, Ben and Cy keep one notebook of who owns how many coins. Everyone holds a copy.",
@@ -43,7 +45,8 @@ export default {
       action: { label: "add blocks #2 and #3", gate: true },
     },
     {
-      caption: "Pretend you are Ben. Change block #1 so Ana sent you 9 coins, not 3. Watch what happens.",
+      caption:
+        "Pretend you are Ben. Change block #1 so Ana sent you {tamper} coins, not {sent}. Watch what happens.",
       explain:
         "Block #1's hash changes. Block #2 still stores the old hash, so the link breaks. Fixing block #2 changes its hash, which breaks block #3, and so on. To hide the edit you must redo every later block.",
       action: { label: "change block #1", gate: true },

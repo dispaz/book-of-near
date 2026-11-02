@@ -54,6 +54,10 @@ Every lesson ends with one. It lists NEAR's **strengths and weaknesses** for thi
 - When sources disagree (for example block time "about 600 ms" vs "about a second"), say the safer
   version ("about one second or less") and note the conflict in the script.
 
+## The learner's own values
+
+When the learner can change a value (an amount, a message, a name), every later text must use what they chose, never the default. Write it as a placeholder in the manifest (`caption: "Ana sent you {tamper} coins, not {sent}."`), give defaults in `vars: { sent: "3", tamper: "9" }`, and report the real values from the scene with `setVars({ sent: "5" })`. LessonPage fills placeholders in the caption, explain, action label, "Read as text" and the text fallback. Scene-drawn hints must read the same state. Add an e2e that changes the value and checks a later step's text.
+
 ## Copy rules
 
 Plain English. Short sentences. Define a term the first time it appears (in bold in the script). One idea
