@@ -2,7 +2,7 @@ import type { LessonManifest } from "../../../app/types";
 
 // Lesson script: docs/lessons/stage-0/0.3.md. Template: docs/lesson-template.md.
 // Shape: hook (your account) → concept + do (build, fee, sign, send) → watch (included, final) →
-// explorer → check → honest take. Keep the step numbers in Scene.tsx in sync.
+// explorer → check → honest take. Keep the step numbers in useTransaction.ts in sync.
 export default {
   id: "l-0-3-send-a-transaction",
   stage: 0,
@@ -10,6 +10,8 @@ export default {
   title: "Send a transaction and watch it",
   status: "ready",
   needsChain: true,
+  // Both views draw one state (useTransaction); the 3D view (Scene3D) loads only when chosen.
+  views: ["2d", "3d"],
   summary: "Send a tiny practice transfer and follow it from build to final.",
   steps: [
     {
