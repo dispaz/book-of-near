@@ -342,25 +342,6 @@ h3 {
   font: 500 clamp(14px, 2.4vw, 17px) / 1.25 var(--serif);
   padding: 0 6px;
 }
-.stage-bar .dots {
-  display: flex;
-  gap: 6px;
-  flex: none;
-}
-.stage-bar .dots button {
-  width: 9px;
-  height: 9px;
-  border-radius: 5px;
-  padding: 0;
-  background: #16141f33;
-  transition:
-    width 0.25s,
-    background 0.25s;
-}
-.stage-bar .dots button[aria-current="step"] {
-  width: 26px;
-  background: var(--ink);
-}
 .stage-menu {
   position: absolute;
   left: 50%;
@@ -398,9 +379,6 @@ h3 {
   font-weight: 700;
 }
 @media (max-width: 560px) {
-  .stage-bar .dots {
-    display: none;
-  }
   .stage-bar {
     padding: 6px 8px;
   }

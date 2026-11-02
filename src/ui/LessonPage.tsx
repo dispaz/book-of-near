@@ -22,7 +22,6 @@ import { ActionSlot } from "./SceneAction";
 import { progress } from "../progress";
 import { FinishLesson, useRecordPosition } from "../progress/FinishLesson";
 
-const PLAY_MS = 2200;
 const sceneCache = new Map<string, ComponentType<SceneProps>>();
 
 function sceneFor(lesson: LessonManifest): ComponentType<SceneProps> | null {
@@ -61,7 +60,6 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
   const step = Math.min(last, Math.max(0, Number(params.get("step") ?? "1") - 1 || 0));
   const reducedMotion = useReducedMotion();
   const [flat, setFlat] = useState(false);
-  const [playing, setPlaying] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [opened, setOpened] = useState<Set<number>>(() => new Set());
   const [slot, setSlot] = useState<HTMLElement | null>(null);
@@ -117,29 +115,14 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
     [step],
   );
 
-  // Play: advance every PLAY_MS, stop at the last step or at a closed gate.
-  useEffect(() => {
-    if (!playing) return;
-    if (step >= last || !canNext) {
-      setPlaying(false);
-      return;
-    }
-    const t = window.setTimeout(() => goTo(step + 1), PLAY_MS);
-    return () => window.clearTimeout(t);
-  }, [playing, step, last, canNext, goTo]);
-
-  // Keyboard: arrows move, space plays. Ignore keys typed into form fields.
+  // Keyboard: arrows move, Escape closes the contents menu. Ignore keys typed into form fields.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) && e.key === " ") return;
       if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
       if (e.key === "ArrowRight" && canNext) goTo(step + 1);
       else if (e.key === "ArrowLeft") goTo(step - 1);
-      else if (e.key === " ") {
-        e.preventDefault();
-        setPlaying((p) => !p);
-      } else if (e.key === "Escape") setMenuOpen(false);
+      else if (e.key === "Escape") setMenuOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -230,10 +213,8 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
         steps={lesson.steps}
         step={step}
         canNext={canNext}
-        playing={playing}
         menuOpen={menuOpen}
         onStep={goTo}
-        onTogglePlay={() => setPlaying((p) => !p)}
         onToggleMenu={() => setMenuOpen((o) => !o)}
       />
     </main>

@@ -31,22 +31,21 @@ test.describe("@smoke walking skeleton", () => {
     await expect(page.getByRole("button", { name: "Previous step" })).toBeDisabled();
     await page.getByRole("button", { name: "Next step" }).click();
     await expect(caption).toHaveText(/Each new line/);
-    await page.getByRole("button", { name: "Step 3" }).click();
+    await page.getByRole("button", { name: "Next step" }).click();
     await expect(caption).toHaveText(/blockchain at heart/);
     await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
     await page.keyboard.press("ArrowLeft");
     await expect(caption).toHaveText(/Each new line/);
   });
 
-  test("play advances on its own and stops at the end", async ({ page }) => {
-    await page.clock.install();
+  test("the bar holds only contents, the two arrows and the caption", async ({ page }) => {
     await page.goto("/lesson/placeholder-hello");
-    await page.getByRole("button", { name: "Play" }).click();
-    await page.clock.runFor(2300);
-    await expect(page.getByTestId("caption")).toHaveText(/Each new line/);
-    await page.clock.runFor(2300);
-    await expect(page.getByTestId("caption")).toHaveText(/blockchain at heart/);
-    await expect(page.getByRole("button", { name: "Play" })).toBeDisabled();
+    const bar = page.getByRole("navigation", { name: "Lesson steps" });
+    await expect(bar.getByRole("button")).toHaveCount(3);
+    await expect(bar.getByRole("button", { name: "Contents" })).toBeVisible();
+    await expect(bar.getByRole("button", { name: "Previous step" })).toBeVisible();
+    await expect(bar.getByRole("button", { name: "Next step" })).toBeVisible();
+    await expect(bar.getByTestId("caption")).toHaveText("A ledger is a list of who owns what.");
   });
 
   test("the step lives in the URL", async ({ page }) => {
@@ -56,7 +55,7 @@ test.describe("@smoke walking skeleton", () => {
 
   test("menu opens and moves to another lesson", async ({ page }) => {
     await page.goto("/lesson/placeholder-hello");
-    await page.getByRole("button", { name: "Lessons menu" }).click();
+    await page.getByRole("button", { name: "Contents" }).click();
     const menu = page.getByRole("dialog", { name: "Lessons" });
     await expect(menu.getByRole("link", { name: "Add a line" })).toHaveCount(0);
     await menu.getByRole("link", { name: "How a blockchain and a transaction work" }).click();
@@ -86,15 +85,13 @@ test.describe("scene contract", () => {
     await expect(page.getByTestId("caption")).toHaveText(/empty page/);
   });
 
-  test("reduced motion keeps play working and the text version present", async ({ browser }) => {
+  test("reduced motion keeps the arrows working and the text version present", async ({ browser }) => {
     const ctx = await browser.newContext({ reducedMotion: "reduce" });
     const page = await ctx.newPage();
-    await page.clock.install();
     await page.goto("/lesson/placeholder-hello");
     await page.getByText("Read as text").click();
     await expect(page.locator(".read-as-text li")).toHaveCount(3);
-    await page.getByRole("button", { name: "Play" }).click();
-    await page.clock.runFor(2300);
+    await page.getByRole("button", { name: "Next step" }).click();
     await expect(page.getByTestId("caption")).toHaveText(/Each new line/);
     await ctx.close();
   });
