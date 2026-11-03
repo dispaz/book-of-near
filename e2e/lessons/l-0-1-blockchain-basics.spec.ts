@@ -185,6 +185,52 @@ test.describe(`lesson ${ID}`, () => {
     });
   }
 
+  test("in 3D on a wide screen the step is printed on the book's left page and the figure has a tour", async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    await seedRoute(page);
+    await page.goto(`/lesson/${ID}?view=3d&step=2`);
+    await expect(scene(page)).toHaveAttribute("data-view", "3d", { timeout: LOAD_3D });
+    await expect(page.locator("main.lesson")).toHaveAttribute("data-spread", "");
+    // The words stay real text, placed on the page with a perspective transform.
+    const printed = page.locator(".book-page");
+    await expect(printed).toHaveCSS("transform", /matrix3d/);
+    await expect(printed.getByTestId("caption")).toContainText("Send 3 coins from Ana to Ben");
+    // The step's action is printed with it, and still works.
+    await printed.locator(".action-slot").getByRole("button", { name: "Send" }).click();
+    await expect(page.getByTestId("balance-Ben")).toHaveText("8");
+
+    // The tour: play moves the camera from shot to shot, each with a caption; pause holds it.
+    const caption = page.getByTestId("tour-caption");
+    await expect(caption).toHaveText(/^Fig\. 2/);
+    await page.getByRole("button", { name: "Play the tour" }).click();
+    await expect(caption).toHaveText("Every copy of the ledger holds the same balances.");
+    await expect(caption).toHaveText(/^Close up:/, { timeout: 10_000 });
+    await page.getByRole("button", { name: "Pause the tour" }).click();
+    await expect(page.getByRole("button", { name: "Play the tour" })).toBeVisible();
+    // While the camera is off the page, the step's words go back to their docked place: still readable.
+    await expect(page.locator("main.lesson")).not.toHaveAttribute("data-spread", /.*/);
+    await expect(page.getByTestId("caption")).toBeVisible();
+    // A new page ends the tour, and the words are printed on the page again.
+    await page.getByRole("button", { name: "Next step" }).click();
+    await expect(caption).toHaveText(/^Fig\. 3/);
+    await expect(page.locator("main.lesson")).toHaveAttribute("data-spread", "", { timeout: 10_000 });
+    await ctx.close();
+  });
+
+  test("phones keep the step's words docked in 3D, not printed on the page", async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 760 } });
+    const page = await ctx.newPage();
+    await seedRoute(page);
+    await page.goto(`/lesson/${ID}?view=3d&step=2`);
+    await expect(scene(page)).toHaveAttribute("data-view", "3d", { timeout: LOAD_3D });
+    await expect(page.locator("main.lesson")).not.toHaveAttribute("data-spread", /.*/);
+    await expect(page.locator(".book-page")).toHaveCSS("display", "contents");
+    await ctx.close();
+  });
+
   for (const view of VIEWS) {
     test(`opening a later step by URL builds the blocks it needs (${view})`, async ({ page }) => {
       await page.goto(`/lesson/${ID}?step=6&view=${view}`);

@@ -21,15 +21,23 @@ function srgb(color: ColorRepresentation): Vector3 {
 const inkCache = new Map<string, ShaderMaterial>();
 
 /**
+ * How much of every ink fill is drawn, shared by all ink materials: 1 = solid, 0 = outlines only
+ * (the fill is gone and the drawing reads as a wireframe). In between, the fill comes in as pen strokes.
+ * The pop-up book animates it (see pop.ts); a clone of an ink material keeps its own copy at 1.
+ */
+export const REVEAL = { value: 1 };
+
+/**
  * The ink material from docs/prototype/ink-stage.html: flat colour, lit from one fixed side, with
- * diagonal pen hatching on the shaded faces. Cached per colour, so meshes share one material.
+ * diagonal pen hatching on the shaded faces and cross-hatching on the darkest. Cached per colour, so
+ * meshes share one material.
  */
 export function inkMaterial(color: ColorRepresentation, dpr = 1, faceted = false): ShaderMaterial {
   const key = `${new Color(color).getHexString()}@${dpr}${faceted ? "f" : ""}`;
   let m = inkCache.get(key);
   if (!m) {
     m = new ShaderMaterial({
-      uniforms: { uColor: { value: srgb(color) }, uDpr: { value: dpr } },
+      uniforms: { uColor: { value: srgb(color) }, uDpr: { value: dpr }, uReveal: REVEAL },
       defines: faceted ? { FACETED: "" } : {},
       vertexShader: /* glsl */ `
         varying vec3 vN;
@@ -44,9 +52,17 @@ export function inkMaterial(color: ColorRepresentation, dpr = 1, faceted = false
       fragmentShader: /* glsl */ `
         uniform vec3 uColor;
         uniform float uDpr;
+        uniform float uReveal;
         varying vec3 vN;
         varying vec3 vW;
+        float speck(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
         void main() {
+          if (uReveal < 0.999) {
+            // Filling in: long diagonal strokes first, then the gaps between them.
+            float stroke = fract((gl_FragCoord.x - gl_FragCoord.y) / (uDpr * 7.0));
+            float n = speck(floor(gl_FragCoord.xy / (2.0 * uDpr)));
+            if (0.6 * stroke + 0.4 * n > uReveal * 1.05) discard;
+          }
           #ifdef FACETED
             // One normal per face, so big flat faces shade evenly (rounded boxes).
             vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
@@ -58,6 +74,9 @@ export function inkMaterial(color: ColorRepresentation, dpr = 1, faceted = false
           float h = step(0.55, fract((gl_FragCoord.x + gl_FragCoord.y) / (uDpr * 5.0)));
           vec3 c = uColor * (0.58 + 0.42 * sh);
           if (sh < 0.62) c = mix(c, c * 0.42, h);
+          // The darkest faces get a second set of strokes across the first, like pen cross-hatching.
+          float h2 = step(0.6, fract((gl_FragCoord.x - gl_FragCoord.y) / (uDpr * 5.0)));
+          if (sh < 0.45) c = mix(c, c * 0.5, h2);
           gl_FragColor = vec4(c, 1.0);
         }`,
     });

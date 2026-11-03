@@ -3,6 +3,20 @@
  * import("./Scene")`), never from a manifest or the app shell. The flat fallback kit is in ./svg.
  */
 export { InkStage, type InkStageProps } from "./InkStage";
+export { BookBackdrop, type BookBackdropProps, type BookPrint } from "./BookBackdrop";
+export {
+  BOOK,
+  curlProfile,
+  pageHeight,
+  spreadBeside,
+  spreadFor,
+  textBlock,
+  type Spread,
+  type TextBlock,
+} from "./book";
+export { PrintOnPage } from "./PrintOnPage";
+export { homography, matrix3d } from "./homography";
+export { POP, popState } from "./pop";
 export {
   AccountBlock,
   Anchor,

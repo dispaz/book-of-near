@@ -657,6 +657,164 @@ body:has(.lesson) {
 .stage-menu a[aria-current="page"] {
   font-weight: 700;
 }
+/* ---------- A scene's own controls in the stage bar (the 3D figure's tour) ---------- */
+.bar-slot {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+.bar-slot:empty {
+  display: none;
+}
+.stage-bar:has(.bar-slot:not(:empty)) {
+  width: min(680px, calc(100% - 32px));
+}
+.stage-bar:has(.bar-slot:not(:empty)) .dots {
+  flex: none;
+}
+.tour {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 6px;
+  border-left: 1px solid #16141f26;
+}
+.stage-bar .tour-play {
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper-2, #fffdf7);
+}
+.stage-bar .tour-play svg {
+  width: 16px;
+  height: 16px;
+}
+.stage-bar .tour-play .fill {
+  fill: currentColor;
+}
+.tour-caption {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: italic 500 15px/1.2 var(--serif);
+}
+@media (max-width: 700px) {
+  .tour-caption {
+    display: none;
+  }
+  .tour {
+    flex: none;
+  }
+}
+
+/* ---------- The step printed on the book's left page (3D view, wide screens) ----------
+   LessonPage wraps the step heading and the note in .book-page. Normally it is invisible to layout.
+   In print mode the scene sizes it to the page's text block and places it there with a matrix3d
+   (scene-kit/PrintOnPage), so it must sit at the top left with its origin there. --print-k shrinks
+   the type a little when the words do not fit. */
+.book-page {
+  display: contents;
+}
+.lesson[data-spread] .book-page {
+  --k: var(--print-k, 1);
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 3;
+  width: 420px;
+  height: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: calc(12px * var(--k));
+  overflow: hidden;
+  transform-origin: 0 0;
+  color: var(--ink);
+  transition: opacity 0.5s ease-out;
+}
+/* The page is turning: the new words appear once it has landed. */
+.lesson[data-spread]:has(.sk-stage[data-pop="turn"]) .book-page {
+  opacity: 0;
+  transition: none;
+}
+.lesson[data-spread] .step-head {
+  position: static;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.lesson[data-spread] .step-label {
+  font-size: calc(11px * var(--k));
+  letter-spacing: 0.16em;
+  color: color-mix(in srgb, var(--accent) 70%, var(--ink));
+}
+.lesson[data-spread] .step-label .your-turn {
+  color: inherit;
+}
+.lesson[data-spread] .step-caption {
+  margin-top: calc(6px * var(--k)) !important;
+  font: 600 calc(25px * var(--k)) / 1.2 var(--serif);
+  text-wrap: balance;
+}
+.lesson[data-spread] .read-as-text {
+  font-size: calc(12px * var(--k));
+}
+.lesson[data-spread] .lesson-dock {
+  position: static;
+  width: auto;
+  max-height: none;
+  gap: calc(12px * var(--k));
+}
+.lesson[data-spread] .note.docked {
+  overflow: visible;
+  padding: calc(12px * var(--k)) 0 0;
+  border: 0;
+  border-top: 1px solid #16141f30;
+  border-radius: 0;
+  background: none;
+  backdrop-filter: none;
+  font: 500 calc(16px * var(--k)) / 1.5 var(--serif);
+}
+/* A drop cap, as in a printed book. */
+.lesson[data-spread] .note.docked > p:first-child::first-letter {
+  float: left;
+  margin: 0.06em 0.08em 0 0;
+  font: 700 3.1em/0.8 var(--serif);
+  color: color-mix(in srgb, var(--accent) 70%, var(--ink));
+}
+/* The step's action: a "Try it" box under the text, like an exercise in a workbook. */
+.lesson[data-spread] .lesson-dock .action-slot {
+  order: 2;
+  position: relative;
+  padding: calc(16px * var(--k)) 12px 10px;
+  border: 1.5px dashed #16141f80;
+  border-radius: 10px;
+}
+.lesson[data-spread] .lesson-dock .action-slot::before {
+  content: "Try it";
+  position: absolute;
+  top: -0.75em;
+  left: 10px;
+  padding: 0 6px;
+  background: #fbf8f1;
+  font: 700 calc(11px * var(--k)) var(--ui);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 70%, var(--ink));
+}
+.lesson[data-spread] .lesson-dock .action-slot:empty {
+  display: none;
+}
+
 @media (max-width: 560px) {
   .stage-bar {
     padding: 6px 8px;
