@@ -1,7 +1,16 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { Group } from "three";
-import { Anchor, Coin, InkStage, Label, Traveller, type Vec3 } from "../../../scene-kit";
+import {
+  Anchor,
+  BookBackdrop,
+  Coin,
+  InkStage,
+  Label,
+  spreadFor,
+  Traveller,
+  type Vec3,
+} from "../../../scene-kit";
 import { PEOPLE, shortHash, START, type Chain, type Person, type Tx } from "./ledger";
 import { AUTO_TAMPER_NOTE, BlockDetails, COMPARE_RESULT, EditAmount, useHotLines } from "./parts";
 import { frameCamera, inset, viewOffset, type Focus, type Frame, type Reserve } from "./framing";
@@ -186,6 +195,31 @@ function baseShot(step: number, g: Geo): { focus: Focus; reserve: Reserve } {
   return { focus: focusOf([chain], g.elevation - 4), reserve: { ...g.reserve, top: 30 } };
 }
 
+/**
+ * The open pop-up book the scene stands on: one spread per layout, big enough for all its steps.
+ * Row: the notebooks reach x = ±6, the copies run from z = -3.5 and the chain's cards to about z = 3.
+ * Loop: the copies' tags reach x = -3.7 and the loop's last row z = 4.4.
+ */
+const SPREAD = {
+  // Extra page at the front, so the caption sits clear of the blocks' cards.
+  row: spreadFor({ minX: -6.2, maxX: 6.2, minZ: -3.6, maxZ: 3.1 }, { side: 1.1, back: 0.9, front: 1.7 }),
+  loop: spreadFor({ minX: -3.7, maxX: 3.7, minZ: -3.6, maxZ: 4.4 }),
+};
+const HEADS: [string, string] = ["Lesson 0.1", "How a blockchain works"];
+
+/** Caption printed at the foot of the right page, one per step. Decoration: it repeats the step. */
+const FIGURES = [
+  "Fig. 1  Three copies of one ledger",
+  "Fig. 2  A transaction changes every copy",
+  "Fig. 3  Transactions go into blocks",
+  "Fig. 4  Each block has a hash",
+  "Fig. 5  Each block stores the hash before it",
+  "Fig. 6  Ben edits an old block",
+  "Fig. 7  Three copies, compared",
+  "Fig. 8  The honest chain",
+  "Fig. 8  The honest chain",
+];
+
 const DESCRIPTION = [
   "Three ledgers: Ana's, Ben's and Cora's. Every ledger holds the same balances.",
   "Ana's, Ben's and Cora's ledgers, open at their balances, and the chain of blocks in front of them.",
@@ -254,6 +288,14 @@ export default function Scene3D({
         status={m.status}
         minDistance={3}
         maxDistance={140}
+        backdrop={
+          <BookBackdrop
+            spread={g.compact ? SPREAD.loop : SPREAD.row}
+            heads={HEADS}
+            folios={[4 + 2 * Math.min(step, 7), 5 + 2 * Math.min(step, 7)]}
+            caption={FIGURES[step]}
+          />
+        }
       >
         <ViewOffset frame={inner} reducedMotion={reducedMotion} />
         {hidden ? null : <World m={m} g={g} reducedMotion={reducedMotion} />}

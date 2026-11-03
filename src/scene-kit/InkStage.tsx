@@ -26,6 +26,8 @@ export interface InkStageProps {
   onMiss?: () => void;
   minDistance?: number;
   maxDistance?: number;
+  /** What the scene stands on, in place of the plain paper ground (for example a BookBackdrop). */
+  backdrop?: ReactNode;
   children: ReactNode;
 }
 
@@ -43,6 +45,7 @@ export function InkStage({
   onMiss,
   minDistance,
   maxDistance,
+  backdrop,
   children,
 }: InkStageProps) {
   const store = useMemo(() => new OverlayStore(), []);
@@ -79,10 +82,12 @@ export function InkStage({
               if (e.type === "click") onMiss?.();
             }}
           >
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.002, 0]}>
-              <planeGeometry args={[80, 80]} />
-              <meshBasicMaterial color={GROUND} />
-            </mesh>
+            {backdrop ?? (
+              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.002, 0]}>
+                <planeGeometry args={[80, 80]} />
+                <meshBasicMaterial color={GROUND} />
+              </mesh>
+            )}
             <CameraRig
               view={view}
               flat={looksFlat}
