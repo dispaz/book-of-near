@@ -349,3 +349,14 @@
   padding: 6px 9px;
   font-size: 12.5px;
 }
+.bb3 .bb-editwrap .bb-edit {
+  width: 3.2em;
+  font-size: 15px;
+  font-weight: 700;
+}
+.bb3.compact .bb3-tag .bb-editwrap .bb-edit {
+  font-size: 13px;
+}
+.bb3.compact .bb-edit-note {
+  font-size: 14px;
+}

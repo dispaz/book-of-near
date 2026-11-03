@@ -108,6 +108,7 @@ export function useLedgerLesson({
   const state = `step:${step};blocks:${shown.length};broken:${broken.join(",") || "none"};copies:${copies}`;
 
   const bal = balances(chain);
+  const benBal = balances(benChain);
   const block1 = chain[1];
   const tamperValid = tamperText === null || /^\d{1,4}$/.test(tamperText.trim());
 
@@ -141,6 +142,8 @@ export function useLedgerLesson({
     honestHashes,
     broken,
     bal,
+    /** Balances as Ben's copy of the chain tells them (differs once he edits block #1). */
+    benBal,
     sent,
     tamperTo,
     benDiffers,

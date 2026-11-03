@@ -348,6 +348,9 @@ export function LedgerBlock({
   const edge = bad ? COLORS.red : INK;
   const box = (
     <group ref={bob}>
+      {/* The transaction slip, peeking out under the lid: the block has something inside. Hidden while
+          the block is open (the slip rises out instead). */}
+      {open ? null : <PeekingSlip />}
       <RoundedBox
         args={[BW, BH - LID, BD]}
         radius={0.06}
@@ -380,6 +383,23 @@ export function LedgerBlock({
         )}
         {children}
       </group>
+    </group>
+  );
+}
+
+/** The edge of a transaction slip sticking out of the front of a closed block, under its lid. */
+function PeekingSlip() {
+  const paper = useInk(PAPER);
+  return (
+    <group position={[0, BH - LID - 0.02, BD / 2 - 0.05]} rotation={[0.35, 0, 0]}>
+      <mesh position={[0, 0, 0.14]} material={paper}>
+        <boxGeometry args={[BW * 0.6, 0.025, 0.36]} />
+        <Outline />
+      </mesh>
+      <mesh position={[0, 0.014, 0.2]} rotation={[-Math.PI / 2, 0, 0]} raycast={noRaycast}>
+        <planeGeometry args={[BW * 0.42, 0.03]} />
+        <meshBasicMaterial color={COLORS.blue} transparent opacity={0.55} />
+      </mesh>
     </group>
   );
 }

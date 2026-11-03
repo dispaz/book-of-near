@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "re
 import { useFrame, useThree } from "@react-three/fiber";
 import { InkStage, Label, type Vec3 } from "../../../scene-kit";
 import { PEOPLE, shortHash, START, type Chain, type Person } from "./ledger";
-import { AUTO_TAMPER_NOTE, BlockDetails, COMPARE_RESULT, useHotLines } from "./parts";
+import { AUTO_TAMPER_NOTE, BlockDetails, COMPARE_RESULT, EditAmount, useHotLines } from "./parts";
 import { frameCamera, inset, viewOffset, type Focus, type Frame, type Reserve } from "./framing";
 import {
   BD,
@@ -159,6 +159,8 @@ function baseShot(step: number, g: Geo): { focus: Focus; reserve: Reserve } {
   if (step === NOTEBOOK) {
     return { focus: focusOf([ledgers(g.notebooks)], g.compact ? 48 : 42), reserve: { bottom: 16, top: 36 } };
   }
+  if (step === TAMPER && !g.compact)
+    return { focus: focusOf([shelf, chain], g.elevation + 2), reserve: g.reserve };
   if (step >= SEND && step <= LINKS) {
     const az = step === BLOCKS || step === HASH ? -8 : 0;
     if (!g.compact)
@@ -388,7 +390,7 @@ function World({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMotion
   });
   // Narrow screens keep the ledgers out of the way once the chain or the hash panel needs the room.
   // Phones show the balances as pills above the scene instead.
-  const showLedgers = step >= SEND && step <= LINKS && !g.compact;
+  const showLedgers = step >= SEND && step <= TAMPER && !g.compact;
   const showChain = (step >= SEND && step <= TAMPER) || step >= CHECK;
   return (
     <>
@@ -437,6 +439,11 @@ function Notebooks({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMo
 function Ledgers({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMotion: boolean }) {
   const r = g.ledgers;
   const hot = useHotLines(m.lastTx);
+  // At the tamper step Ben's ledger follows his edited copy of the chain; the changed lines stay lit.
+  const tamper = m.step === TAMPER;
+  const benHot = PEOPLE.filter((q) => m.benBal[q] !== m.bal[q]);
+  const rows = (p: Person) =>
+    tamper && p === "Ben" ? rowsOf(m.benBal, benHot) : rowsOf(m.bal, tamper ? [] : hot);
   return (
     <>
       {PEOPLE.map((p) => (
@@ -446,7 +453,7 @@ function Ledgers({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMoti
           position={ledgerAt(p, r)}
           scale={r.scale}
           open
-          rows={rowsOf(m.bal, hot)}
+          rows={rows(p)}
           reducedMotion={reducedMotion}
         />
       ))}
@@ -507,7 +514,15 @@ function ChainBlocks({
   return (
     <>
       {editing ? (
-        <Label position={[(first[0] + second[0]) / 2, 1.7, first[2] - 1.5]}>Ben's copy</Label>
+        <Label
+          position={
+            g.compact
+              ? [(first[0] + second[0]) / 2, 1.5, first[2] - 0.9]
+              : [(first[0] + second[0]) / 2, 1.05, first[2] - 0.75]
+          }
+        >
+          Ben's copy of the chain
+        </Label>
       ) : null}
       {chain.map((b, i) => {
         const ok = check.links[i]!;
@@ -522,7 +537,9 @@ function ChainBlocks({
               open={pickable && selected === b.height}
               bad={!ok}
               ring={editing && b.height === 1}
-              hint={step === BLOCKS && !m.saw1 && b.height === 1}
+              hint={
+                (step === BLOCKS && !m.saw1 && b.height === 1) || (editing && b.height === 1 && !m.benDiffers)
+              }
               drop={drops(b.height)}
               reducedMotion={reducedMotion}
               pick={
@@ -539,17 +556,14 @@ function ChainBlocks({
                 <span className="n">#{b.height}</span>
                 <span className="tx">
                   {editing && b.height === 1 && b.tx ? (
-                    <>
-                      {b.tx.from}-&gt;{b.tx.to}{" "}
-                      <input
-                        className="bb-edit"
-                        inputMode="numeric"
-                        aria-label="Amount in block #1"
-                        value={m.tamperText}
-                        size={3}
-                        onChange={(e) => m.editAmount(e.target.value)}
-                      />
-                    </>
+                    <EditAmount
+                      from={b.tx.from}
+                      to={b.tx.to}
+                      value={m.tamperText}
+                      target={m.tamperTo}
+                      waiting={!m.benDiffers}
+                      onEdit={m.editAmount}
+                    />
                   ) : b.height === 0 ? (
                     "start: Ana 10, Ben 5, Cora 0"
                   ) : (

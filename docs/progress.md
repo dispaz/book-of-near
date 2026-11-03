@@ -129,3 +129,7 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 ## 2026-11-03 · Cora, and the block pop-up in 3D
 - Cy is now Cora everywhere (lesson 0.1 code, tests, the 0.1 script and the stage 0 README). The genesis text holds the names, so every fixture hash changed: default chain `ec402b30 cfb1f067 744f6e9c c9d091cb`, tampered `ec402b30 c0fed3ed 10805a80 cba6509e`.
 - 0.1 in 3D, "open block" step: an opened block lets a paper slip rise out of it, and a card pops up on an ink stalk above the ledgers ("Inside block #1 · it stores one transaction: Ana->Ben 3", or the genesis balances for #0). It replaces the details panel at that step; the hash step keeps the panel for its text box.
+
+## 2026-11-03 · 0.1: the tamper step and filled blocks
+- Step 6 (both views): the three ledgers are back. Ben's ledger follows his edited copy of the chain (its changed lines stay lit), Ana's and Cora's keep the honest balances. The amount in block #1 is a bigger box that pulses in the accent colour with "✎ change it to 9" under it until Ben edits it; in 3D block #1 also bobs. Shared control: `EditAmount` in `parts.tsx`; state gained `benBal`.
+- 3D: every closed block shows the edge of its transaction slip under the lid (`PeekingSlip`), the same slip that rises out when a block is opened.

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { PEOPLE, shortHash, START, verify, type Chain, type Person } from "./ledger";
-import { AUTO_TAMPER_NOTE, BlockDetails, COMPARE_RESULT, useHotLines } from "./parts";
+import { AUTO_TAMPER_NOTE, BlockDetails, COMPARE_RESULT, EditAmount, useHotLines } from "./parts";
 import {
   BLOCKS,
   CHECK,
@@ -44,6 +44,14 @@ export default function Scene2D({
 
       {showBalances ? <Ledgers bal={m.bal} hot={hot} /> : null}
 
+      {step === TAMPER ? (
+        <Ledgers
+          bal={m.bal}
+          hot={[]}
+          ben={{ bal: m.benBal, hot: PEOPLE.filter((q) => m.benBal[q] !== m.bal[q]) }}
+        />
+      ) : null}
+
       {showCopies ? (
         <Copies
           tips={{ honest: m.honestHashes[m.honestHashes.length - 1]!, ben: m.benCheck.computed.at(-1)! }}
@@ -65,6 +73,8 @@ export default function Scene2D({
           hint={step === BLOCKS && !m.saw1 ? 1 : null}
           editing={step === TAMPER}
           tamperText={m.tamperText}
+          tamperTo={m.tamperTo}
+          waiting={!m.benDiffers}
           onEdit={m.editAmount}
           onPick={m.pickBlock}
           title={step === TAMPER ? "Ben's copy" : summary ? "The honest chain" : "The chain"}
@@ -110,10 +120,24 @@ function Page({ bal, hot = [] }: { bal: Record<Person, number>; hot?: Person[] }
  */
 function Ledgers(
   props:
-    | { opened: Person | null; onOpen: (p: Person) => void; bal?: undefined; hot?: undefined }
-    | { bal: Record<Person, number>; hot: Person[]; opened?: undefined; onOpen?: undefined },
+    | {
+        opened: Person | null;
+        onOpen: (p: Person) => void;
+        bal?: undefined;
+        hot?: undefined;
+        ben?: undefined;
+      }
+    | {
+        bal: Record<Person, number>;
+        hot: Person[];
+        /** Ben's own view, when his copy of the chain differs (the tamper step). */
+        ben?: { bal: Record<Person, number>; hot: Person[] };
+        opened?: undefined;
+        onOpen?: undefined;
+      },
 ) {
   const { opened, onOpen, bal, hot } = props;
+  const { ben } = props;
   return (
     <>
       <ul className="bb-ledgers" aria-label="Three ledgers">
@@ -135,13 +159,18 @@ function Ledgers(
             ) : (
               // The same balances three times: screen readers get them once, below.
               <div className="bb-ledger open" aria-hidden="true">
-                <Page bal={bal} hot={hot} />
+                {ben && p === "Ben" ? <Page bal={ben.bal} hot={ben.hot} /> : <Page bal={bal} hot={hot} />}
               </div>
             )}
           </li>
         ))}
       </ul>
-      {bal ? (
+      {ben && bal ? (
+        <p className="visually-hidden">
+          Ben's ledger follows his copy: {PEOPLE.map((p) => `${p} ${ben.bal[p]}`).join(", ")}. Ana's and
+          Cora's say {PEOPLE.map((p) => `${p} ${bal[p]}`).join(", ")}.
+        </p>
+      ) : bal ? (
         <p className="visually-hidden">
           Every ledger says:{" "}
           {PEOPLE.map((p) => (
@@ -213,6 +242,8 @@ function ChainStrip({
   hint,
   editing,
   tamperText,
+  tamperTo,
+  waiting,
   onEdit,
   onPick,
   title,
@@ -227,6 +258,8 @@ function ChainStrip({
   hint: number | null;
   editing: boolean;
   tamperText: string;
+  tamperTo: number;
+  waiting: boolean;
   onEdit: (t: string) => void;
   onPick: (n: number) => void;
   title: string;
@@ -248,17 +281,14 @@ function ChainStrip({
               <span className="bb-block-n">#{b.height}</span>
               <span className="bb-block-tx">
                 {editing && b.height === 1 && b.tx ? (
-                  <>
-                    {b.tx.from}-&gt;{b.tx.to}{" "}
-                    <input
-                      className="bb-edit"
-                      inputMode="numeric"
-                      aria-label="Amount in block #1"
-                      value={tamperText}
-                      size={3}
-                      onChange={(e) => onEdit(e.target.value)}
-                    />
-                  </>
+                  <EditAmount
+                    from={b.tx.from}
+                    to={b.tx.to}
+                    value={tamperText}
+                    target={tamperTo}
+                    waiting={waiting}
+                    onEdit={onEdit}
+                  />
                 ) : b.height === 0 ? (
                   "start: Ana 10, Ben 5, Cora 0"
                 ) : (

@@ -558,3 +558,39 @@ button.bb-block:hover,
     transition: none !important;
   }
 }
+
+/* ---------- The amount Ben edits (tamper step) ---------- */
+.bb-editwrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.bb-editwrap .bb-edit {
+  width: 3.4em;
+  font-size: 16px;
+  font-weight: 700;
+}
+.bb-editwrap.waiting .bb-edit {
+  background: var(--accent);
+  animation: bb-edit-pulse 1.4s ease-in-out infinite;
+}
+.bb-edit-note {
+  font: 600 17px/1.1 var(--hand);
+  color: var(--ink);
+  white-space: nowrap;
+}
+@keyframes bb-edit-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 #ff8a3d99;
+  }
+  50% {
+    box-shadow: 0 0 0 7px #ff8a3d00;
+  }
+}
+.bb.still .bb-editwrap .bb-edit,
+.bb3.still .bb-editwrap .bb-edit {
+  animation: none;
+  box-shadow: 0 0 0 4px #ff8a3d66;
+}

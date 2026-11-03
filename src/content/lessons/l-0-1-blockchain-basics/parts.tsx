@@ -27,6 +27,47 @@ export function useHotLines(lastTx: { tx: Tx; n: number } | null): Person[] {
   return hot;
 }
 
+/**
+ * The amount in block #1 that Ben edits at the tamper step. Until he changes it, the box pulses and a
+ * note says what to type.
+ */
+export function EditAmount({
+  from,
+  to,
+  value,
+  target,
+  waiting,
+  onEdit,
+}: {
+  from: string;
+  to: string;
+  value: string;
+  target: number;
+  waiting: boolean;
+  onEdit: (text: string) => void;
+}) {
+  return (
+    <span className={`bb-editwrap${waiting ? " waiting" : ""}`}>
+      <span>
+        {from}-&gt;{to}{" "}
+        <input
+          className="bb-edit"
+          inputMode="numeric"
+          aria-label="Amount in block #1"
+          value={value}
+          size={3}
+          onChange={(e) => onEdit(e.target.value)}
+        />
+      </span>
+      {waiting ? (
+        <span className="bb-edit-note" aria-hidden="true">
+          ✎ change it to {target}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 export function BlockDetails({
   chain,
   n,
