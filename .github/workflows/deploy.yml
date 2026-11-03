@@ -1,0 +1,69 @@
+# Deploys the app to Cloudflare Pages (project `book-of-near`, production) when a GitHub release is published.
+#
+# Repo secrets (Settings → Secrets and variables → Actions → Secrets):
+#   CLOUDFLARE_API_TOKEN   API token with "Cloudflare Pages: Edit" on the account
+#   CLOUDFLARE_ACCOUNT_ID  Cloudflare account id
+# Repo variables (same page → Variables), all optional, baked into the build (public, browser-safe):
+#   VITE_CHAIN_MODE        demo | testnet (default: demo)
+#   VITE_WORKER_URL        https://<worker>.workers.dev
+#   VITE_RETURN_ACCOUNT_ID testnet account lesson transfers go back to
+name: Deploy
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Tag, branch or commit to deploy
+        required: true
+        default: main
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.deployment-url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_CHAIN_MODE: ${{ vars.VITE_CHAIN_MODE || 'demo' }}
+          VITE_WORKER_URL: ${{ vars.VITE_WORKER_URL }}
+          VITE_RETURN_ACCOUNT_ID: ${{ vars.VITE_RETURN_ACCOUNT_ID }}
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          # --branch main makes it the production deployment (a release checks out a detached tag).
+          command: pages deploy dist --project-name book-of-near --branch main
