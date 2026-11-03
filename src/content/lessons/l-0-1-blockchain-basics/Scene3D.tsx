@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Anchor, InkStage, Label, type Vec3 } from "../../../scene-kit";
-import { PEOPLE, shortHash, START, type Chain, type Person } from "./ledger";
+import type { Group } from "three";
+import { Anchor, Coin, InkStage, Label, Traveller, type Vec3 } from "../../../scene-kit";
+import { PEOPLE, shortHash, START, type Chain, type Person, type Tx } from "./ledger";
 import { AUTO_TAMPER_NOTE, BlockDetails, COMPARE_RESULT, EditAmount, useHotLines } from "./parts";
 import { frameCamera, inset, viewOffset, type Focus, type Frame, type Reserve } from "./framing";
 import {
@@ -452,8 +453,29 @@ function Ledgers({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMoti
   const benHot = PEOPLE.filter((q) => m.benBal[q] !== m.bal[q]);
   const rows = (p: Person) =>
     tamper && p === "Ben" ? rowsOf(m.benBal, benHot) : rowsOf(m.bal, tamper ? [] : hot);
+  // A sent coin flies from the sender's ledger to the receiver's.
+  const [flying, setFlying] = useState<{ tx: Tx; n: number } | null>(null);
+  const seen = useRef(m.lastTx?.n ?? 0);
+  useEffect(() => {
+    const t = m.lastTx;
+    if (!t || t.n === seen.current) return;
+    seen.current = t.n;
+    if (!reducedMotion) setFlying(t);
+  }, [m.lastTx, reducedMotion]);
+  const onPage = (p: Person): Vec3 => {
+    const [x, , z] = ledgerAt(p, r);
+    return [x + LEDGER_W * r.scale * 0.5, LEDGER_TALL * r.scale * 0.5, z];
+  };
   return (
     <>
+      {flying ? (
+        <CoinHop
+          key={flying.n}
+          from={onPage(flying.tx.from)}
+          to={onPage(flying.tx.to)}
+          onDone={() => setFlying(null)}
+        />
+      ) : null}
       <LedgersAnchor r={r} />
       {PEOPLE.map((p) => (
         <Ledger
@@ -495,6 +517,32 @@ function ReadablePages({ m, strip }: { m: LedgerLesson; strip: boolean }) {
         </span>
       ))}
     </p>
+  );
+}
+
+/** One coin hopping in an arc from one ledger to another, spinning as it flies. */
+function CoinHop({ from, to, onDone }: { from: Vec3; to: Vec3; onDone: () => void }) {
+  const [go, setGo] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setGo(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return (
+    <Traveller to={go ? to : from} arc={2.5} duration={1.1} onArrive={() => (go ? onDone() : undefined)}>
+      <SpinningCoin />
+    </Traveller>
+  );
+}
+
+function SpinningCoin() {
+  const ref = useRef<Group>(null);
+  useFrame((_, dt) => {
+    if (ref.current) ref.current.rotation.x += dt * 6;
+  });
+  return (
+    <group ref={ref}>
+      <Coin />
+    </group>
   );
 }
 

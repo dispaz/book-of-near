@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { PEOPLE, shortHash, START, verify, type Chain, type Person } from "./ledger";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { PEOPLE, shortHash, START, verify, type Chain, type Person, type Tx } from "./ledger";
 import { AUTO_TAMPER_NOTE, BlockDetails, COMPARE_RESULT, EditAmount, useHotLines } from "./parts";
 import {
   BLOCKS,
@@ -42,7 +42,7 @@ export default function Scene2D({
     >
       {step === NOTEBOOK ? <Ledgers opened={m.opened} onOpen={m.openNotebook} /> : null}
 
-      {showBalances ? <Ledgers bal={m.bal} hot={hot} /> : null}
+      {showBalances ? <Ledgers bal={m.bal} hot={hot} lastTx={reducedMotion ? null : m.lastTx} /> : null}
 
       {step === TAMPER ? (
         <Ledgers
@@ -126,10 +126,13 @@ function Ledgers(
         bal?: undefined;
         hot?: undefined;
         ben?: undefined;
+        lastTx?: undefined;
       }
     | {
         bal: Record<Person, number>;
         hot: Person[];
+        /** The latest transaction: its coin flies from the sender's ledger to the receiver's. */
+        lastTx?: { tx: Tx; n: number } | null;
         /** Ben's own view, when his copy of the chain differs (the tamper step). */
         ben?: { bal: Record<Person, number>; hot: Person[] };
         opened?: undefined;
@@ -137,34 +140,61 @@ function Ledgers(
       },
 ) {
   const { opened, onOpen, bal, hot } = props;
-  const { ben } = props;
+  const { ben, lastTx } = props;
+  // Only a coin sent while this view is on screen flies; one already sent when it opened does not.
+  const [flying, setFlying] = useState<{ tx: Tx; n: number } | null>(null);
+  const seen = useRef(lastTx?.n ?? 0);
+  useEffect(() => {
+    if (!lastTx || lastTx.n === seen.current) return;
+    seen.current = lastTx.n;
+    setFlying(lastTx);
+    const id = setTimeout(() => setFlying(null), 1000);
+    return () => clearTimeout(id);
+  }, [lastTx]);
   return (
     <>
-      <ul className="bb-ledgers" aria-label="Three ledgers" data-explain="ledgers">
-        {PEOPLE.map((p) => (
-          <li key={p}>
-            <span className="bb-lg-name" aria-hidden="true">
-              {p}'s ledger
-            </span>
-            {onOpen ? (
-              <button
-                className={`bb-ledger${opened === p ? " open" : ""}${opened ? "" : " hint"}`}
-                aria-label={`Open ${p}'s notebook`}
-                aria-pressed={opened === p}
-                data-testid={`notebook-${p}`}
-                onClick={() => onOpen(p)}
-              >
-                {opened === p ? <Page bal={START} /> : <span className="visually-hidden">closed</span>}
-              </button>
-            ) : (
-              // The same balances three times: screen readers get them once, below.
-              <div className="bb-ledger open" aria-hidden="true">
-                {ben && p === "Ben" ? <Page bal={ben.bal} hot={ben.hot} /> : <Page bal={bal} hot={hot} />}
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
+      <div className="bb-ledgers-wrap">
+        {flying ? (
+          <span
+            key={flying.n}
+            className="bb-coin"
+            aria-hidden="true"
+            style={
+              {
+                "--from": PEOPLE.indexOf(flying.tx.from),
+                "--to": PEOPLE.indexOf(flying.tx.to),
+              } as CSSProperties
+            }
+          >
+            <span />
+          </span>
+        ) : null}
+        <ul className="bb-ledgers" aria-label="Three ledgers" data-explain="ledgers">
+          {PEOPLE.map((p) => (
+            <li key={p}>
+              <span className="bb-lg-name" aria-hidden="true">
+                {p}'s ledger
+              </span>
+              {onOpen ? (
+                <button
+                  className={`bb-ledger${opened === p ? " open" : ""}${opened ? "" : " hint"}`}
+                  aria-label={`Open ${p}'s notebook`}
+                  aria-pressed={opened === p}
+                  data-testid={`notebook-${p}`}
+                  onClick={() => onOpen(p)}
+                >
+                  {opened === p ? <Page bal={START} /> : <span className="visually-hidden">closed</span>}
+                </button>
+              ) : (
+                // The same balances three times: screen readers get them once, below.
+                <div className="bb-ledger open" aria-hidden="true">
+                  {ben && p === "Ben" ? <Page bal={ben.bal} hot={ben.hot} /> : <Page bal={bal} hot={hot} />}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
       {ben && bal ? (
         <p className="visually-hidden">
           Ben's ledger follows his copy: {PEOPLE.map((p) => `${p} ${ben.bal[p]}`).join(", ")}. Ana's and

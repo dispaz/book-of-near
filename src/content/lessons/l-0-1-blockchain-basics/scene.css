@@ -594,3 +594,59 @@ button.bb-block:hover,
   animation: none;
   box-shadow: 0 0 0 4px #ff8a3d66;
 }
+
+/* ---------- A sent coin hops from the sender's ledger to the receiver's ---------- */
+.bb-ledgers-wrap {
+  position: relative;
+}
+.bb-coin {
+  position: absolute;
+  z-index: 2;
+  top: 55%;
+  width: 0;
+  height: 0;
+  left: calc((var(--to) + 0.5) * 33.333%);
+  animation: bb-coin-x 0.9s ease-in-out both;
+  pointer-events: none;
+}
+.bb-coin > span {
+  position: absolute;
+  left: -16px;
+  top: -16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f2c230;
+  border: 2px solid var(--ink);
+  box-shadow: inset 0 0 0 4px #f7d76a;
+  animation: bb-coin-y 0.9s ease-in-out both;
+}
+@keyframes bb-coin-x {
+  from {
+    left: calc((var(--from) + 0.5) * 33.333%);
+  }
+  to {
+    left: calc((var(--to) + 0.5) * 33.333%);
+  }
+}
+@keyframes bb-coin-y {
+  0% {
+    transform: translateY(0) scaleX(1);
+  }
+  25% {
+    transform: translateY(-48px) scaleX(0.3);
+  }
+  50% {
+    transform: translateY(-64px) scaleX(1);
+  }
+  75% {
+    transform: translateY(-48px) scaleX(0.3);
+  }
+  92% {
+    opacity: 1;
+    transform: translateY(0) scaleX(1);
+  }
+  100% {
+    opacity: 0;
+  }
+}
