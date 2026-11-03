@@ -12,6 +12,14 @@ const BOXES = [
 
 const ARROWS = ["SLIP-10 path", "ed25519", "write as hex"];
 
+/** The step-note target each box carries (see StepNote and the manifest's explainAt). */
+const EXPLAIN: Record<(typeof BOXES)[number]["id"], string | undefined> = {
+  words: "words",
+  private: "custody",
+  public: undefined,
+  address: "address",
+};
+
 function hot(focus: ArtFocus): string[] {
   switch (focus) {
     case "words":
@@ -60,7 +68,12 @@ export function WalletArt({
       data-focus={focus}
     >
       {BOXES.map((b, i) => (
-        <g key={b.id} className="wa-box" opacity={focus === "warning" ? 0 : empty ? 0.45 : 1}>
+        <g
+          key={b.id}
+          className="wa-box"
+          opacity={focus === "warning" ? 0 : empty ? 0.45 : 1}
+          data-explain={empty ? undefined : EXPLAIN[b.id]}
+        >
           <rect
             x="40"
             y={b.y}
@@ -110,8 +123,14 @@ export function WalletArt({
         </g>
       ))}
 
+      {/* Extra note targets: the key pair (at the private key), and the address being compared. */}
+      {empty ? null : <rect x="40" y="126" width="210" height="74" fill="none" data-explain="keys" />}
+      {focus === "address" ? (
+        <rect x="40" y="346" width="210" height="74" fill="none" data-explain="addresses" />
+      ) : null}
+
       {focus === "sign" ? (
-        <g className="wa-pop">
+        <g className="wa-pop" data-explain="message">
           <path d="M255 163 h28" stroke={INK} strokeWidth="2.5" />
           <rect x="283" y="130" width="70" height="66" rx="8" fill="#fff" stroke={INK} strokeWidth="2.5" />
           <text x="318" y="156" textAnchor="middle" fontFamily="Caveat, cursive" fontSize="18" fill={INK}>
@@ -125,7 +144,7 @@ export function WalletArt({
       ) : null}
 
       {focus === "verify" ? (
-        <g className="wa-pop">
+        <g className="wa-pop" data-explain="check">
           <path d="M255 273 h28" stroke={INK} strokeWidth="2.5" />
           <circle
             cx="318"
@@ -150,7 +169,7 @@ export function WalletArt({
       ) : null}
 
       {focus === "warning" ? (
-        <g className="wa-pop">
+        <g className="wa-pop" data-explain="warning">
           <path
             d="M145 120 L250 300 H40 Z"
             fill="var(--accent)"
@@ -175,7 +194,7 @@ export function WalletArt({
         </g>
       ) : null}
       {focus === "gone" ? (
-        <g transform="rotate(-8 145 222)">
+        <g transform="rotate(-8 145 222)" data-explain="custody">
           <rect x="35" y="196" width="220" height="44" rx="8" fill="#fffdf7" stroke={INK} strokeWidth="2.5" />
           <text x="145" y="229" textAnchor="middle" fontFamily="Caveat, cursive" fontSize="32" fill={INK}>
             keys thrown away

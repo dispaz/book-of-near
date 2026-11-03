@@ -5,7 +5,7 @@
  * seen (`Focus`); `frameCamera` places the camera so that box fills the free rectangle (`Frame`),
  * and `viewOffset` shifts the picture so the box sits in the middle of that rectangle.
  */
-import type { CameraView, Vec3 } from "../../../scene-kit/motion";
+import type { CameraView, Vec3 } from "./motion";
 
 /** A box of the world to keep in view: centre, width (x), depth (z) and height (y). */
 export interface Focus {
@@ -52,6 +52,8 @@ const rad = (deg: number) => (deg * Math.PI) / 180;
 /**
  * The camera preset that fits `focus` into `frame` on a canvas of `width` x `height` pixels.
  * The returned preset is what to pass to <InkStage view>: the rig's own pull-back is already undone.
+ * By default the box is sized at its centre. With `nearFit`, its near edge fits instead: use it when
+ * the camera comes close to a deep box (a small window), where the front objects look much bigger.
  */
 export function frameCamera(
   focus: Focus,
@@ -59,6 +61,7 @@ export function frameCamera(
   width: number,
   height: number,
   margin = 0.86,
+  { nearFit = false }: { nearFit?: boolean } = {},
 ): CameraView {
   const aspect = width / Math.max(1, height);
   const el = rad(focus.elevation ?? 32);
@@ -70,7 +73,11 @@ export function frameCamera(
   const up = focus.depth * Math.sin(el) + focus.height * Math.cos(el);
   const tan = Math.tan(rad(fovFor(aspect)) / 2);
   // Pixels per world unit at distance d is height / (2 d tan): solve for the d that fits both ways.
-  const dist = Math.max((across * height) / fw, (up * height) / fh) / (2 * tan);
+  const fit = Math.max((across * height) / fw, (up * height) / fh) / (2 * tan);
+  // How much nearer than the centre the box's near edge is, along the line of sight.
+  const nearer =
+    ((focus.depth / 2) * Math.abs(Math.cos(az)) + (focus.width / 2) * Math.abs(Math.sin(az))) * Math.cos(el);
+  const dist = nearFit ? fit + nearer : fit;
   const d = dist / pullBackFor(aspect);
   const [cx, cy, cz] = focus.center;
   return {

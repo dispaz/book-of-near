@@ -595,6 +595,15 @@
     grid-template-columns: 1fr;
   }
 }
+@media (min-width: 900px) and (max-width: 1199px) {
+  /* Tablets: a narrower facts column, so the 3D window keeps most of the width. */
+  .stx.three {
+    grid-template-columns: minmax(0, 1fr) 196px;
+  }
+  .stx.three .stx-detail {
+    padding: 10px 12px;
+  }
+}
 @media (max-width: 899px) {
   /* Phones: the 3D window takes the room the account cards had; labels a size smaller. */
   .stx > .stx-3d {
@@ -614,4 +623,8 @@
   .stx-3d .sk-status {
     font-size: 16px;
   }
+}
+.stx-3d-box {
+  position: absolute;
+  inset: 0;
 }

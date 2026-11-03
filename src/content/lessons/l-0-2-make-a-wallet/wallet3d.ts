@@ -2,7 +2,8 @@
  * Pure layout and text for the 3D view of lesson 0.2. No three.js here, so it is unit tested and
  * never pulls 3D code into the 2D view.
  */
-import type { CameraView, Vec3 } from "../../../scene-kit/motion";
+import type { Focus, Reserve } from "../../../scene-kit/framing";
+import type { Vec3 } from "../../../scene-kit/motion";
 import { STEP, type ArtFocus, type Verdict } from "./useWallet";
 
 /** Where things stand on the paper. The chain runs back to front: words, private key, public key, address. */
@@ -27,34 +28,121 @@ export function shorten(value: string, max: number): string {
   return `${value.slice(0, max - tail - 1)}…${value.slice(-tail)}`;
 }
 
-/** A camera that looks at `target` from `offset` away. */
-const v = (target: Vec3, offset: Vec3): CameraView => ({
-  target,
-  position: [target[0] + offset[0], target[1] + offset[1], target[2] + offset[2]],
-});
+/** What the paper shows: the warning sign, empty places for the keys, or the keys themselves. */
+export type Drawn = "warning" | "ghosts" | "keys";
 
-// From the side, so the whole chain (back to front) reads left to right in a wide picture.
-const OVERVIEW = v([-1.2, 0.5, 0.2], [15, 13, 4]);
+/**
+ * The warning sign stands for the whole first step (and step 2 until the box is ticked); without keys
+ * the paper shows empty places; otherwise the words, keys and address.
+ */
+export function drawnFor(step: number, { ack, alive }: { ack: boolean; alive: boolean }): Drawn {
+  if (step === STEP.warning || (step === STEP.generate && !ack && !alive)) return "warning";
+  return alive ? "keys" : "ghosts";
+}
 
-/** One camera preset per step: it looks at what the step is about. */
-export function cameraFor(step: number, focus: ArtFocus): CameraView {
-  if (focus === "warning") return v([0, 1.2, 0], [2.5, 5.5, 13]);
-  if (focus === "gone") return OVERVIEW;
+/** A box of the paper: x from..to, z from..to, and how tall it is with its labels. */
+type Box = [minX: number, maxX: number, minZ: number, maxZ: number, height: number];
+const around = (p: Vec3, hx: number, hz: number, h: number): Box => [
+  p[0] - hx,
+  p[0] + hx,
+  p[2] - hz,
+  p[2] + hz,
+  h,
+];
+
+const SIGN: Box = [-1.6, 1.6, -0.7, 1.3, 3];
+const WORDS = around(POS.words, 1.9, 1.7, 1.2);
+const KEY = around(POS.key, 1.1, 1.0, 2.0);
+const LOCK = around(POS.lock, 0.9, 1.0, 2.1);
+const ADDRESS = around(POS.address, 1.0, 1.4, addressHeight(64) + 0.9);
+const CARD = around(POS.card, 1.3, 1.3, 2.6);
+const BIN = around(POS.bin, 1.0, 0.8, 2.7);
+/** The four empty places, with the hint beside them. */
+const PLACES: Box = [-1, 3.4, POS.words[2] - 0.7, POS.address[2] + 0.7, 0.6];
+/** Step 5: three address blocks side by side, with their names and rules in front. */
+const ROW: Box = [-4, 4, POS.address[2] - 1, POS.address[2] + 3.3, addressHeight(64) + 0.9];
+
+function focusOf(boxes: Box[], elevation: number, azimuth: number): Focus {
+  const minX = Math.min(...boxes.map((b) => b[0]));
+  const maxX = Math.max(...boxes.map((b) => b[1]));
+  const minZ = Math.min(...boxes.map((b) => b[2]));
+  const maxZ = Math.max(...boxes.map((b) => b[3]));
+  const h = Math.max(...boxes.map((b) => b[4]));
+  return {
+    center: [(minX + maxX) / 2, h * 0.35, (minZ + maxZ) / 2],
+    width: maxX - minX,
+    depth: maxZ - minZ,
+    height: h,
+    elevation,
+    azimuth,
+  };
+}
+
+/**
+ * Looking along the chain from the front, a little from the right: the words stand at the top and the
+ * address at the bottom, like the 2D drawing, which suits the tall free frame beside the note.
+ */
+const ALONG_TALL = 20;
+const SIDE = 75;
+
+/**
+ * What the camera must keep in view at each step (fitted into the free frame with `frameCamera`), and
+ * the pixels to keep free around it for labels.
+ */
+export function shotFor(
+  step: number,
+  drawn: Drawn,
+  compact: boolean,
+  /** The free frame is taller than wide (beside the note); otherwise a wide band (phones). */
+  tall = true,
+): { focus: Focus; reserve: Reserve } {
+  const reserve: Reserve = compact ? { top: 10, bottom: 6 } : { top: 24, bottom: 16 };
+  // In a wide band, look from the side instead, so the chain runs across it.
+  const ALONG = tall ? ALONG_TALL : SIDE;
+  const shot = (boxes: Box[], elevation: number, azimuth: number) => ({
+    focus: focusOf(boxes, elevation, azimuth),
+    reserve,
+  });
+  if (drawn === "warning") return shot([SIGN], 23, 11);
+  if (drawn === "ghosts") return shot(step >= STEP.custody ? [PLACES, BIN] : [PLACES], 45, ALONG);
+  const o = objectsFor(step);
+  const chain = [o.words ? WORDS : null, o.key ? KEY : null, o.lock ? LOCK : null].filter(
+    (b): b is Box => b !== null,
+  );
   switch (step) {
     case STEP.generate:
-      return v([0, 0.8, 0.1], [6, 6.5, 11]);
+      return shot(chain, 40, ALONG);
     case STEP.seed:
-      return v([0, 0.5, -3.8], [3, 7, 9]);
+      return shot(chain, 46, tall ? 12 : 68);
     case STEP.address:
-      return v([0, 1, 4.2], [10, 6.5, 6]);
+      return shot([...chain, ADDRESS], 36, tall ? 28 : SIDE);
     case STEP.compare:
-      return v([0, 1, 6.2], [0, 5.5, 14]);
+      return shot([ROW], 21, 0);
     case STEP.sign:
-      return v([1.8, 0.6, -1], [4, 8, 10]);
+      return shot([...chain, CARD], 40, ALONG);
     case STEP.verify:
-      return v([1.8, 0.6, 1], [5, 8, 10]);
+      return shot([...chain, CARD], 38, 26);
     default:
-      return OVERVIEW;
+      return shot([BIN, ...chain, ADDRESS], 45, ALONG);
+  }
+}
+
+/**
+ * Which of the words, private key and public key stand on the paper. Each step keeps only what it is
+ * about, so nothing it does not frame hangs out under the panel or the step heading.
+ */
+export function objectsFor(step: number): { words: boolean; key: boolean; lock: boolean; address: boolean } {
+  switch (step) {
+    case STEP.address:
+      return { words: false, key: true, lock: true, address: true };
+    case STEP.compare:
+      return { words: false, key: false, lock: false, address: true };
+    case STEP.sign:
+      return { words: false, key: true, lock: false, address: false };
+    case STEP.verify:
+      return { words: false, key: false, lock: true, address: false };
+    default:
+      return { words: true, key: true, lock: true, address: step >= STEP.custody };
   }
 }
 

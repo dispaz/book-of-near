@@ -38,6 +38,19 @@ describe("frameCamera", () => {
     expect(10 * pxPerUnit).toBeCloseTo(390, 3);
   });
 
+  it("with nearFit, fits the box's near edge, which looks bigger up close", () => {
+    const deep: Focus = { center: [0, 0, 0], width: 10, depth: 8, height: 0, elevation: 30 };
+    const frame = { left: 0, top: 0, right: 800, bottom: 800 };
+    const flat = frameCamera(deep, frame, 1280, 800, 1);
+    const near = frameCamera(deep, frame, 1280, 800, 1, { nearFit: true });
+    const d = dist(near.position, near.target);
+    // The near edge (4 units nearer, along the ground) is exactly as wide as the free width.
+    const dNear = d - 4 * Math.cos(Math.PI / 6);
+    const pxPerUnit = 800 / (2 * dNear * Math.tan(((fovFor(1.6) / 2) * Math.PI) / 180));
+    expect(10 * pxPerUnit).toBeCloseTo(800, 3);
+    expect(d).toBeGreaterThan(dist(flat.position, flat.target));
+  });
+
   it("raises the camera by the elevation", () => {
     const v = frameCamera(
       { ...focus, elevation: 90 },

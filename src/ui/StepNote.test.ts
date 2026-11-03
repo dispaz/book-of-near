@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { placeNote } from "./StepNote";
+import { fitsMargin, placeNote } from "./StepNote";
 
 const free = { left: 16, top: 120, right: 1424, bottom: 812 };
 const size = { w: 380, h: 140 };
@@ -29,6 +29,16 @@ describe("placeNote", () => {
       g.y < anchor.bottom + 10 &&
       g.y + size.h > anchor.top - 10;
     expect(overlaps).toBe(false);
+  });
+
+  it("floats only when the element is right of the margin and the note fits in it", () => {
+    const margin = { left: 16, top: 120, right: 396, bottom: 700 };
+    expect(fitsMargin({ left: 800, top: 400, right: 840, bottom: 440 }, size, margin)).toBe(true);
+    // The element is in the margin itself, or the margin is shorter than the note: dock instead.
+    expect(fitsMargin({ left: 100, top: 400, right: 140, bottom: 440 }, size, margin)).toBe(false);
+    expect(
+      fitsMargin({ left: 800, top: 400, right: 840, bottom: 440 }, size, { ...margin, bottom: 200 }),
+    ).toBe(false);
   });
 
   it("falls back to beside the element when the element is in the margin itself", () => {

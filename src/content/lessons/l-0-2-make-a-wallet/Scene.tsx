@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useId, useRef, type ReactNode, type RefObject } from "react";
+import { lazy, Suspense, useEffect, useId, useRef, type ReactNode } from "react";
 import type { SceneProps } from "../../../app/types";
 import { SceneAction } from "../../../ui/SceneAction";
 import { Check, HonestTake, type CheckQuestion } from "../../../lesson-kit";
@@ -55,29 +55,13 @@ const QUESTIONS: CheckQuestion[] = [
   },
 ];
 
-/**
- * On narrow screens the panel sits above the docked step card. Expose the card's real height as
- * --w-dock so the panel can use all the room between them instead of a fixed guess.
- */
-function useDockHeight(ref: RefObject<HTMLDivElement | null>) {
-  useEffect(() => {
-    const root = ref.current;
-    const dock = root?.closest(".lesson")?.querySelector<HTMLElement>(".lesson-dock");
-    if (!root || !dock || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(() => root.style.setProperty("--w-dock", `${dock.offsetHeight}px`));
-    ro.observe(dock);
-    return () => ro.disconnect();
-  }, [ref]);
-}
-
 export default function Scene({ step, goTo, setGate, reducedMotion, mode, view, flat }: SceneProps) {
   // One state for both views: switching 2D and 3D keeps every key, value and gate.
   const w = useWallet({ step, setGate, reducedMotion, mode });
   const { keys, signed, verdict, cleared } = w;
   const rootRef = useRef<HTMLDivElement>(null);
-  useDockHeight(rootRef);
   // The free part of the screen, so the 3D picture sits between the cards instead of under them.
-  const frame = useFreeFrame(rootRef, [step, view]);
+  const measured = useFreeFrame(rootRef, [step, view]);
 
   // Keep each new result in view: on phones the panel is short and scrolls.
   useEffect(() => {
@@ -93,10 +77,17 @@ export default function Scene({ step, goTo, setGate, reducedMotion, mode, view, 
   const showPanel = step < STEP.check;
 
   return (
-    <div ref={rootRef} className={`wallet-scene view-${view}`} data-scene-state={w.state} data-mode={mode}>
+    <div
+      ref={rootRef}
+      className={`wallet-scene view-${view}`}
+      data-scene-state={w.state}
+      data-mode={mode}
+      // Tablets: no room beside the picture, so the step note stays docked (StepNote reads this).
+      data-notes={measured && !measured.noteRoom ? "dock" : undefined}
+    >
       {view === "3d" ? (
         <Suspense fallback={<p className="visually-hidden">Loading the 3D view…</p>}>
-          <Scene3D w={w} step={step} reducedMotion={reducedMotion} flat={flat} frame={frame} />
+          <Scene3D w={w} step={step} reducedMotion={reducedMotion} flat={flat} measured={measured} />
         </Suspense>
       ) : (
         <WalletArt

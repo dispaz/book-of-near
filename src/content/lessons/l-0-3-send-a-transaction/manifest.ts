@@ -19,12 +19,14 @@ export default {
         "This is your practice account. Testnet coins are free and worth nothing, so mistakes cost nothing.",
       explain:
         "Testnet is a copy of NEAR for practice. Its tokens have no value. Mainnet is the real network. Your practice account is an implicit account, like in 0.2. The app funded it from a faucet: a service that gives out free testnet tokens. In demo mode it all runs in your browser.",
+      explainAt: "account",
       action: { label: "wait for your balance", gate: true },
     },
     {
       caption: "Fill in who sends, who receives and how much. The app adds a nonce and a recent block hash.",
       explain:
         "A transaction names the sender, the receiver and the actions, here one transfer. The nonce is a counter: each new transaction from a key must use a higher number, so an old one cannot be sent again. The recent block hash makes the transaction expire if it waits too long.",
+      explainAt: "tx",
       action: { label: "press Build", gate: true },
     },
     {
@@ -32,6 +34,7 @@ export default {
         "Every transaction pays a small fee for the work it causes. On NEAR a simple transfer costs about 0.000045 NEAR.",
       explain:
         "Gas measures the work a transaction makes the network do. Each action has a fixed gas cost. The fee is gas times the gas price. NEAR takes a bit more up front and gives the extra back about a block later. So your balance dips slightly more, then recovers.",
+      explainAt: "fee",
       action: { label: "press Got it", gate: true },
     },
     {
@@ -39,6 +42,7 @@ export default {
         "Your private key signs the transaction, just like the message in 0.2. Its hash becomes the transaction ID.",
       explain:
         "The wallet hashes the transaction (SHA-256) and signs that hash with the private key. Anyone can check it with your public key. The hash is also the transaction ID: a unique name you can look up later. Signing happens on your device, with no network.",
+      explainAt: "sign",
       action: { label: "press Sign", gate: true },
     },
     {
@@ -46,12 +50,14 @@ export default {
         "The signed transaction goes to an RPC node: a server that passes it into the network and answers questions about it.",
       explain:
         "An RPC node is a computer connected to the network that apps talk to. It forwards your transaction to the validators, the computers that make blocks. It can also report status. You trust it to answer honestly, so apps often keep a backup node.",
+      explainAt: "rpc",
       action: { label: "press Send", gate: true },
     },
     {
       caption: "A validator put your transaction in a block. The coins move, but the block is not final yet.",
       explain:
         "Included means the transaction is written in a new block. The transfer runs and balances change. A brand-new block could in rare cases still be replaced, so careful apps wait one more step. On NEAR a new block comes about every 0.6 to 1 second.",
+      explainAt: "block",
       action: { label: "wait for Final", gate: true },
     },
     {
@@ -59,12 +65,14 @@ export default {
         "Final: the network has agreed this block will never change. NEAR docs put this at about 1.2 seconds.",
       explain:
         "Finality is the point where a transaction cannot be reversed. NEAR's docs give about 1.2 seconds. Ethereum's site says about 15 minutes. Bitcoin has no fixed point; people wait for more blocks on top. The small gas refund also lands now.",
+      explainAt: "final",
       action: { label: "wait for Final", gate: true },
     },
     {
       caption: "A block explorer is a public website that shows every transaction. Open yours on NearBlocks.",
       explain:
         "A block explorer reads the chain and shows it as web pages: blocks, accounts and transactions. Anyone can look up any transaction. That is the public side of a blockchain, from 0.1. NearBlocks is a popular NEAR explorer.",
+      explainAt: "explorer",
       action: { label: "open the explorer", gate: true },
     },
     {

@@ -5,19 +5,12 @@
  * Security: the private key is only ever shown through `shownSecret` (masked unless revealed), and only
  * in DOM labels that live in memory. Nothing here writes to storage or draws keys into textures.
  */
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useFrame } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
-import { BackSide, PerspectiveCamera, type Group } from "three";
+import { BackSide, type Group } from "three";
 import {
+  Anchor,
   COLORS,
   INK,
   InkStage,
@@ -27,15 +20,29 @@ import {
   Pickable,
   SoftShadow,
   Traveller,
+  ViewOffset,
   easeInOut,
+  frameCamera,
+  inset,
   useInk,
   useStage,
   type Vec3,
 } from "../../../scene-kit";
 import { CONVERT_STAGES, STEP, type Wallet } from "./useWallet";
-import { addressHeight, cameraFor, describe3d, labelsFor, shorten, POS, type Shown } from "./wallet3d";
+import {
+  addressHeight,
+  describe3d,
+  drawnFor,
+  labelsFor,
+  objectsFor,
+  shorten,
+  shotFor,
+  POS,
+  type Drawn,
+  type Shown,
+} from "./wallet3d";
 import { shownSecret } from "./wallet";
-import type { Frame } from "./frame";
+import type { Measured } from "./frame";
 
 const ACCENT = COLORS.orange;
 const clamp01 = (u: number) => Math.min(1, Math.max(0, u));
@@ -74,17 +81,25 @@ export default function Scene3D({
   step,
   reducedMotion,
   flat,
-  frame,
+  measured,
 }: {
   w: Wallet;
   step: number;
   reducedMotion: boolean;
   flat: boolean;
-  /** The free part of the screen between the cards; the picture is centred and fitted there. */
-  frame: Frame | null;
+  /** The free part of the screen between the cards and the note; the picture is fitted there. */
+  measured: Measured | null;
 }) {
+  const { frame, width, height } = measured ?? {
+    frame: { left: 0, top: 0, right: 1280, bottom: 800 },
+    width: 1280,
+    height: 800,
+  };
   // A small free area (phones) shows only the names that matter in this step.
-  const compact = !!frame && (frame.w < 560 || frame.h < 200);
+  const compact = frame.right - frame.left < 300 || frame.bottom - frame.top < 200;
+  const drawn = drawnFor(step, { ack: w.ack, alive: !!w.keys && !w.cleared });
+  const shot = shotFor(step, drawn, compact, frame.bottom - frame.top >= frame.right - frame.left);
+  const inner = inset(frame, shot.reserve);
   // Fetch the handwriting font for 3D labels now, before any key exists. Otherwise it may load right
   // after Generate and show up in the panel's "network requests since Generate" count.
   useEffect(() => {
@@ -92,42 +107,18 @@ export default function Scene3D({
   }, []);
   return (
     <InkStage
-      view={cameraFor(step, w.focus)}
+      view={frameCamera(shot.focus, inner, width, height, 0.9)}
       flat={flat}
       reducedMotion={reducedMotion}
       state={w.state}
       description={describe3d(w.focus, step === STEP.verify ? w.verdict : null, w.cleared)}
+      minDistance={3}
+      maxDistance={140}
     >
-      <FrameShift frame={frame} />
-      <World w={w} step={step} reducedMotion={reducedMotion} compact={compact} />
+      <ViewOffset frame={inner} reducedMotion={reducedMotion} />
+      <World w={w} step={step} drawn={drawn} reducedMotion={reducedMotion} compact={compact} />
     </InkStage>
   );
-}
-
-/**
- * Draws the camera's picture inside `frame` instead of the whole canvas: it shifts the picture's centre
- * there and shrinks it when the frame is small (phones). Labels and picking follow, because they use
- * the same projection.
- */
-function FrameShift({ frame }: { frame: Frame | null }) {
-  const camera = useThree((s) => s.camera);
-  const width = useThree((s) => s.size.width);
-  const height = useThree((s) => s.size.height);
-  const { x, y, w, h } = frame ?? { x: 0, y: 0, w: width, h: height };
-  useLayoutEffect(() => {
-    if (!(camera instanceof PerspectiveCamera) || !width || !height) return;
-    // How much of the canvas the picture needs: landscape screens frame it wide, portrait ones tall.
-    const portrait = width < height;
-    const s = Math.max(
-      0.4,
-      Math.min(1, w / (width * (portrait ? 0.85 : 0.62)), h / (height * (portrait ? 0.24 : 0.72))),
-    );
-    const fullW = width * s;
-    const fullH = height * s;
-    camera.setViewOffset(fullW, fullH, fullW / 2 - (x + w / 2), fullH / 2 - (y + h / 2), width, height);
-    return () => camera.clearViewOffset();
-  }, [camera, width, height, x, y, w, h]);
-  return null;
 }
 
 /** Which labels the current step shows (see labelsFor). */
@@ -136,11 +127,13 @@ const ShownContext = createContext<Shown>(labelsFor(0, false));
 function World({
   w,
   step,
+  drawn,
   reducedMotion,
   compact,
 }: {
   w: Wallet;
   step: number;
+  drawn: Drawn;
   reducedMotion: boolean;
   compact: boolean;
 }) {
@@ -151,23 +144,34 @@ function World({
   const bin = useTween(cleared, 1.3, reducedMotion);
   const alive = !!keys || cleared;
   const shown = labelsFor(step, compact);
+  const objects = objectsFor(step);
 
   return (
     <ShownContext.Provider value={shown}>
-      {w.focus === "warning" && !w.ack ? <WarningSign /> : null}
-      {!alive && w.focus !== "warning" ? <Ghosts hint={w.needsKeys ? "No keys on this page" : null} /> : null}
-      {!alive && w.focus === "warning" && w.ack ? <Ghosts hint="Press Generate" /> : null}
-      {cleared ? <Ghosts hint={null} /> : null}
+      {drawn === "warning" ? <WarningSign /> : null}
+      {drawn === "ghosts" ? (
+        <Ghosts
+          hint={
+            cleared
+              ? null
+              : step === STEP.generate
+                ? "Press Generate"
+                : w.needsKeys
+                  ? "No keys on this page"
+                  : null
+          }
+        />
+      ) : null}
 
-      {alive && shown.pipeline ? (
+      {alive && shown.pipeline && drawn !== "warning" ? (
         <>
-          <Words w={w} step={step} fold={fold} bin={bin} />
-          <PrivateKey w={w} step={step} fold={fold} bin={bin} />
-          <PublicKey w={w} step={step} fold={fold} bin={bin} />
-          <Arrows show={!!keys} address={w.convert >= CONVERT_STAGES} />
+          {objects.words ? <Words w={w} step={step} fold={fold} bin={bin} /> : null}
+          {objects.key ? <PrivateKey w={w} step={step} fold={fold} bin={bin} /> : null}
+          {objects.lock ? <PublicKey w={w} step={step} fold={fold} bin={bin} /> : null}
+          <Arrows show={!!keys} address={w.convert >= CONVERT_STAGES} step={step} />
         </>
       ) : null}
-      <AddressBlock w={w} step={step} />
+      {objects.address ? <AddressBlock w={w} step={step} /> : null}
       {step === STEP.compare && keys ? <OtherAddresses w={w} /> : null}
       {(step === STEP.sign || step === STEP.verify) && keys ? <MessageCard w={w} step={step} /> : null}
       {step === STEP.custody || cleared ? <Bin w={w} step={step} /> : null}
@@ -215,6 +219,7 @@ function WarningSign() {
         <boxGeometry args={[0.18, 0.18, 0.04]} />
       </mesh>
       <SoftShadow position={[0, -1.5, 0.2]} size={[3, 1.2]} />
+      <Anchor name="warning" position={[-0.5, 0, 0.2]} />
       <Label position={[0, -2.1, 0.9]}>No keys yet: read the warning</Label>
     </group>
   );
@@ -313,6 +318,7 @@ function Words({ w, step, fold, bin }: { w: Wallet; step: number; fold: Clock; b
       ))}
       <SoftShadow position={[0, 0, 0.2]} size={[3.6, 3]} />
       {w.keys && shown.words ? <Label position={[0, 0.9, -1.6]}>12 seed words</Label> : null}
+      {w.keys && !w.cleared ? <Anchor name="words" position={[0, 0.3, 0]} /> : null}
     </group>
   );
   return (
@@ -375,6 +381,13 @@ function PrivateKey({ w, step, fold, bin }: { w: Wallet; step: number; fold: Clo
         </RoundedBox>
       </group>
       <SoftShadow position={[0, 0, 0.2]} size={[2.6, 1.2]} />
+      {w.keys && !w.cleared ? (
+        <>
+          {/* The key pair (step 2) and who holds it (step 8). */}
+          <Anchor name="keys" position={[0, 0.8, 0]} />
+          <Anchor name="custody" position={[0, 0.8, 0]} />
+        </>
+      ) : null}
       {w.keys && shown.key ? (
         <>
           <Label position={[0, 1.75, 0]}>Private key · secret</Label>
@@ -464,15 +477,16 @@ function PublicKey({ w, step, fold, bin }: { w: Wallet; step: number; fold: Cloc
 }
 
 /** Arrows between the objects, named after the step that links them. */
-function Arrows({ show, address }: { show: boolean; address: boolean }) {
+function Arrows({ show, address, step }: { show: boolean; address: boolean; step: number }) {
   const black = useInk(INK);
   const shown = useContext(ShownContext);
   if (!show) return null;
-  const links: [Vec3, Vec3, string][] = [
-    [POS.words, POS.key, "SLIP-10 path"],
-    [POS.key, POS.lock, "ed25519"],
-  ];
-  if (address) links.push([POS.lock, POS.address, "write as hex"]);
+  // Only between objects that stand on the paper in this step.
+  const o = objectsFor(step);
+  const links: [Vec3, Vec3, string][] = [];
+  if (o.words && o.key) links.push([POS.words, POS.key, "SLIP-10 path"]);
+  if (o.key && o.lock) links.push([POS.key, POS.lock, "ed25519"]);
+  if (address && o.lock && o.address) links.push([POS.lock, POS.address, "write as hex"]);
   return (
     <>
       {links.map(([a, b, name]) => {
@@ -545,6 +559,7 @@ function AddressBlock({ w, step }: { w: Wallet; step: number }) {
     <>
       <group position={POS.address}>
         <SoftShadow position={[0, 0, 0.3]} size={[2.8, 1.8]} />
+        <Anchor name="address" position={[0, Math.max(0.3, height / 2), 0]} />
         {compare ? (
           <Pickable
             label="NEAR implicit account block"
@@ -632,6 +647,8 @@ function OtherAddresses({ w }: { w: Wallet }) {
       {OTHERS.map((o) => (
         <group key={o.pick} position={[o.x, 0, POS.address[2]]}>
           <SoftShadow position={[0, 0, 0.3]} size={[2.6, 1.6]} />
+          {/* The note starts with Ethereum, and this block stands nearest to it (2D points at its Address box). */}
+          {o.i === 0 ? <Anchor name="addresses" position={[0, addressHeight(o.len) / 2, 0]} /> : null}
           <Pickable label={o.pick} selected={w.flipped[o.i]} onPick={() => w.flip(o.i)} anchor={[0, 0.6, 0]}>
             <GrowBlock height={addressHeight(o.len)} color={o.color} />
           </Pickable>
@@ -679,6 +696,7 @@ function MessageCard({ w, step }: { w: Wallet; step: number }) {
     <>
       <group position={POS.card}>
         <SoftShadow position={[0, 0, 0.2]} size={[3.4, 2.2]} />
+        <Anchor name={verifying ? "check" : "message"} position={[-0.6, 0.15, 0]} />
         {verifying && signed ? (
           <Pickable label="Change one letter on the card" onPick={w.tamper} anchor={[0, 0.2, 0]}>
             {card}
@@ -792,6 +810,7 @@ function Bin({ w, step }: { w: Wallet; step: number }) {
       ) : (
         body
       )}
+      {w.cleared ? <Anchor name="custody" position={[0, 0.8, 0]} /> : null}
       <Label position={[0, 2.5, 0]}>{w.cleared ? "Keys thrown away" : "Bin"}</Label>
     </group>
   );

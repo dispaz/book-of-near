@@ -33,7 +33,14 @@ Point the note at the thing it explains with `explainAt: "<name>"`, and mark tha
 `data-explain="<name>"` on any 2D element or HTML tag, or `<Anchor name="<name>" position={...} />` from the
 scene kit in 3D. On wide screens the note then sits in the left margin, level with the element, with an
 arrow to it (the learner can fold it away). On phones, or when the element is not drawn, it stays in the
-dock under the step's buttons. Give both views the same names.
+dock under the step's buttons. Give both views the same names. An element hidden by CSS (no size) counts as
+not drawn. A scene that has no room for a margin note at the current size (a side panel leaves too little
+page beside the note, as in 0.2 on tablets) puts `data-notes="dock"` on its root, and the note stays docked.
+
+For 3D, fit the camera instead of hand-tuning presets: name the box of the world each step must show and
+pass it to the scene kit's `frameCamera` with the free part of the canvas, plus `<ViewOffset>` to centre it
+there (0.1 `shotFor`, 0.2 `wallet3d.ts`, 0.3 `layout3d.ts`). Use `{ nearFit: true }` for a small window
+looking at a deep box. Draw only the objects the step frames, so nothing hangs out under the panels.
 
 ## The check
 

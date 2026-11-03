@@ -4,12 +4,13 @@
  * the shared state from useTransaction: every move follows a real phase event from the chain.
  * Loaded lazily from Scene.tsx, so the 2D view never downloads three.js.
  */
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Line } from "@react-three/drei";
 import type { Group } from "three";
 import {
   AccountBlock,
+  Anchor,
   Coin,
   COLORS,
   InkStage,
@@ -20,38 +21,30 @@ import {
   Pickable,
   SoftShadow,
   Traveller,
+  ViewOffset,
+  frameCamera,
+  inset,
   useInk,
   useStage,
-  type CameraView,
   type Vec3,
 } from "../../../scene-kit";
 import { useMediaQuery } from "../../../ui/hooks";
 import { duration, near, short, TRANSFER_FEE } from "./tx";
+import { BUILD, FEE, SEND, SIGN, type Light, type Tx } from "./useTransaction";
 import {
-  ACCOUNT,
-  BUILD,
-  EXPLORER,
-  FEE,
-  FINAL,
-  INCLUDED,
-  SEND,
-  SIGN,
-  type Light,
-  type Tx,
-} from "./useTransaction";
-
-// ---------- layout (world units; y is up) ----------
-const ACCT = 1.3;
-const SENDER: Vec3 = [-2.6, 0, 2];
-const RECEIVER: Vec3 = [2.6, 0, 2];
-const DESK: Vec3 = [-1.6, 0, -0.1];
-const NODE: Vec3 = [0.5, 0, -0.3];
-const NODE_H = 1.6;
-const CHAIN_Z = -3;
-const CUBE = 0.9;
-const GAP = 1.25;
-const OLD_BLOCKS = [-2.5, -1.25, 0, 1.25];
-const NEW_BLOCK: Vec3 = [2.5, 0, CHAIN_Z];
+  ACCT,
+  CHAIN_Z,
+  CUBE,
+  DESK,
+  GAP,
+  NEW_BLOCK,
+  NODE,
+  NODE_H,
+  OLD_BLOCKS,
+  RECEIVER,
+  SENDER,
+  shotFor,
+} from "./layout3d";
 
 /** Where the envelope rests after each phase. */
 const ENVELOPE_AT: Record<"none" | Light, Vec3> = {
@@ -61,30 +54,6 @@ const ENVELOPE_AT: Record<"none" | Light, Vec3> = {
   broadcast: [NODE[0], NODE_H + 0.02, NODE[2]],
   included: [NEW_BLOCK[0], CUBE + 0.02, CHAIN_Z],
   final: [NEW_BLOCK[0], CUBE + 0.02, CHAIN_Z],
-};
-
-/** One camera preset per step. */
-const OVERVIEW: CameraView = { position: [0, 9.6, 11.4], target: [0, 0.4, -0.8] };
-const AT_DESK: CameraView = { position: [-1, 7.4, 6.2], target: [-1.1, 0.5, -0.8] };
-const VIEWS: Record<number, CameraView> = {
-  [ACCOUNT]: { position: [0, 9.4, 11.4], target: [0, 0.4, -0.6] },
-  [BUILD]: AT_DESK,
-  [FEE]: AT_DESK,
-  [SIGN]: AT_DESK,
-  [SEND]: { position: [0.3, 9, 10.6], target: [0.2, 0.4, -1.2] },
-  [INCLUDED]: OVERVIEW,
-  [FINAL]: OVERVIEW,
-  [EXPLORER]: OVERVIEW,
-};
-
-/** Phones: a wide, short window, so the camera looks down more steeply and comes closer per step. */
-const OVERVIEW_PHONE: CameraView = { position: [0, 11, 7.2], target: [0, 0.2, -0.6] };
-const VIEWS_PHONE: Record<number, CameraView> = {
-  [ACCOUNT]: OVERVIEW_PHONE,
-  [BUILD]: { position: [-1.4, 6.6, 4.4], target: [-1.5, 0.4, -0.7] },
-  [FEE]: { position: [-1.4, 6.6, 4.4], target: [-1.5, 0.4, -0.7] },
-  [SIGN]: { position: [-1.6, 6.6, 4.4], target: [-1.7, 0.4, -0.7] },
-  [SEND]: { position: [1.2, 6.6, 4.4], target: [1.2, 0.5, -1.5] },
 };
 
 export default function Scene3D({
@@ -99,6 +68,11 @@ export default function Scene3D({
   const { step, lit, events, me, receiver, selfSend } = tx;
   const [picked, setPicked] = useState<"me" | "receiver" | null>(null);
   const phone = useMediaQuery("(max-width: 899px)");
+  // Fit the step's objects into the 3D window, whatever its size (desktop, tablet, phone).
+  const box = useRef<HTMLDivElement>(null);
+  const size = useBoxSize(box);
+  const frame = inset({ left: 0, top: 0, right: size.width, bottom: size.height }, { top: size.status });
+  const view = frameCamera(shotFor(step, phone), frame, size.width, size.height, 0.92, { nearFit: true });
   // On a phone's small window, the overview hides the object names so the balances stay readable.
   const quiet = phone && !(step >= BUILD && step <= SEND);
   const phase: "none" | Light = lit.final
@@ -135,120 +109,164 @@ export default function Scene3D({
   ].join(", ");
 
   return (
-    <InkStage
-      view={phone ? (VIEWS_PHONE[step] ?? OVERVIEW_PHONE) : (VIEWS[step] ?? OVERVIEW)}
-      flat={flat}
-      reducedMotion={reducedMotion}
-      state={tx.state}
-      status={tx.status ?? ""}
-      description={description}
-      onMiss={() => setPicked(null)}
-      minDistance={5}
-    >
-      {/* The two accounts. The coin is the amount you typed; it moves only when a block includes the transfer. */}
-      <AccountBlock
-        position={SENDER}
-        size={ACCT}
-        name={tx.senderNow !== null ? balance(tx.senderNow, tx.stage) : "…"}
-        pickLabel="Your practice account"
-        selected={picked === "me"}
-        onPick={() => setPicked((p) => (p === "me" ? null : "me"))}
-      />
-      <Label position={[SENDER[0], 0.25, SENDER[2] + ACCT / 2 + 0.45]} variant="small">
-        {phone || !me ? "you" : `you · ${short(me.accountId, 6, 4)}`}
-      </Label>
-      <AccountBlock
-        position={RECEIVER}
-        size={ACCT}
-        color={COLORS.blue}
-        name={selfSend ? "you again" : tx.receiverNow !== null ? near(tx.receiverNow) : "…"}
-        pickLabel="Receiver account"
-        selected={picked === "receiver"}
-        onPick={() => setPicked((p) => (p === "receiver" ? null : "receiver"))}
-      />
-      <Label position={[RECEIVER[0], 0.25, RECEIVER[2] + ACCT / 2 + 0.45]} variant="small">
-        {phone || !receiver ? "receiver" : short(receiver, 10, 6)}
-      </Label>
-      {picked ? (
-        <Label
-          position={[
-            picked === "me" ? SENDER[0] : RECEIVER[0],
-            0.25,
-            (picked === "me" ? SENDER : RECEIVER)[2] + 1.6,
-          ]}
-          variant="hint"
-        >
-          {picked === "me"
-            ? `your practice account ${me ? short(me.accountId, 6, 4) : ""}`
-            : selfSend
-              ? "the same account: you send to yourself"
-              : `the app's return account ${receiver ? short(receiver, 10, 6) : ""}`}
-        </Label>
-      ) : null}
-      {amount ? (
-        <Traveller
-          to={coinMoved ? [RECEIVER[0], ACCT + 0.08, RECEIVER[2]] : [SENDER[0], ACCT + 0.08, SENDER[2]]}
-          arc={2.4}
-          duration={1}
-          color={COLORS.gold}
-        >
-          <Coin />
-          <Label position={[0, -0.55, ACCT / 2 + 0.05]} variant="small">
-            {amount}
-          </Label>
-        </Traveller>
-      ) : null}
-
-      {/* Your device: where the transaction is built and signed, with no network. */}
-      <Desk
-        onPick={tx.canBuild ? tx.build : undefined}
-        hint={step === BUILD && !tx.built ? "press Build" : undefined}
-        quiet={quiet}
-      />
-      <group position={[DESK[0] - 1.2, 0.75, DESK[2] - 0.3]} scale={0.6}>
-        <Key
-          rotation={[0, -0.5, tx.signed ? -1.3 : -0.3]}
-          name={step === SIGN ? "your private key" : undefined}
-          pickLabel="Sign with your private key"
-          onPick={tx.canSign ? tx.sign : undefined}
-        />
-      </group>
-
-      {/* The RPC node: a server that passes the transaction into the network. */}
-      <RpcNode
-        onPick={tx.canSend ? tx.send : undefined}
-        failed={failed && phase === "broadcast"}
-        quiet={quiet}
-      />
-
-      {/* The chain: blocks in a row; a new one arrives with your transaction inside. */}
-      <Chain
-        included={events.included ? `#${events.included.blockHeight}` : null}
-        final={!!events.final}
-        quiet={quiet}
-      />
-
-      {/* The transaction itself. */}
-      <Traveller
-        to={ENVELOPE_AT[phase]}
-        arc={phase === "included" ? 3 : 2.2}
-        duration={0.9}
-        glow={phase !== "none"}
+    <div ref={box} className="stx-3d-box">
+      <InkStage
+        view={view}
+        flat={flat}
+        reducedMotion={reducedMotion}
+        state={tx.state}
+        status={tx.status ?? ""}
+        description={description}
+        onMiss={() => setPicked(null)}
+        minDistance={3}
+        maxDistance={140}
       >
-        <Envelope sealed={!!tx.signed} failed={failed} blank={phase === "none"} />
-        <EnvelopeLabels tx={tx} amount={amount} phase={phase} failed={failed} phone={phone} />
-      </Traveller>
-
-      {/* Stopwatch: the time of the latest real phase event, from the moment you pressed Send. */}
-      {step >= SEND && latest ? (
-        <Label position={phone ? [-2.4, 0.3, -1.5] : [NEW_BLOCK[0], 2.45, CHAIN_Z]} variant="hint">
-          {events.final
-            ? `stopwatch: final in ${duration(events.final.atMs)}`
-            : `stopwatch: +${duration(latest.atMs)}`}
+        <ViewOffset frame={frame} reducedMotion={reducedMotion} />
+        {/* The two accounts. The coin is the amount you typed; it moves only when a block includes the transfer. */}
+        <AccountBlock
+          position={SENDER}
+          size={ACCT}
+          name={tx.senderNow !== null ? balance(tx.senderNow, tx.stage) : "…"}
+          pickLabel="Your practice account"
+          selected={picked === "me"}
+          onPick={() => setPicked((p) => (p === "me" ? null : "me"))}
+        />
+        <Label position={[SENDER[0], 0.25, SENDER[2] + ACCT / 2 + 0.45]} variant="small">
+          {phone || !me ? "you" : `you · ${short(me.accountId, 6, 4)}`}
         </Label>
-      ) : null}
-    </InkStage>
+        {/* Where the step notes point (the 2D view marks its cards and lights with the same names). */}
+        <Anchor name="account" position={[SENDER[0] - ACCT * 0.3, ACCT * 0.6, SENDER[2]]} />
+        <Anchor name="sign" position={[DESK[0] - 1.2, 0.75, DESK[2] - 0.3]} />
+        <Anchor name="rpc" position={[NODE[0], NODE_H * 0.6, NODE[2]]} />
+        <Anchor name="block" position={[NEW_BLOCK[0], CUBE / 2, CHAIN_Z]} />
+        <Anchor name="final" position={[NEW_BLOCK[0], CUBE / 2, CHAIN_Z]} />
+        <AccountBlock
+          position={RECEIVER}
+          size={ACCT}
+          color={COLORS.blue}
+          name={selfSend ? "you again" : tx.receiverNow !== null ? near(tx.receiverNow) : "…"}
+          pickLabel="Receiver account"
+          selected={picked === "receiver"}
+          onPick={() => setPicked((p) => (p === "receiver" ? null : "receiver"))}
+        />
+        <Label position={[RECEIVER[0], 0.25, RECEIVER[2] + ACCT / 2 + 0.45]} variant="small">
+          {phone || !receiver ? "receiver" : short(receiver, 10, 6)}
+        </Label>
+        {picked ? (
+          <Label
+            position={[
+              picked === "me" ? SENDER[0] : RECEIVER[0],
+              0.25,
+              (picked === "me" ? SENDER : RECEIVER)[2] + 1.6,
+            ]}
+            variant="hint"
+          >
+            {picked === "me"
+              ? `your practice account ${me ? short(me.accountId, 6, 4) : ""}`
+              : selfSend
+                ? "the same account: you send to yourself"
+                : `the app's return account ${receiver ? short(receiver, 10, 6) : ""}`}
+          </Label>
+        ) : null}
+        {amount ? (
+          <Traveller
+            to={coinMoved ? [RECEIVER[0], ACCT + 0.08, RECEIVER[2]] : [SENDER[0], ACCT + 0.08, SENDER[2]]}
+            arc={2.4}
+            duration={1}
+            color={COLORS.gold}
+          >
+            <Coin />
+            <Label position={[0, -0.55, ACCT / 2 + 0.05]} variant="small">
+              {amount}
+            </Label>
+          </Traveller>
+        ) : null}
+
+        {/* Your device: where the transaction is built and signed, with no network. */}
+        <Desk
+          onPick={tx.canBuild ? tx.build : undefined}
+          hint={step === BUILD && !tx.built ? "press Build" : undefined}
+          quiet={quiet}
+        />
+        <group position={[DESK[0] - 1.2, 0.75, DESK[2] - 0.3]} scale={0.6}>
+          <Key
+            rotation={[0, -0.5, tx.signed ? -1.3 : -0.3]}
+            name={step === SIGN ? "your private key" : undefined}
+            pickLabel="Sign with your private key"
+            onPick={tx.canSign ? tx.sign : undefined}
+          />
+        </group>
+
+        {/* The RPC node: a server that passes the transaction into the network. */}
+        <RpcNode
+          onPick={tx.canSend ? tx.send : undefined}
+          failed={failed && phase === "broadcast"}
+          quiet={quiet}
+        />
+
+        {/* The chain: blocks in a row; a new one arrives with your transaction inside. */}
+        <Chain
+          included={events.included ? `#${events.included.blockHeight}` : null}
+          final={!!events.final}
+          quiet={quiet}
+        />
+
+        {/* The transaction itself. */}
+        <Traveller
+          to={ENVELOPE_AT[phase]}
+          arc={phase === "included" ? 3 : 2.2}
+          duration={0.9}
+          glow={phase !== "none"}
+        >
+          <Envelope sealed={!!tx.signed} failed={failed} blank={phase === "none"} />
+          <Anchor name="tx" position={[0, 0.15, 0]} />
+          <Anchor name="fee" position={[0, 0.15, 0]} />
+          {/* The explorer shows this transaction; 2D points at the explorer card instead. */}
+          <Anchor name="explorer" position={[0, 0.15, 0]} />
+          <EnvelopeLabels tx={tx} amount={amount} phase={phase} failed={failed} phone={phone} />
+        </Traveller>
+
+        {/* Stopwatch: the time of the latest real phase event, from the moment you pressed Send. */}
+        {step >= SEND && latest ? (
+          <Label position={phone ? [-2.4, 0.3, -1.5] : [NEW_BLOCK[0], 2.45, CHAIN_Z]} variant="hint">
+            {events.final
+              ? `stopwatch: final in ${duration(events.final.atMs)}`
+              : `stopwatch: +${duration(latest.atMs)}`}
+          </Label>
+        ) : null}
+      </InkStage>
+    </div>
   );
+}
+
+/**
+ * The size of the 3D window and the height of its status line (one or two lines), kept up to date as
+ * the layout or the status changes. The picture is fitted below the status line.
+ */
+function useBoxSize(ref: RefObject<HTMLElement | null>) {
+  const [size, setSize] = useState({ width: 640, height: 400, status: 40 });
+  const measure = useRef<() => void>(() => undefined);
+  measure.current = () => {
+    const el = ref.current;
+    if (!el) return;
+    const width = el.clientWidth || 640;
+    const height = el.clientHeight || 400;
+    const s = el.querySelector<HTMLElement>(".sk-status");
+    const status = s?.textContent ? s.offsetTop + s.offsetHeight + 6 : 12;
+    setSize((p) =>
+      p.width === width && p.height === height && p.status === status ? p : { width, height, status },
+    );
+  };
+  // After every render (the status text may have changed), and whenever the window resizes.
+  useLayoutEffect(() => measure.current());
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => measure.current());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return size;
 }
 
 /** "≈ 4.98955 NEAR" while gas is held, the plain balance otherwise (same as the 2D cards). */

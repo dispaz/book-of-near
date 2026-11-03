@@ -146,6 +146,7 @@ function TransactionScene({
       stage={tx.stage}
       moving={!!events.included}
       testnet={testnet}
+      explain={!three}
     />
   );
 
@@ -213,6 +214,7 @@ function TransactionScene({
             testnet={testnet}
             explored={tx.explored}
             failed={!!error}
+            flat={!three}
           />
         )}
       </div>
@@ -311,6 +313,7 @@ function Accounts({
   stage,
   moving,
   testnet,
+  explain,
 }: {
   /** Also show on narrow screens (where balances move); otherwise wide screens only. */
   narrow: boolean;
@@ -323,10 +326,16 @@ function Accounts({
   stage: BalanceStage;
   moving: boolean;
   testnet: boolean;
+  /** The sender card is what the first step's note points at (2D only; 3D points at the account block). */
+  explain: boolean;
 }) {
   return (
     <div className={`stx-accounts${narrow ? "" : " wide-only"}`}>
-      <section className="stx-acct" aria-label="Your practice account">
+      <section
+        className="stx-acct"
+        aria-label="Your practice account"
+        data-explain={explain ? "account" : undefined}
+      >
         <p className="stx-acct-role">
           From · your practice account <span className="stx-net">{testnet ? "testnet" : "demo"}</span>
         </p>
@@ -509,6 +518,7 @@ function Detail({
   testnet,
   explored,
   failed,
+  flat,
 }: {
   step: number;
   me: PracticeAccount | null;
@@ -527,8 +537,11 @@ function Detail({
   explored: boolean;
   /** Sending stopped with an error. */
   failed: boolean;
+  /** 2D view: these facts are also what the step's note points at (3D points at its objects instead). */
+  flat: boolean;
 }) {
   const pending = <span className="stx-pending">fills in when you press Build</span>;
+  const mark = (name: string) => (flat ? name : undefined);
   if (step === ACCOUNT)
     return (
       <section className="stx-detail" aria-label="Practice account">
@@ -554,7 +567,7 @@ function Detail({
     );
   if (step === BUILD)
     return (
-      <section className="stx-detail" aria-label="The transaction">
+      <section className="stx-detail" aria-label="The transaction" data-explain={mark("tx")}>
         <p className="stx-detail-title">The transaction{built ? "" : " (not built yet)"}</p>
         <dl>
           <Field label="Nonce" testId="tx-nonce">
@@ -576,7 +589,12 @@ function Detail({
     );
   if (step === FEE)
     return (
-      <section className="stx-detail" aria-label="Gas and fee" data-testid="fee-panel">
+      <section
+        className="stx-detail"
+        aria-label="Gas and fee"
+        data-testid="fee-panel"
+        data-explain={mark("fee")}
+      >
         <p className="stx-detail-title">Gas and the fee for one transfer</p>
         <dl>
           <Field label="Gas">{TRANSFER_TGAS} Tgas (1 Tgas = 10¹² gas)</Field>
@@ -589,7 +607,7 @@ function Detail({
     );
   if (step === SIGN)
     return (
-      <section className="stx-detail" aria-label="Signature">
+      <section className="stx-detail" aria-label="Signature" data-explain={mark("sign")}>
         <p className="stx-detail-title">Signed on your device</p>
         <dl>
           <Field label="Transaction ID (its hash)" testId="tx-hash" wide>
@@ -614,7 +632,7 @@ function Detail({
     );
   if (step === SEND)
     return (
-      <section className="stx-detail" aria-label="Broadcast">
+      <section className="stx-detail" aria-label="Broadcast" data-explain={mark("rpc")}>
         <p className="stx-detail-title">Broadcast through an RPC node</p>
         <dl>
           <Field label="RPC node" testId="tx-node" wide>
@@ -643,7 +661,7 @@ function Detail({
     );
   if (step === INCLUDED)
     return (
-      <section className="stx-detail" aria-label="Included in a block">
+      <section className="stx-detail" aria-label="Included in a block" data-explain={mark("block")}>
         <p className="stx-detail-title">Included in a block</p>
         {events.included ? (
           <div className="stx-block" data-testid="inclusion-block">
@@ -670,7 +688,7 @@ function Detail({
     return (
       <section className="stx-detail" aria-label="Final">
         <p className="stx-detail-title">Final</p>
-        <p className="stx-stopwatch">
+        <p className="stx-stopwatch" data-explain={mark("final")}>
           <span data-testid="time-to-final">{events.final ? duration(events.final.atMs) : "…"}</span>
           <small>from Send to Final{testnet ? ", measured just now" : " (recorded demo timing)"}</small>
         </p>
@@ -703,7 +721,7 @@ function Detail({
     const url = explorerUrl(outcome.transaction.hash);
     if (testnet)
       return (
-        <section className="stx-detail" aria-label="Block explorer">
+        <section className="stx-detail" aria-label="Block explorer" data-explain={mark("explorer")}>
           <p className="stx-detail-title">Your transaction on NearBlocks</p>
           <p>
             <a href={url} target="_blank" rel="noreferrer" data-testid="explorer-url">
@@ -716,7 +734,7 @@ function Detail({
         </section>
       );
     return (
-      <section className="stx-detail" aria-label="Block explorer">
+      <section className="stx-detail" aria-label="Block explorer" data-explain={mark("explorer")}>
         <p className="stx-detail-title">{explored ? "Demo explorer (not NearBlocks)" : "Block explorer"}</p>
         {explored ? (
           <dl className="stx-explorer" data-testid="demo-explorer">

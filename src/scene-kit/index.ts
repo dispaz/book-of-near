@@ -25,3 +25,14 @@ export { useStage } from "./context";
 export { inkMaterial, hullMaterial } from "./materials";
 export { arcPoint, easeInOut, fitView, isClick, toFlat, type CameraView, type Vec3 } from "./motion";
 export { COLORS, INK } from "./theme";
+export {
+  fovFor,
+  frameCamera,
+  inset,
+  pullBackFor,
+  viewOffset,
+  type Focus,
+  type Frame,
+  type Reserve,
+} from "./framing";
+export { ViewOffset } from "./ViewOffset";

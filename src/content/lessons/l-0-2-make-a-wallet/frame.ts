@@ -1,49 +1,63 @@
 import { useEffect, useState, type RefObject } from "react";
-
-/** A rectangle in the scene's own coordinates (px from its top-left corner). */
-export interface Frame {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
+import type { Frame } from "../../../scene-kit/framing";
 
 type Box = Pick<DOMRect, "left" | "top" | "right" | "bottom">;
 
 const GAP = 12;
-const area = (f: Frame) => Math.max(0, f.w) * Math.max(0, f.h);
+/** On wide screens the left page margin holds the step's note (StepNote), so the picture starts after it. */
+const NOTE_MARGIN = 420;
+
+/** The narrowest picture worth drawing between the note margin and the panel. */
+const MIN_PAGE = 300;
+
+type Parts = { head?: Box; panel?: Box; dock?: Box; bar?: Box };
+
+/** Where the picture starts on wide screens: right of the note margin (or the docked card). */
+const pageLeft = (dock?: Box) => Math.max(dock ? dock.right : 0, NOTE_MARGIN) + 24;
 
 /**
- * The biggest free part of the screen that the lesson's title, panel, step card and stage bar leave
- * open. The 3D view centres its picture there, so objects never hide behind the cards.
- * All boxes are relative to the scene (width W, height H).
+ * Whether the page between the note margin and the panel is wide enough for the picture. If not
+ * (tablets), the step's note stays docked and the picture takes the left column instead.
  */
-export function freeFrame(
-  W: number,
-  H: number,
-  parts: { title?: Box; panel?: Box; dock?: Box; bar?: Box },
-): Frame {
-  const { title, panel, dock, bar } = parts;
-  const top = (title ? title.bottom : 0) + GAP;
+export function hasNoteRoom(W: number, { panel, dock }: Parts): boolean {
+  if (!panel || panel.left <= W / 2) return true;
+  return panel.left - 24 - pageLeft(dock) >= MIN_PAGE;
+}
+
+/**
+ * The free part of the screen that the lesson's header (title, pills, step heading), the panel, the
+ * docked controls and the stage bar leave open. The 3D view fits its picture there, so objects never
+ * hide behind the cards or the note. All boxes are relative to the scene (width W, height H).
+ */
+export function freeFrame(W: number, H: number, parts: Parts): Frame {
+  const { head, panel, dock, bar } = parts;
+  const top = (head ? head.bottom : 0) + GAP;
   const bottom = (bar ? bar.top : H) - GAP;
-  const dockTop = dock ? dock.top - GAP : bottom;
   if (panel && panel.left > W / 2) {
-    // Wide screens: the panel stands on the right, the step card at the bottom left.
-    const right = panel.left - GAP;
-    const above: Frame = { x: GAP, y: top, w: right - GAP, h: Math.min(bottom, dockTop) - top };
-    const beside: Frame = dock
-      ? { x: dock.right + GAP, y: top, w: right - dock.right - GAP, h: bottom - top }
-      : above;
-    return area(beside) > area(above) ? beside : above;
+    if (!hasNoteRoom(W, parts))
+      // Tablets: the note docks bottom left, so the picture gets the column above it.
+      return { left: GAP, top, right: panel.left - 24, bottom: dock ? dock.top - GAP : bottom };
+    // Wide screens: the note margin on the left, the panel on the right, the page in between.
+    const left = pageLeft(dock);
+    return { left, top, right: Math.max(left + 80, panel.left - 24), bottom };
   }
   // Narrow screens: everything is stacked, so the picture gets the band between panel and step card.
   const t = panel ? Math.max(top, panel.bottom + GAP) : top;
-  return { x: GAP, y: t, w: W - 2 * GAP, h: Math.min(bottom, dockTop) - t };
+  return { left: GAP, top: t, right: W - GAP, bottom: Math.min(bottom, dock ? dock.top - GAP : bottom) };
+}
+
+/** The free frame inside a scene of `width` x `height` pixels. */
+export interface Measured {
+  frame: Frame;
+  width: number;
+  height: number;
+  /** Room for the step note in the left margin beside the picture (see hasNoteRoom). */
+  noteRoom: boolean;
 }
 
 /** Watches the lesson's cards and returns the free frame inside `root`. Re-measures when they move. */
-export function useFreeFrame(root: RefObject<HTMLElement | null>, deps: unknown[]): Frame | null {
-  const [frame, setFrame] = useState<Frame | null>(null);
+export function useFreeFrame(root: RefObject<HTMLElement | null>, deps: unknown[]): Measured | null {
+  const [frame, setFrame] = useState<Measured | null>(null);
   useEffect(() => {
     const el = root.current;
     const lesson = el?.closest(".lesson");
@@ -61,21 +75,25 @@ export function useFreeFrame(root: RefObject<HTMLElement | null>, deps: unknown[
           bottom: b.bottom - r.top,
         };
       };
-      const title = rel(pick(".lesson-title"));
-      const tools = rel(pick(".lesson-tools"));
-      const head = rel(pick(".step-head"));
-      const bottom = Math.max(title?.bottom ?? 0, tools?.bottom ?? 0, head?.bottom ?? 0);
-      const next = freeFrame(r.width, r.height, {
-        title: title ? { ...title, bottom } : title,
+      const bottom = Math.max(
+        ...[".lesson-title", ".lesson-tools", ".step-head"].map((sel) => rel(pick(sel))?.bottom ?? 0),
+      );
+      const parts = {
+        head: { left: 0, top: 0, right: r.width, bottom },
         panel: rel(pick(".lesson-panel", el)),
         dock: rel(pick(".lesson-dock")),
         bar: rel(pick(".stage-bar")),
-      });
+      };
+      const f = freeFrame(r.width, r.height, parts);
+      const noteRoom = hasNoteRoom(r.width, parts);
       setFrame((prev) =>
         prev &&
-        ["x", "y", "w", "h"].every((k) => Math.abs(prev[k as keyof Frame] - next[k as keyof Frame]) < 1)
+        prev.noteRoom === noteRoom &&
+        Math.abs(prev.width - r.width) < 1 &&
+        Math.abs(prev.height - r.height) < 1 &&
+        (["left", "top", "right", "bottom"] as const).every((k) => Math.abs(prev.frame[k] - f[k]) < 1)
           ? prev
-          : next,
+          : { frame: f, width: r.width, height: r.height, noteRoom },
       );
     };
     measure();

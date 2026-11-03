@@ -1,10 +1,22 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
-import { Anchor, Coin, InkStage, Label, Traveller, type Vec3 } from "../../../scene-kit";
+import {
+  Anchor,
+  Coin,
+  frameCamera,
+  InkStage,
+  inset,
+  Label,
+  Traveller,
+  ViewOffset,
+  type Focus,
+  type Frame,
+  type Reserve,
+  type Vec3,
+} from "../../../scene-kit";
 import { PEOPLE, shortHash, START, type Chain, type Person, type Tx } from "./ledger";
 import { AUTO_TAMPER_NOTE, BlockDetails, COMPARE_RESULT, EditAmount, useHotLines } from "./parts";
-import { frameCamera, inset, viewOffset, type Focus, type Frame, type Reserve } from "./framing";
 import {
   BD,
   BH,
@@ -363,32 +375,6 @@ function useFreeFrame(
     return () => ro.disconnect();
   }, [root, panel]);
   return m;
-}
-
-/** Shifts the picture so the camera's target sits in the middle of the free frame (eased). */
-function ViewOffset({ frame, reducedMotion }: { frame: Frame; reducedMotion: boolean }) {
-  const camera = useThree((s) => s.camera);
-  const size = useThree((s) => s.size);
-  const cur = useRef<{ x: number; y: number } | null>(null);
-  const goal = viewOffset(frame, size.width, size.height);
-  useFrame(() => {
-    const c = cur.current ?? goal;
-    const k = reducedMotion || !cur.current ? 1 : 0.1;
-    const x = Math.abs(goal.x - c.x) < 0.5 ? goal.x : c.x + (goal.x - c.x) * k;
-    const y = Math.abs(goal.y - c.y) < 0.5 ? goal.y : c.y + (goal.y - c.y) * k;
-    const v = (camera as { view?: { offsetX: number; offsetY: number; fullWidth: number } | null }).view;
-    if (cur.current && v && v.offsetX === x && v.offsetY === y && v.fullWidth === size.width) return;
-    cur.current = { x, y };
-    if ("setViewOffset" in camera)
-      camera.setViewOffset(size.width, size.height, x, y, size.width, size.height);
-  });
-  useEffect(
-    () => () => {
-      if ("clearViewOffset" in camera) camera.clearViewOffset();
-    },
-    [camera],
-  );
-  return null;
 }
 
 /** Everything in the scene for the current step. */

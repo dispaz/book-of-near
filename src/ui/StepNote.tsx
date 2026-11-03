@@ -37,6 +37,11 @@ function edgePoint(r: Rect, x: number, y: number): [number, number] {
   return [x, r.bottom];
 }
 
+/** Whether the note can sit in the `margin` column beside the element (the element is right of it). */
+export function fitsMargin(anchor: Rect, size: { w: number; h: number }, margin: Rect): boolean {
+  return anchor.left > margin.right + 24 && margin.bottom - margin.top >= size.h;
+}
+
 /**
  * Where the note goes. With a `margin` column (the page margin the scene keeps free) and the element to
  * its right, the note sits in the margin level with the element, so it never covers the scene. Otherwise
@@ -52,7 +57,7 @@ export function placeNote(
   const { w, h } = size;
   const ax = (anchor.left + anchor.right) / 2;
   const ay = (anchor.top + anchor.bottom) / 2;
-  if (margin && anchor.left > margin.right + 24 && margin.bottom - margin.top >= h) {
+  if (margin && fitsMargin(anchor, size, margin)) {
     const x = margin.left;
     const y = Math.min(margin.bottom - h, Math.max(margin.top, ay - h / 2));
     return arrowFor(anchor, { left: x, top: y, right: x + w, bottom: y + h });
@@ -153,7 +158,11 @@ export function StepNote({
       raf = requestAnimationFrame(tick);
       const el = layer.querySelector(`[data-explain="${anchor}"]`);
       const c = card.current;
-      if (!el || !c) {
+      const a = el?.getBoundingClientRect();
+      // A scene without room for margin notes at this size marks itself data-notes="dock"; an element
+      // hidden by CSS has no size. Both keep the note in the dock.
+      const hidden = !a || (a.width === 0 && a.height === 0);
+      if (hidden || !c || layer.querySelector('[data-notes="dock"]')) {
         // Give the scene a moment to draw the element; then fall back to the dock.
         if (++misses > 20 && last !== "none") {
           last = "none";
@@ -163,7 +172,6 @@ export function StepNote({
       }
       misses = 0;
       const L = layer.getBoundingClientRect();
-      const a = el.getBoundingClientRect();
       const rel = (r: DOMRect): Rect => ({
         left: r.left - L.left,
         top: r.top - L.top,
@@ -187,7 +195,17 @@ export function StepNote({
         right: 16 + (c.offsetWidth || W),
         bottom: (dock ? rel(dock.getBoundingClientRect()).top : free.bottom) - 14,
       };
-      const g = placeNote(rel(a), { w: c.offsetWidth || W, h: c.offsetHeight || 120 }, free, avoid, margin);
+      const size = { w: c.offsetWidth || W, h: c.offsetHeight || 120 };
+      // The note lives in the margin or in the dock, never on top of the page. If the element is not
+      // right of the margin (or the margin is too short), treat it like a missing element: dock.
+      if (!fitsMargin(rel(a), size, margin)) {
+        if (++misses > 20 && last !== "none") {
+          last = "none";
+          setGeo(null);
+        }
+        return;
+      }
+      const g = placeNote(rel(a), size, free, avoid, margin);
       const key = `${Math.round(g.x)},${Math.round(g.y)},${g.path}`;
       if (key !== last) {
         last = key;
