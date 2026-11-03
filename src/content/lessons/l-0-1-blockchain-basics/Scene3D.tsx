@@ -28,6 +28,7 @@ import {
   CHECK,
   COMPARE,
   HASH,
+  HONEST,
   LINKS,
   MAX_BLOCKS,
   NOTEBOOK,
@@ -218,7 +219,11 @@ export default function Scene3D({
   const summary = step >= CHECK;
   const { frame, size, wide } = useFreeFrame(root, panel, summary);
   const g = frame.right - frame.left < 620 ? SNAKE : ROW;
-  const shot = shotFor(step, g, step === BLOCKS && m.selected !== null);
+  const shot = shotFor(
+    step,
+    g,
+    (step === BLOCKS && m.selected !== null) || (step === HONEST && m.peek !== null),
+  );
   // Narrow screens show the balances as one line of pills above the scene (not beside the hash panel).
   const strip = g.compact && step >= SEND && step <= LINKS && step !== HASH;
   const stripH = strip ? 34 : 0;
@@ -567,8 +572,11 @@ function ChainBlocks({
   const check = m.check;
   const showHash = step >= HASH;
   const showPrev = step >= LINKS;
-  const pickable = step === BLOCKS || step === HASH;
-  const selected = step === HASH ? 1 : m.selected;
+  // The finished chain at the honest take can be explored block by block, like step 3.
+  const explore = step === HONEST;
+  const pickable = step === BLOCKS || step === HASH || explore;
+  const selected = step === HASH ? 1 : explore ? m.peek : m.selected;
+  const pickFn = explore ? m.peekBlock : m.pickBlock;
   const editing = step === TAMPER;
   const first = g.block(0);
   const second = g.block(1);
@@ -608,7 +616,7 @@ function ChainBlocks({
                   ? {
                       label: `Open block #${b.height}`,
                       selected: selected === b.height,
-                      onPick: () => m.pickBlock(b.height),
+                      onPick: () => pickFn(b.height),
                     }
                   : undefined
               }
@@ -643,8 +651,12 @@ function ChainBlocks({
                   </span>
                 ) : null}
               </Tag>
-              {step === BLOCKS && selected === b.height ? (
-                <Slip reducedMotion={reducedMotion} lift={g.compact ? 0.3 : 2.3} side={g.compact ? 0 : 1.4}>
+              {(step === BLOCKS || explore) && selected === b.height ? (
+                <Slip
+                  reducedMotion={reducedMotion}
+                  lift={explore ? 0.9 : g.compact ? 0.3 : 2.3}
+                  side={g.compact ? 0 : explore ? 0.9 : 1.4}
+                >
                   <BlockPopup n={b.height} text={b.text} />
                 </Slip>
               ) : null}

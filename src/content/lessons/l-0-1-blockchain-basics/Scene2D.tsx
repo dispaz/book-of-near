@@ -6,6 +6,7 @@ import {
   CHECK,
   COMPARE,
   HASH,
+  HONEST,
   LINKS,
   NOTEBOOK,
   SEND,
@@ -68,23 +69,23 @@ export default function Scene2D({
           honest={m.honestHashes}
           showHash={step >= HASH}
           showPrev={step >= LINKS}
-          pickable={step === BLOCKS || step === HASH}
-          selected={step === HASH ? 1 : m.selected}
+          pickable={step === BLOCKS || step === HASH || step === HONEST}
+          selected={step === HASH ? 1 : step === HONEST ? m.peek : m.selected}
           hint={step === BLOCKS && !m.saw1 ? 1 : null}
           editing={step === TAMPER}
           tamperText={m.tamperText}
           tamperTo={m.tamperTo}
           waiting={!m.benDiffers}
           onEdit={m.editAmount}
-          onPick={m.pickBlock}
+          onPick={step === HONEST ? m.peekBlock : m.pickBlock}
           title={step === TAMPER ? "Ben's copy" : summary ? "The honest chain" : "The chain"}
         />
       ) : null}
 
-      {(step === BLOCKS && m.selected !== null) || step === HASH ? (
+      {(step === BLOCKS && m.selected !== null) || step === HASH || (step === HONEST && m.peek !== null) ? (
         <BlockDetails
           chain={chain}
-          n={step === HASH ? 1 : m.selected!}
+          n={step === HASH ? 1 : step === HONEST ? m.peek! : m.selected!}
           withHash={step === HASH}
           sandbox={m.sandbox}
           onSandbox={m.setSandbox}

@@ -46,6 +46,8 @@ export function useLedgerLesson({
   const [ben, setBen] = useState<Chain | null>(null);
   const [opened, setOpened] = useState<Person | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
+  // The block opened on the finished chain (honest take step): free to explore, no gate.
+  const [peek, setPeek] = useState<number | null>(null);
   const [saw1, setSaw1] = useState(false);
   const [sandbox, setSandboxText] = useState<string | null>(null);
   const [hashChanged, setHashChanged] = useState(false);
@@ -151,6 +153,7 @@ export function useLedgerLesson({
     // what the learner did
     opened,
     selected,
+    peek,
     saw1,
     sandbox: sandbox ?? block1?.text ?? "",
     tamperText: tamperText ?? String(block1?.tx?.amount ?? ""),
@@ -164,6 +167,10 @@ export function useLedgerLesson({
     status,
     // actions
     openNotebook: setOpened,
+    /** Opens a block of the finished chain; picking the open one closes it. */
+    peekBlock(n: number) {
+      setPeek((p) => (p === n ? null : n));
+    },
     pickBlock(n: number) {
       setSelected(n);
       if (n === 1) setSaw1(true);

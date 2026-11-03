@@ -196,6 +196,18 @@ test.describe(`lesson ${ID}`, () => {
     });
   }
 
+  for (const view of VIEWS) {
+    test(`the finished chain at the honest take can be opened block by block (${view})`, async ({ page }) => {
+      await page.goto(`/lesson/${ID}?view=${view}&step=9`);
+      await expect(scene(page)).toHaveAttribute("data-view", view, { timeout: LOAD_3D });
+      await pick(page, "Open block #2");
+      await expect(page.getByRole("region", { name: "Block #2" })).toContainText("Ben->Cora 2");
+      await pick(page, "Open block #0");
+      await expect(page.getByRole("region", { name: "Block #0" })).toContainText("Ana 10");
+      await expect(page.getByRole("region", { name: "Block #2" })).toHaveCount(0);
+    });
+  }
+
   test("the quiz opens in the middle and minimises to show the summary page", async ({ page }) => {
     await page.goto(`/lesson/${ID}?view=2d&step=8`);
     const quiz = page.getByRole("dialog", { name: "Quick check" });
