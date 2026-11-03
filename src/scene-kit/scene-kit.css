@@ -10,20 +10,18 @@
 .sk-stage canvas {
   touch-action: none;
 }
-/* Pop-up book (PopUp.tsx): labels wait while the page turns and the outlines rise, then fade in with
-   the fill. Lessons do the same for their own drei <Html> tags. */
-.sk-overlay {
-  transition: opacity 0.4s ease-out;
-}
-.sk-stage:is([data-pop="turn"], [data-pop="rise"]) .sk-overlay {
-  opacity: 0;
-  transition: none;
-}
 .sk-overlay {
   position: absolute;
   inset: 0;
   pointer-events: none;
   overflow: hidden;
+  transition: opacity 0.4s ease-out;
+}
+/* Pop-up book (PopUp.tsx): labels wait while the page turns and the outlines rise, then fade in with
+   the fill. Lessons do the same for their own drei <Html> tags. */
+.sk-stage:is([data-pop="turn"], [data-pop="rise"]) .sk-overlay {
+  opacity: 0;
+  transition: none;
 }
 .sk-anchor {
   position: absolute;

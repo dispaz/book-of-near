@@ -755,7 +755,7 @@ body:has(.lesson) {
 .lesson[data-spread] .step-label {
   font-size: calc(11px * var(--k));
   letter-spacing: 0.16em;
-  color: color-mix(in srgb, var(--accent) 55%, #9b1c1c);
+  color: color-mix(in srgb, var(--accent) 70%, var(--ink));
 }
 .lesson[data-spread] .step-label .your-turn {
   color: inherit;
@@ -789,7 +789,7 @@ body:has(.lesson) {
   float: left;
   margin: 0.06em 0.08em 0 0;
   font: 700 3.1em/0.8 var(--serif);
-  color: color-mix(in srgb, var(--accent) 55%, #9b1c1c);
+  color: color-mix(in srgb, var(--accent) 70%, var(--ink));
 }
 /* The step's action: a "Try it" box under the text, like an exercise in a workbook. */
 .lesson[data-spread] .lesson-dock .action-slot {
@@ -809,7 +809,7 @@ body:has(.lesson) {
   font: 700 calc(11px * var(--k)) var(--ui);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--accent) 55%, #9b1c1c);
+  color: color-mix(in srgb, var(--accent) 70%, var(--ink));
 }
 .lesson[data-spread] .lesson-dock .action-slot:empty {
   display: none;

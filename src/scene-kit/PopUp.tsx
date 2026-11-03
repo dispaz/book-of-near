@@ -10,12 +10,10 @@ import {
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import { REVEAL } from "./materials";
-import { popState, POP, type PopFrame, type PopKind } from "./pop";
-
-const DONE: PopFrame = { scale: 1, reveal: 1, turn: null, done: true };
+import { popState, POP_DONE, type PopFrame, type PopKind } from "./pop";
 
 /** The pop-up book's current frame (figure height, fill, turning page), updated every frame. */
-export const PopContext = createContext<RefObject<PopFrame>>({ current: DONE });
+export const PopContext = createContext<RefObject<PopFrame>>({ current: POP_DONE });
 export const usePop = () => useContext(PopContext);
 
 /**
@@ -34,7 +32,7 @@ export function usePopDriver({
   reducedMotion: boolean;
   wrap: RefObject<HTMLElement | null>;
 }) {
-  const frame = useRef<PopFrame>(grow && !reducedMotion ? popState(0, "grow") : DONE);
+  const frame = useRef<PopFrame>(grow && !reducedMotion ? popState(0, "grow") : POP_DONE);
   const run = useRef<{ kind: PopKind; t0: number | null } | null>(
     grow && !reducedMotion ? { kind: "grow", t0: null } : null,
   );
@@ -54,17 +52,18 @@ export function usePopDriver({
   const phase = useRef<string | null>(null);
   const tick = (now: number) => {
     const r = run.current;
-    let next = DONE;
+    let next = POP_DONE;
     if (r && !reducedMotion) {
       r.t0 ??= now;
       next = popState(now - r.t0, r.kind);
       if (next.done) run.current = null;
     }
     frame.current = next;
+    // REVEAL is shared by every ink material, but each canvas runs its frame callbacks and then renders
+    // before the next canvas does (R3F's loop), so writing it EVERY frame, first (priority -1), keeps
+    // two stages from showing each other's fill. Do not skip the write when the value is unchanged.
     REVEAL.value = next.reveal;
-    const t = r && r.t0 !== null ? now - r.t0 + (r.kind === "grow" ? POP.riseStart - 0.35 : 0) : null;
-    const p =
-      next.done || t === null ? null : next.turn !== null ? "turn" : t < POP.fillStart ? "rise" : "fill";
+    const p = next.phase;
     if (p !== phase.current) {
       phase.current = p;
       if (p) wrap.current?.setAttribute("data-pop", p);

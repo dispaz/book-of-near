@@ -18,7 +18,9 @@ Never import `src/scene-kit` (the 3D half) from a manifest, the app shell or the
 
 | Component | Notes |
 | --- | --- |
-| `<InkStage view flat reducedMotion state description status? onMiss?>` | Canvas wrapper: paper ground, camera rig, orbit, overlay. Exposes `data-scene-state={state}`, `data-view` and `data-camera="moving"\|"still"` on `.sk-stage`. `status` is a handwritten, `aria-live` note top right. |
+| `<InkStage view flat reducedMotion state description status? onMiss? backdrop? page?>` | Canvas wrapper: paper ground (or `backdrop`, e.g. a `BookBackdrop`), camera rig, orbit, overlay. Exposes `data-scene-state={state}`, `data-view`, `data-camera="moving"\|"still"` and, during the pop-up, `data-pop="turn"\|"rise"\|"fill"` on `.sk-stage`. `status` is a handwritten, `aria-live` note top right. A new `page` (e.g. the step) turns the page and pops the figure up again. |
+| `<BookBackdrop spread heads? folios? caption?>` | An open pop-up book on a desk for the scene to stand on (pages at y = 0). Size it with `spreadFor` (spine at x = 0) or `spreadBeside` (figure on the right page, left page free for print). Objects cast hatched ink shadows; a page curls over when `InkStage`'s `page` changes. |
+| `<PrintOnPage block el place onInView>` | Prints an HTML element on the left page (`textBlock(spread)`), following it in perspective; reports when the block leaves the screen so the caller can lay the words out normally again. Used with the app's `SpreadContext`. |
 | `<AccountBlock name color? size? coins? note?>` | Rounded ink block with soft shadow and a name label. |
 | `<ContractBlock name …>` | Block with a lid and a `{ code }` plate. |
 | `<ShardSlab name length? depth?>` | Long slab; label at its left end. |
@@ -38,6 +40,16 @@ with it (`getByRole("button", { name: "Ben's account" }).press("Enter")`). It tu
 (jumps under reduced motion). `flat` looks straight down at the same target and turns off rotation.
 Orbit has no pan and clamped distance/angle; once the learner drags, the rig lets go until the step
 changes. Narrow screens pull the camera back automatically (`fitView`).
+
+**Pop-up book.** `pop.ts` is the timeline (fold flat → page turns → outlines rise → hatching fills in),
+`PopUp.tsx` drives it. The fill is the `REVEAL` uniform shared by all ink materials; each stage writes it
+every frame before it renders, so stages never see each other's value. No turn or pop-up under reduced
+motion. A scene can add controls to the stage bar (e.g. lesson 0.1's tour play button) through `BarSlot`.
+
+**Colours.** Objects follow the ink rule: paper white, black outlines, the stage accent for meaning.
+The book backdrop is the exception: its gold cloth cover, navy ribbon, sage felt mat, ash table and warm
+window light are the setting, not part of the drawing, and stay the same on every stage. Print on the
+page uses the stage accent darkened with ink.
 
 ## SVG primitives
 

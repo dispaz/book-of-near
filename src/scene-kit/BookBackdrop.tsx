@@ -465,10 +465,12 @@ function stackGeometry(side: -1 | 1, W: number, D: number) {
   return g;
 }
 
-let edgeMat: ShaderMaterial | null = null;
-/** Page edges: fine lines that follow the curve of the pages, shaded like the ink material. */
+/**
+ * Page edges: fine lines that follow the curve of the pages, shaded like the ink material.
+ * One per page (it holds the page width), so books of different sizes never share it.
+ */
 function pageEdgeMaterial(W: number) {
-  edgeMat ??= new ShaderMaterial({
+  return new ShaderMaterial({
     uniforms: {
       uW: { value: W },
       uC: { value: new Vector3(0.937, 0.906, 0.827) },
@@ -499,8 +501,6 @@ function pageEdgeMaterial(W: number) {
         gl_FragColor = vec4(c, 1.0);
       }`,
   });
-  edgeMat.uniforms.uW!.value = W;
-  return edgeMat;
 }
 
 function Page({
@@ -517,6 +517,16 @@ function Page({
   const dpr = useThree((s) => s.viewport.dpr);
   const sheet = useMemo(() => pageGeometry(side, W, D), [side, W, D]);
   const stack = useMemo(() => stackGeometry(side, W, D), [side, W, D]);
+  const edges = useMemo(() => pageEdgeMaterial(W), [W]);
+  // A resize can swap the spread (row ↔ loop layout): free the old page's GPU buffers.
+  useEffect(
+    () => () => {
+      sheet.dispose();
+      stack.dispose();
+    },
+    [sheet, stack],
+  );
+  useEffect(() => () => edges.dispose(), [edges]);
   const fonts = useFontsReady();
   const { head, folio, caption } = print;
   const tex = useMemo(
@@ -552,13 +562,7 @@ function Page({
   }, [side, W, D]);
   return (
     <group>
-      <mesh
-        geometry={stack}
-        material={pageEdgeMaterial(W)}
-        castShadow
-        raycast={noRaycast}
-        userData={BOOK_PART}
-      />
+      <mesh geometry={stack} material={edges} castShadow raycast={noRaycast} userData={BOOK_PART} />
       <mesh geometry={sheet} raycast={noRaycast} userData={BOOK_PART}>
         <meshBasicMaterial map={tex} />
       </mesh>

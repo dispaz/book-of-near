@@ -333,7 +333,10 @@ const SHOT_SECONDS = 3.4;
  */
 const HEADS: [string, string] = ["Lesson 0.1", "How a blockchain works"];
 
-/** Caption printed at the foot of the right page, one per step. Decoration: it repeats the step. */
+/**
+ * Caption printed at the foot of the right page, one per spread (index: `Math.min(step, CHECK)`, the
+ * quiz and the honest take share the last spread). Decoration: it repeats the step.
+ */
 const FIGURES = [
   "Fig. 1  Three copies of one ledger",
   "Fig. 2  A transaction changes every copy",
@@ -342,7 +345,6 @@ const FIGURES = [
   "Fig. 5  Each block stores the hash before it",
   "Fig. 6  Ben edits an old block",
   "Fig. 7  Three copies, compared",
-  "Fig. 8  The honest chain",
   "Fig. 8  The honest chain",
 ];
 
@@ -384,17 +386,24 @@ export default function Scene3D({
     g,
     (step === BLOCKS && m.selected !== null) || (step === HONEST && m.peek !== null),
   );
-  // Wide screens print the step on the left page: the lesson page lays its words out as print.
-  const setSpread = useContext(SpreadContext);
-  useEffect(() => {
-    setSpread(print);
-    return () => setSpread(false);
-  }, [print, setSpread]);
   // Narrow screens show the balances as one line of pills above the scene (not beside the hash panel).
   const strip = g.compact && step >= SEND && step <= LINKS && step !== HASH;
   const stripH = strip ? 34 : 0;
   const inner = inset({ ...frame, top: frame.top + stripH }, shot.reserve);
   const tour = useTour(m);
+  // Wide screens print the step on the left page: the lesson page lays its words out as print. During
+  // a tour close-up, or when the learner orbits the page out of sight, the words go back to their usual
+  // docked place, so the step's text and its controls stay readable and usable.
+  const spread = useContext(SpreadContext);
+  const [pageInView, setPageInView] = useState(true);
+  const printed = print && !tour.shot && pageInView;
+  const { setPrinted } = spread;
+  useEffect(() => {
+    setPrinted(printed);
+    return () => setPrinted(false);
+  }, [printed, setPrinted]);
+  // Steps after the quiz stay on the quiz's spread.
+  const sheet = Math.min(step, CHECK);
   const reading = print ? withPage(shot.focus) : shot.focus;
   const focus = tour.shot ? shotFocus(tour.shot.target, step, g, shot.focus) : reading;
   const view = frameCamera(focus, inner, size.width, size.height, 0.9);
@@ -429,16 +438,11 @@ export default function Scene3D({
             <BookBackdrop
               spread={g.compact ? SPREAD.loop : SPREAD.row}
               heads={g.compact ? HEADS : undefined}
-              folios={[4 + 2 * Math.min(step, 7), 5 + 2 * Math.min(step, 7)]}
-              caption={FIGURES[step]}
+              folios={[4 + 2 * sheet, 5 + 2 * sheet]}
+              caption={FIGURES[sheet]}
             />
             {print ? (
-              <PrintOnPage
-                block={TEXT}
-                target={() =>
-                  root.current?.closest(".lesson")?.querySelector<HTMLElement>(".book-page") ?? null
-                }
-              />
+              <PrintOnPage block={TEXT} el={spread.page} place={printed} onInView={setPageInView} />
             ) : null}
           </>
         }
@@ -446,7 +450,7 @@ export default function Scene3D({
         <ViewOffset frame={inner} reducedMotion={reducedMotion} />
         {hidden ? null : <World m={m} g={g} reducedMotion={reducedMotion} />}
       </InkStage>
-      <TourControls tour={tour} idle={FIGURES[step] ?? ""} />
+      <TourControls tour={tour} idle={FIGURES[sheet] ?? ""} />
       <ReadablePages m={m} strip={strip} />
       {strip ? (
         <p className="bb3-balances" aria-label="Balances">

@@ -73,6 +73,8 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
   const [barSlot, setBarSlot] = useState<HTMLElement | null>(null);
   // The 3D view prints the step on its book's left page (see SpreadContext).
   const [spread, setSpread] = useState(false);
+  const [bookPage, setBookPage] = useState<HTMLElement | null>(null);
+  const spreadCtx = useMemo(() => ({ page: bookPage, setPrinted: setSpread }), [bookPage]);
   const [vars, setVarsState] = useState<Record<string, string>>(() => ({ ...lesson.vars }));
   const setVars = useCallback(
     (next: Record<string, string>) =>
@@ -234,7 +236,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
       data-spread={spread ? "" : undefined}
     >
       <IntroContext.Provider value={intro}>
-        <SpreadContext.Provider value={setSpread}>
+        <SpreadContext.Provider value={spreadCtx}>
           <BarSlot.Provider value={barSlot}>
             <ActionSlot.Provider value={slot}>
               <div className="scene-area" data-testid="scene-area" inert={closed}>
@@ -278,7 +280,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
 
       {/* The step's words. Normally laid out over the scene; a 3D view on a book can print them on its
           left page (data-spread), and then this box is placed there. */}
-      <div className="book-page">
+      <div className="book-page" ref={setBookPage}>
         <section className="step-head" aria-label="Current step" inert={closed}>
           <p className="step-label">
             Step {step + 1} of {lesson.steps.length}

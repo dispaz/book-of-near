@@ -8,8 +8,12 @@ import { createContext } from "react";
 export const IntroContext = createContext<{ grow: boolean }>({ grow: false });
 
 /**
- * A 3D view that stands on an open book can print the step on the book's left page (wide screens): it
- * calls this with `true` while it does. The lesson page then lays out its step heading and note as print
- * inside `.book-page` (no boxes, no arrows), and the view places that element on the page.
+ * A 3D view that stands on an open book can print the step on the book's left page (wide screens).
+ * `page` is the lesson page's `.book-page` element (the step heading and note); while the view calls
+ * `setPrinted(true)` the lesson page lays it out as print (no boxes, no arrows) and the view places
+ * that element on the page.
  */
-export const SpreadContext = createContext<(on: boolean) => void>(() => undefined);
+export const SpreadContext = createContext<{
+  page: HTMLElement | null;
+  setPrinted: (on: boolean) => void;
+}>({ page: null, setPrinted: () => undefined });

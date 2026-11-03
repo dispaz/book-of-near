@@ -210,9 +210,13 @@ test.describe(`lesson ${ID}`, () => {
     await expect(caption).toHaveText(/^Close up:/, { timeout: 10_000 });
     await page.getByRole("button", { name: "Pause the tour" }).click();
     await expect(page.getByRole("button", { name: "Play the tour" })).toBeVisible();
-    // A new page ends the tour.
+    // While the camera is off the page, the step's words go back to their docked place: still readable.
+    await expect(page.locator("main.lesson")).not.toHaveAttribute("data-spread", /.*/);
+    await expect(page.getByTestId("caption")).toBeVisible();
+    // A new page ends the tour, and the words are printed on the page again.
     await page.getByRole("button", { name: "Next step" }).click();
     await expect(caption).toHaveText(/^Fig\. 3/);
+    await expect(page.locator("main.lesson")).toHaveAttribute("data-spread", "", { timeout: 10_000 });
     await ctx.close();
   });
 
