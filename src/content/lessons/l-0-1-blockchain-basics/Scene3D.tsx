@@ -17,6 +17,7 @@ import {
   LEDGER_TALL,
   LEDGER_W,
   LedgerBlock,
+  Slip,
   Tag,
   type PageRow,
   type TagPlace,
@@ -101,7 +102,7 @@ const SNAKE: Geo = {
 };
 
 /** Copies of the chain at the compare step: one row per person. */
-const ROW_Z: Record<Person, number> = { Ana: -3, Ben: 0, Cy: 3 };
+const ROW_Z: Record<Person, number> = { Ana: -3, Ben: 0, Cora: 3 };
 
 type Box = [minX: number, maxX: number, minZ: number, maxZ: number, height: number];
 
@@ -122,7 +123,14 @@ function focusOf(boxes: Box[], elevation: number, azimuth = 0): Focus {
 }
 
 /** What the camera must keep in view at each step, and the pixels to keep free for tags. */
-function shotFor(step: number, g: Geo): { focus: Focus; reserve: Reserve } {
+function shotFor(step: number, g: Geo, popup = false): { focus: Focus; reserve: Reserve } {
+  const shot = baseShot(step, g);
+  // An opened block's pop-up card stands above it: keep room for it.
+  if (popup) shot.reserve = { ...shot.reserve, top: (shot.reserve.top ?? 0) + (g.compact ? 110 : 40) };
+  return shot;
+}
+
+function baseShot(step: number, g: Geo): { focus: Focus; reserve: Reserve } {
   const ledgers = (r: LedgerRow): Box =>
     r.column
       ? [
@@ -167,7 +175,7 @@ function shotFor(step: number, g: Geo): { focus: Focus; reserve: Reserve } {
     const c = g.copies;
     const left = chainX(0, c.pitch) - (BW / 2) * c.scale;
     const right = chainX(3, c.pitch) + (BW / 2) * c.scale;
-    const rows: Box = [left, right, ROW_Z.Ana - 0.5, ROW_Z.Cy + 0.5, 1];
+    const rows: Box = [left, right, ROW_Z.Ana - 0.5, ROW_Z.Cora + 0.5, 1];
     const reserve: Reserve = g.compact ? { left: 150, top: 10, bottom: 8 } : { right: 175, top: 26 };
     return { focus: focusOf([rows], 52), reserve };
   }
@@ -175,13 +183,13 @@ function shotFor(step: number, g: Geo): { focus: Focus; reserve: Reserve } {
 }
 
 const DESCRIPTION = [
-  "Three ledgers: Ana's, Ben's and Cy's. Every ledger holds the same balances.",
-  "Ana's, Ben's and Cy's ledgers, open at their balances, and the chain of blocks in front of them.",
+  "Three ledgers: Ana's, Ben's and Cora's. Every ledger holds the same balances.",
+  "Ana's, Ben's and Cora's ledgers, open at their balances, and the chain of blocks in front of them.",
   "The chain of blocks. Open a block to see the transaction inside.",
   "The chain of blocks, each with its hash.",
   "The chain of blocks, each linked to the one before it by that block's hash.",
   "Ben's copy of the chain. Changing block #1 breaks every later link.",
-  "Three copies of the chain side by side: Ana's, Ben's and Cy's.",
+  "Three copies of the chain side by side: Ana's, Ben's and Cora's.",
   "The honest chain.",
   "The honest chain.",
 ];
@@ -207,7 +215,7 @@ export default function Scene3D({
   const summary = step >= CHECK;
   const { frame, size, wide } = useFreeFrame(root, panel, summary);
   const g = frame.right - frame.left < 620 ? SNAKE : ROW;
-  const shot = shotFor(step, g);
+  const shot = shotFor(step, g, step === BLOCKS && m.selected !== null);
   // Narrow screens show the balances as one line of pills above the scene (not beside the hash panel).
   const strip = g.compact && step >= SEND && step <= LINKS && step !== HASH;
   const stripH = strip ? 34 : 0;
@@ -215,18 +223,19 @@ export default function Scene3D({
   const view = frameCamera(shot.focus, inner, size.width, size.height, 0.9);
   const hidden = summary && !wide; // Phones: the Check and Honest take fill the screen, as in 2D.
 
-  const details = (step === BLOCKS && m.selected !== null) || step === HASH;
+  // At the blocks step the opened block's slip pops up out of the block itself (see ChainBlocks).
+  const details = step === HASH;
   return (
     <div
       ref={root}
-      className={`bb3${g.compact ? " compact" : ""}${summary ? " summary" : ""}`}
+      className={`bb3${g.compact ? " compact" : ""}${summary ? " summary" : ""}${reducedMotion ? " still" : ""}`}
       data-testid="ledger-scene"
       data-scene-state={m.state}
       data-view="3d"
       data-layout={g.compact ? "loop" : "row"}
       data-mode={mode}
       role="group"
-      aria-label="Toy ledger of Ana, Ben and Cy, in 3D"
+      aria-label="Toy ledger of Ana, Ben and Cora, in 3D"
     >
       <InkStage
         view={view}
@@ -542,7 +551,7 @@ function ChainBlocks({
                       />
                     </>
                   ) : b.height === 0 ? (
-                    "start: Ana 10, Ben 5, Cy 0"
+                    "start: Ana 10, Ben 5, Cora 0"
                   ) : (
                     b.text
                   )}
@@ -558,6 +567,11 @@ function ChainBlocks({
                   </span>
                 ) : null}
               </Tag>
+              {step === BLOCKS && selected === b.height ? (
+                <Slip reducedMotion={reducedMotion} lift={g.compact ? 0.3 : 3.6}>
+                  <BlockPopup n={b.height} text={b.text} />
+                </Slip>
+              ) : null}
             </LedgerBlock>
             {i > 0 ? (
               <HashLink from={g.block(i - 1)} to={at} ok={ok} faint={!showPrev} reducedMotion={reducedMotion}>
@@ -584,6 +598,28 @@ function ChainBlocks({
         );
       })}
     </>
+  );
+}
+
+/** What an opened block holds, popping up out of it on its slip. */
+function BlockPopup({ n, text }: { n: number; text: string }) {
+  return (
+    <section className="bb3-pop" aria-label={`Block #${n}`} role="region">
+      {n === 0 ? (
+        <>
+          <b>Block #0, the genesis block</b>
+          <span>The first block. It holds the starting balances:</span>
+          <code>Ana 10 · Ben 5 · Cora 0</code>
+        </>
+      ) : (
+        <>
+          <b>Inside block #{n}</b>
+          <span>It stores one transaction:</span>
+          <code>{text}</code>
+          <span className="mute">Real blocks hold many.</span>
+        </>
+      )}
+    </section>
   );
 }
 

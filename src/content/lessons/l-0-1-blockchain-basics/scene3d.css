@@ -68,6 +68,9 @@
 .bb3-tag.center {
   transform: translate(-50%, -50%);
 }
+.bb3-tag.above {
+  transform: translate(-50%, calc(-100% - 6px));
+}
 .bb3-tag.right {
   transform: translate(0, -50%);
 }
@@ -295,4 +298,54 @@
     padding: 8px 10px;
     font-size: 14px;
   }
+}
+
+/* The pop-up card above an opened block's slip. */
+.bb3-pop {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 230px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--ink);
+  border-top: 5px solid var(--accent);
+  border-radius: 10px;
+  background: #fffdf7;
+  box-shadow: 3px 3px 0 var(--ink);
+  font: 500 14px/1.35 var(--serif);
+  transform-origin: 50% 100%;
+  animation: bb3-pop 0.45s 0.2s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+.bb3-pop b {
+  font: 700 15px var(--ui);
+}
+.bb3-pop code {
+  align-self: flex-start;
+  margin: 2px 0;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--accent);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.bb3-pop .mute {
+  color: var(--mute);
+  font: 500 12px var(--ui);
+}
+@keyframes bb3-pop {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.3);
+  }
+}
+.bb3.still .bb3-pop {
+  animation: none;
+}
+.bb3.compact .bb3-pop code {
+  font-size: 12px;
+}
+.bb3.compact .bb3-pop {
+  max-width: 200px;
+  padding: 6px 9px;
+  font-size: 12.5px;
 }

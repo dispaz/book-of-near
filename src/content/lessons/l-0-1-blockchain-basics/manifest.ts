@@ -14,7 +14,7 @@ export default {
   vars: { sent: "3", tamper: "9" },
   steps: [
     {
-      caption: "Ana, Ben and Cy keep one notebook of who owns how many coins. Everyone holds a copy.",
+      caption: "Ana, Ben and Cora keep one notebook of who owns how many coins. Everyone holds a copy.",
       explain:
         "A ledger is a list of who owns what. Banks keep their own ledger and you trust them. Here the three friends each keep an identical copy. Nobody is in charge, so they must agree on every new line.",
       action: { label: "open a notebook", gate: true },
@@ -53,7 +53,7 @@ export default {
     },
     {
       caption:
-        "Ana and Cy compare their copies with Ben's. The hashes do not match, so they reject Ben's version.",
+        "Ana and Cora compare their copies with Ben's. The hashes do not match, so they reject Ben's version.",
       explain:
         "Everyone can check the chain by recomputing hashes. A changed copy stands out at once. Real networks add rules for who may add the next block and what makes a block valid. Those rules are called consensus. Stage 2 shows NEAR's version.",
       action: { label: "compare copies", gate: true },

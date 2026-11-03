@@ -6,7 +6,7 @@ import { hashOfText, PEOPLE, shortHash, verify, type Chain, type Person, type Tx
 // HTML parts shared by the 2D and the 3D view: the block details panel, the transaction form and texts.
 
 export const COMPARE_RESULT =
-  "Ana's and Cy's copies match. Ben's copy does not match, so they reject it. Ben gets the honest copy back.";
+  "Ana's and Cora's copies match. Ben's copy does not match, so they reject it. Ben gets the honest copy back.";
 export const AUTO_TAMPER_NOTE =
   "Ben's edit is back in his copy (block #1 changed), so there is something to catch.";
 
@@ -49,7 +49,7 @@ export function BlockDetails({
       {n === 0 ? (
         <p>
           <strong>Block #0</strong>, the genesis block (the first block), holds the starting balances: Ana 10,
-          Ben 5, Cy 0.
+          Ben 5, Cora 0.
         </p>
       ) : (
         <p>

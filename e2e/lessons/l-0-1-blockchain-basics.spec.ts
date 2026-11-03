@@ -46,7 +46,7 @@ async function walk(page: Page, { checkWrongFirst = true } = {}) {
   await expect(next).toBeDisabled();
   await pick(page, "Open Ben's notebook");
   await expect(page.getByTestId("notebook-Ben")).toContainText("Ana 10");
-  await expect(page.getByTestId("notebook-Ben")).toContainText("Cy 0");
+  await expect(page.getByTestId("notebook-Ben")).toContainText("Cora 0");
   await nextStep(page);
 
   // 2. Move some coins: a rejected transaction first, then the real one.
@@ -71,22 +71,22 @@ async function walk(page: Page, { checkWrongFirst = true } = {}) {
 
   // 4. A fingerprint: the hash, then a changed text gives a changed hash.
   await expect(next).toBeDisabled();
-  await expect(hashOf(page, 1)).toHaveText("93fa7ab6");
-  await expect(page.getByTestId("sandbox-hash")).toHaveText("93fa7ab6");
+  await expect(hashOf(page, 1)).toHaveText("cfb1f067");
+  await expect(page.getByTestId("sandbox-hash")).toHaveText("cfb1f067");
   await page.getByLabel("Change the text").fill("Ana->Ben 4");
-  await expect(page.getByTestId("sandbox-hash")).not.toHaveText("93fa7ab6");
+  await expect(page.getByTestId("sandbox-hash")).not.toHaveText("cfb1f067");
   await nextStep(page);
 
   // 5. Blocks link by hash: two more transactions, two more blocks.
   await expect(next).toBeDisabled();
-  await action(page, "Send").click(); // pre-filled Ben -> Cy 2
+  await action(page, "Send").click(); // pre-filled Ben -> Cora 2
   await expect(scene(page)).toHaveAttribute("data-scene-state", /blocks:3/);
-  await action(page, "Send").click(); // pre-filled Cy -> Ana 1
+  await action(page, "Send").click(); // pre-filled Cora -> Ana 1
   await expect(scene(page)).toHaveAttribute("data-scene-state", /blocks:4/);
-  await expect(hashOf(page, 0)).toHaveText("48d4cf70");
-  await expect(hashOf(page, 2)).toHaveText("46c2f4b1");
-  await expect(hashOf(page, 3)).toHaveText("3e875716");
-  await expect(page.getByTestId("block-prev-2")).toHaveText("93fa7ab6");
+  await expect(hashOf(page, 0)).toHaveText("ec402b30");
+  await expect(hashOf(page, 2)).toHaveText("744f6e9c");
+  await expect(hashOf(page, 3)).toHaveText("c9d091cb");
+  await expect(page.getByTestId("block-prev-2")).toHaveText("cfb1f067");
   for (const n of [1, 2, 3]) await expect(linkTo(page, n)).toHaveAttribute("data-link", "ok");
   await nextStep(page);
 
@@ -94,9 +94,9 @@ async function walk(page: Page, { checkWrongFirst = true } = {}) {
   await expect(next).toBeDisabled();
   const edit = page.getByLabel("Amount in block #1");
   await edit.fill("9");
-  await expect(hashOf(page, 1)).toHaveText("6c3c0e30");
-  await expect(hashOf(page, 2)).toHaveText("97b846de");
-  await expect(hashOf(page, 3)).toHaveText("c1495fa1");
+  await expect(hashOf(page, 1)).toHaveText("c0fed3ed");
+  await expect(hashOf(page, 2)).toHaveText("10805a80");
+  await expect(hashOf(page, 3)).toHaveText("cba6509e");
   await expect(linkTo(page, 1)).toHaveAttribute("data-link", "ok");
   await expect(linkTo(page, 2)).toHaveAttribute("data-link", "broken");
   await expect(linkTo(page, 3)).toHaveAttribute("data-link", "broken");
@@ -106,7 +106,7 @@ async function walk(page: Page, { checkWrongFirst = true } = {}) {
   await expect(linkTo(page, 2)).toHaveAttribute("data-link", "ok");
   await expect(linkTo(page, 3)).toHaveAttribute("data-link", "broken");
   await page.getByRole("button", { name: "Undo my edit" }).click();
-  await expect(hashOf(page, 1)).toHaveText("93fa7ab6");
+  await expect(hashOf(page, 1)).toHaveText("cfb1f067");
   for (const n of [1, 2, 3]) await expect(linkTo(page, n)).toHaveAttribute("data-link", "ok");
   await edit.fill("9");
   await expect(linkTo(page, 2)).toHaveAttribute("data-link", "broken");
@@ -190,7 +190,7 @@ test.describe(`lesson ${ID}`, () => {
       await page.goto(`/lesson/${ID}?step=6&view=${view}`);
       await expect(scene(page)).toHaveAttribute("data-view", view, { timeout: LOAD_3D });
       await expect(scene(page)).toHaveAttribute("data-scene-state", /blocks:4/);
-      await expect(hashOf(page, 3)).toHaveText("3e875716");
+      await expect(hashOf(page, 3)).toHaveText("c9d091cb");
       await page.getByLabel("Amount in block #1").fill("9");
       await expect(linkTo(page, 3)).toHaveAttribute("data-link", "broken");
     });

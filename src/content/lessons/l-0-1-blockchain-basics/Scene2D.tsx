@@ -38,7 +38,7 @@ export default function Scene2D({
       data-view="2d"
       data-mode={mode}
       role="group"
-      aria-label="Toy ledger of Ana, Ben and Cy"
+      aria-label="Toy ledger of Ana, Ben and Cora"
     >
       {step === NOTEBOOK ? <Ledgers opened={m.opened} onOpen={m.openNotebook} /> : null}
 
@@ -105,7 +105,7 @@ function Page({ bal, hot = [] }: { bal: Record<Person, number>; hot?: Person[] }
 }
 
 /**
- * Ana's, Ben's and Cy's ledgers. With `onOpen` (the first step) they start closed and open on a click,
+ * Ana's, Ben's and Cora's ledgers. With `onOpen` (the first step) they start closed and open on a click,
  * showing the starting balances. With `bal` they all stand open at the current balances.
  */
 function Ledgers(
@@ -260,7 +260,7 @@ function ChainStrip({
                     />
                   </>
                 ) : b.height === 0 ? (
-                  "start: Ana 10, Ben 5, Cy 0"
+                  "start: Ana 10, Ben 5, Cora 0"
                 ) : (
                   b.text
                 )}

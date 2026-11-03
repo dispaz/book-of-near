@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 const LESSON = "/lesson/l-0-1-blockchain-basics";
-const FIRST = /^Ana, Ben and Cy keep one notebook/;
+const FIRST = /^Ana, Ben and Cora keep one notebook/;
 const SECOND = /^Send 3 coins from Ana to Ben/;
 
 test.describe("@smoke walking skeleton", () => {
@@ -78,7 +78,7 @@ test.describe("scene contract", () => {
     await page.goto(`${LESSON}?view=2d`);
     const fb = page.getByTestId("text-fallback");
     await expect(fb).toBeVisible();
-    await expect(fb).toContainText("Ana, Ben and Cy keep one notebook");
+    await expect(fb).toContainText("Ana, Ben and Cora keep one notebook");
     await expect(page.getByTestId("caption")).toHaveText(FIRST);
   });
 

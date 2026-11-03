@@ -32,7 +32,7 @@ const RED_PAPER = "#f7d3cd";
 
 const noRaycast = () => undefined;
 
-export type TagPlace = "below" | "left" | "right" | "center";
+export type TagPlace = "below" | "above" | "left" | "right" | "center";
 
 /** An HTML tag that follows a point. `place` says which side of the point it hangs on. */
 export function Tag({
@@ -381,6 +381,63 @@ export function LedgerBlock({
         {children}
       </group>
     </group>
+  );
+}
+
+/**
+ * The transaction slip inside an open block: a sheet of paper that rises out of the box and turns to
+ * face the camera. `children` hang above it (the pop-up card), `lift` world units higher on an ink
+ * stalk, so the card can clear whatever stands behind the block.
+ */
+export function Slip({
+  reducedMotion,
+  lift = 0.3,
+  children,
+}: {
+  reducedMotion: boolean;
+  lift?: number;
+  children?: ReactNode;
+}) {
+  const paper = useInk(PAPER);
+  const ink = useInk(INK);
+  const ref = useRef<Group>(null);
+  const top = BH + 0.55;
+  useFrame(() => {
+    const g = ref.current;
+    if (!g) return;
+    const k = reducedMotion ? 1 : 0.12;
+    g.position.y += (top - g.position.y) * k;
+    g.rotation.x += (-1.1 - g.rotation.x) * k;
+  });
+  return (
+    <>
+      <group
+        ref={ref}
+        position={[0, reducedMotion ? top : BH * 0.5, 0]}
+        rotation={[reducedMotion ? -1.1 : -Math.PI / 2, 0, 0]}
+      >
+        <mesh material={paper}>
+          <boxGeometry args={[BW * 0.62, 0.025, BD * 0.5]} />
+          <Outline />
+        </mesh>
+        {[-0.1, 0.06].map((z) => (
+          <mesh key={z} position={[0, 0.014, z]} rotation={[-Math.PI / 2, 0, 0]} raycast={noRaycast}>
+            <planeGeometry args={[BW * 0.45, 0.03]} />
+            <meshBasicMaterial color={COLORS.blue} transparent opacity={0.55} />
+          </mesh>
+        ))}
+      </group>
+      {children && lift > 0.4 ? (
+        <mesh position={[0, top + 0.2 + (lift - 0.2) / 2, 0]} material={ink} raycast={noRaycast}>
+          <boxGeometry args={[0.04, lift - 0.2, 0.04]} />
+        </mesh>
+      ) : null}
+      {children ? (
+        <Tag position={[0, top + lift, 0]} place="above" className="pop">
+          {children}
+        </Tag>
+      ) : null}
+    </>
   );
 }
 

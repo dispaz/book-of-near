@@ -10,7 +10,7 @@ The three lessons build on each other. Each one adds one new idea and reuses the
 
 | Lesson | Big idea | What the learner does | Sets up |
 | --- | --- | --- | --- |
-| 0.1 How a blockchain and a transaction work | A blockchain is a shared list of blocks. Each block holds the hash of the one before, so changing old history is easy to spot. | Moves coins between Ana, Ben and Cy, watches blocks link, then tampers with an old block. | "Who is allowed to move Ana's coins?" leads to keys. |
+| 0.1 How a blockchain and a transaction work | A blockchain is a shared list of blocks. Each block holds the hash of the one before, so changing old history is easy to spot. | Moves coins between Ana, Ben and Cora, watches blocks link, then tampers with an old block. | "Who is allowed to move Ana's coins?" leads to keys. |
 | 0.2 Make a wallet | A wallet is a key pair. The private key signs; the public key lets anyone check the signature. An address is made from the public key. | Generates a throwaway key pair and seed phrase, sees the NEAR and Ethereum style addresses, signs, verifies, tampers. | "How does a signed message become a real transfer?" leads to transactions. |
 | 0.3 Send a transaction and watch it | A transaction goes through build, sign, broadcast, included and final. An RPC node is the door into the network; an explorer is the public window onto it. | Sends a tiny transfer from the practice account and opens it in NearBlocks. | Stage 1 (named accounts, access keys) and Stage 2 (what happens inside the network). |
 

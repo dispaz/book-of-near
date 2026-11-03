@@ -5,13 +5,13 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
 
-export const PEOPLE = ["Ana", "Ben", "Cy"] as const;
+export const PEOPLE = ["Ana", "Ben", "Cora"] as const;
 export type Person = (typeof PEOPLE)[number];
 export type Balances = Record<Person, number>;
 
-export const START: Balances = { Ana: 10, Ben: 5, Cy: 0 };
+export const START: Balances = { Ana: 10, Ben: 5, Cora: 0 };
 export const ZERO_HASH = "0".repeat(64);
-export const GENESIS_TEXT = "genesis: Ana=10, Ben=5, Cy=0";
+export const GENESIS_TEXT = "genesis: Ana=10, Ben=5, Cora=0";
 
 export interface Tx {
   from: Person;
@@ -22,8 +22,8 @@ export interface Tx {
 /** The script's default transactions for blocks #1, #2 and #3. */
 export const DEFAULT_TXS: readonly Tx[] = [
   { from: "Ana", to: "Ben", amount: 3 },
-  { from: "Ben", to: "Cy", amount: 2 },
-  { from: "Cy", to: "Ana", amount: 1 },
+  { from: "Ben", to: "Cora", amount: 2 },
+  { from: "Cora", to: "Ana", amount: 1 },
 ];
 
 /** One block. `prev` is the previous block's hash as written into this block when it was made. */

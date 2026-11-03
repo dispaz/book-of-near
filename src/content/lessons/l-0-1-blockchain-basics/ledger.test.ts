@@ -17,7 +17,7 @@ import {
   type Chain,
 } from "./ledger";
 
-/** The default chain from the script: genesis + Ana->Ben 3, Ben->Cy 2, Cy->Ana 1. */
+/** The default chain from the script: genesis + Ana->Ben 3, Ben->Cora 2, Cora->Ana 1. */
 function defaultChain(): Chain {
   let c = genesisChain();
   for (const tx of DEFAULT_TXS) {
@@ -30,18 +30,18 @@ function defaultChain(): Chain {
 
 describe("toy ledger hashes (fixtures from docs/lessons/stage-0/0.1.md)", () => {
   it("hashes sha256(height|prev|txText) as lowercase hex", () => {
-    const h = blockHash(0, ZERO_HASH, "genesis: Ana=10, Ben=5, Cy=0");
+    const h = blockHash(0, ZERO_HASH, "genesis: Ana=10, Ben=5, Cora=0");
     expect(h).toMatch(/^[0-9a-f]{64}$/);
-    expect(shortHash(h)).toBe("48d4cf70");
+    expect(shortHash(h)).toBe("ec402b30");
   });
 
   it("matches the script's recorded hashes for the default chain", () => {
     const { computed } = verify(defaultChain());
-    expect(computed.map(shortHash)).toEqual(["48d4cf70", "93fa7ab6", "46c2f4b1", "3e875716"]);
+    expect(computed.map(shortHash)).toEqual(["ec402b30", "cfb1f067", "744f6e9c", "c9d091cb"]);
   });
 
   it("matches Web Crypto SHA-256", async () => {
-    const input = `1|${blockHash(0, ZERO_HASH, "genesis: Ana=10, Ben=5, Cy=0")}|Ana->Ben 3`;
+    const input = `1|${blockHash(0, ZERO_HASH, "genesis: Ana=10, Ben=5, Cora=0")}|Ana->Ben 3`;
     const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
     const hex = [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
     expect(hex).toBe(verify(defaultChain()).computed[1]);
@@ -51,7 +51,7 @@ describe("toy ledger hashes (fixtures from docs/lessons/stage-0/0.1.md)", () => 
     const bad = tamperAmount(defaultChain(), 1, 9);
     expect(bad[1]!.text).toBe("Ana->Ben 9");
     const v = verify(bad);
-    expect(v.computed.map(shortHash)).toEqual(["48d4cf70", "6c3c0e30", "97b846de", "c1495fa1"]);
+    expect(v.computed.map(shortHash)).toEqual(["ec402b30", "c0fed3ed", "10805a80", "cba6509e"]);
     // links[i] is the link from block i-1 to block i.
     expect(v.links).toEqual([true, true, false, false]);
     expect(v.allLaterBroken(1)).toBe(true);
@@ -59,8 +59,8 @@ describe("toy ledger hashes (fixtures from docs/lessons/stage-0/0.1.md)", () => 
 
   it("the sandbox hash of block #1's text matches the block, and changes with the text", () => {
     const c = defaultChain();
-    expect(shortHash(hashOfText(c, 1, "Ana->Ben 3"))).toBe("93fa7ab6");
-    expect(shortHash(hashOfText(c, 1, "Ana->Ben 4"))).not.toBe("93fa7ab6");
+    expect(shortHash(hashOfText(c, 1, "Ana->Ben 3"))).toBe("cfb1f067");
+    expect(shortHash(hashOfText(c, 1, "Ana->Ben 4"))).not.toBe("cfb1f067");
   });
 });
 
@@ -71,8 +71,8 @@ describe("sending", () => {
     if (!r.ok) return;
     expect(r.chain).toHaveLength(2);
     expect(r.chain[1]!.prev).toBe(verify(genesisChain()).computed[0]);
-    expect(balances(r.chain)).toEqual({ Ana: 7, Ben: 8, Cy: 0 });
-    expect(balances(defaultChain())).toEqual({ Ana: 8, Ben: 6, Cy: 1 });
+    expect(balances(r.chain)).toEqual({ Ana: 7, Ben: 8, Cora: 0 });
+    expect(balances(defaultChain())).toEqual({ Ana: 8, Ben: 6, Cora: 1 });
   });
 
   it("rejects an amount above the sender's balance and changes nothing", () => {
@@ -91,10 +91,10 @@ describe("sending", () => {
 
   it("fillTo adds the default transactions, or a 1-coin one when a default is rejected", () => {
     expect(fillTo(genesisChain(), 4).map((b) => b.text)).toEqual([
-      "genesis: Ana=10, Ben=5, Cy=0",
+      "genesis: Ana=10, Ben=5, Cora=0",
       "Ana->Ben 3",
-      "Ben->Cy 2",
-      "Cy->Ana 1",
+      "Ben->Cora 2",
+      "Cora->Ana 1",
     ]);
     const r = send(genesisChain(), { from: "Ben", to: "Ana", amount: 5 });
     if (!r.ok) throw new Error(r.reason);
