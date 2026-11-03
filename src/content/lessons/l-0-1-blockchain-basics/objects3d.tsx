@@ -32,7 +32,7 @@ const RED_PAPER = "#f7d3cd";
 
 const noRaycast = () => undefined;
 
-export type TagPlace = "below" | "above" | "left" | "right" | "center";
+export type TagPlace = "below" | "above" | "above-right" | "left" | "right" | "center";
 
 /** An HTML tag that follows a point. `place` says which side of the point it hangs on. */
 export function Tag({
@@ -406,16 +406,19 @@ function PeekingSlip() {
 
 /**
  * The transaction slip inside an open block: a sheet of paper that rises out of the box and turns to
- * face the camera. `children` hang above it (the pop-up card), `lift` world units higher on an ink
- * stalk, so the card can clear whatever stands behind the block.
+ * face the camera. `children` hang above it (the pop-up card), `lift` world units higher and `side` units
+ * to the right on a slanted ink stalk, so the card clears what stands behind the block and the step
+ * heading above the scene.
  */
 export function Slip({
   reducedMotion,
   lift = 0.3,
+  side = 0,
   children,
 }: {
   reducedMotion: boolean;
   lift?: number;
+  side?: number;
   children?: ReactNode;
 }) {
   const paper = useInk(PAPER);
@@ -448,12 +451,17 @@ export function Slip({
         ))}
       </group>
       {children && lift > 0.4 ? (
-        <mesh position={[0, top + 0.2 + (lift - 0.2) / 2, 0]} material={ink} raycast={noRaycast}>
-          <boxGeometry args={[0.04, lift - 0.2, 0.04]} />
+        <mesh
+          position={[side / 2, top + 0.2 + (lift - 0.2) / 2, 0]}
+          rotation={[0, 0, -Math.atan2(side, lift - 0.2)]}
+          material={ink}
+          raycast={noRaycast}
+        >
+          <boxGeometry args={[0.04, Math.hypot(side, lift - 0.2), 0.04]} />
         </mesh>
       ) : null}
       {children ? (
-        <Tag position={[0, top + lift, 0]} place="above" className="pop">
+        <Tag position={[side, top + lift, 0]} place={side > 0 ? "above-right" : "above"} className="pop">
           {children}
         </Tag>
       ) : null}

@@ -71,6 +71,10 @@
 .bb3-tag.above {
   transform: translate(-50%, calc(-100% - 6px));
 }
+/* Up and to the right: the card's bottom-left corner sits on the end of the stalk. */
+.bb3-tag.above-right {
+  transform: translate(-12px, calc(-100% + 4px));
+}
 .bb3-tag.right {
   transform: translate(0, -50%);
 }

@@ -126,7 +126,7 @@ function focusOf(boxes: Box[], elevation: number, azimuth = 0): Focus {
 function shotFor(step: number, g: Geo, popup = false): { focus: Focus; reserve: Reserve } {
   const shot = baseShot(step, g);
   // An opened block's pop-up card stands above it: keep room for it.
-  if (popup) shot.reserve = { ...shot.reserve, top: (shot.reserve.top ?? 0) + (g.compact ? 110 : 40) };
+  if (popup) shot.reserve = { ...shot.reserve, top: (shot.reserve.top ?? 0) + (g.compact ? 110 : 70) };
   return shot;
 }
 
@@ -592,7 +592,7 @@ function ChainBlocks({
                 ) : null}
               </Tag>
               {step === BLOCKS && selected === b.height ? (
-                <Slip reducedMotion={reducedMotion} lift={g.compact ? 0.3 : 3.6}>
+                <Slip reducedMotion={reducedMotion} lift={g.compact ? 0.3 : 2.3} side={g.compact ? 0 : 1.4}>
                   <BlockPopup n={b.height} text={b.text} />
                 </Slip>
               ) : null}
