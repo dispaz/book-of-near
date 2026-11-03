@@ -103,7 +103,7 @@ function arrowFor(anchor: Rect, card: Rect) {
   // An arc that bows upwards, like a hand-drawn arrow, so it tends to pass over the objects in between.
   const len = Math.hypot(ex - sx, ey - sy);
   const mx = (sx + ex) / 2;
-  const my = Math.min(sy, ey) - len * 0.22;
+  const my = Math.min(sy, ey) - len * 0.12;
   const ang = Math.atan2(ey - my, ex - mx);
   const p = (a: number) => `${ex - 12 * Math.cos(ang + a)},${ey - 12 * Math.sin(ang + a)}`;
   return {

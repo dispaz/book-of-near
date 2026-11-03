@@ -25,6 +25,8 @@ import { fillStep } from "../app/fillVars";
 import { progress } from "../progress";
 import { FinishLesson, useRecordPosition } from "../progress/FinishLesson";
 import { StepNote } from "./StepNote";
+import { BookCover, startsClosed } from "./BookCover";
+import { IntroContext } from "../app/intro";
 import { Summary } from "./Summary";
 
 const sceneCache = new Map<string, ComponentType<SceneProps>>();
@@ -127,8 +129,30 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
     reducedMotion,
     wide,
   });
+  // The closed book. After it opens, a lesson that will show 3D first shows its 2D page for a moment,
+  // then the 3D scene grows out of it (IntroContext).
+  const [closed, setClosed] = useState(() => startsClosed(params.get("step")));
+  const [pageFirst, setPageFirst] = useState(closed);
+  const opened_ = useCallback(() => setClosed(false), []);
+  useEffect(() => {
+    if (closed || !pageFirst) return;
+    const id = setTimeout(() => setPageFirst(false), reducedMotion ? 0 : 900);
+    return () => clearTimeout(id);
+  }, [closed, pageFirst, reducedMotion]);
   // 3D-only lessons are always 3D; two-view lessons fall back to 2D without WebGL.
-  const view = lesson.needsWebGL ? "3d" : twoViews && glAvailable ? chosenView : "2d";
+  const wanted = lesson.needsWebGL ? "3d" : twoViews && glAvailable ? chosenView : "2d";
+  const view = twoViews && pageFirst ? "2d" : wanted;
+  // The 3D view grows out of the page when the learner has just seen 2D (or the book just opened).
+  const [shown2d, setShown2d] = useState(closed);
+  const grow = view === "3d" && shown2d;
+  useEffect(() => {
+    if (view === "2d") setShown2d(true);
+    else {
+      const id = setTimeout(() => setShown2d(false), 2000);
+      return () => clearTimeout(id);
+    }
+  }, [view]);
+  const intro = useMemo(() => ({ grow }), [grow]);
 
   const gated = (i: number) => !!lesson.steps[i]?.action?.gate && !opened.has(i);
   // Steps up to and including the first closed gate are reachable.
@@ -165,14 +189,14 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      if (closed || (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       if (e.key === "ArrowRight" && canNext) goTo(step + 1);
       else if (e.key === "ArrowLeft") goTo(step - 1);
       else if (e.key === "Escape") setMenuOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [step, canNext, goTo]);
+  }, [step, canNext, goTo, closed]);
 
   useRecordPosition(lesson.id, step);
   const reportEvidence = useCallback(
@@ -205,24 +229,26 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
       style={{ "--accent": stage.accent } as CSSProperties}
       data-lesson={lesson.id}
     >
-      <ActionSlot.Provider value={slot}>
-        <div className="scene-area" data-testid="scene-area">
-          {!Scene ? (
-            fallback("This lesson has no scene yet. Here are its steps as text.")
-          ) : !webgl ? (
-            fallback("Your browser can't draw the 3D scene. Here are the steps as text.")
-          ) : (
-            <SceneBoundary fallback={fallback("The scene could not load. Here are the steps as text.")}>
-              <Suspense fallback={<p className="visually-hidden">Loading scene…</p>}>
-                <Scene {...sceneProps} />
-              </Suspense>
-            </SceneBoundary>
-          )}
-          {current.page === "summary" ? <Summary title={lesson.title} steps={steps} /> : null}
-        </div>
-      </ActionSlot.Provider>
+      <IntroContext.Provider value={intro}>
+        <ActionSlot.Provider value={slot}>
+          <div className="scene-area" data-testid="scene-area" inert={closed}>
+            {!Scene ? (
+              fallback("This lesson has no scene yet. Here are its steps as text.")
+            ) : !webgl ? (
+              fallback("Your browser can't draw the 3D scene. Here are the steps as text.")
+            ) : (
+              <SceneBoundary fallback={fallback("The scene could not load. Here are the steps as text.")}>
+                <Suspense fallback={<p className="visually-hidden">Loading scene…</p>}>
+                  <Scene {...sceneProps} />
+                </Suspense>
+              </SceneBoundary>
+            )}
+            {current.page === "summary" ? <Summary title={lesson.title} steps={steps} /> : null}
+          </div>
+        </ActionSlot.Provider>
+      </IntroContext.Provider>
 
-      <header className="lesson-title">
+      <header className="lesson-title" inert={closed}>
         <p className="eyebrow">
           <Link className="home-link" to="/">
             Book of NEAR
@@ -232,7 +258,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
         <h1>{lesson.title}</h1>
       </header>
 
-      <section className="step-head" aria-label="Current step">
+      <section className="step-head" aria-label="Current step" inert={closed}>
         <p className="step-label">
           Step {step + 1} of {lesson.steps.length}
           {current.action?.gate && !opened.has(step) ? (
@@ -252,7 +278,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
         </details>
       </section>
 
-      <div className="lesson-tools">
+      <div className="lesson-tools" inert={closed}>
         {twoViews && glAvailable ? <ViewSwitch view={view} onChange={setView} /> : null}
         {view === "3d" && (webgl || twoViews) ? (
           <button className="pill" aria-pressed={flat} onClick={() => setFlat((f) => !f)}>
@@ -262,7 +288,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
         <ModeSwitch />
       </div>
 
-      <div className="lesson-dock">
+      <div className="lesson-dock" inert={closed}>
         <div className="action-slot" ref={setSlot} />
         {current.explain ? (
           <StepNote key={step} text={current.explain} anchor={current.explainAt} layer={root} wide={wide}>
@@ -275,7 +301,20 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
 
       {menuOpen ? <StageMenu currentId={lesson.id} onPick={() => setMenuOpen(false)} /> : null}
 
+      {closed ? (
+        <BookCover
+          stage={`Book of NEAR · Stage ${stage.id} · ${stage.name}`}
+          number={`${stage.id}.${lesson.order}`}
+          title={lesson.title}
+          summary={lesson.summary ?? ""}
+          steps={steps.length}
+          reducedMotion={reducedMotion}
+          onOpened={opened_}
+        />
+      ) : null}
+
       <StageBar
+        inert={closed}
         count={steps.length}
         step={step}
         canNext={canNext}

@@ -9,7 +9,15 @@ export default defineConfig({
   fullyParallel: true,
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"]],
-  use: { baseURL, trace: "retain-on-failure" },
+  // Lessons open straight onto their first page; e2e/book.spec.ts tests the closed-book cover itself.
+  use: {
+    baseURL,
+    trace: "retain-on-failure",
+    storageState: {
+      cookies: [],
+      origins: [{ origin: new URL(baseURL).origin, localStorage: [{ name: "bon:cover", value: "off" }] }],
+    },
+  },
   projects: [
     {
       name: "chromium",

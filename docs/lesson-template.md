@@ -61,6 +61,15 @@ Every lesson ends with one. It lists NEAR's **strengths and weaknesses** for thi
 - When sources disagree (for example block time "about 600 ms" vs "about a second"), say the safer
   version ("about one second or less") and note the conflict in the script.
 
+## The book
+
+Every lesson is a page of a book. Opened at its start, a lesson shows a closed cover (stage, lesson
+number, title and the manifest's `summary`, so write a good one); the learner opens it. The 2D page shows
+first; if the learner's view is 3D, the 3D scene then grows out of the page (the scene kit's `InkStage`
+does this by itself, through `IntroContext`). Switching from 2D to 3D grows it the same way. Opening a
+later step by URL skips the cover. `localStorage["bon:cover"] = "off"` turns the cover off (the e2e config
+does this; `e2e/book.spec.ts` tests the cover).
+
 ## Two views: 2D and 3D
 
 Almost every lesson offers both views (`views: ["2d", "3d"]` in the manifest). The lesson page shows a 2D / 3D switch, remembers the choice and passes `view` to the scene. Rules:

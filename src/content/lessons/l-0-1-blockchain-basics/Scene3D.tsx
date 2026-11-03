@@ -414,9 +414,9 @@ const ledgerAt = (p: Person, r: LedgerRow): Vec3 => {
   return r.column ? [0, 0, r.z + k] : [k, 0, r.z];
 };
 
-/** Where a step's note points at the ledgers: above Ben's, in the middle. */
+/** Where a step's note points at the ledgers: Ana's, the one nearest the note in the margin. */
 function LedgersAnchor({ r }: { r: LedgerRow }) {
-  const [x, , z] = ledgerAt("Ben", r);
+  const [x, , z] = ledgerAt("Ana", r);
   return <Anchor name="ledgers" position={[x, LEDGER_TALL * r.scale * 0.55, z]} />;
 }
 

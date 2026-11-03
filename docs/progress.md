@@ -139,3 +139,8 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - The explanation is a note (`src/ui/StepNote.tsx`). A step's `explainAt` names a scene element (`data-explain`, or the kit's new `<Anchor>` in 3D); on wide screens the note sits in the left margin level with it and draws an arcing arrow to it, following it as the 3D camera moves, and can be folded away. Otherwise it stays in the dock. Lesson 0.1 has anchors for every step; 0.2 and 0.3 still use the dock.
 - The check is a window in the middle with "Minimise to read the summary"; behind it a summary page lists every step's caption and explanation (`page: "summary"` on the check step, `src/ui/Summary.tsx`). The stage bar stays above the quiz backdrop.
 - 0.2, 0.3, the lesson kit panels and the scene kit's status note and SVG stage now start at the measured `--head-h` instead of fixed 60–124px offsets.
+
+## 2026-11-03 · Lessons are a book
+- The lesson is a page of an open book on a desk (paper, spine shadow, page edges). Opened at its start, a lesson shows a closed cover in the stage colour (stage, "Lesson 0.1", title, summary, "Open the book"); the cover swings open round its spine (fades under reduced motion) and the page behind stays inert until then. A later step in the URL skips the cover.
+- 3D grows out of the 2D page: after the book opens, a 3D learner sees the 2D page for a moment, then the 3D scene appears as a flat top-down drawing, the camera tilts down and the objects rise (`IntroContext` in `src/app/intro.ts`, read by `InkStage`; no lesson code needed). Switching 2D → 3D does the same.
+- e2e: the config sets `bon:cover=off`; `e2e/book.spec.ts` covers the cover, the 2D-then-3D opening, skipping by URL and reduced motion.

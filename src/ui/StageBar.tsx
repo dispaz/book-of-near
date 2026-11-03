@@ -7,13 +7,15 @@ interface Props {
   menuOpen: boolean;
   onStep: (n: number) => void;
   onToggleMenu: () => void;
+  /** While the book is closed. */
+  inert?: boolean;
 }
 
 /** Bottom control bar: contents, back, one dot per step, next. The caption is the step heading at the top. */
-export function StageBar({ count, step, canNext, menuOpen, onStep, onToggleMenu }: Props) {
+export function StageBar({ count, step, canNext, menuOpen, onStep, onToggleMenu, inert }: Props) {
   const last = count - 1;
   return (
-    <nav className="stage-bar" aria-label="Lesson steps">
+    <nav className="stage-bar" aria-label="Lesson steps" inert={inert}>
       <button aria-label="Contents" aria-expanded={menuOpen} onClick={onToggleMenu}>
         <Svg>{Icon.menu}</Svg>
       </button>

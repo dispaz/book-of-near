@@ -1,5 +1,7 @@
-import { useMemo, useRef, type ReactNode } from "react";
-import { Canvas } from "@react-three/fiber";
+import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import type { Group } from "three";
+import { IntroContext } from "../app/intro";
 import { CameraRig } from "./CameraRig";
 import { StageContext } from "./context";
 import { Overlay, OverlayContext, OverlayStore, OverlaySync } from "./overlay";
@@ -44,6 +46,17 @@ export function InkStage({
   children,
 }: InkStageProps) {
   const store = useMemo(() => new OverlayStore(), []);
+  // Growing out of the 2D page: start top-down with everything pressed flat, then tilt the camera and
+  // let the objects rise. Decided once, when the stage mounts.
+  const intro = useContext(IntroContext);
+  const [growing] = useState(() => intro.grow && !reducedMotion);
+  const [pressed, setPressed] = useState(growing);
+  useEffect(() => {
+    if (!pressed) return;
+    const id = setTimeout(() => setPressed(false), 450);
+    return () => clearTimeout(id);
+  }, [pressed]);
+  const looksFlat = flat || pressed;
   const settings = useMemo(() => ({ reducedMotion, flat }), [reducedMotion, flat]);
   const wrap = useRef<HTMLDivElement>(null);
   return (
@@ -72,14 +85,14 @@ export function InkStage({
             </mesh>
             <CameraRig
               view={view}
-              flat={flat}
+              flat={looksFlat}
               reducedMotion={reducedMotion}
               minDistance={minDistance}
               maxDistance={maxDistance}
               onMotion={(m) => wrap.current?.setAttribute("data-camera", m)}
             />
             <OverlaySync />
-            {children}
+            {growing ? <Rise start={0.35}>{children}</Rise> : children}
           </Canvas>
           <Overlay store={store} />
         </OverlayContext.Provider>
@@ -88,5 +101,25 @@ export function InkStage({
         {status ?? ""}
       </p>
     </div>
+  );
+}
+
+/** Raises its children from pressed flat on the ground to full height, starting `start` seconds in. */
+function Rise({ start, children }: { start: number; children: ReactNode }) {
+  const ref = useRef<Group>(null);
+  const t0 = useRef<number | null>(null);
+  useFrame(({ clock }) => {
+    const g = ref.current;
+    if (!g) return;
+    if (t0.current === null) t0.current = clock.elapsedTime;
+    const u = Math.min(1, Math.max(0, (clock.elapsedTime - t0.current - start) / 1.1));
+    // Ease out with a small overshoot, like paper popping up.
+    const e = u >= 1 ? 1 : 1 + 1.4 * Math.pow(u - 1, 3) + 0.4 * Math.pow(u - 1, 2);
+    g.scale.y = Math.max(0.02, e);
+  });
+  return (
+    <group ref={ref} scale={[1, 0.02, 1]}>
+      {children}
+    </group>
   );
 }
