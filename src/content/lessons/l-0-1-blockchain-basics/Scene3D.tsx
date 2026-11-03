@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "re
 import { useFrame, useThree } from "@react-three/fiber";
 import { InkStage, Label, type Vec3 } from "../../../scene-kit";
 import { PEOPLE, shortHash, START, type Chain, type Person } from "./ledger";
-import { AUTO_TAMPER_NOTE, BlockDetails, COMPARE_RESULT } from "./parts";
+import { AUTO_TAMPER_NOTE, BlockDetails, COMPARE_RESULT, useHotLines } from "./parts";
 import { frameCamera, inset, viewOffset, type Focus, type Frame, type Reserve } from "./framing";
 import {
   BD,
@@ -427,16 +427,7 @@ function Notebooks({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMo
 /** Everyone's ledger, open at the balances. A transaction changes the same lines in every copy. */
 function Ledgers({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMotion: boolean }) {
   const r = g.ledgers;
-  const [hot, setHot] = useState<Person[]>([]);
-  const seen = useRef(m.lastTx?.n ?? 0);
-  useEffect(() => {
-    const t = m.lastTx;
-    if (!t || t.n === seen.current) return;
-    seen.current = t.n;
-    setHot([t.tx.from, t.tx.to]);
-    const id = setTimeout(() => setHot([]), 2200);
-    return () => clearTimeout(id);
-  }, [m.lastTx]);
+  const hot = useHotLines(m.lastTx);
   return (
     <>
       {PEOPLE.map((p) => (

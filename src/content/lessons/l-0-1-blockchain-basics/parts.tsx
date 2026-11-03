@@ -1,4 +1,4 @@
-import { useContext, useLayoutEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ActionSlot } from "../../../ui/SceneAction";
 import { hashOfText, PEOPLE, shortHash, verify, type Chain, type Person, type Tx } from "./ledger";
@@ -10,25 +10,21 @@ export const COMPARE_RESULT =
 export const AUTO_TAMPER_NOTE =
   "Ben's edit is back in his copy (block #1 changed), so there is something to catch.";
 
-/** Narrow screens: keep the scene above the docked lesson card, whatever its height. */
-export function useDockClearance() {
-  const ref = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    const lesson = el?.closest(".lesson");
-    const dock = lesson?.querySelector(".lesson-dock");
-    if (!el || !lesson || !dock) return;
-    const update = () => {
-      const gap = lesson.getBoundingClientRect().bottom - dock.getBoundingClientRect().top;
-      el.style.setProperty("--bb-dock", `${Math.max(0, Math.round(gap))}px`);
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(dock);
-    ro.observe(lesson);
-    return () => ro.disconnect();
-  }, []);
-  return ref;
+/**
+ * The lines a transaction just changed (sender and receiver), for about two seconds after it lands.
+ * A transaction that was already there when the view opened lights nothing.
+ */
+export function useHotLines(lastTx: { tx: Tx; n: number } | null): Person[] {
+  const [hot, setHot] = useState<Person[]>([]);
+  const seen = useRef(lastTx?.n ?? 0);
+  useEffect(() => {
+    if (!lastTx || lastTx.n === seen.current) return;
+    seen.current = lastTx.n;
+    setHot([lastTx.tx.from, lastTx.tx.to]);
+    const id = setTimeout(() => setHot([]), 2200);
+    return () => clearTimeout(id);
+  }, [lastTx]);
+  return hot;
 }
 
 export function BlockDetails({

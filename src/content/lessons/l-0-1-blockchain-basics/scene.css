@@ -1,13 +1,15 @@
 /* Lesson 0.1: the toy ledger. Ink outlines on paper, the stage accent as the one highlight, red only for
    broken links (the lesson's "something is wrong" signal).
    Wide screens: a column to the right of the docked lesson card. Narrow screens: a band between the title
-   and the dock (--bb-dock is measured by the scene). */
+   and the dock. LessonPage measures the header (--head-h), the dock (--dock-h) and the stage bar (--bar-h). */
 .bb {
   position: absolute;
-  top: calc(112px + env(safe-area-inset-top, 0px));
+  top: var(--head-h, 112px);
   left: max(16px, env(safe-area-inset-left, 0px));
   right: max(16px, env(safe-area-inset-right, 0px));
-  bottom: calc(var(--bb-dock, 45%) + 8px);
+  bottom: calc(
+    16px + var(--bar-h, 56px) + 16px + var(--dock-h, 40%) + 8px + env(safe-area-inset-bottom, 0px)
+  );
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -19,7 +21,7 @@
 }
 @media (min-width: 900px) {
   .bb {
-    top: calc(104px + env(safe-area-inset-top, 0px));
+    top: var(--head-h, 104px);
     left: 448px;
     right: max(24px, env(safe-area-inset-right, 0px));
     bottom: calc(96px + env(safe-area-inset-bottom, 0px));
@@ -28,7 +30,7 @@
   }
   /* Check and Honest take use the right column: the finished chain sits on the left, above the card. */
   .bb.summary {
-    top: calc(124px + env(safe-area-inset-top, 0px));
+    top: calc(var(--head-h, 104px) + 20px);
     left: max(16px, env(safe-area-inset-left, 0px));
     width: 400px;
     right: auto;
@@ -86,9 +88,6 @@
 div.bb-notebook {
   cursor: default;
 }
-button.bb-notebook:hover {
-  transform: translateY(-2px);
-}
 .bb-notebook.open {
   background-color: #fff;
 }
@@ -98,10 +97,6 @@ button.bb-notebook:hover {
 .bb-nb-lines {
   display: flex;
   flex-direction: column;
-}
-.bb-nb-closed {
-  color: var(--mute);
-  font: 500 13px var(--ui);
 }
 .bb-nb-mark {
   font: 700 13px var(--ui);
@@ -134,45 +129,89 @@ button.bb-notebook:hover {
   font: 500 15px/1.4 var(--serif);
 }
 
-/* ---------- People and balances ---------- */
-.bb-people {
-  position: relative;
+/* ---------- Ledgers: each person's notebook of balances ---------- */
+.bb-ledgers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
 }
-.bb-person {
+.bb-ledgers > li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.bb-lg-name {
+  font: 600 22px/1 var(--hand);
+  white-space: nowrap;
+}
+.bb-ledger {
+  position: relative;
+  width: 100%;
+  max-width: 240px;
+  min-height: 132px;
+  padding: 6px 12px 8px 30px;
+  border: 2px solid var(--ink);
+  border-radius: 4px 10px 10px 4px;
+  /* The spine on the left, the shadow on the right. */
+  box-shadow:
+    inset 9px 0 0 -2px var(--ink),
+    3px 3px 0 var(--ink);
+  background: var(--accent);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+div.bb-ledger {
+  cursor: default;
+}
+button.bb-ledger:hover {
+  transform: translateY(-2px);
+}
+/* Open: ruled paper with a pink margin line. */
+.bb-ledger.open {
+  background:
+    linear-gradient(90deg, transparent 23px, #ff5fa28c 23px 25px, transparent 25px),
+    repeating-linear-gradient(180deg, transparent 0 25px, #4d6bff40 25px 26px), #fffdf7;
+  background-position:
+    0 0,
+    0 4px,
+    0 0;
+}
+.bb-lg-page {
+  display: flex;
+  flex-direction: column;
+}
+.bb-lg-head {
+  font: 600 15px/22px var(--hand);
+  color: var(--mute);
+}
+.bb-lg-row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 6px;
-  padding: 6px 10px;
-  border: 2px solid var(--ink);
-  border-radius: 10px;
-  background: var(--accent);
-  box-shadow: 3px 3px 0 var(--ink);
+  gap: 8px;
+  margin: 0 -6px;
+  padding: 0 6px;
+  border-radius: 4px;
+  line-height: 26px;
+  transition: background-color 0.4s;
 }
-.bb-person-name {
-  font: 600 22px/1 var(--hand);
+.bb-lg-row > span {
+  font: 600 22px/26px var(--hand);
 }
-.bb-person-coins {
-  font: 500 13px var(--ui);
-  white-space: nowrap;
+.bb-lg-row > b {
+  font: 700 18px/26px var(--serif);
 }
-@media (max-width: 420px) {
-  .bb-person {
-    padding: 6px 8px;
-  }
-  .bb-person-name {
-    font-size: 20px;
-  }
-  .bb-person-coins {
-    font-size: 12px;
-  }
+.bb-lg-row.hot {
+  background: #ff8a3d73;
 }
-.bb-num {
-  display: inline-block;
-  font: 700 18px var(--ui);
+.bb-lg-row.hot > b {
   animation: bb-pop 0.6s ease-out;
 }
 @keyframes bb-pop {
@@ -180,47 +219,36 @@ button.bb-notebook:hover {
     transform: scale(1.5);
   }
 }
-.bb-coin {
-  position: absolute;
-  top: 50%;
-  width: 0;
-  height: 0;
-  left: calc((var(--to) + 0.5) * 33.333%);
-  animation: bb-coin-x 0.6s ease-in-out both;
-  pointer-events: none;
-}
-.bb-coin > span {
-  position: absolute;
-  left: -12px;
-  top: -12px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #f2c230;
-  border: 2px solid var(--ink);
-  animation: bb-coin-y 0.6s ease-in-out both;
-}
-@keyframes bb-coin-x {
-  from {
-    left: calc((var(--from) + 0.5) * 33.333%);
+@media (max-width: 560px) {
+  .bb-ledgers {
+    gap: 8px;
   }
-  to {
-    left: calc((var(--to) + 0.5) * 33.333%);
+  .bb-lg-name {
+    font-size: 18px;
   }
-}
-@keyframes bb-coin-y {
-  0% {
-    transform: translateY(0);
+  .bb-ledger {
+    min-height: 104px;
+    padding: 4px 8px 6px 20px;
   }
-  50% {
-    transform: translateY(-30px);
+  .bb-ledger.open {
+    background-image:
+      linear-gradient(90deg, transparent 15px, #ff5fa28c 15px 17px, transparent 17px),
+      repeating-linear-gradient(180deg, transparent 0 21px, #4d6bff40 21px 22px);
   }
-  90% {
-    opacity: 1;
-    transform: translateY(0);
+  .bb-lg-head {
+    font-size: 13px;
+    line-height: 18px;
   }
-  100% {
-    opacity: 0;
+  .bb-lg-row,
+  .bb-lg-row > span,
+  .bb-lg-row > b {
+    line-height: 22px;
+  }
+  .bb-lg-row > span {
+    font-size: 18px;
+  }
+  .bb-lg-row > b {
+    font-size: 15px;
   }
 }
 

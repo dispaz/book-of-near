@@ -1,6 +1,6 @@
-import { useEffect, useRef, type CSSProperties } from "react";
-import { PEOPLE, shortHash, START, verify, type Chain, type Person, type Tx } from "./ledger";
-import { AUTO_TAMPER_NOTE, BlockDetails, COMPARE_RESULT, useDockClearance } from "./parts";
+import { useEffect, useRef } from "react";
+import { PEOPLE, shortHash, START, verify, type Chain, type Person } from "./ledger";
+import { AUTO_TAMPER_NOTE, BlockDetails, COMPARE_RESULT, useHotLines } from "./parts";
 import {
   BLOCKS,
   CHECK,
@@ -14,7 +14,7 @@ import {
 } from "./useLedgerLesson";
 import "./scene.css";
 
-/** The 2D view: notebooks, balances and the chain as flat ink cards. Draws the shared lesson state. */
+/** The 2D view: three ledgers of balances and the chain as flat ink cards. Draws the shared lesson state. */
 export default function Scene2D({
   m,
   reducedMotion,
@@ -24,11 +24,11 @@ export default function Scene2D({
   reducedMotion: boolean;
   mode: string;
 }) {
-  const sceneRef = useDockClearance();
   const { step, chain } = m;
+  const hot = useHotLines(m.lastTx);
   const showBalances = step >= SEND && step <= LINKS;
   const showChain = step >= SEND && step <= TAMPER;
-  const showNotebooks = step === NOTEBOOK || step === COMPARE;
+  const showCopies = step === COMPARE;
   const summary = step >= CHECK;
   return (
     <div
@@ -39,21 +39,19 @@ export default function Scene2D({
       data-mode={mode}
       role="group"
       aria-label="Toy ledger of Ana, Ben and Cy"
-      ref={sceneRef}
     >
-      {showNotebooks ? (
-        <Notebooks
-          step={step}
-          opened={m.opened}
-          onOpen={m.openNotebook}
+      {step === NOTEBOOK ? <Ledgers opened={m.opened} onOpen={m.openNotebook} /> : null}
+
+      {showBalances ? <Ledgers bal={m.bal} hot={hot} /> : null}
+
+      {showCopies ? (
+        <Copies
           tips={{ honest: m.honestHashes[m.honestHashes.length - 1]!, ben: m.benCheck.computed.at(-1)! }}
           benDiffers={m.benDiffers && !m.compared}
           compared={m.compared}
           autoTampered={m.autoTampered}
         />
       ) : null}
-
-      {showBalances ? <BalanceRow bal={m.bal} lastTx={reducedMotion ? null : m.lastTx} /> : null}
 
       {showChain || summary ? (
         <ChainStrip
@@ -92,55 +90,83 @@ export default function Scene2D({
   );
 }
 
-function Notebooks({
-  step,
-  opened,
-  onOpen,
+/** The page of a ledger: "Balances" and one line per person. `hot` lines just changed. */
+function Page({ bal, hot = [] }: { bal: Record<Person, number>; hot?: Person[] }) {
+  return (
+    <span className="bb-lg-page">
+      <span className="bb-lg-head">Balances</span>
+      {PEOPLE.map((q) => (
+        <span key={q} className={`bb-lg-row${hot.includes(q) ? " hot" : ""}`}>
+          <span>{q}</span> <b>{bal[q]}</b>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/**
+ * Ana's, Ben's and Cy's ledgers. With `onOpen` (the first step) they start closed and open on a click,
+ * showing the starting balances. With `bal` they all stand open at the current balances.
+ */
+function Ledgers(
+  props:
+    | { opened: Person | null; onOpen: (p: Person) => void; bal?: undefined; hot?: undefined }
+    | { bal: Record<Person, number>; hot: Person[]; opened?: undefined; onOpen?: undefined },
+) {
+  const { opened, onOpen, bal, hot } = props;
+  return (
+    <>
+      <ul className="bb-ledgers" aria-label="Three ledgers">
+        {PEOPLE.map((p) => (
+          <li key={p}>
+            <span className="bb-lg-name" aria-hidden="true">
+              {p}'s ledger
+            </span>
+            {onOpen ? (
+              <button
+                className={`bb-ledger${opened === p ? " open" : ""}${opened ? "" : " hint"}`}
+                aria-label={`Open ${p}'s notebook`}
+                aria-pressed={opened === p}
+                data-testid={`notebook-${p}`}
+                onClick={() => onOpen(p)}
+              >
+                {opened === p ? <Page bal={START} /> : <span className="visually-hidden">closed</span>}
+              </button>
+            ) : (
+              // The same balances three times: screen readers get them once, below.
+              <div className="bb-ledger open" aria-hidden="true">
+                <Page bal={bal} hot={hot} />
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+      {bal ? (
+        <p className="visually-hidden">
+          Every ledger says:{" "}
+          {PEOPLE.map((p) => (
+            <span key={p}>
+              {p} <strong data-testid={`balance-${p}`}>{bal[p]}</strong> coins.{" "}
+            </span>
+          ))}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+/** The compare step: each person's copy of the chain, by its newest hash. */
+function Copies({
   tips,
   benDiffers,
   compared,
   autoTampered,
 }: {
-  step: number;
-  opened: Person | null;
-  onOpen: (p: Person) => void;
   tips: { honest: string; ben: string };
   benDiffers: boolean;
   compared: boolean;
   autoTampered: boolean;
 }) {
-  if (step === NOTEBOOK) {
-    return (
-      <ul className="bb-notebooks" aria-label="Three copies of the notebook">
-        {PEOPLE.map((p) => (
-          <li key={p}>
-            <button
-              className={`bb-notebook${opened === p ? " open" : ""}${opened ? "" : " hint"}`}
-              aria-label={`Open ${p}'s notebook`}
-              aria-pressed={opened === p}
-              data-testid={`notebook-${p}`}
-              onClick={() => onOpen(p)}
-            >
-              <span className="bb-nb-title">{p}'s copy</span>
-              {opened === p ? (
-                <span className="bb-nb-lines">
-                  {PEOPLE.map((q) => (
-                    <span key={q}>
-                      {q} {START[q]}
-                    </span>
-                  ))}
-                </span>
-              ) : (
-                <span className="bb-nb-closed" aria-hidden="true">
-                  closed
-                </span>
-              )}
-            </button>
-          </li>
-        ))}
-      </ul>
-    );
-  }
   return (
     <>
       <ul className="bb-notebooks" aria-label="Three copies of the chain">
@@ -173,39 +199,6 @@ function Notebooks({
         <p className="bb-result">{AUTO_TAMPER_NOTE}</p>
       ) : null}
     </>
-  );
-}
-
-function BalanceRow({ bal, lastTx }: { bal: Record<Person, number>; lastTx: { tx: Tx; n: number } | null }) {
-  return (
-    <div className="bb-people">
-      {PEOPLE.map((p) => (
-        <div key={p} className="bb-person">
-          <span className="bb-person-name">{p}</span>
-          <span className="bb-person-coins">
-            <strong data-testid={`balance-${p}`} key={`${p}-${bal[p]}`} className="bb-num">
-              {bal[p]}
-            </strong>{" "}
-            coins
-          </span>
-        </div>
-      ))}
-      {lastTx ? (
-        <span
-          key={lastTx.n}
-          className="bb-coin"
-          aria-hidden="true"
-          style={
-            {
-              "--from": PEOPLE.indexOf(lastTx.tx.from),
-              "--to": PEOPLE.indexOf(lastTx.tx.to),
-            } as CSSProperties
-          }
-        >
-          <span />
-        </span>
-      ) : null}
-    </div>
   );
 }
 
