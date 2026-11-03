@@ -320,7 +320,11 @@ function useFreeFrame(
       const dockR = dock ? dock.right - R.left : 416;
       const barT = bar ? bar.top - R.top : H - 72;
       let col: Frame;
-      if (wide && summary) col = { left: 16, right: dockR, top: titleB, bottom: dockT - 12 };
+      // The honest take: everything left of its panel, above the dock (the quiz step's summary page
+      // covers the scene anyway).
+      const side = rect(".lesson-panel");
+      if (wide && summary)
+        col = { left: 24, right: side ? side.left - R.left - 32 : W - 24, top: titleB, bottom: dockT - 12 };
       else if (wide) col = { left: dockR + 32, right: W - 24, top: titleB, bottom: barT - 14 };
       else col = { left: 12, right: W - 12, top: titleB, bottom: dockT - 10 };
       el.style.setProperty("--bb3-t", `${Math.round(col.top)}px`);
@@ -344,7 +348,7 @@ function useFreeFrame(
     if (!el || !lesson) return;
     const ro = new ResizeObserver(() => measure.current());
     ro.observe(el);
-    for (const sel of [".lesson-title", ".step-head", ".lesson-dock", ".stage-bar"]) {
+    for (const sel of [".lesson-title", ".step-head", ".lesson-dock", ".stage-bar", ".lesson-panel"]) {
       const t = lesson.querySelector(sel);
       if (t) ro.observe(t);
     }
