@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { InkStage, Label, Traveller, type Vec3 } from "../../../scene-kit";
-import { PEOPLE, shortHash, START, type Chain, type Person, type Tx } from "./ledger";
+import { InkStage, Label, type Vec3 } from "../../../scene-kit";
+import { PEOPLE, shortHash, START, type Chain, type Person } from "./ledger";
 import { AUTO_TAMPER_NOTE, BlockDetails, COMPARE_RESULT } from "./parts";
 import { frameCamera, inset, viewOffset, type Focus, type Frame, type Reserve } from "./framing";
 import {
@@ -11,18 +11,14 @@ import {
   CARD_AT,
   CHAIN_Z,
   chainX,
-  coinTop,
   HashLink,
+  Ledger,
+  LEDGER_D,
+  LEDGER_TALL,
+  LEDGER_W,
   LedgerBlock,
-  Notebook,
-  NOTEBOOK_Z,
-  PEOPLE_X,
-  PEOPLE_Z,
-  PERSON,
-  Person as PersonBlock,
-  personHeight,
-  SpinningCoin,
   Tag,
+  type PageRow,
   type TagPlace,
 } from "./objects3d";
 import {
@@ -47,25 +43,35 @@ import "./scene3d.css";
  * (phones, the column beside the Check) fold it into a 2 x 2 loop with cards on the sides:
  * #0 → #1 on the back row, #2 under #1, #3 beside it.
  */
+/** Three ledgers in a row (along x) or a column (along z): centre-to-centre pitch, scale and depth. */
+interface LedgerRow {
+  pitch: number;
+  scale: number;
+  z: number;
+  column?: boolean;
+}
+
 interface Geo {
   compact: boolean;
-  peopleX: Record<Person, number>;
-  peopleZ: number;
-  person: number;
+  /** The ledgers while they are all open (send to links). */
+  ledgers: LedgerRow;
+  /** The ledgers at the first step: bigger, and only one is open at a time. */
+  notebooks: LedgerRow;
   block: (i: number) => Vec3;
   card: (i: number) => { at: Vec3; place: TagPlace };
   /** Pixels kept free around the objects for the cards. */
   reserve: Reserve;
   elevation: number;
   /** Copies at the compare step. */
-  copies: { pitch: number; scale: number; personX: number | null; tag: { x: number; place: TagPlace } };
+  copies: { pitch: number; scale: number; tag: { x: number; place: TagPlace } };
 }
 
 const ROW: Geo = {
   compact: false,
-  peopleX: PEOPLE_X,
-  peopleZ: PEOPLE_Z,
-  person: PERSON,
+  // Three open spreads (2 x LEDGER_W wide each) side by side with a gap.
+  ledgers: { pitch: 4, scale: 0.9, z: -2.3 },
+  // One open spread next to closed books: 1.5 x LEDGER_W from centre to centre, plus a gap.
+  notebooks: { pitch: 3.8, scale: 1.15, z: 0 },
   block: (i) => [chainX(i), 0, CHAIN_Z],
   card: () => ({ at: CARD_AT, place: "below" }),
   reserve: { bottom: 70, top: 28 },
@@ -73,7 +79,6 @@ const ROW: Geo = {
   copies: {
     pitch: 2.4,
     scale: 0.7,
-    personX: chainX(0, 2.4) - 2.3,
     tag: { x: chainX(3, 2.4) + 0.75, place: "right" },
   },
 };
@@ -82,9 +87,9 @@ const SX = 1.55;
 const SZ = 2.9;
 const SNAKE: Geo = {
   compact: true,
-  peopleX: { Ana: -2.1, Ben: 0, Cy: 2.1 },
-  peopleZ: -1.7,
-  person: 1,
+  ledgers: { pitch: 2.1, scale: 0.5, z: -1.6 },
+  // Phones stack the ledgers front to back, so each one can be big.
+  notebooks: { pitch: 2.6, scale: 0.85, z: 0, column: true },
   block: (i) => [i === 0 || i === 3 ? -SX : SX, 0, 0.9 + (i >= 2 ? SZ : 0)],
   card: (i) =>
     i === 0 || i === 3
@@ -92,7 +97,7 @@ const SNAKE: Geo = {
       : { at: [BW / 2 + 0.08, BH * 0.55, 0], place: "right" },
   reserve: { left: 100, right: 100, top: 26, bottom: 26 },
   elevation: 50,
-  copies: { pitch: 2.1, scale: 0.65, personX: null, tag: { x: chainX(0, 2.1) - 1.25, place: "left" } },
+  copies: { pitch: 2.1, scale: 0.65, tag: { x: chainX(0, 2.1) - 1.25, place: "left" } },
 };
 
 /** Copies of the chain at the compare step: one row per person. */
@@ -118,13 +123,23 @@ function focusOf(boxes: Box[], elevation: number, azimuth = 0): Focus {
 
 /** What the camera must keep in view at each step, and the pixels to keep free for tags. */
 function shotFor(step: number, g: Geo): { focus: Focus; reserve: Reserve } {
-  const people: Box = [
-    Math.min(...PEOPLE.map((p) => g.peopleX[p])) - g.person / 2,
-    Math.max(...PEOPLE.map((p) => g.peopleX[p])) + g.person / 2,
-    g.peopleZ - g.person / 2,
-    g.peopleZ + g.person / 2,
-    personHeight(g.person),
-  ];
+  const ledgers = (r: LedgerRow): Box =>
+    r.column
+      ? [
+          -LEDGER_W * r.scale,
+          LEDGER_W * r.scale,
+          r.z - r.pitch - (LEDGER_D / 2) * r.scale,
+          r.z + r.pitch + (LEDGER_D / 2) * r.scale,
+          LEDGER_TALL * r.scale,
+        ]
+      : [
+          -r.pitch - LEDGER_W * r.scale,
+          r.pitch + LEDGER_W * r.scale,
+          r.z - (LEDGER_D / 2) * r.scale,
+          r.z + (LEDGER_D / 2) * r.scale,
+          LEDGER_TALL * r.scale,
+        ];
+  const shelf = ledgers(g.ledgers);
   const blocks = Array.from({ length: MAX_BLOCKS }, (_, i) => g.block(i));
   const chain: Box = [
     Math.min(...blocks.map((b) => b[0])) - BW / 2,
@@ -134,26 +149,23 @@ function shotFor(step: number, g: Geo): { focus: Focus; reserve: Reserve } {
     BH,
   ];
   if (step === NOTEBOOK) {
-    // Notebooks always stand in a row: their pages hang underneath.
-    const row: Box = [-3.6 - 0.7, 3.6 + 0.7, PEOPLE_Z - 0.65, NOTEBOOK_Z + 0.5, PERSON + 0.6];
-    return { focus: focusOf([row], 32), reserve: { bottom: g.compact ? 78 : 92, top: 26 } };
+    return { focus: focusOf([ledgers(g.notebooks)], g.compact ? 48 : 42), reserve: { bottom: 16, top: 36 } };
   }
   if (step >= SEND && step <= LINKS) {
     const az = step === BLOCKS || step === HASH ? -8 : 0;
     if (!g.compact)
       return {
-        focus: focusOf([people, chain], g.elevation + (step === LINKS ? 2 : 0), az),
+        focus: focusOf([shelf, chain], g.elevation + (step === LINKS ? 2 : 0), az),
         reserve: g.reserve,
       };
-    // Narrow: the people and the first row of blocks, then the whole loop once it fills up.
+    // Narrow: the first row of blocks (balances are pills above), then the whole loop once it fills up.
     if (step === LINKS) return { focus: focusOf([chain], g.elevation), reserve: g.reserve };
     const row0: Box = [chain[0], chain[1], chain[2], chain[2] + BD, BH];
-    const parts = step === HASH ? [row0] : [people, row0];
-    return { focus: focusOf(parts, g.elevation - 8, az), reserve: g.reserve };
+    return { focus: focusOf([row0], g.elevation - 8, az), reserve: g.reserve };
   }
   if (step === COMPARE) {
     const c = g.copies;
-    const left = c.personX !== null ? c.personX - 0.5 : chainX(0, c.pitch) - (BW / 2) * c.scale;
+    const left = chainX(0, c.pitch) - (BW / 2) * c.scale;
     const right = chainX(3, c.pitch) + (BW / 2) * c.scale;
     const rows: Box = [left, right, ROW_Z.Ana - 0.5, ROW_Z.Cy + 0.5, 1];
     const reserve: Reserve = g.compact ? { left: 150, top: 10, bottom: 8 } : { right: 175, top: 26 };
@@ -163,8 +175,8 @@ function shotFor(step: number, g: Geo): { focus: Focus; reserve: Reserve } {
 }
 
 const DESCRIPTION = [
-  "Ana, Ben and Cy, each with a notebook in front of them. Every notebook holds the same balances.",
-  "Ana, Ben and Cy with their coins, and the chain of blocks in front of them.",
+  "Three ledgers: Ana's, Ben's and Cy's. Every ledger holds the same balances.",
+  "Ana's, Ben's and Cy's ledgers, open at their balances, and the chain of blocks in front of them.",
   "The chain of blocks. Open a block to see the transaction inside.",
   "The chain of blocks, each with its hash.",
   "The chain of blocks, each linked to the one before it by that block's hash.",
@@ -175,7 +187,7 @@ const DESCRIPTION = [
 ];
 
 /**
- * The 3D view of lesson 0.1: people with coin stacks, notebooks, blocks that drop onto a chain and
+ * The 3D view of lesson 0.1: three ledgers of balances, blocks that drop onto a chain and
  * hash links that crack. It draws the same state as the 2D view (Scene2D) and shares its actions.
  */
 export default function Scene3D({
@@ -229,6 +241,7 @@ export default function Scene3D({
         <ViewOffset frame={inner} reducedMotion={reducedMotion} />
         {hidden ? null : <World m={m} g={g} reducedMotion={reducedMotion} />}
       </InkStage>
+      <ReadablePages m={m} strip={strip} />
       {strip ? (
         <p className="bb3-balances" aria-label="Balances">
           {PEOPLE.map((p) => (
@@ -364,13 +377,14 @@ function World({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMotion
   useEffect(() => {
     for (const b of m.chain) landed.current.add(b.height);
   });
-  // Narrow screens keep the people out of the way once the chain or the hash panel needs the room.
-  const showPeople = step >= SEND && step <= LINKS && !(g.compact && (step === HASH || step === LINKS));
+  // Narrow screens keep the ledgers out of the way once the chain or the hash panel needs the room.
+  // Phones show the balances as pills above the scene instead.
+  const showLedgers = step >= SEND && step <= LINKS && !g.compact;
   const showChain = (step >= SEND && step <= TAMPER) || step >= CHECK;
   return (
     <>
-      {step === NOTEBOOK ? <Notebooks m={m} reducedMotion={reducedMotion} /> : null}
-      {showPeople ? <People m={m} g={g} reducedMotion={reducedMotion} /> : null}
+      {step === NOTEBOOK ? <Notebooks m={m} g={g} reducedMotion={reducedMotion} /> : null}
+      {showLedgers ? <Ledgers m={m} g={g} reducedMotion={reducedMotion} /> : null}
       {showChain ? (
         <ChainBlocks m={m} g={g} reducedMotion={reducedMotion} drops={(h) => !landed.current.has(h)} />
       ) : null}
@@ -379,92 +393,92 @@ function World({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMotion
   );
 }
 
-function Notebooks({ m, reducedMotion }: { m: LedgerLesson; reducedMotion: boolean }) {
+const rowsOf = (bal: Record<Person, number>, hot: Person[] = []): PageRow[] =>
+  PEOPLE.map((q) => ({ name: q, value: bal[q], hot: hot.includes(q) }));
+
+/** Where a person's ledger stands in a row or column. */
+const ledgerAt = (p: Person, r: LedgerRow): Vec3 => {
+  const k = (PEOPLE.indexOf(p) - 1) * r.pitch;
+  return r.column ? [0, 0, r.z + k] : [k, 0, r.z];
+};
+
+/** The first step: three closed ledgers. Opening one shows the starting balances on its page. */
+function Notebooks({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMotion: boolean }) {
+  const r = g.notebooks;
   return (
     <>
       {PEOPLE.map((p) => (
-        <group key={p}>
-          <PersonBlock name={p} position={[PEOPLE_X[p], 0, PEOPLE_Z]} coins={0} />
-          <Notebook
-            label={`Open ${p}'s notebook`}
-            position={[PEOPLE_X[p], 0, NOTEBOOK_Z]}
-            open={m.opened === p}
-            hint={m.opened === null}
-            reducedMotion={reducedMotion}
-            onOpen={() => m.openNotebook(p)}
-          >
-            <div className={`bb3-nb${m.opened === p ? " open" : ""}`} data-testid={`notebook-${p}`}>
-              <b>{p}'s copy</b>
-              {m.opened === p ? (
-                PEOPLE.map((q) => (
-                  <span key={q}>
-                    {q} {START[q]}
-                  </span>
-                ))
-              ) : (
-                <span className="mute">closed</span>
-              )}
-            </div>
-          </Notebook>
-        </group>
+        <Ledger
+          key={p}
+          owner={p}
+          position={ledgerAt(p, r)}
+          scale={r.scale}
+          open={m.opened === p}
+          rows={m.opened === p ? rowsOf(START) : null}
+          hint={m.opened === null}
+          reducedMotion={reducedMotion}
+          pick={{ label: `Open ${p}'s notebook`, onPick: () => m.openNotebook(p) }}
+        />
       ))}
     </>
   );
 }
 
-/** Ana, Ben and Cy with their coins. A sent coin hops from one stack to the other. */
-function People({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMotion: boolean }) {
-  const [flying, setFlying] = useState<{ tx: Tx; n: number } | null>(null);
+/** Everyone's ledger, open at the balances. A transaction changes the same lines in every copy. */
+function Ledgers({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMotion: boolean }) {
+  const r = g.ledgers;
+  const [hot, setHot] = useState<Person[]>([]);
   const seen = useRef(m.lastTx?.n ?? 0);
   useEffect(() => {
     const t = m.lastTx;
     if (!t || t.n === seen.current) return;
     seen.current = t.n;
-    if (!reducedMotion) setFlying(t);
-  }, [m.lastTx, reducedMotion]);
-  // While the coin is in the air, the receiver's stack waits for it.
-  const stack = (p: Person) => m.bal[p] - (flying && flying.tx.to === p ? flying.tx.amount : 0);
-  const top = (p: Person, coins: number) => coinTop(g.peopleX[p], g.peopleZ, g.person, coins);
+    setHot([t.tx.from, t.tx.to]);
+    const id = setTimeout(() => setHot([]), 2200);
+    return () => clearTimeout(id);
+  }, [m.lastTx]);
   return (
     <>
       {PEOPLE.map((p) => (
-        <PersonBlock
+        <Ledger
           key={p}
-          name={p}
-          position={[g.peopleX[p], 0, g.peopleZ]}
-          size={g.person}
-          coins={stack(p)}
-          balance={
-            g.compact ? undefined : (
-              <>
-                <strong data-testid={`balance-${p}`}>{m.bal[p]}</strong> coins
-              </>
-            )
-          }
+          owner={p}
+          position={ledgerAt(p, r)}
+          scale={r.scale}
+          open
+          rows={rowsOf(m.bal, hot)}
+          reducedMotion={reducedMotion}
         />
       ))}
-      {flying ? (
-        <CoinHop
-          key={flying.n}
-          from={top(flying.tx.from, m.bal[flying.tx.from])}
-          to={top(flying.tx.to, m.bal[flying.tx.to] - flying.tx.amount)}
-          onDone={() => setFlying(null)}
-        />
-      ) : null}
     </>
   );
 }
 
-function CoinHop({ from, to, onDone }: { from: Vec3; to: Vec3; onDone: () => void }) {
-  const [go, setGo] = useState(false);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setGo(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
+/**
+ * The ledger pages as text, for screen readers (the pages themselves are pictures in the canvas).
+ * Phones show the balances as pills instead (`strip`).
+ */
+function ReadablePages({ m, strip }: { m: LedgerLesson; strip: boolean }) {
+  const { step } = m;
+  if (step === NOTEBOOK)
+    return (
+      <ul className="visually-hidden" aria-label="Ledgers">
+        {PEOPLE.map((p) => (
+          <li key={p} data-testid={`notebook-${p}`}>
+            {p}'s ledger: {m.opened === p ? PEOPLE.map((q) => `${q} ${START[q]}`).join(", ") : "closed"}
+          </li>
+        ))}
+      </ul>
+    );
+  if (strip || step < SEND || step > LINKS) return null;
   return (
-    <Traveller to={go ? to : from} arc={3} duration={1.1} onArrive={() => (go ? onDone() : undefined)}>
-      <SpinningCoin />
-    </Traveller>
+    <p className="visually-hidden" aria-label="Balances">
+      {PEOPLE.map((p) => (
+        <span key={p}>
+          {p} <strong data-testid={`balance-${p}`}>{m.bal[p]}</strong> coins.{" "}
+        </span>
+      ))}
+    </p>
   );
 }
 
@@ -584,7 +598,7 @@ function ChainBlocks({
 
 /** Three copies of the chain side by side. Ben's is the odd one out until the copies are compared. */
 function Copies({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMotion: boolean }) {
-  const { pitch, scale, personX, tag } = g.copies;
+  const { pitch, scale, tag } = g.copies;
   const honestTip = m.honestHashes[m.honestHashes.length - 1]!;
   return (
     <>
@@ -601,9 +615,6 @@ function Copies({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMotio
         const at = (i: number): Vec3 => [chainX(i, pitch), 0, z];
         return (
           <group key={p}>
-            {personX !== null ? (
-              <PersonBlock name={p} position={[personX, 0, z]} coins={0} size={0.9} />
-            ) : null}
             {copy.map((b, i) => (
               <group key={`${gen}${b.height}`}>
                 <LedgerBlock

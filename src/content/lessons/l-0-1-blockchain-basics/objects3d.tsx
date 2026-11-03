@@ -1,13 +1,12 @@
 /**
- * 3D objects of lesson 0.1, built from the scene kit's ink pieces: people with coin stacks, notebooks,
+ * 3D objects of lesson 0.1, built from the scene kit's ink pieces: ledgers (notebooks of balances),
  * ledger blocks with a lid, and the hash links between blocks. Loaded only with the 3D view.
  */
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Edges, Html, RoundedBox } from "@react-three/drei";
-import { DoubleSide, type Group } from "three";
+import { CanvasTexture, DoubleSide, ExtrudeGeometry, Shape, SRGBColorSpace, type Group } from "three";
 import {
-  Coin,
   COLORS,
   INK,
   Label,
@@ -15,14 +14,11 @@ import {
   Pickable,
   SoftShadow,
   useInk,
+  useStage,
   type Vec3,
 } from "../../../scene-kit";
 
 // ---------- layout (world units) ----------
-export const PEOPLE_X = { Ana: -3.6, Ben: 0, Cy: 3.6 } as const;
-export const PEOPLE_Z = -2.6;
-export const PERSON = 1.3;
-export const NOTEBOOK_Z = PEOPLE_Z + 1.75;
 export const CHAIN_Z = 1.4;
 export const PITCH = 3;
 export const BW = 1.5;
@@ -33,8 +29,6 @@ export const chainX = (i: number, pitch = PITCH) => (i - 1.5) * pitch;
 
 const PAPER = COLORS.paper;
 const RED_PAPER = "#f7d3cd";
-const COIN_H = 0.15;
-const MAX_COINS = 14;
 
 const noRaycast = () => undefined;
 
@@ -95,127 +89,206 @@ function useBob(on: boolean, reducedMotion: boolean) {
   return ref;
 }
 
-// ---------- people ----------
+// ---------- ledgers ----------
 
-/** A person's account: an orange block with their coins stacked on top. */
-export function Person({
-  name,
-  position,
-  coins,
-  size = PERSON,
-  balance,
-  label = true,
-}: {
+/** Size of a ledger (a notebook of balances) at scale 1, in world units. */
+export const LEDGER_W = 1.9;
+export const LEDGER_D = 1.45;
+const LEDGER_H = 0.24;
+const OPEN_ANGLE = Math.PI * 0.96;
+/** Ledgers lean back on a stand, so their pages face the camera. */
+const TILT = 0.5;
+const STAND_H = LEDGER_D * Math.sin(TILT);
+/** Height of a ledger with its name above it, for framing. */
+export const LEDGER_TALL = STAND_H + LEDGER_H + 0.9;
+
+/** One line on a ledger's page. `hot` marks a line that just changed. */
+export interface PageRow {
   name: string;
-  position: Vec3;
-  coins: number;
-  size?: number;
-  /** Shows the balance tag in front of the block. */
-  balance?: ReactNode;
-  label?: boolean;
-}) {
-  const ink = useInk(COLORS.orange, true);
-  const shown = Math.min(MAX_COINS, Math.max(0, coins));
-  return (
-    <group position={position}>
-      <SoftShadow position={[0, 0, 0.25]} size={[size * 1.9, size * 1.3]} />
-      <RoundedBox
-        args={[size, size, size]}
-        radius={0.08}
-        smoothness={1}
-        position={[0, size / 2, 0]}
-        material={ink}
-      >
-        <Outline mode="hull" thickness={0.03} />
-        <Outline threshold={20} />
-      </RoundedBox>
-      {Array.from({ length: shown }, (_, k) => (
-        <Coin key={k} position={[0, size + 0.07 + k * COIN_H, 0]} />
-      ))}
-      {label ? <Label position={[0, size + 0.75 + shown * COIN_H, 0]}>{name}</Label> : null}
-      {balance ? (
-        <Tag position={[0, 0.02, size / 2 + 0.05]} className="person">
-          {balance}
-        </Tag>
-      ) : null}
-    </group>
-  );
+  value: number;
+  hot?: boolean;
 }
 
-/** Where a coin sits on top of a person's stack. */
-export const coinTop = (x: number, z: number, size: number, coins: number): Vec3 => [
-  x,
-  size + 0.07 + Math.min(MAX_COINS, Math.max(0, coins)) * COIN_H,
-  z,
-];
+const PAGE_PX = 512;
+const PAGE_PY = Math.round((PAGE_PX * LEDGER_D) / LEDGER_W);
 
-/** Height of a person with a full coin stack and their name, for framing. */
-export const personHeight = (size: number) => size + 0.6 + MAX_COINS * COIN_H * 0.6;
+/** Draws a ledger's first page: ruled paper with "Balances" and one line per person. */
+function drawPage(canvas: HTMLCanvasElement, rows: PageRow[] | null) {
+  const c = canvas.getContext("2d");
+  if (!c) return;
+  const W = canvas.width;
+  const H = canvas.height;
+  c.fillStyle = PAPER;
+  c.fillRect(0, 0, W, H);
+  const top = 70;
+  const rowH = (H - top - 8) / 3;
+  c.fillStyle = "rgba(77,107,255,0.28)";
+  for (let k = 0; k <= 3; k++) c.fillRect(0, top + k * rowH - 2, W, 3);
+  c.fillStyle = "rgba(255,95,162,0.55)";
+  c.fillRect(64, 0, 3, H);
+  if (!rows) return;
+  c.fillStyle = INK;
+  c.textBaseline = "alphabetic";
+  c.font = '600 52px "Caveat", cursive';
+  c.fillText("Balances", 84, top - 16);
+  rows.slice(0, 3).forEach((r, k) => {
+    const y = top + k * rowH;
+    if (r.hot) {
+      c.fillStyle = "rgba(255,138,61,0.45)";
+      c.fillRect(68, y + 4, W - 84, rowH - 8);
+    }
+    c.fillStyle = INK;
+    c.textAlign = "left";
+    c.font = '600 92px "Caveat", cursive';
+    c.fillText(r.name, 84, y + rowH - 18);
+    c.textAlign = "right";
+    c.font = '700 80px "Newsreader", Georgia, serif';
+    c.fillText(String(r.value), W - 36, y + rowH - 18);
+  });
+  c.textAlign = "left";
+}
 
-// ---------- notebooks ----------
+/** The page as a texture, redrawn when its lines change and once the handwriting font has loaded. */
+function usePageTexture(rows: PageRow[] | null) {
+  const tex = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = PAGE_PX;
+    canvas.height = PAGE_PY;
+    const t = new CanvasTexture(canvas);
+    t.colorSpace = SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  }, []);
+  const [fonts, setFonts] = useState(0);
+  useEffect(() => {
+    let live = true;
+    const f = typeof document !== "undefined" ? document.fonts : undefined;
+    Promise.all([f?.load('600 92px "Caveat"'), f?.load('700 80px "Newsreader"')])
+      .then(() => live && setFonts(1))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
+  const key = JSON.stringify(rows);
+  useLayoutEffect(() => {
+    drawPage(tex.image as HTMLCanvasElement, rows);
+    tex.needsUpdate = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for `rows`
+  }, [tex, key, fonts]);
+  useEffect(() => () => tex.dispose(), [tex]);
+  return tex;
+}
 
-/** A notebook lying in front of its owner. Its cover flips open when it is opened. */
-export function Notebook({
-  label,
+/** The stand a ledger leans on: a wedge as wide as the book, rising from front to back. */
+function useStandGeometry() {
+  return useMemo(() => {
+    const run = LEDGER_D * Math.cos(TILT);
+    // Drawn in the y-z plane (shape x = -z), then turned so the extrusion runs along x.
+    const shape = new Shape();
+    shape.moveTo(-LEDGER_D / 2, 0);
+    shape.lineTo(-LEDGER_D / 2 + run, 0);
+    shape.lineTo(-LEDGER_D / 2 + run, STAND_H);
+    shape.closePath();
+    const g = new ExtrudeGeometry(shape, { depth: LEDGER_W * 0.9, bevelEnabled: false });
+    g.rotateY(Math.PI / 2);
+    g.translate(-LEDGER_W * 0.45, 0, 0);
+    return g;
+  }, []);
+}
+
+/**
+ * A person's ledger: a notebook whose first page lists everyone's balances. Its cover swings open to
+ * the left and the book slides so the open spread stays centred on `position`. The owner's name
+ * floats above it. `rows` is what the page says (null: a blank page).
+ */
+export function Ledger({
+  owner,
   position,
+  scale = 1,
   open,
-  hint,
+  rows,
+  hint = false,
   reducedMotion,
-  onOpen,
-  children,
+  pick,
 }: {
-  label: string;
+  owner: string;
   position: Vec3;
+  scale?: number;
   open: boolean;
-  hint: boolean;
+  rows: PageRow[] | null;
+  hint?: boolean;
   reducedMotion: boolean;
-  onOpen: () => void;
-  children: ReactNode;
+  pick?: { label: string; onPick: () => void };
 }) {
+  const { flat } = useStage();
   const pages = useInk(PAPER);
   const cover = useInk(COLORS.orange);
   const spine = useInk(INK);
+  const page = usePageTexture(rows);
+  const standGeo = useStandGeometry();
+  const stand = useInk(COLORS.slab);
   const hinge = useRef<Group>(null);
+  const slide = useRef<Group>(null);
   const bob = useBob(hint, reducedMotion);
-  const W = 1.25;
-  const D = 1.0;
+  const W = LEDGER_W;
+  const D = LEDGER_D;
   useFrame(() => {
     const h = hinge.current;
     if (!h) return;
-    const goal = open ? Math.PI * 0.94 : 0;
-    h.rotation.z = reducedMotion ? goal : h.rotation.z + (goal - h.rotation.z) * 0.14;
+    const goal = open ? OPEN_ANGLE : 0;
+    const r =
+      reducedMotion || Math.abs(goal - h.rotation.z) < 0.002
+        ? goal
+        : h.rotation.z + (goal - h.rotation.z) * 0.14;
+    h.rotation.z = r;
+    if (slide.current) slide.current.position.x = (W / 2) * (r / OPEN_ANGLE);
   });
-  return (
-    <group position={position}>
-      <SoftShadow position={[0, 0, 0.15]} size={[2.2, 1.6]} />
-      {open ? <Ring radius={0.95} /> : null}
-      <Pickable label={label} selected={open} onPick={onOpen} anchor={[0, 0.3, 0]}>
-        <group ref={bob}>
-          <mesh position={[0, 0.09, 0]} material={pages}>
-            <boxGeometry args={[W, 0.18, D]} />
+  // The book leans back on its front edge (pivot), resting on the stand.
+  const book = (
+    <group ref={bob}>
+      <mesh geometry={standGeo} material={stand}>
+        <Outline />
+      </mesh>
+      <group position={[0, 0, LEDGER_D / 2]} rotation={[TILT, 0, 0]}>
+        <group position={[0, 0, -LEDGER_D / 2]}>
+          <mesh position={[0, LEDGER_H * 0.45, 0]} material={pages}>
+            <boxGeometry args={[W, LEDGER_H * 0.9, D]} />
             <Outline />
           </mesh>
-          {/* Ruled lines on the first page, seen when the cover is open. */}
-          {[-0.25, 0, 0.25].map((z) => (
-            <mesh key={z} position={[0.05, 0.185, z]} rotation={[-Math.PI / 2, 0, 0]} raycast={noRaycast}>
-              <planeGeometry args={[W * 0.75, 0.035]} />
-              <meshBasicMaterial color={COLORS.blue} transparent opacity={0.5} />
-            </mesh>
-          ))}
-          <mesh position={[-W / 2 - 0.03, 0.1, 0]} material={spine}>
-            <boxGeometry args={[0.08, 0.22, D + 0.04]} />
+          <mesh position={[0, LEDGER_H * 0.9 + 0.003, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={noRaycast}>
+            <planeGeometry args={[W * 0.97, D * 0.96]} />
+            <meshBasicMaterial map={page} toneMapped={false} />
           </mesh>
-          <group ref={hinge} position={[-W / 2, 0.2, 0]}>
+          <mesh position={[-W / 2 - 0.04, LEDGER_H * 0.5, 0]} material={spine}>
+            <boxGeometry args={[0.09, LEDGER_H + 0.02, D + 0.05]} />
+          </mesh>
+          <group ref={hinge} position={[-W / 2, LEDGER_H + 0.01, 0]}>
             <mesh position={[W / 2, 0.02, 0]} material={cover}>
-              <boxGeometry args={[W + 0.04, 0.04, D + 0.04]} />
+              <boxGeometry args={[W + 0.05, 0.05, D + 0.05]} />
               <Outline />
             </mesh>
           </group>
         </group>
-      </Pickable>
-      <Tag position={[0, 0.02, D / 2 + 0.1]} className="notebook">
-        {children}
-      </Tag>
+      </group>
+    </group>
+  );
+  return (
+    <group position={position} scale={scale}>
+      <group ref={slide}>
+        <SoftShadow position={[-W * 0.25, 0, 0.12]} size={[W * 2.6, D * 1.5]} />
+        {pick && open ? <Ring radius={W * 0.62} /> : null}
+        {pick ? (
+          <Pickable label={pick.label} selected={open} onPick={pick.onPick} anchor={[0, STAND_H, 0]}>
+            {book}
+          </Pickable>
+        ) : (
+          book
+        )}
+      </group>
+      <Label
+        position={flat ? [0, 0, -D / 2 - 0.45] : [0, STAND_H + LEDGER_H + 0.55, -D * 0.35]}
+      >{`${owner}'s ledger`}</Label>
     </group>
   );
 }
@@ -421,21 +494,6 @@ function Crack() {
           </mesh>
         );
       })}
-    </group>
-  );
-}
-
-// ---------- the travelling coin ----------
-
-/** A coin that spins while it travels. */
-export function SpinningCoin() {
-  const ref = useRef<Group>(null);
-  useFrame((_, dt) => {
-    if (ref.current) ref.current.rotation.x += dt * 6;
-  });
-  return (
-    <group ref={ref}>
-      <Coin />
     </group>
   );
 }

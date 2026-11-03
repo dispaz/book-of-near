@@ -120,3 +120,7 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 
 ## 2026-11-02 · claude.ai review copy
 - `npm run build:artifact` builds `dist-artifact/` for the private review page on claude.ai (https://claude.ai/artifact/1hqfjM4Fxve6pXEo1mSHUx): hash routing (`MODE === "artifact"`), relative asset paths, `index.html` turned into a fragment, and `files.json` listing the files to publish. Only demo mode works there (no network). Republish after UI changes.
+
+## 2026-11-03 · 0.1 in 3D: ledgers instead of people cubes
+- From review screenshot 1: the orange cubes (people with coin stacks) read as blocks. They are gone. Each person now has a ledger (an open notebook on a small stand) with "Ana's ledger" etc. above it; its page is a canvas texture listing the balances. Opening a ledger at step 1 shows the starting balances on the page. From step 2 to 5 the three open ledgers stand behind the chain, and a transaction highlights the changed lines in every copy (no coin hop). The compare step lost its person cubes too.
+- Phones: the ledgers stand in a column at step 1; later steps keep the balance pills above the scene. Screen readers and tests read the pages through a visually hidden list (`notebook-*`, `balance-*`).
