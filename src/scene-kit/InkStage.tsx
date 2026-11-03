@@ -1,8 +1,8 @@
 import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import type { Group } from "three";
+import { Canvas } from "@react-three/fiber";
 import { IntroContext } from "../app/intro";
 import { CameraRig } from "./CameraRig";
+import { PopClock, PopContext, PopGroup, usePopDriver } from "./PopUp";
 import { StageContext } from "./context";
 import { Overlay, OverlayContext, OverlayStore, OverlaySync } from "./overlay";
 import type { CameraView } from "./motion";
@@ -28,6 +28,11 @@ export interface InkStageProps {
   maxDistance?: number;
   /** What the scene stands on, in place of the plain paper ground (for example a BookBackdrop). */
   backdrop?: ReactNode;
+  /**
+   * The page the figure is printed on (for example the step). When it changes, the book's page turns
+   * and the figure folds flat and pops up again as a drawing that fills in (not under reduced motion).
+   */
+  page?: number | string;
   children: ReactNode;
 }
 
@@ -46,6 +51,7 @@ export function InkStage({
   minDistance,
   maxDistance,
   backdrop,
+  page,
   children,
 }: InkStageProps) {
   const store = useMemo(() => new OverlayStore(), []);
@@ -62,6 +68,7 @@ export function InkStage({
   const looksFlat = flat || pressed;
   const settings = useMemo(() => ({ reducedMotion, flat }), [reducedMotion, flat]);
   const wrap = useRef<HTMLDivElement>(null);
+  const pop = usePopDriver({ page, grow: growing, reducedMotion, wrap });
   return (
     <div
       ref={wrap}
@@ -82,22 +89,25 @@ export function InkStage({
               if (e.type === "click") onMiss?.();
             }}
           >
-            {backdrop ?? (
-              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.002, 0]}>
-                <planeGeometry args={[80, 80]} />
-                <meshBasicMaterial color={GROUND} />
-              </mesh>
-            )}
-            <CameraRig
-              view={view}
-              flat={looksFlat}
-              reducedMotion={reducedMotion}
-              minDistance={minDistance}
-              maxDistance={maxDistance}
-              onMotion={(m) => wrap.current?.setAttribute("data-camera", m)}
-            />
-            <OverlaySync />
-            {growing ? <Rise start={0.35}>{children}</Rise> : children}
+            <PopContext.Provider value={pop.frame}>
+              <PopClock tick={pop.tick} />
+              {backdrop ?? (
+                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.002, 0]}>
+                  <planeGeometry args={[80, 80]} />
+                  <meshBasicMaterial color={GROUND} />
+                </mesh>
+              )}
+              <CameraRig
+                view={view}
+                flat={looksFlat}
+                reducedMotion={reducedMotion}
+                minDistance={minDistance}
+                maxDistance={maxDistance}
+                onMotion={(m) => wrap.current?.setAttribute("data-camera", m)}
+              />
+              <OverlaySync />
+              <PopGroup>{children}</PopGroup>
+            </PopContext.Provider>
           </Canvas>
           <Overlay store={store} />
         </OverlayContext.Provider>
@@ -106,25 +116,5 @@ export function InkStage({
         {status ?? ""}
       </p>
     </div>
-  );
-}
-
-/** Raises its children from pressed flat on the ground to full height, starting `start` seconds in. */
-function Rise({ start, children }: { start: number; children: ReactNode }) {
-  const ref = useRef<Group>(null);
-  const t0 = useRef<number | null>(null);
-  useFrame(({ clock }) => {
-    const g = ref.current;
-    if (!g) return;
-    if (t0.current === null) t0.current = clock.elapsedTime;
-    const u = Math.min(1, Math.max(0, (clock.elapsedTime - t0.current - start) / 1.1));
-    // Ease out with a small overshoot, like paper popping up.
-    const e = u >= 1 ? 1 : 1 + 1.4 * Math.pow(u - 1, 3) + 0.4 * Math.pow(u - 1, 2);
-    g.scale.y = Math.max(0.02, e);
-  });
-  return (
-    <group ref={ref} scale={[1, 0.02, 1]}>
-      {children}
-    </group>
   );
 }

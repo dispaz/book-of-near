@@ -4,7 +4,19 @@
  */
 export { InkStage, type InkStageProps } from "./InkStage";
 export { BookBackdrop, type BookBackdropProps, type BookPrint } from "./BookBackdrop";
-export { BOOK, pageHeight, spreadFor, type Spread } from "./book";
+export {
+  BOOK,
+  curlProfile,
+  pageHeight,
+  spreadBeside,
+  spreadFor,
+  textBlock,
+  type Spread,
+  type TextBlock,
+} from "./book";
+export { PrintOnPage } from "./PrintOnPage";
+export { homography, matrix3d } from "./homography";
+export { POP, popState } from "./pop";
 export {
   AccountBlock,
   Anchor,

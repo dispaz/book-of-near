@@ -11,16 +11,19 @@ import {
   ExtrudeGeometry,
   Object3D,
   PCFShadowMap,
+  RepeatWrapping,
   Shape,
   ShaderMaterial,
   ShadowMaterial,
   SRGBColorSpace,
   Vector3,
+  type LineSegments,
   type Mesh,
 } from "three";
-import { inkMaterial } from "./materials";
+import { inkMaterial, REVEAL } from "./materials";
 import { INK } from "./theme";
-import { BOOK, pageHeight, type Spread } from "./book";
+import { BOOK, curlProfile, pageHeight, type Spread } from "./book";
+import { usePop } from "./PopUp";
 
 /** Words printed on the pages: running heads, page numbers and a figure caption. Decoration only. */
 export interface BookPrint {
@@ -65,11 +68,17 @@ export function BookBackdrop({
   const { pageWidth: W, pageDepth: D, center } = spread;
   const [cx, , cz] = center;
   const deskY = -BOOK.stack - BOOK.cover;
+  // The felt mat reaches well past the book on every side, like a desk pad under it, and furthest
+  // towards the reader, so low camera shots see felt in front of the book and the table behind it.
+  const mat = useMemo<[number, number]>(
+    () => [2 * (W + BOOK.overhang) + 9, D + 2 * BOOK.overhang + 26],
+    [W, D],
+  );
   return (
     <group>
       <Shadows spread={spread} />
       <CastShadows />
-      <Desk y={deskY - 0.001} color={desk} />
+      <Desk y={deskY - 0.001} color={desk} at={[cx, cz + 10]} size={mat} />
       <group position={[cx, 0, cz]}>
         <Cover W={W} D={D} color={cover} />
         {([-1, 1] as const).map((side) => (
@@ -86,6 +95,7 @@ export function BookBackdrop({
           />
         ))}
         <Ribbon D={D} deskY={deskY} color={ribbon} />
+        <TurningPage W={W} D={D} />
       </group>
     </group>
   );
@@ -168,13 +178,15 @@ function inkShadowMaterial(dpr: number, opacity = 0.26): ShadowMaterial {
     m.polygonOffsetFactor = -2;
     m.onBeforeCompile = (s) => {
       s.uniforms.uDpr = { value: dpr };
+      // Shadows come in with the fill, after the outlines have popped up.
+      s.uniforms.uReveal = REVEAL;
       s.fragmentShader =
-        "uniform float uDpr;\n" +
+        "uniform float uDpr;\nuniform float uReveal;\n" +
         s.fragmentShader.replace(
           "gl_FragColor = vec4( color, opacity * ( 1.0 - getShadowMask() ) );",
           /* glsl */ `float sm = 1.0 - getShadowMask();
           float hatch = step(0.62, fract((gl_FragCoord.x - gl_FragCoord.y) / (uDpr * 5.0)));
-          gl_FragColor = vec4( color, opacity * sm * (0.5 + 0.9 * hatch) );`,
+          gl_FragColor = vec4( color, opacity * sm * (0.5 + 0.9 * hatch) * (0.3 + 0.7 * uReveal) );`,
         );
     };
     shadowCache.set(key, m);
@@ -184,56 +196,214 @@ function inkShadowMaterial(dpr: number, opacity = 0.26): ShadowMaterial {
 
 // ---------- desk ----------
 
-function Desk({ y, color }: { y: number; color: string }) {
-  const tex = useMemo(() => {
-    const c = document.createElement("canvas");
-    c.width = c.height = 512;
-    const g = c.getContext("2d")!;
-    const r = g.createRadialGradient(256, 256, 20, 256, 256, 256);
-    r.addColorStop(0, shade(color, 1.05));
-    r.addColorStop(0.55, color);
-    r.addColorStop(1, shade(color, 0.86));
-    g.fillStyle = r;
-    g.fillRect(0, 0, 512, 512);
-    const t = new CanvasTexture(c);
+/** World units one repeat of the wood texture covers. */
+const WOOD_TILE = 14;
+
+/**
+ * A pale ash table, a felt desk mat under the book and soft window light falling across them.
+ * The mat is `size` (x, z) and centred on `at`.
+ */
+function Desk({
+  y,
+  color,
+  at,
+  size,
+}: {
+  y: number;
+  color: string;
+  at: [number, number];
+  size: [number, number];
+}) {
+  const wood = useMemo(() => {
+    const t = new CanvasTexture(woodCanvas());
+    t.colorSpace = SRGBColorSpace;
+    t.wrapS = t.wrapT = RepeatWrapping;
+    t.repeat.set(400 / WOOD_TILE, 400 / WOOD_TILE);
+    t.anisotropy = 8;
+    return t;
+  }, []);
+  const felt = useMemo(() => {
+    const t = new CanvasTexture(feltCanvas(color, size));
+    t.colorSpace = SRGBColorSpace;
+    t.anisotropy = 8;
+    return t;
+  }, [color, size]);
+  const light = useMemo(() => {
+    const t = new CanvasTexture(windowLightCanvas());
     t.colorSpace = SRGBColorSpace;
     return t;
-  }, [color]);
+  }, []);
+  useEffect(
+    () => () => {
+      wood.dispose();
+      felt.dispose();
+      light.dispose();
+    },
+    [wood, felt, light],
+  );
   const dpr = useThree((s) => s.viewport.dpr);
+  const flat: [number, number, number] = [-Math.PI / 2, 0, 0];
   return (
     <group position={[0, y, 0]}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={noRaycast} userData={BOOK_PART}>
+      {/* The layers sit well apart (the mat is a thick pad), so they do not flicker at low angles. */}
+      <mesh rotation={flat} position={[0, -0.06, 0]} raycast={noRaycast} userData={BOOK_PART}>
         <planeGeometry args={[400, 400]} />
-        <meshBasicMaterial map={tex} />
+        <meshBasicMaterial map={wood} />
+      </mesh>
+      <mesh rotation={flat} position={[at[0], 0, at[1]]} raycast={noRaycast} userData={BOOK_PART}>
+        <planeGeometry args={size} />
+        <meshBasicMaterial map={felt} />
+      </mesh>
+      {/* Window light: a warm glow with the soft shadows of the frame and a plant, on the desk only. */}
+      <mesh
+        rotation={flat}
+        position={[at[0] - size[0] * 0.08, 0.012, at[1] + size[1] * 0.12]}
+        raycast={noRaycast}
+        userData={BOOK_PART}
+      >
+        <planeGeometry args={[size[0] * 1.5, size[0] * 1.5]} />
+        <meshBasicMaterial map={light} transparent depthWrite={false} />
       </mesh>
       <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0.002, 0]}
+        rotation={flat}
+        position={[0, 0.024, 0]}
         raycast={noRaycast}
         receiveShadow
         userData={BOOK_PART}
         material={inkShadowMaterial(dpr, 0.3)}
       >
-        <planeGeometry args={[80, 80]} />
+        <planeGeometry args={[120, 120]} />
       </mesh>
     </group>
   );
 }
 
-function shade(hex: string, k: number) {
-  const n = parseInt(hex.slice(1), 16);
-  const ch = (v: number) => Math.max(0, Math.min(255, Math.round(v * k)));
-  const r = ch((n >> 16) & 255);
-  const g = ch((n >> 8) & 255);
-  const b = ch(n & 255);
-  return `rgb(${r},${g},${b})`;
+/** A seeded random generator, so the textures are the same on every load. */
+function seeded(seed: number) {
+  let s = seed;
+  return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
+}
+
+/** Pale ash planks running along x, with fine grain lines and the odd darker streak. */
+function woodCanvas() {
+  const n = 1024;
+  const c = document.createElement("canvas");
+  c.width = c.height = n;
+  const g = c.getContext("2d")!;
+  const rnd = seeded(29);
+  g.fillStyle = "#dccfb6";
+  g.fillRect(0, 0, n, n);
+  const planks = 4;
+  const ph = n / planks;
+  for (let p = 0; p < planks; p++) {
+    const top = p * ph;
+    g.fillStyle = `rgba(${150 + rnd() * 30},${120 + rnd() * 20},${80},${0.05 + rnd() * 0.06})`;
+    g.fillRect(0, top, n, ph);
+    for (let k = 0; k < 70; k++) {
+      const y0 = top + rnd() * ph;
+      const amp = 2 + rnd() * 7;
+      const freq = (1 + Math.floor(rnd() * 3)) * ((2 * Math.PI) / n);
+      const phase = rnd() * 6;
+      g.strokeStyle = `rgba(120,92,58,${0.04 + rnd() * 0.12})`;
+      g.lineWidth = 0.6 + rnd() * 1.6;
+      g.beginPath();
+      for (let x = 0; x <= n; x += 16) {
+        const yy = y0 + Math.sin(x * freq + phase) * amp;
+        if (x === 0) g.moveTo(x, yy);
+        else g.lineTo(x, yy);
+      }
+      g.stroke();
+    }
+    // The seam between planks.
+    g.fillStyle = "rgba(95,72,45,0.35)";
+    g.fillRect(0, top, n, 2);
+  }
+  return c;
+}
+
+/** Sage felt: speckled, a little lighter in the middle, with a stitched border. */
+function feltCanvas(color: string, [w, h]: [number, number]) {
+  const cw = 1024;
+  const ch = Math.max(64, Math.round((cw * h) / w));
+  const c = document.createElement("canvas");
+  c.width = cw;
+  c.height = ch;
+  const g = c.getContext("2d")!;
+  g.fillStyle = color;
+  g.fillRect(0, 0, cw, ch);
+  const rnd = seeded(5);
+  for (let i = 0; i < 26000; i++) {
+    const light = rnd() > 0.5;
+    g.fillStyle = light ? `rgba(255,255,250,${rnd() * 0.07})` : `rgba(40,50,40,${rnd() * 0.07})`;
+    g.fillRect(rnd() * cw, rnd() * ch, 1 + rnd() * 2, 1 + rnd() * 2);
+  }
+  const vg = g.createRadialGradient(cw / 2, ch / 2, ch * 0.1, cw / 2, ch / 2, cw * 0.62);
+  vg.addColorStop(0, "rgba(255,255,245,0.08)");
+  vg.addColorStop(1, "rgba(30,40,30,0.14)");
+  g.fillStyle = vg;
+  g.fillRect(0, 0, cw, ch);
+  g.strokeStyle = "rgba(30,40,30,0.35)";
+  g.lineWidth = 2;
+  g.strokeRect(1, 1, cw - 2, ch - 2);
+  g.setLineDash([7, 6]);
+  g.strokeStyle = "rgba(250,250,240,0.35)";
+  g.lineWidth = 1.5;
+  g.strokeRect(14, 14, cw - 28, ch - 28);
+  return c;
+}
+
+/**
+ * Low warm sun through a window: a faint golden glow, crossed by the soft shadows of the window bars
+ * and dappled by the leaves of a plant on the sill. Transparent elsewhere.
+ */
+function windowLightCanvas() {
+  const n = 1024;
+  const c = document.createElement("canvas");
+  c.width = c.height = n;
+  const g = c.getContext("2d")!;
+  const glow = g.createRadialGradient(n * 0.3, n * 0.75, 20, n * 0.3, n * 0.75, n * 0.55);
+  glow.addColorStop(0, "rgba(255,214,150,0.22)");
+  glow.addColorStop(1, "rgba(255,214,150,0)");
+  g.fillStyle = glow;
+  g.fillRect(0, 0, n, n);
+  g.filter = "blur(14px)";
+  g.fillStyle = "rgba(52,40,28,0.16)";
+  g.save();
+  g.translate(n * 0.3, n * 0.75);
+  g.rotate(-0.55);
+  // Two window bars crossing, long and soft.
+  g.fillRect(-n * 0.6, -n * 0.02, n * 1.2, n * 0.035);
+  g.fillRect(-n * 0.02, -n * 0.6, n * 0.03, n * 1.2);
+  g.restore();
+  const rnd = seeded(11);
+  g.filter = "blur(10px)";
+  for (let i = 0; i < 26; i++) {
+    const x = n * (0.05 + rnd() * 0.35);
+    const y = n * (0.55 + rnd() * 0.4);
+    g.fillStyle = `rgba(52,40,28,${0.06 + rnd() * 0.08})`;
+    g.beginPath();
+    g.ellipse(x, y, 14 + rnd() * 30, 6 + rnd() * 12, rnd() * Math.PI, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.filter = "none";
+  // Fade the whole pattern out towards the edges, so the plane has no visible border.
+  g.globalCompositeOperation = "destination-in";
+  const edge = g.createRadialGradient(n / 2, n / 2, n * 0.2, n / 2, n / 2, n / 2);
+  edge.addColorStop(0, "rgba(0,0,0,1)");
+  edge.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = edge;
+  g.fillRect(0, 0, n, n);
+  g.globalCompositeOperation = "source-over";
+  return c;
 }
 
 // ---------- cover ----------
 
 function Cover({ W, D, color }: { W: number; D: number; color: string }) {
   const dpr = useThree((s) => s.viewport.dpr);
-  const mat = useMemo(() => inkMaterial(color, dpr), [color, dpr]);
+  // A clone: the book stays solid while the figure on it pops up (REVEAL).
+  const mat = useMemo(() => inkMaterial(color, dpr).clone(), [color, dpr]);
+  useEffect(() => () => mat.dispose(), [mat]);
   const o = BOOK.overhang;
   return (
     <mesh
@@ -498,6 +668,122 @@ function paperTexture(
   t.colorSpace = SRGBColorSpace;
   t.anisotropy = 8;
   return t;
+}
+
+// ---------- the turning page ----------
+
+const TURN_SEGMENTS = 40;
+
+let turnMat: ShaderMaterial | null = null;
+/** Paper for the turning page: both sides, shaded by how it faces the light and darker at the spine. */
+function turningPageMaterial() {
+  turnMat ??= new ShaderMaterial({
+    side: DoubleSide,
+    uniforms: { uC: { value: new Vector3(0.984, 0.973, 0.945) } },
+    vertexShader: /* glsl */ `
+      varying vec3 vN;
+      varying float vU;
+      void main() {
+        vU = uv.x;
+        vN = normalize(mat3(modelMatrix) * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uC;
+      varying vec3 vN;
+      varying float vU;
+      void main() {
+        vec3 n = normalize(gl_FrontFacing ? vN : -vN);
+        float l = max(dot(n, normalize(vec3(0.35, 0.8, 0.45))), 0.0);
+        vec3 c = uC * (0.72 + 0.28 * l);
+        c *= 1.0 - 0.25 * (1.0 - smoothstep(0.0, 0.18, vU));
+        gl_FragColor = vec4(c, 1.0);
+      }`,
+  });
+  return turnMat;
+}
+
+/**
+ * The page that turns over when the figure changes: it lifts off the right page, curls over the spine
+ * and lands on the left page (pop.ts says when). Hidden the rest of the time.
+ */
+function TurningPage({ W, D }: { W: number; D: number }) {
+  const pop = usePop();
+  const mesh = useRef<Mesh>(null);
+  const lines = useRef<LineSegments>(null);
+  const n = TURN_SEGMENTS;
+  const { sheet, edge } = useMemo(() => {
+    const sheet = new BufferGeometry();
+    sheet.setAttribute("position", new Float32BufferAttribute(new Float32Array((n + 1) * 6), 3));
+    const uv: number[] = [];
+    const idx: number[] = [];
+    for (let i = 0; i <= n; i++) {
+      uv.push(i / n, 1, i / n, 0);
+      if (i < n) idx.push(2 * i, 2 * i + 1, 2 * i + 2, 2 * i + 2, 2 * i + 1, 2 * i + 3);
+    }
+    sheet.setAttribute("uv", new Float32BufferAttribute(uv, 2));
+    sheet.setIndex(idx);
+    // The back and front edges (n segments each) and the free edge, as ink lines.
+    const edge = new BufferGeometry();
+    edge.setAttribute("position", new Float32BufferAttribute(new Float32Array((2 * n + 1) * 6), 3));
+    return { sheet, edge };
+  }, [n]);
+  useEffect(
+    () => () => {
+      sheet.dispose();
+      edge.dispose();
+    },
+    [sheet, edge],
+  );
+  useFrame(() => {
+    const t = pop.current.turn;
+    const m = mesh.current;
+    const l = lines.current;
+    if (!m || !l) return;
+    m.visible = l.visible = t !== null;
+    if (t === null) return;
+    const pts = curlProfile(t * Math.PI, W, n);
+    const p = sheet.attributes.position!.array as Float32Array;
+    pts.forEach(([x, y], i) => p.set([x, y, -D / 2, x, y, D / 2], i * 6));
+    sheet.attributes.position!.needsUpdate = true;
+    sheet.computeVertexNormals();
+    const e = edge.attributes.position!.array as Float32Array;
+    let k = 0;
+    for (const z of [-D / 2, D / 2])
+      for (let i = 0; i < n; i++) {
+        const [x0, y0] = pts[i]!;
+        const [x1, y1] = pts[i + 1]!;
+        e.set([x0, y0, z, x1, y1, z], k);
+        k += 6;
+      }
+    const [xe, ye] = pts[n]!;
+    e.set([xe, ye, -D / 2, xe, ye, D / 2], k);
+    edge.attributes.position!.needsUpdate = true;
+  });
+  return (
+    <group>
+      <mesh
+        ref={mesh}
+        geometry={sheet}
+        material={turningPageMaterial()}
+        castShadow
+        frustumCulled={false}
+        visible={false}
+        raycast={noRaycast}
+        userData={BOOK_PART}
+      />
+      <lineSegments
+        ref={lines}
+        geometry={edge}
+        frustumCulled={false}
+        visible={false}
+        raycast={noRaycast}
+        userData={BOOK_PART}
+      >
+        <lineBasicMaterial color={INK} />
+      </lineSegments>
+    </group>
+  );
 }
 
 // ---------- ribbon ----------

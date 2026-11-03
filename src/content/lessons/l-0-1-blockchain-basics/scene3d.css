@@ -53,7 +53,13 @@
 }
 
 /* ---------- Tags that follow the 3D objects ---------- */
+/* While the page turns and the drawing rises, the tags wait; they fade in with the fill (PopUp.tsx). */
+.sk-stage:is([data-pop="turn"], [data-pop="rise"]) .bb3-tag {
+  opacity: 0;
+  transition: none;
+}
 .bb3-tag {
+  transition: opacity 0.4s ease-out;
   position: absolute;
   left: 0;
   top: 0;

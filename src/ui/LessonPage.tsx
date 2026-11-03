@@ -13,7 +13,7 @@ import { registry } from "../app/registry";
 import { useChainMode } from "../chain/ChainContext";
 import { ModeSwitch } from "../chain/ModeSwitch";
 import type { LessonManifest, SceneProps } from "../app/types";
-import { StageBar } from "./StageBar";
+import { BarSlot, StageBar } from "./StageBar";
 import { SceneBoundary } from "./SceneBoundary";
 import { TextFallback } from "./TextFallback";
 import { hasWebGL, useMediaQuery, useReducedMotion } from "./hooks";
@@ -26,7 +26,7 @@ import { progress } from "../progress";
 import { FinishLesson, useRecordPosition } from "../progress/FinishLesson";
 import { StepNote } from "./StepNote";
 import { BookCover, startsClosed } from "./BookCover";
-import { IntroContext } from "../app/intro";
+import { IntroContext, SpreadContext } from "../app/intro";
 import { Summary } from "./Summary";
 
 const sceneCache = new Map<string, ComponentType<SceneProps>>();
@@ -70,6 +70,9 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [opened, setOpened] = useState<Set<number>>(() => new Set());
   const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const [barSlot, setBarSlot] = useState<HTMLElement | null>(null);
+  // The 3D view prints the step on its book's left page (see SpreadContext).
+  const [spread, setSpread] = useState(false);
   const [vars, setVarsState] = useState<Record<string, string>>(() => ({ ...lesson.vars }));
   const setVars = useCallback(
     (next: Record<string, string>) =>
@@ -228,24 +231,29 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
       className="lesson"
       style={{ "--accent": stage.accent } as CSSProperties}
       data-lesson={lesson.id}
+      data-spread={spread ? "" : undefined}
     >
       <IntroContext.Provider value={intro}>
-        <ActionSlot.Provider value={slot}>
-          <div className="scene-area" data-testid="scene-area" inert={closed}>
-            {!Scene ? (
-              fallback("This lesson has no scene yet. Here are its steps as text.")
-            ) : !webgl ? (
-              fallback("Your browser can't draw the 3D scene. Here are the steps as text.")
-            ) : (
-              <SceneBoundary fallback={fallback("The scene could not load. Here are the steps as text.")}>
-                <Suspense fallback={<p className="visually-hidden">Loading scene…</p>}>
-                  <Scene {...sceneProps} />
-                </Suspense>
-              </SceneBoundary>
-            )}
-            {current.page === "summary" ? <Summary title={lesson.title} steps={steps} /> : null}
-          </div>
-        </ActionSlot.Provider>
+        <SpreadContext.Provider value={setSpread}>
+          <BarSlot.Provider value={barSlot}>
+            <ActionSlot.Provider value={slot}>
+              <div className="scene-area" data-testid="scene-area" inert={closed}>
+                {!Scene ? (
+                  fallback("This lesson has no scene yet. Here are its steps as text.")
+                ) : !webgl ? (
+                  fallback("Your browser can't draw the 3D scene. Here are the steps as text.")
+                ) : (
+                  <SceneBoundary fallback={fallback("The scene could not load. Here are the steps as text.")}>
+                    <Suspense fallback={<p className="visually-hidden">Loading scene…</p>}>
+                      <Scene {...sceneProps} />
+                    </Suspense>
+                  </SceneBoundary>
+                )}
+                {current.page === "summary" ? <Summary title={lesson.title} steps={steps} /> : null}
+              </div>
+            </ActionSlot.Provider>
+          </BarSlot.Provider>
+        </SpreadContext.Provider>
       </IntroContext.Provider>
 
       <header className="lesson-title" inert={closed}>
@@ -258,26 +266,6 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
         <h1>{lesson.title}</h1>
       </header>
 
-      <section className="step-head" aria-label="Current step" inert={closed}>
-        <p className="step-label">
-          Step {step + 1} of {lesson.steps.length}
-          {current.action?.gate && !opened.has(step) ? (
-            <span className="your-turn"> · Your turn: {current.action.label}</span>
-          ) : null}
-        </p>
-        <p className="step-caption" aria-live="polite" data-testid="caption">
-          {current.caption}
-        </p>
-        <details className="read-as-text">
-          <summary>Read as text</summary>
-          <ol>
-            {steps.map((s, i) => (
-              <li key={i}>{s.caption}</li>
-            ))}
-          </ol>
-        </details>
-      </section>
-
       <div className="lesson-tools" inert={closed}>
         {twoViews && glAvailable ? <ViewSwitch view={view} onChange={setView} /> : null}
         {view === "3d" && (webgl || twoViews) ? (
@@ -288,15 +276,45 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
         <ModeSwitch />
       </div>
 
-      <div className="lesson-dock" inert={closed}>
-        <div className="action-slot" ref={setSlot} />
-        {current.explain ? (
-          <StepNote key={step} text={current.explain} anchor={current.explainAt} layer={root} wide={wide}>
-            {finish}
-          </StepNote>
-        ) : finish ? (
-          <div className="note docked">{finish}</div>
-        ) : null}
+      {/* The step's words. Normally laid out over the scene; a 3D view on a book can print them on its
+          left page (data-spread), and then this box is placed there. */}
+      <div className="book-page">
+        <section className="step-head" aria-label="Current step" inert={closed}>
+          <p className="step-label">
+            Step {step + 1} of {lesson.steps.length}
+            {current.action?.gate && !opened.has(step) ? (
+              <span className="your-turn"> · Your turn: {current.action.label}</span>
+            ) : null}
+          </p>
+          <p className="step-caption" aria-live="polite" data-testid="caption">
+            {current.caption}
+          </p>
+          <details className="read-as-text">
+            <summary>Read as text</summary>
+            <ol>
+              {steps.map((s, i) => (
+                <li key={i}>{s.caption}</li>
+              ))}
+            </ol>
+          </details>
+        </section>
+
+        <div className="lesson-dock" inert={closed}>
+          <div className="action-slot" ref={setSlot} />
+          {current.explain ? (
+            <StepNote
+              key={step}
+              text={current.explain}
+              anchor={spread ? undefined : current.explainAt}
+              layer={root}
+              wide={wide}
+            >
+              {finish}
+            </StepNote>
+          ) : finish ? (
+            <div className="note docked">{finish}</div>
+          ) : null}
+        </div>
       </div>
 
       {menuOpen ? <StageMenu currentId={lesson.id} onPick={() => setMenuOpen(false)} /> : null}
@@ -321,6 +339,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
         menuOpen={menuOpen}
         onStep={goTo}
         onToggleMenu={() => setMenuOpen((o) => !o)}
+        slot={setBarSlot}
       />
     </main>
   );
