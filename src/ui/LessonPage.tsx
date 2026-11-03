@@ -24,6 +24,8 @@ import { ActionSlot } from "./SceneAction";
 import { fillStep } from "../app/fillVars";
 import { progress } from "../progress";
 import { FinishLesson, useRecordPosition } from "../progress/FinishLesson";
+import { StepNote } from "./StepNote";
+import { Summary } from "./Summary";
 
 const sceneCache = new Map<string, ComponentType<SceneProps>>();
 
@@ -86,14 +88,18 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
     const dock = root.querySelector<HTMLElement>(".lesson-dock");
     const title = root.querySelector<HTMLElement>(".lesson-title");
     const tools = root.querySelector<HTMLElement>(".lesson-tools");
+    const head = root.querySelector<HTMLElement>(".step-head");
     const update = () => {
-      // --tools-h: the pill row (phones put the title under it); --head-h: where the header ends, so
-      // lesson panels start below the title instead of at a fixed offset.
+      // --tools-h: the pill row (phones put the title under it). --title-b: where the title and pills
+      // end (narrow screens put the step heading there). --head-h: where the whole header, step heading
+      // included, ends, so lesson panels start below it instead of at a fixed offset.
       if (tools) root.style.setProperty("--tools-h", `${tools.offsetHeight}px`);
-      const bottom = Math.max(
+      const titleB = Math.max(
         title ? title.offsetTop + title.offsetHeight : 0,
         tools ? tools.offsetTop + tools.offsetHeight : 0,
       );
+      if (titleB) root.style.setProperty("--title-b", `${titleB}px`);
+      const bottom = Math.max(titleB, head ? head.offsetTop + head.offsetHeight : 0);
       if (bottom) root.style.setProperty("--head-h", `${bottom + 12}px`);
       if (bar) root.style.setProperty("--bar-h", `${bar.offsetHeight}px`);
       if (dock) root.style.setProperty("--dock-h", `${dock.offsetHeight}px`);
@@ -104,6 +110,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
     if (dock) ro.observe(dock);
     if (title) ro.observe(title);
     if (tools) ro.observe(tools);
+    if (head) ro.observe(head);
     return () => ro.disconnect();
   }, [root]);
   const mode = useChainMode().active;
@@ -189,6 +196,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
   const fallback = (reason: string) =>
     Fallback ? <Fallback {...sceneProps} /> : <TextFallback steps={steps} step={step} reason={reason} />;
   const current = steps[step]!;
+  const finish = step === last ? <FinishLesson lesson={lesson} mode={mode} disabled={!canNext} /> : null;
 
   return (
     <main
@@ -210,6 +218,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
               </Suspense>
             </SceneBoundary>
           )}
+          {current.page === "summary" ? <Summary title={lesson.title} steps={steps} /> : null}
         </div>
       </ActionSlot.Provider>
 
@@ -223,6 +232,26 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
         <h1>{lesson.title}</h1>
       </header>
 
+      <section className="step-head" aria-label="Current step">
+        <p className="step-label">
+          Step {step + 1} of {lesson.steps.length}
+          {current.action?.gate && !opened.has(step) ? (
+            <span className="your-turn"> · Your turn: {current.action.label}</span>
+          ) : null}
+        </p>
+        <p className="step-caption" aria-live="polite" data-testid="caption">
+          {current.caption}
+        </p>
+        <details className="read-as-text">
+          <summary>Read as text</summary>
+          <ol>
+            {steps.map((s, i) => (
+              <li key={i}>{s.caption}</li>
+            ))}
+          </ol>
+        </details>
+      </section>
+
       <div className="lesson-tools">
         {twoViews && glAvailable ? <ViewSwitch view={view} onChange={setView} /> : null}
         {view === "3d" && (webgl || twoViews) ? (
@@ -235,28 +264,19 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
 
       <div className="lesson-dock">
         <div className="action-slot" ref={setSlot} />
-        <section className="lesson-card" aria-label="Step details">
-          <p className="step-label">
-            Step {step + 1} of {lesson.steps.length}
-            {current.action?.gate && !opened.has(step) ? ` · Your turn: ${current.action.label}` : ""}
-          </p>
-          {current.explain ? <p data-testid="explain">{current.explain}</p> : null}
-          {step === last ? <FinishLesson lesson={lesson} mode={mode} disabled={!canNext} /> : null}
-          <details className="read-as-text">
-            <summary>Read as text</summary>
-            <ol>
-              {steps.map((s, i) => (
-                <li key={i}>{s.caption}</li>
-              ))}
-            </ol>
-          </details>
-        </section>
+        {current.explain ? (
+          <StepNote key={step} text={current.explain} anchor={current.explainAt} layer={root} wide={wide}>
+            {finish}
+          </StepNote>
+        ) : finish ? (
+          <div className="note docked">{finish}</div>
+        ) : null}
       </div>
 
       {menuOpen ? <StageMenu currentId={lesson.id} onPick={() => setMenuOpen(false)} /> : null}
 
       <StageBar
-        steps={steps}
+        count={steps.length}
         step={step}
         canNext={canNext}
         menuOpen={menuOpen}

@@ -47,14 +47,19 @@ test.describe("@smoke walking skeleton", () => {
     await expect(next).toBeDisabled();
   });
 
-  test("the bar holds only contents, the two arrows and the caption", async ({ page }) => {
+  test("the bar holds contents, the two arrows and the step dots; the caption is the step heading", async ({
+    page,
+  }) => {
     await page.goto(`${LESSON}?view=2d`);
     const bar = page.getByRole("navigation", { name: "Lesson steps" });
     await expect(bar.getByRole("button")).toHaveCount(3);
     await expect(bar.getByRole("button", { name: "Contents" })).toBeVisible();
     await expect(bar.getByRole("button", { name: "Previous step" })).toBeVisible();
     await expect(bar.getByRole("button", { name: "Next step" })).toBeVisible();
-    await expect(bar.getByTestId("caption")).toHaveText(FIRST);
+    await expect(bar.getByRole("list", { name: "Step 1 of 9" })).toBeVisible();
+    const head = page.getByRole("region", { name: "Current step" });
+    await expect(head.getByTestId("caption")).toHaveText(FIRST);
+    await expect(head).toContainText("Step 1 of 9");
   });
 
   test("the step lives in the URL", async ({ page }) => {

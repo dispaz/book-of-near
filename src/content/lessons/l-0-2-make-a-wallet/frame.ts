@@ -63,8 +63,10 @@ export function useFreeFrame(root: RefObject<HTMLElement | null>, deps: unknown[
       };
       const title = rel(pick(".lesson-title"));
       const tools = rel(pick(".lesson-tools"));
+      const head = rel(pick(".step-head"));
+      const bottom = Math.max(title?.bottom ?? 0, tools?.bottom ?? 0, head?.bottom ?? 0);
       const next = freeFrame(r.width, r.height, {
-        title: title && tools ? { ...title, bottom: Math.max(title.bottom, tools.bottom) } : title,
+        title: title ? { ...title, bottom } : title,
         panel: rel(pick(".lesson-panel", el)),
         dock: rel(pick(".lesson-dock")),
         bar: rel(pick(".stage-bar")),
@@ -78,7 +80,13 @@ export function useFreeFrame(root: RefObject<HTMLElement | null>, deps: unknown[
     };
     measure();
     const ro = new ResizeObserver(measure);
-    for (const e of [el, pick(".lesson-panel", el), pick(".lesson-dock"), pick(".lesson-tools")])
+    for (const e of [
+      el,
+      pick(".lesson-panel", el),
+      pick(".lesson-dock"),
+      pick(".lesson-tools"),
+      pick(".step-head"),
+    ])
       if (e) ro.observe(e);
     window.addEventListener("resize", measure);
     return () => {

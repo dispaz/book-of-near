@@ -67,6 +67,7 @@ export default {
     {
       caption: "Three quick questions. Then the honest take.",
       action: { label: "Answer the check", gate: true },
+      page: "summary",
     },
     {
       caption: "Honest take: what NEAR does well with keys and addresses, and what it does badly.",

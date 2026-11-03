@@ -5,10 +5,20 @@ export type ChainMode = "demo" | "testnet";
 /** How a scene is drawn: flat 2D SVG, or the 3D scene kit. */
 export type SceneView = "2d" | "3d";
 
-/** One step of a lesson. The caption shows in the stage bar; `explain` shows in the lesson card. */
+/**
+ * One step of a lesson. The caption is the step heading at the top; `explain` is the note that points at
+ * the scene object named by `explainAt` (or sits in the dock when there is none).
+ */
 export interface Step {
   caption: string;
   explain?: string;
+  /**
+   * Which scene element the explanation points at: the scene marks it with `data-explain="<name>"`
+   * (2D: any element; 3D: the kit's `<Anchor name>`). Wide screens draw the note beside it with an arrow.
+   */
+  explainAt?: string;
+  /** "summary": this step's page lists every step's explanation (the check step, behind the quiz). */
+  page?: "summary";
   /**
    * Something the learner must do in this step. With `gate: true` Next stays
    * locked until the scene calls `setGate(true)`.

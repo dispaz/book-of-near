@@ -123,7 +123,7 @@ async function walk(page: Page, { checkWrongFirst = true } = {}) {
 
   // 8. Check: one wrong answer first, to see the explanation.
   if (checkWrongFirst) {
-    const check = page.getByRole("region", { name: "Quick check" });
+    const check = page.getByRole("dialog", { name: "Quick check" });
     await check.getByRole("radio", { name: "Old blocks are locked with a password." }).check();
     await check.getByRole("button", { name: "Check answers" }).click();
     await expect(check).toContainText("There is no password");
@@ -195,6 +195,19 @@ test.describe(`lesson ${ID}`, () => {
       await expect(linkTo(page, 3)).toHaveAttribute("data-link", "broken");
     });
   }
+
+  test("the quiz opens in the middle and minimises to show the summary page", async ({ page }) => {
+    await page.goto(`/lesson/${ID}?view=2d&step=8`);
+    const quiz = page.getByRole("dialog", { name: "Quick check" });
+    await expect(quiz).toBeVisible();
+    const summary = page.getByRole("region", { name: "Summary" });
+    await expect(summary).toContainText("A ledger is a list of who owns what.");
+    await quiz.getByRole("button", { name: /Minimise/ }).click();
+    await expect(quiz).toHaveCount(0);
+    await expect(summary.getByRole("heading", { name: /hash: a short fingerprint/ })).toBeVisible();
+    await page.getByRole("button", { name: /Quick check: open it again/ }).click();
+    await expect(quiz).toBeVisible();
+  });
 
   test("Read as text lists every caption", async ({ page }) => {
     await page.goto(`/lesson/${ID}`);

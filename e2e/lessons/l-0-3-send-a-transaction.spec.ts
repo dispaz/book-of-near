@@ -103,7 +103,7 @@ async function walk(page: Page): Promise<string> {
   await nextStep(page);
 
   // 9. Check: one wrong answer first, to see the explanation.
-  const check = page.getByRole("region", { name: "Quick check" });
+  const check = page.getByRole("dialog", { name: "Quick check" });
   await check
     .getByRole("radiogroup")
     .nth(1)

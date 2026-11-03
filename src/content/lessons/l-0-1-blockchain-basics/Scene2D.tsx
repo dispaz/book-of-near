@@ -140,7 +140,7 @@ function Ledgers(
   const { ben } = props;
   return (
     <>
-      <ul className="bb-ledgers" aria-label="Three ledgers">
+      <ul className="bb-ledgers" aria-label="Three ledgers" data-explain="ledgers">
         {PEOPLE.map((p) => (
           <li key={p}>
             <span className="bb-lg-name" aria-hidden="true">
@@ -207,6 +207,7 @@ function Copies({
               <div
                 className={`bb-notebook open${bad ? " bad" : ""}${fixed ? " fixed" : ""}`}
                 data-testid={`notebook-${p}`}
+                data-explain={`copy-${p}`}
                 data-copy={bad ? "differs" : "matches"}
               >
                 <span className="bb-nb-title">{p}'s copy</span>
@@ -301,7 +302,7 @@ function ChainStrip({
                 </span>
               ) : null}
               {showHash ? (
-                <span className={`bb-field${changed ? " changed" : ""}`}>
+                <span className={`bb-field${changed ? " changed" : ""}`} data-explain={`hash-${b.height}`}>
                   hash <code data-testid={`block-hash-${b.height}`}>{shortHash(hash)}</code>
                 </span>
               ) : null}
@@ -317,6 +318,7 @@ function ChainStrip({
               {i > 0 ? <Link n={b.height} ok={ok} show={showPrev} /> : null}
               {pickable ? (
                 <button
+                  data-explain={`block-${b.height}`}
                   className={`bb-block${selected === b.height ? " selected" : ""}${hint === b.height ? " hint" : ""}`}
                   aria-label={`Open block #${b.height}`}
                   aria-pressed={selected === b.height}
@@ -326,6 +328,7 @@ function ChainStrip({
                 </button>
               ) : (
                 <div
+                  data-explain={`block-${b.height}`}
                   className={`bb-block${editing && b.height === 1 ? " editing" : ""}${ok ? "" : " linkbad"}`}
                 >
                   {body}
@@ -345,6 +348,7 @@ function Link({ n, ok, show }: { n: number; ok: boolean; show: boolean }) {
     <span
       className={`bb-link${ok ? "" : " broken"}${show ? "" : " plain"}`}
       data-testid={`link-${n}`}
+      data-explain={`link-${n}`}
       data-link={ok ? "ok" : "broken"}
       role="img"
       aria-label={ok ? `Block #${n} links to block #${n - 1}` : `Broken link: block #${n} stores an old hash`}

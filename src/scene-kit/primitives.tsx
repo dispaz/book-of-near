@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useThree, type ThreeEvent } from "@react-three/fiber";
-import { Edges, RoundedBox } from "@react-three/drei";
+import { Edges, Html, RoundedBox } from "@react-three/drei";
 import { AdditiveBlending, DoubleSide, type Mesh, type Object3D } from "three";
 import { glowTexture, hullMaterial, inkMaterial, shadowTexture } from "./materials";
 import { useOverlayItem } from "./overlay";
@@ -421,5 +421,20 @@ export function Glow({
         blending={AdditiveBlending}
       />
     </sprite>
+  );
+}
+
+/**
+ * A point in the scene that a step's explanation points at (`explainAt` in the manifest). Renders an
+ * invisible HTML marker with `data-explain="<name>"` that follows the point on screen.
+ */
+export function Anchor({ name, position = [0, 0, 0] }: { name: string; position?: Vec3 }) {
+  return (
+    <Html position={[...position]} zIndexRange={[0, 0]} style={{ pointerEvents: "none" }}>
+      <span
+        data-explain={name}
+        style={{ display: "block", width: 8, height: 8, transform: "translate(-50%, -50%)" }}
+      />
+    </Html>
   );
 }

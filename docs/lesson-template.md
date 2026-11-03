@@ -22,11 +22,18 @@ Write the script first. The code copies from it; it does not invent facts.
 | **Hook** | first step | A question, a surprise or a problem that makes the lesson worth a few minutes. |
 | **Concept** | one or more steps | The one idea, in plain words, shown in the scene. Define each term the first time it appears. |
 | **Do** | one or more steps with `action: { label, gate: true }` | The learner does the real thing (sends, signs, clicks, edits). Next stays locked until the scene calls `setGate(true)`. Put the button in `<SceneAction>` so it docks in the same spot in every lesson. |
-| **Check** | one gated step | `<Check questions={...} onPass={() => setGate(true)} />`. |
+| **Check** | one gated step with `page: "summary"` | `<Check questions={...} onPass={() => setGate(true)} />`. The quiz opens as a window in the middle; behind it the page lists every step's caption and `explain` (the summary). The learner can minimise the quiz to read it. |
 | **Honest take** | last step | `<HonestTake ... />`. The last step shows "Finish lesson", which writes the completion record. |
 
-Each step has a `caption` (stage bar, at most about 160 characters) and an optional `explain`
-(lesson card, at most about 60 words). Keep the step numbers in `Scene.tsx` in sync with the manifest.
+Each step has a `caption` (the step heading at the top of the page, at most about 160 characters) and an
+optional `explain` (the note, at most about 60 words). Keep the step numbers in `Scene.tsx` in sync with
+the manifest.
+
+Point the note at the thing it explains with `explainAt: "<name>"`, and mark that thing in the scene:
+`data-explain="<name>"` on any 2D element or HTML tag, or `<Anchor name="<name>" position={...} />` from the
+scene kit in 3D. On wide screens the note then sits in the left margin, level with the element, with an
+arrow to it (the learner can fold it away). On phones, or when the element is not drawn, it stays in the
+dock under the step's buttons. Give both views the same names.
 
 ## The check
 

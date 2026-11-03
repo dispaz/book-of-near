@@ -70,6 +70,7 @@ export default {
     {
       caption: "Three quick questions. Then the honest take.",
       action: { label: "answer the check", gate: true },
+      page: "summary",
     },
     {
       caption: "Honest take: what NEAR does well and badly when you send a transaction.",

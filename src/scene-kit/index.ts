@@ -5,6 +5,7 @@
 export { InkStage, type InkStageProps } from "./InkStage";
 export {
   AccountBlock,
+  Anchor,
   ChainBlock,
   Coin,
   ContractBlock,

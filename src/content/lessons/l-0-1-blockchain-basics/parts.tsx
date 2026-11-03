@@ -47,7 +47,7 @@ export function EditAmount({
   onEdit: (text: string) => void;
 }) {
   return (
-    <span className={`bb-editwrap${waiting ? " waiting" : ""}`}>
+    <span className={`bb-editwrap${waiting ? " waiting" : ""}`} data-explain="edit">
       <span>
         {from}-&gt;{to}{" "}
         <input

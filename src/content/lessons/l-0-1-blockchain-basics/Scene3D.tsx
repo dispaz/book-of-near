@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { InkStage, Label, type Vec3 } from "../../../scene-kit";
+import { Anchor, InkStage, Label, type Vec3 } from "../../../scene-kit";
 import { PEOPLE, shortHash, START, type Chain, type Person } from "./ledger";
 import { AUTO_TAMPER_NOTE, BlockDetails, COMPARE_RESULT, EditAmount, useHotLines } from "./parts";
 import { frameCamera, inset, viewOffset, type Focus, type Frame, type Reserve } from "./framing";
@@ -308,12 +308,13 @@ function useFreeFrame(
       const R = el.getBoundingClientRect();
       const rect = (sel: string) => lesson.querySelector(sel)?.getBoundingClientRect() ?? null;
       const title = rect(".lesson-title");
+      const head = rect(".step-head");
       const dock = rect(".lesson-dock");
       const bar = rect(".stage-bar");
       const W = R.width;
       const H = R.height;
       const wide = W >= 900;
-      const titleB = (title ? title.bottom - R.top : 100) + 12;
+      const titleB = Math.max(title ? title.bottom - R.top : 100, head ? head.bottom - R.top : 0) + 12;
       const dockT = dock ? dock.top - R.top : H * 0.55;
       const dockR = dock ? dock.right - R.left : 416;
       const barT = bar ? bar.top - R.top : H - 72;
@@ -342,7 +343,7 @@ function useFreeFrame(
     if (!el || !lesson) return;
     const ro = new ResizeObserver(() => measure.current());
     ro.observe(el);
-    for (const sel of [".lesson-title", ".lesson-dock", ".stage-bar"]) {
+    for (const sel of [".lesson-title", ".step-head", ".lesson-dock", ".stage-bar"]) {
       const t = lesson.querySelector(sel);
       if (t) ro.observe(t);
     }
@@ -413,11 +414,18 @@ const ledgerAt = (p: Person, r: LedgerRow): Vec3 => {
   return r.column ? [0, 0, r.z + k] : [k, 0, r.z];
 };
 
+/** Where a step's note points at the ledgers: above Ben's, in the middle. */
+function LedgersAnchor({ r }: { r: LedgerRow }) {
+  const [x, , z] = ledgerAt("Ben", r);
+  return <Anchor name="ledgers" position={[x, LEDGER_TALL * r.scale * 0.55, z]} />;
+}
+
 /** The first step: three closed ledgers. Opening one shows the starting balances on its page. */
 function Notebooks({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMotion: boolean }) {
   const r = g.notebooks;
   return (
     <>
+      <LedgersAnchor r={r} />
       {PEOPLE.map((p) => (
         <Ledger
           key={p}
@@ -446,6 +454,7 @@ function Ledgers({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMoti
     tamper && p === "Ben" ? rowsOf(m.benBal, benHot) : rowsOf(m.bal, tamper ? [] : hot);
   return (
     <>
+      <LedgersAnchor r={r} />
       {PEOPLE.map((p) => (
         <Ledger
           key={p}
@@ -552,6 +561,7 @@ function ChainBlocks({
                   : undefined
               }
             >
+              <Anchor name={`block-${b.height}`} position={[0, BH, 0]} />
               <Tag position={card.at} place={card.place} className={`block${!ok ? " bad" : ""}`}>
                 <span className="n">#{b.height}</span>
                 <span className="tx">
@@ -576,7 +586,7 @@ function ChainBlocks({
                   </span>
                 ) : null}
                 {showHash ? (
-                  <span className={`f${changed ? " changed" : ""}`}>
+                  <span className={`f${changed ? " changed" : ""}`} data-explain={`hash-${b.height}`}>
                     hash <code data-testid={`block-hash-${b.height}`}>{shortHash(hash)}</code>
                   </span>
                 ) : null}
@@ -594,6 +604,7 @@ function ChainBlocks({
                     <span
                       className={`bb3-link${ok ? "" : " broken"}`}
                       data-testid={`link-${b.height}`}
+                      data-explain={`link-${b.height}`}
                       data-link={ok ? "ok" : "broken"}
                       role="img"
                       aria-label={
@@ -680,6 +691,7 @@ function Copies({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMotio
               <span
                 className={`bb3-copy${bad ? " bad" : ""}${fixed ? " fixed" : ""}`}
                 data-testid={`notebook-${p}`}
+                data-explain={`copy-${p}`}
                 data-copy={bad ? "differs" : "matches"}
               >
                 <b>{p}'s copy</b>

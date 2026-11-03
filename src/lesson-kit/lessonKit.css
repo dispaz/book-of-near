@@ -33,9 +33,9 @@
   .lesson-panel {
     left: auto;
     right: max(24px, env(safe-area-inset-right, 0px));
-    top: calc(72px + env(safe-area-inset-top, 0px));
+    top: var(--head-h, 72px);
     width: min(440px, calc(100% - 400px - 72px));
-    max-height: calc(100% - 72px - 100px - env(safe-area-inset-bottom, 0px));
+    max-height: calc(100% - var(--head-h, 72px) - 100px - env(safe-area-inset-bottom, 0px));
   }
 }
 .lesson-panel .panel-title {
@@ -118,4 +118,53 @@
 .honest-take .unverified {
   font: 700 12px var(--ui);
   color: var(--mute);
+}
+
+/* The check is a window in the middle of the page; minimised, a button at the bottom right. */
+.lesson-panel.check {
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  right: auto;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, calc(100% - 32px));
+  max-height: calc(100% - var(--head-h, 110px) - var(--bar-h, 56px) - 64px);
+  margin-top: calc((var(--head-h, 110px) - var(--bar-h, 56px) - 32px) / 2);
+  box-shadow:
+    0 4px 0 var(--ink),
+    0 24px 60px #16141f40;
+}
+.check-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 19;
+  background: #16141f33;
+}
+.check-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.check-min {
+  border: 0;
+  background: transparent;
+  font: 600 12px var(--ui);
+  text-decoration: underline;
+  cursor: pointer;
+  color: var(--ink);
+}
+.check-pill {
+  position: absolute;
+  z-index: 20;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(16px + var(--bar-h, 56px) + 16px + env(safe-area-inset-bottom, 0px));
+  padding: 10px 16px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 3px 3px 0 var(--ink);
+  font: 700 14px var(--ui);
+  cursor: pointer;
 }

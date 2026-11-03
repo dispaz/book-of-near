@@ -3,7 +3,7 @@
    a band between the title and the dock (--bar-h and --dock-h come from LessonPage). */
 .stx {
   position: absolute;
-  top: calc(112px + env(safe-area-inset-top, 0px));
+  top: var(--head-h, 112px);
   left: max(16px, env(safe-area-inset-left, 0px));
   right: max(16px, env(safe-area-inset-right, 0px));
   bottom: calc(
@@ -20,7 +20,7 @@
 }
 @media (min-width: 900px) {
   .stx {
-    top: calc(104px + env(safe-area-inset-top, 0px));
+    top: var(--head-h, 104px);
     left: 448px;
     right: max(24px, env(safe-area-inset-right, 0px));
     bottom: calc(96px + env(safe-area-inset-bottom, 0px));
@@ -29,7 +29,7 @@
   }
   /* Check and Honest take use the right column: the finished pipeline sits on the left, above the card. */
   .stx.summary {
-    top: calc(124px + env(safe-area-inset-top, 0px));
+    top: calc(var(--head-h, 104px) + 20px);
     left: max(16px, env(safe-area-inset-left, 0px));
     width: 400px;
     right: auto;

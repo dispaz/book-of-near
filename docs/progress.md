@@ -133,3 +133,9 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 ## 2026-11-03 · 0.1: the tamper step and filled blocks
 - Step 6 (both views): the three ledgers are back. Ben's ledger follows his edited copy of the chain (its changed lines stay lit), Ana's and Cora's keep the honest balances. The amount in block #1 is a bigger box that pulses in the accent colour with "✎ change it to 9" under it until Ben edits it; in 3D block #1 also bobs. Shared control: `EditAmount` in `parts.tsx`; state gained `benBal`.
 - 3D: every closed block shows the edge of its transaction slip under the lid (`PeekingSlip`), the same slip that rises out when a block is opened.
+
+## 2026-11-03 · Lesson page: step heading, margin notes, quiz window, summary page
+- The caption is now the step heading at the top ("Step 3 of 9 · Your turn: …" over the caption in large type): in the header row on wide screens, under the title otherwise. The stage bar keeps contents, back and next, plus one dot per step; Next turns accent-coloured when it is open. "Read as text" moved into the heading.
+- The explanation is a note (`src/ui/StepNote.tsx`). A step's `explainAt` names a scene element (`data-explain`, or the kit's new `<Anchor>` in 3D); on wide screens the note sits in the left margin level with it and draws an arcing arrow to it, following it as the 3D camera moves, and can be folded away. Otherwise it stays in the dock. Lesson 0.1 has anchors for every step; 0.2 and 0.3 still use the dock.
+- The check is a window in the middle with "Minimise to read the summary"; behind it a summary page lists every step's caption and explanation (`page: "summary"` on the check step, `src/ui/Summary.tsx`). The stage bar stays above the quiz backdrop.
+- 0.2, 0.3, the lesson kit panels and the scene kit's status note and SVG stage now start at the measured `--head-h` instead of fixed 60–124px offsets.

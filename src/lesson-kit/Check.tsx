@@ -35,6 +35,8 @@ export function Check({
   const [picked, setPicked] = useState<(number | undefined)[]>(() => questions.map(() => undefined));
   const [checked, setChecked] = useState<boolean[]>(() => questions.map(() => false));
   const [done, setDone] = useState(passed);
+  // Minimised, the check shrinks to a button so the learner can read the summary page behind it.
+  const [min, setMin] = useState(false);
 
   const isRight = (q: number) => {
     const p = picked[q];
@@ -49,59 +51,73 @@ export function Check({
     }
   };
 
+  if (min)
+    return (
+      <button className="check-pill" onClick={() => setMin(false)}>
+        {title}: {done ? "passed" : "open it again"}
+      </button>
+    );
   return (
-    <section className="lesson-panel check" aria-labelledby={`${uid}-t`}>
-      <h2 id={`${uid}-t`} className="panel-title">
-        {title}
-      </h2>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-      >
-        {questions.map((q, qi) => {
-          const p = picked[qi];
-          const show = checked[qi] && !done;
-          const opt = p === undefined ? undefined : q.options[p];
-          return (
-            <div key={qi} className="check-q" role="radiogroup" aria-labelledby={`${uid}-q${qi}`}>
-              <p id={`${uid}-q${qi}`} className="check-prompt">
-                <span className="check-n">{qi + 1}</span>
-                {q.prompt}
-              </p>
-              {q.options.map((o, oi) => (
-                <label key={oi} className="check-option">
-                  <input
-                    type="radio"
-                    name={`${uid}-q${qi}`}
-                    checked={p === oi}
-                    onChange={() => {
-                      setPicked((prev) => prev.map((v, i) => (i === qi ? oi : v)));
-                      setChecked((prev) => prev.map((v, i) => (i === qi ? false : v)));
-                    }}
-                  />
-                  <span>{o.text}</span>
-                </label>
-              ))}
-              {show ? (
-                <p className={`check-feedback ${opt?.correct ? "right" : "wrong"}`}>
-                  {!opt ? "Pick an answer." : opt.correct ? "Right." : `Not quite. ${opt.why ?? ""}`.trim()}
-                </p>
-              ) : null}
-            </div>
-          );
-        })}
-        {done ? (
-          <p className="check-feedback right" role="status">
-            All right. The next step is open.
-          </p>
-        ) : (
-          <button type="submit" className="btn primary">
-            Check answers
+    <>
+      <div className="check-backdrop" aria-hidden="true" onClick={() => setMin(true)} />
+      <section className="lesson-panel check" role="dialog" aria-labelledby={`${uid}-t`}>
+        <div className="check-head">
+          <h2 id={`${uid}-t`} className="panel-title">
+            {title}
+          </h2>
+          <button type="button" className="check-min" onClick={() => setMin(true)}>
+            Minimise to read the summary
           </button>
-        )}
-      </form>
-    </section>
+        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
+          {questions.map((q, qi) => {
+            const p = picked[qi];
+            const show = checked[qi] && !done;
+            const opt = p === undefined ? undefined : q.options[p];
+            return (
+              <div key={qi} className="check-q" role="radiogroup" aria-labelledby={`${uid}-q${qi}`}>
+                <p id={`${uid}-q${qi}`} className="check-prompt">
+                  <span className="check-n">{qi + 1}</span>
+                  {q.prompt}
+                </p>
+                {q.options.map((o, oi) => (
+                  <label key={oi} className="check-option">
+                    <input
+                      type="radio"
+                      name={`${uid}-q${qi}`}
+                      checked={p === oi}
+                      onChange={() => {
+                        setPicked((prev) => prev.map((v, i) => (i === qi ? oi : v)));
+                        setChecked((prev) => prev.map((v, i) => (i === qi ? false : v)));
+                      }}
+                    />
+                    <span>{o.text}</span>
+                  </label>
+                ))}
+                {show ? (
+                  <p className={`check-feedback ${opt?.correct ? "right" : "wrong"}`}>
+                    {!opt ? "Pick an answer." : opt.correct ? "Right." : `Not quite. ${opt.why ?? ""}`.trim()}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })}
+          {done ? (
+            <p className="check-feedback right" role="status">
+              All right. The next step is open.
+            </p>
+          ) : (
+            <button type="submit" className="btn primary">
+              Check answers
+            </button>
+          )}
+        </form>
+      </section>
+    </>
   );
 }

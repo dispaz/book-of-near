@@ -20,7 +20,7 @@ export async function nextStep(page: Page) {
 
 /** Picks one answer per question (in order) in the lesson's Check, then checks them. */
 export async function answerCheck(page: Page, answers: string[]) {
-  const check = page.getByRole("region", { name: "Quick check" });
+  const check = page.getByRole("dialog", { name: "Quick check" });
   const groups = check.getByRole("radiogroup");
   await expect(groups).toHaveCount(answers.length);
   for (const [i, a] of answers.entries()) {
