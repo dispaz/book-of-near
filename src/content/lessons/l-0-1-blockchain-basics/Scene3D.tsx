@@ -4,12 +4,14 @@ import type { Group } from "three";
 import {
   Anchor,
   Coin,
+  focusOf,
   frameCamera,
   InkStage,
   inset,
   Label,
   Traveller,
   ViewOffset,
+  type Box,
   type Focus,
   type Frame,
   type Reserve,
@@ -117,24 +119,6 @@ const SNAKE: Geo = {
 
 /** Copies of the chain at the compare step: one row per person. */
 const ROW_Z: Record<Person, number> = { Ana: -3, Ben: 0, Cora: 3 };
-
-type Box = [minX: number, maxX: number, minZ: number, maxZ: number, height: number];
-
-function focusOf(boxes: Box[], elevation: number, azimuth = 0): Focus {
-  const minX = Math.min(...boxes.map((b) => b[0]));
-  const maxX = Math.max(...boxes.map((b) => b[1]));
-  const minZ = Math.min(...boxes.map((b) => b[2]));
-  const maxZ = Math.max(...boxes.map((b) => b[3]));
-  const h = Math.max(...boxes.map((b) => b[4]));
-  return {
-    center: [(minX + maxX) / 2, h * 0.35, (minZ + maxZ) / 2],
-    width: maxX - minX,
-    depth: maxZ - minZ,
-    height: h,
-    elevation,
-    azimuth,
-  };
-}
 
 /** What the camera must keep in view at each step, and the pixels to keep free for tags. */
 function shotFor(step: number, g: Geo, popup = false): { focus: Focus; reserve: Reserve } {

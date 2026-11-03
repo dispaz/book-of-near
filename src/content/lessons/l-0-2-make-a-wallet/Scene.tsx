@@ -82,8 +82,9 @@ export default function Scene({ step, goTo, setGate, reducedMotion, mode, view, 
       className={`wallet-scene view-${view}`}
       data-scene-state={w.state}
       data-mode={mode}
-      // Tablets: no room beside the picture, so the step note stays docked (StepNote reads this).
-      data-notes={measured && !measured.noteRoom ? "dock" : undefined}
+      // 3D on tablets: no room beside the picture, so the step note stays docked (StepNote reads this).
+      // 2D has its own column for the drawing; under 1100px the drawing is hidden and the note docks anyway.
+      data-notes={view === "3d" && measured && !measured.noteRoom ? "dock" : undefined}
     >
       {view === "3d" ? (
         <Suspense fallback={<p className="visually-hidden">Loading the 3D view…</p>}>

@@ -26,11 +26,13 @@ export { inkMaterial, hullMaterial } from "./materials";
 export { arcPoint, easeInOut, fitView, isClick, toFlat, type CameraView, type Vec3 } from "./motion";
 export { COLORS, INK } from "./theme";
 export {
+  focusOf,
   fovFor,
   frameCamera,
   inset,
   pullBackFor,
   viewOffset,
+  type Box,
   type Focus,
   type Frame,
   type Reserve,

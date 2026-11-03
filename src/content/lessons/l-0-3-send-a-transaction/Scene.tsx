@@ -146,7 +146,7 @@ function TransactionScene({
       stage={tx.stage}
       moving={!!events.included}
       testnet={testnet}
-      explain={!three}
+      flat={!three}
     />
   );
 
@@ -313,7 +313,7 @@ function Accounts({
   stage,
   moving,
   testnet,
-  explain,
+  flat,
 }: {
   /** Also show on narrow screens (where balances move); otherwise wide screens only. */
   narrow: boolean;
@@ -326,15 +326,15 @@ function Accounts({
   stage: BalanceStage;
   moving: boolean;
   testnet: boolean;
-  /** The sender card is what the first step's note points at (2D only; 3D points at the account block). */
-  explain: boolean;
+  /** 2D view: the sender card is what the first step's note points at (3D points at the account block). */
+  flat: boolean;
 }) {
   return (
     <div className={`stx-accounts${narrow ? "" : " wide-only"}`}>
       <section
         className="stx-acct"
         aria-label="Your practice account"
-        data-explain={explain ? "account" : undefined}
+        data-explain={flat ? "account" : undefined}
       >
         <p className="stx-acct-role">
           From · your practice account <span className="stx-net">{testnet ? "testnet" : "demo"}</span>

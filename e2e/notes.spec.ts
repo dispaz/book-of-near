@@ -13,7 +13,67 @@ async function open(page: Page, lesson: string, view: "2d" | "3d", step = 1) {
   if (view === "3d") await expect(page.locator(".sk-stage canvas").first()).toBeVisible();
 }
 
+const dock = (page: Page) => page.locator(".action-slot");
+const button = (page: Page, name: string) => page.getByRole("button", { name, exact: true }).first();
+
+/** Each step's action in demo mode, so the next step opens (null: nothing to do). */
+const LESSONS = {
+  "l-0-2-make-a-wallet": [
+    (p: Page) => p.getByRole("checkbox", { name: /these keys are for practice only/ }).check(),
+    (p: Page) => button(p, "Generate").click(),
+    (p: Page) => button(p, "Rebuild from words").click(),
+    async (p: Page) => {
+      await button(p, "Turn it into an address").click();
+      await expect(p.getByTestId("implicit-account")).toBeVisible({ timeout: 10_000 });
+    },
+    async (p: Page) => {
+      for (let i = 0; i < 3; i++)
+        await p
+          .getByRole("button", { name: /^Show the .* rule$/ })
+          .first()
+          .click();
+    },
+    (p: Page) => button(p, "Sign").click(),
+    async (p: Page) => {
+      await button(p, "Verify").click();
+      await p.getByRole("textbox", { name: "Message to check" }).fill("Hellp from Book of NEAR");
+      await button(p, "Verify").click();
+    },
+    (p: Page) => button(p, "Throw the keys away").click(),
+  ],
+  "l-0-3-send-a-transaction": [
+    (p: Page) => expect(p.getByTestId("practice-balance")).toHaveText("5 NEAR"),
+    (p: Page) => dock(p).getByRole("button", { name: "Build" }).click(),
+    (p: Page) => dock(p).getByRole("button", { name: "Got it" }).click(),
+    (p: Page) => dock(p).getByRole("button", { name: "Sign" }).click(),
+    async (p: Page) => {
+      await dock(p).getByRole("button", { name: "Send" }).click();
+      await expect(p.getByTestId("pipeline").locator('[data-phase="final"]')).toHaveAttribute(
+        "data-lit",
+        "true",
+        { timeout: 30_000 },
+      );
+    },
+    null,
+    null,
+    (p: Page) => dock(p).getByRole("button", { name: "Open the demo explorer" }).click(),
+  ],
+} satisfies Record<string, (((page: Page) => Promise<unknown>) | null)[]>;
+
 for (const view of ["2d", "3d"] as const) {
+  for (const [lesson, steps] of Object.entries(LESSONS))
+    test(`${lesson} (${view}): every step's note floats in the margin with an arrow`, async ({ page }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await open(page, lesson, view);
+      for (const [i, act] of steps.entries()) {
+        // After the step's action, its note still points at its element (a missing target would dock).
+        if (act) await act(page);
+        await expect(floating(page), `step ${i + 1}`).toBeVisible();
+        await expect(page.locator(".note-arrow"), `step ${i + 1}`).toBeVisible();
+        await page.getByRole("button", { name: "Next step" }).click();
+      }
+    });
+
   test(`0.2 (${view}): the warning note points at the warning sign on wide screens`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await open(page, "l-0-2-make-a-wallet", view);

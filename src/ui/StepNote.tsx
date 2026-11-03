@@ -16,12 +16,11 @@ interface Geo {
   tip: [number, number];
 }
 
-const GAP = 56;
+/** The floating note's width (`.note.floating` in ink.css) and its distance from the page's left edge. */
 const W = 380;
-
-const area = (a: Rect, b: Rect) =>
-  Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) *
-  Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+const LEFT = 16;
+/** Where the note margin ends on wide screens. Scenes start their picture right of it. */
+export const NOTE_MARGIN_RIGHT = LEFT + W;
 
 /** The point on a rectangle's border nearest to (x, y). */
 function edgePoint(r: Rect, x: number, y: number): [number, number] {
@@ -43,51 +42,15 @@ export function fitsMargin(anchor: Rect, size: { w: number; h: number }, margin:
 }
 
 /**
- * Where the note goes. With a `margin` column (the page margin the scene keeps free) and the element to
- * its right, the note sits in the margin level with the element, so it never covers the scene. Otherwise
- * beside the element, on the side with room, clear of the dock. Exported for tests.
+ * Where the note goes: in the `margin` column (the page margin the scene keeps free), level with the
+ * element, so it never covers the scene. Call it only when `fitsMargin` holds; otherwise the note docks.
+ * Exported for tests.
  */
-export function placeNote(
-  anchor: Rect,
-  size: { w: number; h: number },
-  free: Rect,
-  avoid: Rect[],
-  margin?: Rect,
-) {
+export function placeNote(anchor: Rect, size: { w: number; h: number }, margin: Rect) {
   const { w, h } = size;
-  const ax = (anchor.left + anchor.right) / 2;
   const ay = (anchor.top + anchor.bottom) / 2;
-  if (margin && fitsMargin(anchor, size, margin)) {
-    const x = margin.left;
-    const y = Math.min(margin.bottom - h, Math.max(margin.top, ay - h / 2));
-    return arrowFor(anchor, { left: x, top: y, right: x + w, bottom: y + h });
-  }
-  const tries: [number, number][] = [
-    [anchor.right + GAP, ay - h / 2],
-    [anchor.left - GAP - w, ay - h / 2],
-    [ax - w / 2, anchor.bottom + GAP],
-    [ax - w / 2, anchor.top - GAP - h],
-    [anchor.right + GAP, anchor.bottom + GAP / 2],
-    [anchor.left - GAP - w, anchor.bottom + GAP / 2],
-    [anchor.right + GAP, anchor.top - GAP / 2 - h],
-    [anchor.left - GAP - w, anchor.top - GAP / 2 - h],
-  ];
-  const pad = {
-    left: anchor.left - 10,
-    top: anchor.top - 10,
-    right: anchor.right + 10,
-    bottom: anchor.bottom + 10,
-  };
-  let best: { x: number; y: number; cost: number } | null = null;
-  tries.forEach(([x0, y0], i) => {
-    const x = Math.min(free.right - w, Math.max(free.left, x0));
-    const y = Math.min(free.bottom - h, Math.max(free.top, y0));
-    const r = { left: x, top: y, right: x + w, bottom: y + h };
-    // Covering the element is worst, then the dock; a small bias keeps the preferred order.
-    const cost = area(r, pad) * 4 + avoid.reduce((s, a) => s + area(r, a), 0) + i;
-    if (!best || cost < best.cost) best = { x, y, cost };
-  });
-  const { x, y } = best!;
+  const x = margin.left;
+  const y = Math.min(margin.bottom - h, Math.max(margin.top, ay - h / 2));
   return arrowFor(anchor, { left: x, top: y, right: x + w, bottom: y + h });
 }
 
@@ -180,20 +143,14 @@ export function StepNote({
       });
       const css = getComputedStyle(layer);
       const num = (v: string, d: number) => Number.parseFloat(css.getPropertyValue(v)) || d;
-      const free: Rect = {
-        left: 16,
-        top: num("--head-h", 110),
-        right: L.width - 16,
-        bottom: L.height - num("--bar-h", 56) - 32,
-      };
       const dock = layer.querySelector(".action-slot:not(:empty)");
-      const avoid = dock ? [rel(dock.getBoundingClientRect())] : [];
-      // The left margin of the page, above the scene's own controls (the action slot).
+      // The left margin of the page, under the header and above the scene's own controls (the action
+      // slot) or the stage bar.
       const margin: Rect = {
-        left: 16,
-        top: free.top,
-        right: 16 + (c.offsetWidth || W),
-        bottom: (dock ? rel(dock.getBoundingClientRect()).top : free.bottom) - 14,
+        left: LEFT,
+        top: num("--head-h", 110),
+        right: LEFT + (c.offsetWidth || W),
+        bottom: (dock ? rel(dock.getBoundingClientRect()).top : L.height - num("--bar-h", 56) - 32) - 14,
       };
       const size = { w: c.offsetWidth || W, h: c.offsetHeight || 120 };
       // The note lives in the margin or in the dock, never on top of the page. If the element is not
@@ -205,7 +162,7 @@ export function StepNote({
         }
         return;
       }
-      const g = placeNote(rel(a), size, free, avoid, margin);
+      const g = placeNote(rel(a), size, margin);
       const key = `${Math.round(g.x)},${Math.round(g.y)},${g.path}`;
       if (key !== last) {
         last = key;

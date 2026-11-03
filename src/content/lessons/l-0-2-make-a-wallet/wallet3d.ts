@@ -2,7 +2,7 @@
  * Pure layout and text for the 3D view of lesson 0.2. No three.js here, so it is unit tested and
  * never pulls 3D code into the 2D view.
  */
-import type { Focus, Reserve } from "../../../scene-kit/framing";
+import { focusOf, type Box, type Focus, type Reserve } from "../../../scene-kit/framing";
 import type { Vec3 } from "../../../scene-kit/motion";
 import { STEP, type ArtFocus, type Verdict } from "./useWallet";
 
@@ -40,8 +40,6 @@ export function drawnFor(step: number, { ack, alive }: { ack: boolean; alive: bo
   return alive ? "keys" : "ghosts";
 }
 
-/** A box of the paper: x from..to, z from..to, and how tall it is with its labels. */
-type Box = [minX: number, maxX: number, minZ: number, maxZ: number, height: number];
 const around = (p: Vec3, hx: number, hz: number, h: number): Box => [
   p[0] - hx,
   p[0] + hx,
@@ -61,22 +59,6 @@ const BIN = around(POS.bin, 1.0, 0.8, 2.7);
 const PLACES: Box = [-1, 3.4, POS.words[2] - 0.7, POS.address[2] + 0.7, 0.6];
 /** Step 5: three address blocks side by side, with their names and rules in front. */
 const ROW: Box = [-4, 4, POS.address[2] - 1, POS.address[2] + 3.3, addressHeight(64) + 0.9];
-
-function focusOf(boxes: Box[], elevation: number, azimuth: number): Focus {
-  const minX = Math.min(...boxes.map((b) => b[0]));
-  const maxX = Math.max(...boxes.map((b) => b[1]));
-  const minZ = Math.min(...boxes.map((b) => b[2]));
-  const maxZ = Math.max(...boxes.map((b) => b[3]));
-  const h = Math.max(...boxes.map((b) => b[4]));
-  return {
-    center: [(minX + maxX) / 2, h * 0.35, (minZ + maxZ) / 2],
-    width: maxX - minX,
-    depth: maxZ - minZ,
-    height: h,
-    elevation,
-    azimuth,
-  };
-}
 
 /**
  * Looking along the chain from the front, a little from the right: the words stand at the top and the
@@ -148,9 +130,9 @@ export function objectsFor(step: number): { words: boolean; key: boolean; lock: 
 
 /** Which labels and objects a step shows. Fewer on small screens, so names never pile up. */
 export interface Shown {
-  /** Words, keys and arrows stand on the paper (step 5 clears them away for the three address blocks). */
   /** Small free area (phones): fewer, smaller labels. */
   compact: boolean;
+  /** Words, keys and arrows stand on the paper (step 5 clears them away for the three address blocks). */
   pipeline: boolean;
   words: boolean;
   /** The twelve words on their tiles. */

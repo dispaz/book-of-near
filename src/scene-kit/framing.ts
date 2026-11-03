@@ -19,6 +19,29 @@ export interface Focus {
   azimuth?: number;
 }
 
+/** A box of the ground to keep in view: x from..to, z from..to, and how tall it is with its labels. */
+export type Box = [minX: number, maxX: number, minZ: number, maxZ: number, height: number];
+
+/**
+ * One focus around several boxes, seen from `elevation` and `azimuth` (degrees). The camera aims at
+ * `lift` times the tallest height, so tall labels on top do not pull the picture up too far.
+ */
+export function focusOf(boxes: Box[], elevation: number, azimuth = 0, lift = 0.35): Focus {
+  const minX = Math.min(...boxes.map((b) => b[0]));
+  const maxX = Math.max(...boxes.map((b) => b[1]));
+  const minZ = Math.min(...boxes.map((b) => b[2]));
+  const maxZ = Math.max(...boxes.map((b) => b[3]));
+  const h = Math.max(...boxes.map((b) => b[4]));
+  return {
+    center: [(minX + maxX) / 2, h * lift, (minZ + maxZ) / 2],
+    width: maxX - minX,
+    depth: maxZ - minZ,
+    height: h,
+    elevation,
+    azimuth,
+  };
+}
+
 /** The free part of the canvas, in CSS pixels from the canvas' top left corner. */
 export interface Frame {
   left: number;

@@ -1,5 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { fovFor, frameCamera, inset, pullBackFor, viewOffset, type Focus } from "./framing";
+import { focusOf, fovFor, frameCamera, inset, pullBackFor, viewOffset, type Focus } from "./framing";
+
+describe("focusOf", () => {
+  it("wraps several boxes of the ground in one focus", () => {
+    const f = focusOf(
+      [
+        [-2, 0, -1, 1, 1],
+        [1, 3, 2, 4, 2],
+      ],
+      30,
+      10,
+    );
+    expect(f).toMatchObject({ width: 5, depth: 5, height: 2, elevation: 30, azimuth: 10 });
+    expect(f.center).toEqual([0.5, 2 * 0.35, 1.5]);
+  });
+
+  it("takes how high to aim, as a share of the height", () => {
+    expect(focusOf([[0, 1, 0, 1, 2]], 30, 0, 0.3).center[1]).toBeCloseTo(0.6);
+  });
+});
 
 const focus: Focus = { center: [0, 0, 0], width: 10, depth: 0, height: 0, elevation: 0 };
 const dist = (p: readonly number[], t: readonly number[]) =>

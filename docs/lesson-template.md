@@ -39,7 +39,7 @@ page beside the note, as in 0.2 on tablets) puts `data-notes="dock"` on its root
 
 For 3D, fit the camera instead of hand-tuning presets: name the box of the world each step must show and
 pass it to the scene kit's `frameCamera` with the free part of the canvas, plus `<ViewOffset>` to centre it
-there (0.1 `shotFor`, 0.2 `wallet3d.ts`, 0.3 `layout3d.ts`). Use `{ nearFit: true }` for a small window
+there (0.1 `shotFor`, 0.2 `wallet3d.ts`, 0.3 `layout3d.ts`). Build the box with the kit's `focusOf` from `Box`es. Use `{ nearFit: true }` for a small window
 looking at a deep box. Draw only the objects the step frames, so nothing hangs out under the panels.
 
 ## The check

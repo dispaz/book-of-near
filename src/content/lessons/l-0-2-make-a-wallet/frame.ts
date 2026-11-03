@@ -1,11 +1,12 @@
 import { useEffect, useState, type RefObject } from "react";
 import type { Frame } from "../../../scene-kit/framing";
+import { NOTE_MARGIN_RIGHT } from "../../../ui/StepNote";
 
 type Box = Pick<DOMRect, "left" | "top" | "right" | "bottom">;
 
 const GAP = 12;
 /** On wide screens the left page margin holds the step's note (StepNote), so the picture starts after it. */
-const NOTE_MARGIN = 420;
+const NOTE_MARGIN = NOTE_MARGIN_RIGHT + 24;
 
 /** The narrowest picture worth drawing between the note margin and the panel. */
 const MIN_PAGE = 300;
