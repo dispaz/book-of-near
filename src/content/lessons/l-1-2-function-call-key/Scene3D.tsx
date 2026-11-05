@@ -42,7 +42,13 @@ export default function Scene3D({
 
   const last = attempts[attempts.length - 1];
   const answer =
-    aim && last && keyState === "active" ? (last.ok ? "accepted" : `refused: ${last.reason ?? "no"}`) : null;
+    aim && last && keyState === "active"
+      ? last.ok
+        ? "accepted"
+        : last.reason
+          ? `refused: ${last.reason}`
+          : "ran but failed"
+      : null;
   const revoked = keyState === "revoked";
   const allowance =
     keyState === "active" && left !== null && initial !== null
@@ -60,7 +66,11 @@ export default function Scene3D({
       : revoked
         ? "The agent's key has been deleted."
         : `The agent's limited key has ${left !== null ? near(left) : "some"} NEAR of allowance left.`,
-    last && !last.ok ? `The chain refused the last attempt: ${last.reason ?? last.message}.` : "",
+    last && !last.ok
+      ? last.reason
+        ? `The chain refused the last attempt: ${last.reason}.`
+        : `The last call was included but failed: ${last.message}`
+      : "",
   ]
     .filter(Boolean)
     .join(" ");

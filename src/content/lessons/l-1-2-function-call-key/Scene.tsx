@@ -249,10 +249,11 @@ function Log({ attempts, marks }: { attempts: Attempt[]; marks: boolean }) {
       <ol>
         {[...attempts].reverse().map((a) => (
           <li key={a.id} className={a.ok ? "ok" : "no"}>
-            <span className="kl-badge">{a.ok ? "Accepted" : "Refused"}</span> <q>{a.prompt}</q>
+            <span className="kl-badge">{a.ok ? "Accepted" : a.reason ? "Refused" : "Failed"}</span>{" "}
+            <q>{a.prompt}</q>
             {a.ok ? null : (
               <span className="kl-why">
-                <code>{a.reason}</code>{" "}
+                {a.reason ? <code>{a.reason} </code> : "The call ran but failed. "}
                 {a.reason && REASON_TEXT[a.reason] ? REASON_TEXT[a.reason] : a.message}
               </span>
             )}

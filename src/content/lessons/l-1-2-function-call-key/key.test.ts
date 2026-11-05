@@ -15,6 +15,7 @@ const attempt = (intent: Intent, ok: boolean, id = 1): Attempt => ({
   intent,
   prompt: "",
   ok,
+  reason: ok ? undefined : "RequiresFullAccess",
   message: "",
 });
 
@@ -28,6 +29,11 @@ describe("readPrompt", () => {
     expect(readPrompt("increment it")).toBe("count");
     expect(readPrompt("give me access")).toBe("addkey");
     expect(readPrompt("call the other contract")).toBe("other");
+  });
+
+  it("does not match a key inside another word", () => {
+    expect(readPrompt("press a keyboard")).toBeNull();
+    expect(readPrompt("give me the keys")).toBe("addkey");
   });
 
   it("does not understand small talk", () => {
@@ -56,6 +62,12 @@ describe("attempts", () => {
     expect(refusedKinds(list)).toEqual(["send"]);
     list.push(attempt("other", false, 4), attempt("addkey", false, 5));
     expect(refusedKinds(list)).toEqual(["send", "other", "addkey"]);
+  });
+
+  it("counts an attack only when the chain refused it (a reason), not when it ran and failed", () => {
+    const failed: Attempt = { ...attempt("send", false), reason: undefined, message: "ran but failed" };
+    expect(refusedKinds([failed])).toEqual([]);
+    expect(refusedKinds([{ ...failed, reason: "RequiresFullAccess" }])).toEqual(["send"]);
   });
 
   it("hints at an untried attack first", () => {

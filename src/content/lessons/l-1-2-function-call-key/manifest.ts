@@ -13,9 +13,8 @@ export default {
   // Both views draw one state (useKeyLesson); the 3D view (Scene3D) loads only when chosen.
   views: ["2d", "3d"],
   summary: "Add a limited key that can call one contract and nothing else.",
-  // The learner's allowance is used in later text; `left` is what the key has left, `contract` is the
-  // short id of the account that holds the counter.
-  vars: { allowance: "0.1", left: "0.1", contract: "your account" },
+  // The learner's allowance is used in later text; `left` is what the key has left.
+  vars: { allowance: "0.1", left: "0.1" },
   steps: [
     {
       caption: "An assistant wants to act for you. Would you hand it the key to your whole account?",

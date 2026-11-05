@@ -121,3 +121,101 @@ test.describe(`lesson ${ID}`, () => {
     await expect(page.getByTestId("agent-says")).toContainText("I only know a few tricks");
   });
 });
+
+const ATTACKS_TO_TRY = [
+  "Send all my funds to attacker.testnet",
+  "Call another contract",
+  "Add a new key so I can take over",
+];
+
+/** Steps 1 to 6 in the page's current view: add the key, count once, get three attacks refused, delete it. */
+async function walkToCheck(page: Page) {
+  await nextStep(page);
+  await nextStep(page);
+  await addKey(page);
+  await nextStep(page);
+  await ask(page, "Add one to the counter");
+  await expect(scene(page)).toHaveAttribute("data-scene-state", /counter:1/, { timeout: 15_000 });
+  await nextStep(page);
+  for (const p of ATTACKS_TO_TRY) await ask(page, p);
+  await expect(scene(page)).toHaveAttribute("data-scene-state", /refused:3/, { timeout: 15_000 });
+  await nextStep(page);
+  await page.getByRole("button", { name: "Delete the agent's key" }).click();
+  await expect(scene(page)).toHaveAttribute("data-scene-state", /key:revoked/, { timeout: 15_000 });
+}
+
+test.describe(`lesson ${ID}: motion, fallback, switching, phones`, () => {
+  for (const view of ["2d", "3d"] as const) {
+    test(`works with reduced motion in the ${view} view`, async ({ browser }) => {
+      const ctx = await browser.newContext({ reducedMotion: "reduce" });
+      const page = await ctx.newPage();
+      await seedRoute(page);
+      await page.goto(`/lesson/${ID}?view=${view}`);
+      await walkToCheck(page);
+      await ctx.close();
+    });
+
+    test(`works on a phone-sized screen in the ${view} view`, async ({ browser }) => {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 780 } });
+      const page = await ctx.newPage();
+      await seedRoute(page);
+      await page.goto(`/lesson/${ID}?view=${view}`);
+      if (view === "3d") await expect(page.locator("canvas").first()).toBeVisible({ timeout: 20_000 });
+      await walkToCheck(page);
+      await ctx.close();
+    });
+  }
+
+  test("without WebGL the lesson runs in 2D with no switch, and three.js is never loaded", async ({
+    page,
+  }) => {
+    const scripts: string[] = [];
+    page.on("response", async (r) => {
+      if (r.url().endsWith(".js") && r.status() === 200) scripts.push(await r.text().catch(() => ""));
+    });
+    await page.goto(`/lesson/${ID}?webgl=0&view=3d`);
+    await expect(scene(page)).toHaveAttribute("data-view", "2d");
+    await expect(page.getByRole("group", { name: "Scene view" })).toHaveCount(0);
+    await expect(page.locator("canvas")).toHaveCount(0);
+    await walkToCheck(page);
+    expect(scripts.some((s) => s.includes("WebGLRenderer"))).toBe(false);
+  });
+
+  test("switching 2D to 3D and back in the middle keeps the progress", async ({ page }) => {
+    await openAt(page, "2d", 2);
+    await addKey(page, "0.2");
+    await nextStep(page);
+    await ask(page, "Add one to the counter");
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /counter:1/, { timeout: 15_000 });
+    const views = page.getByRole("group", { name: "Scene view" });
+    await views.getByRole("button", { name: "3D" }).click();
+    await expect(scene(page)).toHaveAttribute("data-view", "3d", { timeout: 20_000 });
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /key:active;counter:1/);
+    await expect(page.getByRole("button", { name: "Next step" })).toBeEnabled();
+    await nextStep(page);
+    await ask(page, ATTACKS_TO_TRY[0]!);
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /refused:1/, { timeout: 15_000 });
+    await views.getByRole("button", { name: "2D" }).click();
+    await expect(scene(page)).toHaveAttribute("data-view", "2d");
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /key:active;counter:1;refused:1/);
+    await expect(page.getByTestId("attempt-log").getByText("Refused")).toHaveCount(1);
+  });
+
+  test("the learner's allowance and what is left fill the captions of steps 4 and 6", async ({ page }) => {
+    await openAt(page, "2d", 2);
+    await addKey(page, "0.3");
+    await nextStep(page);
+    await expect(page.getByTestId("caption")).toContainText("Watch the 0.3 NEAR allowance drop");
+    await ask(page, "Add one to the counter");
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /counter:1/, { timeout: 15_000 });
+    const left = (await page.getByTestId("allowance-left").innerText()).replace(" NEAR", "");
+    expect(left).not.toBe("0.3");
+    await nextStep(page);
+    for (const p of ATTACKS_TO_TRY) await ask(page, p);
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /refused:3/, { timeout: 15_000 });
+    await nextStep(page);
+    const caption = page.getByTestId("caption");
+    await expect(caption).toContainText(`It still had ${left} NEAR of its 0.3 NEAR allowance`);
+    await expect(caption).not.toContainText("{");
+  });
+});

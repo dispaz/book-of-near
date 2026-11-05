@@ -38,7 +38,7 @@ export const AGENT_GAS_TGAS = 5;
  */
 export function readPrompt(text: string): Intent | null {
   const t = text.toLowerCase();
-  if (/\b(keys?|access|take ?over|owner|admin|permission)/.test(t)) return "addkey";
+  if (/\b(keys?|access|take ?over|owner|admin|permission)\b/.test(t)) return "addkey";
   if (/\b(send|transfer|funds?|money|pay|drain|steal|coins?|near)\b/.test(t)) return "send";
   if (/\b(count|counter|increment|increase|plus|add one|\+ ?1)/.test(t)) return "count";
   if (/\b(contract|another|other|registrar|call|create)/.test(t)) return "other";
@@ -99,7 +99,7 @@ export type Attempt = {
   intent: Intent;
   prompt: string;
   ok: boolean;
-  /** The chain's refusal reason, when refused. */
+  /** The chain's refusal reason. Set only when the chain refused the transaction (not when it ran and failed). */
   reason?: string;
   /** The chain's message, when refused; the result of the call otherwise. */
   message: string;
@@ -107,7 +107,7 @@ export type Attempt = {
 
 /** The attacks the chain has refused so far, once each. */
 export function refusedKinds(attempts: Attempt[]): Intent[] {
-  return ATTACKS.filter((k) => attempts.some((a) => a.intent === k && !a.ok));
+  return ATTACKS.filter((k) => attempts.some((a) => a.intent === k && !a.ok && a.reason));
 }
 
 /** The next hint: an untried attack first, then the allowed call. */

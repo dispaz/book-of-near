@@ -9,7 +9,7 @@ import { useChain } from "../../../chain/ChainContext";
 import { isChainError } from "../../../chain/errors";
 import { actions } from "../../../chain/ops";
 import { demoContractCode } from "../../../chain/demo/contracts";
-import { tgas } from "../../../chain/units";
+import { parseNear, tgas } from "../../../chain/units";
 import type { AccessKeyInfo, PracticeAccount, PublicKey, TransactionRequest } from "../../../chain/types";
 import counterWasmUrl from "../../../../contracts/counter/counter.wasm?url";
 import {
@@ -26,12 +26,10 @@ import {
   readAllowance,
   readPrompt,
   refusedKinds,
-  short,
   ALLOWED_PROMPT,
   type Attempt,
   type Intent,
 } from "./key";
-import { parseNear } from "../../../chain/units";
 
 // Step numbers (0-based) from manifest.ts.
 export const HOOK = 0;
@@ -94,6 +92,21 @@ export function useKeyLesson({
         if (!live) return;
         setMe(acc);
         setBalance(view.amount);
+        // A reload must not orphan a key from an earlier visit: pick up a function-call key that
+        // targets this account, so the learner can use it and delete it.
+        const keys = await chain.listKeys(acc.accountId).catch(() => []);
+        const found = keys.find(
+          (k) => k.permission.type === "FunctionCall" && k.permission.receiverId === acc.accountId,
+        );
+        if (found && live) {
+          const num = await chain.viewCall(acc.accountId, "get_num", {}).catch(() => null);
+          if (!live) return;
+          setAgentKey(found.publicKey);
+          setKeyInfo(found);
+          if (found.permission.type === "FunctionCall") setInitial(found.permission.allowance ?? null);
+          setKeyState("active");
+          if (num) setCounter(Number(num.result));
+        }
       } catch (e) {
         if (live) setError(message(e));
       }
@@ -132,15 +145,13 @@ export function useKeyLesson({
   const lastLeft = useRef<bigint | null>(null);
   if (left !== null) lastLeft.current = left;
   const leftVar = lastLeft.current !== null ? near(lastLeft.current) : undefined;
-  const contractVar = me ? short(me.accountId) : undefined;
   useEffect(() => {
     const v: Record<string, string> = {};
     if (allowanceVar) v.allowance = allowanceVar;
     if (leftVar) v.left = leftVar;
     else if (allowanceVar) v.left = allowanceVar;
-    if (contractVar) v.contract = contractVar;
     varsRef.current?.(v);
-  }, [allowanceVar, leftVar, contractVar]);
+  }, [allowanceVar, leftVar]);
 
   // Evidence for the completion record: never keys, only counts and a transaction hash.
   const evidenceRef = useRef(reportEvidence);
@@ -276,8 +287,13 @@ export function useKeyLesson({
       const out = await chain.sendTransaction(await requestFor(intent, agentKey, me.accountId), { pace });
       const failed = out.status.type === "Failure";
       const msg = out.status.type === "Failure" ? out.status.error.message : "The chain accepted it.";
+      // Included but failed: no `reason` (only refused transactions have one), so it is not a refused attack.
       setAttempts((a) => [...a, { id, intent, prompt: text, ok: !failed, message: msg }]);
-      setSays(failed ? `The call ran but failed: ${msg}` : "Done. The chain accepted it.");
+      setSays(
+        failed
+          ? `The chain included it, but it failed: ${msg} It does not count as a refused attack. The gas was still paid.`
+          : "Done. The chain accepted it.",
+      );
       await refresh(me.accountId, agentKey);
     } catch (e) {
       if (isChainError(e) && e.kind === "InvalidTransaction") {
@@ -392,7 +408,10 @@ export function useKeyLesson({
     hints,
     hint,
     noHints,
-    setNoHints,
+    setNoHints: (on: boolean) => {
+      setNoHints(on);
+      if (on) setHint(null);
+    },
     busy,
     error,
     passed,
