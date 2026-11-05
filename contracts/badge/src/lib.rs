@@ -92,6 +92,16 @@ pub struct TokenMetadata {
     pub reference_hash: Option<Base64VecU8>,
 }
 
+#[derive(Serialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct StorageStatus {
+    pub storage_usage: u64,
+    pub balance: near_sdk::json_types::U128,
+    /// Balance left after the storage stake (yoctoNEAR). Claims fail when this runs out.
+    pub available: near_sdk::json_types::U128,
+    pub tokens: u64,
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct JsonToken {
@@ -158,7 +168,12 @@ impl Contract {
 
     /// Mint the badge for `stage` to the caller. `signature` is the claim key's ed25519 signature
     /// over `stage_message` (base64). Takes no deposit: the contract pays storage.
-    pub fn claim_stage(&mut self, stage: u32, expires_at_ms: u64, signature: Base64VecU8) -> TokenId {
+    pub fn claim_stage(
+        &mut self,
+        stage: u32,
+        expires_at_ms: u64,
+        signature: Base64VecU8,
+    ) -> TokenId {
         let account = env::predecessor_account_id();
         require!(stage < self.stage_count, "Unknown stage");
         self.check_claim(
@@ -167,10 +182,16 @@ impl Contract {
             &signature,
         );
         let slot = slot_key(&account, &format!("s{stage}"));
-        require!(!self.slots.contains_key(&slot), "Badge for this stage already claimed");
+        require!(
+            !self.slots.contains_key(&slot),
+            "Badge for this stage already claimed"
+        );
         if stage > 0 {
             let prev = slot_key(&account, &format!("s{}", stage - 1));
-            require!(self.slots.contains_key(&prev), "Claim the previous stage first");
+            require!(
+                self.slots.contains_key(&prev),
+                "Claim the previous stage first"
+            );
         }
         self.count_mint();
         self.mint(
@@ -201,16 +222,29 @@ impl Contract {
             matches!(rarity.as_str(), "common" | "rare" | "epic" | "legendary"),
             "Unknown rarity"
         );
-        let required = self.routes.get(&route).unwrap_or_else(|| env::panic_str("Unknown route"));
+        let required = self
+            .routes
+            .get(&route)
+            .unwrap_or_else(|| env::panic_str("Unknown route"));
         self.check_claim(
-            &self.final_message(account.clone(), route.clone(), rarity.clone(), expires_at_ms),
+            &self.final_message(
+                account.clone(),
+                route.clone(),
+                rarity.clone(),
+                expires_at_ms,
+            ),
             expires_at_ms,
             &signature,
         );
         let slot = slot_key(&account, FINAL_SLOT);
-        require!(!self.slots.contains_key(&slot), "Final badge already claimed");
+        require!(
+            !self.slots.contains_key(&slot),
+            "Final badge already claimed"
+        );
         for stage in required {
-            let held = self.slots.contains_key(&slot_key(&account, &format!("s{stage}")));
+            let held = self
+                .slots
+                .contains_key(&slot_key(&account, &format!("s{stage}")));
             require!(held, "A stage this route requires is missing");
         }
         self.count_mint();
@@ -261,7 +295,8 @@ impl Contract {
 
     /// Does the account hold the badge for this stage?
     pub fn has_badge(&self, account_id: AccountId, stage: u32) -> bool {
-        self.slots.contains_key(&slot_key(&account_id, &format!("s{stage}")))
+        self.slots
+            .contains_key(&slot_key(&account_id, &format!("s{stage}")))
     }
 
     pub fn has_final_badge(&self, account_id: AccountId) -> bool {
@@ -297,6 +332,18 @@ impl Contract {
         self.claim_key.clone()
     }
 
+    /// How much NEAR the contract can still spend on storage: balance minus the cost of the state it holds.
+    pub fn storage_status(&self) -> StorageStatus {
+        let used = env::storage_byte_cost().saturating_mul(env::storage_usage() as u128);
+        let balance = env::account_balance();
+        StorageStatus {
+            storage_usage: env::storage_usage(),
+            balance: balance.as_yoctonear().into(),
+            available: balance.saturating_sub(used).as_yoctonear().into(),
+            tokens: self.tokens.len() as u64,
+        }
+    }
+
     pub fn get_owner(&self) -> AccountId {
         self.owner_id.clone()
     }
@@ -312,7 +359,10 @@ impl Contract {
     /// Set (or replace) the stages an exam route needs for the final badge.
     pub fn set_route(&mut self, route: String, stages: Vec<u32>) {
         self.assert_owner();
-        require!(stages.iter().all(|s| *s < self.stage_count), "Unknown stage in route");
+        require!(
+            stages.iter().all(|s| *s < self.stage_count),
+            "Unknown stage in route"
+        );
         self.routes.insert(route, stages);
     }
 
@@ -331,7 +381,9 @@ impl Contract {
     pub fn set_base_uri(&mut self, base_uri: String, icon: Option<String>) {
         self.assert_owner();
         self.metadata.base_uri = Some(base_uri);
-        self.metadata.icon = icon;
+        if icon.is_some() {
+            self.metadata.icon = icon;
+        }
     }
 
     /// Image for "stage-<n>" or "final-<rarity>". Takes effect for badges minted afterwards.
@@ -359,12 +411,16 @@ impl Contract {
         self.tokens.get(&id).map(|t| self.json_token(id, t))
     }
 
-    pub fn nft_tokens(&self, from_index: Option<near_sdk::json_types::U128>, limit: Option<u64>) -> Vec<JsonToken> {
+    pub fn nft_tokens(
+        &self,
+        from_index: Option<near_sdk::json_types::U128>,
+        limit: Option<u64>,
+    ) -> Vec<JsonToken> {
         let from = from_index.map(|i| i.0 as usize).unwrap_or(0);
         self.tokens
             .iter()
             .skip(from)
-            .take(limit.unwrap_or(50) as usize)
+            .take(limit.unwrap_or(50).min(100) as usize)
             .map(|(id, t)| self.json_token(*id, t))
             .collect()
     }
@@ -381,13 +437,12 @@ impl Contract {
             .into_iter()
             .flatten()
             .skip(from)
-            .take(limit.unwrap_or(50) as usize)
+            .take(limit.unwrap_or(50).min(100) as usize)
             .filter_map(|id| self.tokens.get(id).map(|t| self.json_token(*id, t)))
             .collect()
     }
 
-    /// Moves a token. Only tokens with `transferable: true` may move; every badge the claim methods
-    /// mint is non-transferable, so this always refuses them.
+    /// Badges are non-transferable: this always refuses (it exists so wallets and explorers get a clear error).
     #[payable]
     pub fn nft_transfer(
         &mut self,
@@ -396,26 +451,13 @@ impl Contract {
         approval_id: Option<u64>,
         memo: Option<String>,
     ) {
-        require!(env::attached_deposit().as_yoctonear() == 1, "Attach exactly 1 yoctoNEAR");
-        require!(approval_id.is_none(), "Approvals are not supported");
-        let id: u64 = token_id.parse().unwrap_or_else(|_| env::panic_str("Token not found"));
-        let mut token = self.tokens.get(&id).cloned().unwrap_or_else(|| env::panic_str("Token not found"));
-        require!(token.transferable, "This badge is non-transferable");
-        let sender = env::predecessor_account_id();
-        require!(token.owner == sender, "Only the owner can transfer");
-        require!(receiver_id != sender, "Receiver must be a different account");
-        let mut from_list = self.by_owner.get(&sender).cloned().unwrap_or_default();
-        from_list.retain(|t| *t != id);
-        self.by_owner.insert(sender.clone(), from_list);
-        let mut to_list = self.by_owner.get(&receiver_id).cloned().unwrap_or_default();
-        to_list.push(id);
-        self.by_owner.insert(receiver_id.clone(), to_list);
-        token.owner = receiver_id.clone();
-        self.tokens.insert(id, token);
-        let memo = memo.map(|m| format!(",\"memo\":{}", near_sdk::serde_json::to_string(&m).unwrap())).unwrap_or_default();
-        env::log_str(&format!(
-            "EVENT_JSON:{{\"standard\":\"nep171\",\"version\":\"1.2.0\",\"event\":\"nft_transfer\",\"data\":[{{\"old_owner_id\":\"{sender}\",\"new_owner_id\":\"{receiver_id}\",\"token_ids\":[\"{id}\"]{memo}}}]}}"
-        ));
+        let _ = (receiver_id, approval_id, memo);
+        let known = token_id
+            .parse::<u64>()
+            .ok()
+            .is_some_and(|id| self.tokens.get(&id).is_some());
+        require!(known, "Token not found");
+        env::panic_str("This badge is non-transferable");
     }
 
     /// Badges never move in a call chain, so this is not supported.
@@ -435,7 +477,10 @@ impl Contract {
 
 impl Contract {
     fn assert_owner(&self) {
-        require!(env::predecessor_account_id() == self.owner_id, "Only the owner can do this");
+        require!(
+            env::predecessor_account_id() == self.owner_id,
+            "Only the owner can do this"
+        );
     }
 
     fn check_key(key: &PublicKey) {
@@ -455,7 +500,10 @@ impl Contract {
         let pk: [u8; 32] = self.claim_key.as_bytes()[1..]
             .try_into()
             .unwrap_or_else(|_| env::panic_str("Bad claim key"));
-        require!(env::ed25519_verify(&sig, message.as_bytes(), &pk), "Invalid claim signature");
+        require!(
+            env::ed25519_verify(&sig, message.as_bytes(), &pk),
+            "Invalid claim signature"
+        );
     }
 
     fn count_mint(&mut self) {
@@ -503,7 +551,11 @@ impl Contract {
             }
         };
         let art = self.art.get(&art_key);
-        let kind = if t.kind == Kind::Stage { "stage" } else { "final" };
+        let kind = if t.kind == Kind::Stage {
+            "stage"
+        } else {
+            "final"
+        };
         let extra = near_sdk::serde_json::json!({
             "kind": kind,
             "stage": t.stage,
@@ -532,4 +584,3 @@ impl Contract {
         }
     }
 }
-

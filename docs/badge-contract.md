@@ -6,8 +6,8 @@
 
 - **Claim.** A badge is minted by the learner's own call (`claim_stage` or `claim_final`) with a claim from the Worker: an ed25519 signature by the project's claim key. The contract checks the signature and the expiry.
 - **One per account per stage**, one final badge per account. Stage `n` needs stage `n - 1`. The final badge needs every stage its exam route requires.
-- **Non-transferable.** Every badge the claim methods mint has `transferable: false`. `nft_transfer` refuses it. `nft_transfer_call` is not supported.
-- **No deposit.** The contract pays storage from its own balance. A learner needs only gas. Keep the contract account funded (0.00001 NEAR per byte of state; a few hundred bytes, so roughly 0.003 NEAR per badge).
+- **Non-transferable.** Every badge the claim methods mint has `transferable: false`. `nft_transfer` is a stub that always refuses. `nft_transfer_call` is not supported.
+- **No deposit.** The contract pays storage from its own balance. A learner needs only gas. Keep the contract account funded (0.00001 NEAR per byte of state). Measured in the sandbox: the first stage badge for an account adds 405 bytes (about 0.004 NEAR); later badges are smaller. The `storage_status` view reports the contract's balance, storage use and what is left to spend, so watch `available`.
 - **Owner settings** (no redeploy): `set_stage_count` (can only grow), `set_route`, `set_daily_cap`, `set_claim_key`, `set_base_uri`, `set_art`.
 - **Daily cap.** At most `daily_cap` badges per UTC day (default 1000). `0` stops minting.
 
@@ -35,7 +35,7 @@ Send the signature as base64 of the 64 raw bytes (`signature` argument). The cla
 | `get_stage_count`, `get_route({ route })`, `get_daily_cap`   | anyone  | settings                                                                                      |
 | `nft_metadata`, `nft_token`, `nft_tokens`, `nft_tokens_for_owner`, `nft_supply_for_owner`, `nft_total_supply` | anyone  | NEP-171/177 views. `metadata.extra` is a JSON string: `{ kind, stage, route, rarity, transferable }` |
 
-Events are `EVENT_JSON:` logs with `standard: "nep171"`, `version: "1.2.0"`, `event: "nft_mint"` (and `nft_transfer`).
+Events are `EVENT_JSON:` logs with `standard: "nep171"`, `version: "1.2.0"`, `event: "nft_mint"`. No `nft_transfer` event is emitted: nothing can be transferred.
 
 ## Build and test
 
@@ -48,7 +48,20 @@ npm run test:badge    # build, then the sandbox tests
 
 `contracts/badge/sandbox-tests/` is a separate crate (near-sdk will not build natively) that deploys the `.wasm` into a local NEAR sandbox with `near-workspaces`. The first run downloads the sandbox binary. It pins sandbox 2.6.5 because `near-workspaces` 0.20 cannot read the validator list of 2.9.0. The tests cover: valid claim (no deposit, event, `extra`), expired claim, replayed claim, claim for another account, wrong signer, skipped stage, second badge for a stage, transfer of a non-transferable token, adding a stage and changing a route as owner, the final badge with a signed rarity, the daily cap, and collection and image metadata.
 
+## Worker requirements
+
+The contract trusts whoever holds the claim key, so the Worker that signs must:
+
+- **Rate-limit signing** per account and per IP. The global daily cap is a denial-of-service lever: anyone who can get claims signed can use up the day's mints.
+- **Sign short expiries** (minutes, not days) and never accept an `expires_at_ms` from the client.
+- **Check evidence first** (stage finished, exam score), then sign. Never sign a rarity the client chose.
+- Keep the claim secret key only in Worker secrets.
+
+Operators must deploy with the single-step `with-init-call new` below. `new` has no access check of its own, so a deploy followed by a separate `new` call could be front-run.
+
 ## Deploy (testnet)
+
+_The CLI commands below were written from memory of the `near` CLI and have not been run by me; check them against `near --help` before relying on them._
 
 No secrets go in the repo. Keys live in your credentials store and in Worker secrets.
 
@@ -64,6 +77,7 @@ For mainnet repeat with a mainnet account and a different claim key.
 
 ## Not done here
 
+- Day rollover of the daily cap: the sandbox clock is wall-clock time, so a new UTC day cannot be reached in a test. The logic (`day != self.day` resets the counter) is covered only by reading.
 - Testnet deployment, since it needs your accounts and funds (steps above).
 - The badge images (separate art ticket) and the Worker's claim signer (uses the message format above).
 - The Chain-interface and DemoChain side of claiming (demo-mode parity belongs with the badge flow tickets).
