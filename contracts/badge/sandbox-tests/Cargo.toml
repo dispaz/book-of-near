@@ -1,0 +1,17 @@
+# Contract tests in a local NEAR sandbox. A separate crate: near-sdk refuses to build natively,
+# so the tests drive the compiled .wasm and never link the contract crate.
+[package]
+name = "book-of-near-badge-sandbox-tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dev-dependencies]
+near-workspaces = { version = "0.20", features = ["unstable"] }
+tokio = { version = "1", features = ["full"] }
+ed25519-dalek = "2"
+serde_json = "1"
+bs58 = "0.5"
+base64 = "0.22"
