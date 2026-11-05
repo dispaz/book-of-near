@@ -76,6 +76,8 @@ function ClaimScene({
   const claim = useClaim({ step, goTo, setGate, reducedMotion, setVars, reportEvidence });
   const { created, error, status } = claim;
   const summary = step >= CHECK;
+  // The check and honest-take steps open a quiz window / text page over the scene, so 3D falls back to
+  // the one-line summary there (same as lesson 0.3) instead of drawing a scene that sits under the window.
   const three = view === "3d" && !summary;
 
   const cast = <Cast claim={claim} flat={!three} />;

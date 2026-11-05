@@ -139,7 +139,7 @@ export function useClaim({
       if (out.status.type === "Failure") {
         setError({
           title: "The registrar refused",
-          detail: `${out.status.error.message} The fee was still paid. Pick another name.`,
+          detail: `${out.status.error.message} A fee may still have been charged. Pick another name.`,
         });
         return;
       }
