@@ -48,10 +48,14 @@ export interface SigningRequest {
 export interface SigningPreview {
   summary: string;
   receiverId: AccountId;
-  /** Total NEAR attached to the actions, formatted, e.g. "0.5". */
+  /** Total NEAR attached to the actions, formatted, e.g. "0.5". Never "0" for a non-zero total. */
   amountNear: string;
+  /** The same with its unit, e.g. "0.5 NEAR" or "less than 0.000001 NEAR". Show this one. */
+  amountText: string;
   /** Each action in a sentence. */
   lines: string[];
+  /** Says that gas is paid on top of the amount. */
+  feeNote: string;
   /** Says it is real money on mainnet (or a simulation in demo mode). */
   warning: string;
 }
@@ -61,7 +65,15 @@ export interface SignedResult {
 }
 
 /** Why a signing request ended without a transaction. */
-export type SigningRefusal = "declined" | "no-wallet" | "invalid-request" | "not-enough";
+export type SigningRefusal =
+  | "declined"
+  | "no-wallet"
+  | "invalid-request"
+  | "not-enough"
+  /** Another signing is already open or waiting for the wallet. */
+  | "busy"
+  /** The learner confirmed but the wallet or network failed (popup closed, RPC down, transaction failed). */
+  | "failed";
 
 export interface MainnetWallet {
   /** "demo": simulated, no network. "mainnet": a real wallet through NEAR Connect. */

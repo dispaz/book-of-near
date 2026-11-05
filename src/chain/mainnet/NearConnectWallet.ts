@@ -29,7 +29,11 @@ export interface ConnectedWalletLike {
     signerId: string;
     receiverId: string;
     actions: ConnectorAction[];
-  }): Promise<{ transaction?: { hash?: string }; transaction_outcome?: { id?: string } }>;
+  }): Promise<{
+    status?: unknown;
+    transaction?: { hash?: string };
+    transaction_outcome?: { id?: string };
+  }>;
 }
 /** The slice of `NearConnector` we use. */
 export interface ConnectorLike {
@@ -92,12 +96,15 @@ export class NearConnectWallet implements MainnetWallet {
 
   private async readBalance(accountId: string): Promise<bigint> {
     try {
-      const v = await this.rpc.call<{ amount: string; storage_usage: number }>("query", {
+      const v = await this.rpc.call<{ amount: string; locked?: string; storage_usage: number }>("query", {
         request_type: "view_account",
         finality: "final",
         account_id: accountId,
       });
-      const spendable = BigInt(v.amount) - BigInt(v.storage_usage) * STORAGE_PRICE_PER_BYTE;
+      // `amount` is the liquid balance; staked NEAR (`locked`) counts toward the storage requirement first.
+      const storageCost = BigInt(v.storage_usage) * STORAGE_PRICE_PER_BYTE;
+      const stillToCover = storageCost - BigInt(v.locked ?? "0");
+      const spendable = BigInt(v.amount) - (stillToCover > 0n ? stillToCover : 0n);
       return spendable > 0n ? spendable : 0n;
     } catch (e) {
       if (e instanceof RpcError && e.name === "UNKNOWN_ACCOUNT") return 0n; // a new account with no funds yet
@@ -113,8 +120,14 @@ export class NearConnectWallet implements MainnetWallet {
       let wallet: ConnectedWalletLike;
       try {
         wallet = (await this.connector.getConnectedWallet()).wallet; // restore an earlier session
-      } catch {
-        wallet = await this.connector.connect(); // opens the wallet picker
+      } catch (restoreError) {
+        // No earlier session (normal on a first visit). If the picker fails too, keep this as the cause.
+        try {
+          wallet = await this.connector.connect(); // opens the wallet picker
+        } catch (e) {
+          console.debug("No earlier wallet session to restore:", restoreError);
+          throw e;
+        }
       }
       const account = (await wallet.getAccounts())[0];
       if (!account) throw new Error("The wallet did not share an account.");
@@ -164,7 +177,12 @@ export class NearConnectWallet implements MainnetWallet {
       actions: request.actions.map(toConnectorAction),
     });
     await this.refresh();
-    return { txHash: out.transaction?.hash ?? out.transaction_outcome?.id ?? "" };
+    if (out.status && typeof out.status === "object" && "Failure" in out.status)
+      throw new Error("The transaction was sent but failed on the network, so it did not go through.");
+    const txHash = out.transaction?.hash ?? out.transaction_outcome?.id ?? "";
+    if (!txHash)
+      throw new Error("The wallet returned no transaction id, so we cannot confirm it went through.");
+    return { txHash };
   }
 }
 

@@ -176,3 +176,5 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - UI: `MainnetWalletProvider` in `main.tsx`, `WalletPanel`, `FundsNotice`, page `/wallet`. Demo wallet by default; the real wallet loads only after "Use my own wallet".
 - Tests: Vitest for funds, signing order, DemoWallet, NearConnectWallet (fake connector and fetch, RPC fallback), provider/UI, no-network imports; e2e `e2e/wallet.spec.ts` in demo mode.
 - Untested: a real wallet sign-in and a real mainnet signature (needs a human; never done in tests).
+
+- Review fixes (#23): signing never throws (`failed` with message) and is single-flight per wallet (`busy`), with a "Waiting for your wallet" overlay; the gate uses the same amount + fee reserve as `checkFunds` and re-reads the balance after Confirm; `NearConnectWallet.signAndSend` throws on a `Failure` status or empty tx id; the raw wallet is no longer exposed by `useMainnetWallet`; the confirmation never shows "0 NEAR" for tiny deposits and adds a fee note and call arguments; `locked` stake counts toward storage; `DemoWallet` refuses overspend.

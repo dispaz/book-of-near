@@ -58,6 +58,7 @@ export class DemoWallet implements MainnetWallet {
 
   async signAndSend(request: SigningRequest): Promise<SignedResult> {
     const total = request.actions.reduce((sum, a) => sum + a.deposit, 0n);
+    if (total > this.balance) throw new Error("Not enough NEAR in the demo wallet for this payment.");
     this.balance -= total;
     this.sent += 1;
     await this.refresh();

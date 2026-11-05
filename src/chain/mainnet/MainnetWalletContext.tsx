@@ -21,8 +21,10 @@ const loadReal: MainnetWalletLoader = async () =>
   (await import("./NearConnectWallet")).createNearConnectWallet();
 
 interface MainnetWalletApi {
-  wallet: MainnetWallet;
+  // The wallet itself is deliberately not exposed: lessons can only sign through `sign`.
   state: WalletState;
+  /** True from "Confirm" until the wallet answers. Show it and disable your own buttons. */
+  waiting: boolean;
   /** True once the learner chose their own wallet (and it loaded). */
   usingReal: boolean;
   loading: boolean;
@@ -102,20 +104,39 @@ export function MainnetWalletProvider({
   const walletRef = useRef(wallet);
   walletRef.current = wallet;
 
-  const sign = useCallback(
-    (request: SigningRequest) =>
-      signWithConfirmation(
+  const [waiting, setWaiting] = useState(false);
+
+  // signWithConfirmation holds a per-wallet lock, so a second call while a dialog is open or the
+  // wallet is answering resolves as "busy" and never overwrites `pending`.
+  const sign = useCallback(async (request: SigningRequest) => {
+    let outcome: SigningOutcome | undefined;
+    try {
+      outcome = await signWithConfirmation(
         walletRef.current,
         request,
-        (preview) => new Promise<boolean>((resolve) => setPending({ preview, resolve })),
-      ),
-    [],
-  );
+        (preview) =>
+          new Promise<boolean>((resolve) =>
+            setPending({
+              preview,
+              resolve: (ok) => {
+                setPending(null);
+                if (ok) setWaiting(true);
+                resolve(ok);
+              },
+            }),
+          ),
+      );
+      return outcome;
+    } finally {
+      // A refused "busy" call is not the signing that is waiting; leave its state alone.
+      if (!(outcome && !outcome.ok && outcome.reason === "busy")) setWaiting(false);
+    }
+  }, []);
 
   const api = useMemo<MainnetWalletApi>(
     () => ({
-      wallet,
       state,
+      waiting,
       usingReal: real !== null,
       loading,
       notice,
@@ -124,18 +145,21 @@ export function MainnetWalletProvider({
       disconnect: () => wallet.disconnect(),
       sign,
     }),
-    [wallet, state, real, loading, notice, setUseReal, sign],
+    [wallet, state, waiting, real, loading, notice, setUseReal, sign],
   );
-
-  const answer = (ok: boolean) => {
-    pending?.resolve(ok);
-    setPending(null);
-  };
 
   return (
     <Ctx.Provider value={api}>
       {children}
-      {pending ? <SigningConfirm preview={pending.preview} onAnswer={answer} /> : null}
+      {pending ? <SigningConfirm preview={pending.preview} onAnswer={pending.resolve} /> : null}
+      {waiting ? (
+        <div className="wallet-backdrop">
+          <p className="wallet-dialog" role="status" data-testid="wallet-waiting">
+            Waiting for your wallet. Finish or close the wallet window to continue. Please do not send this
+            twice.
+          </p>
+        </div>
+      ) : null}
     </Ctx.Provider>
   );
 }
@@ -156,13 +180,14 @@ function SigningConfirm({ preview, onAnswer }: { preview: SigningPreview; onAnsw
         <h2 id="wallet-dialog-title">Please check this before you continue</h2>
         <p>{preview.summary}</p>
         <p className="wallet-amount" data-testid="signing-amount">
-          <strong>{preview.amountNear} NEAR</strong> to <code>{preview.receiverId}</code>
+          <strong>{preview.amountText}</strong> to <code>{preview.receiverId}</code>
         </p>
         <ul>
           {preview.lines.map((l, i) => (
             <li key={i}>{l}</li>
           ))}
         </ul>
+        <p>{preview.feeNote}</p>
         <p className="wallet-warning">{preview.warning}</p>
         <div className="wallet-actions">
           <button type="button" ref={cancel} onClick={() => onAnswer(false)}>
