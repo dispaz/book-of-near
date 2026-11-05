@@ -181,7 +181,13 @@ export function useTransaction({
         });
         return;
       }
-      reportEvidence?.({ txHash: out.transaction.hash, mode: network });
+      // includedMs and finalMs (stopwatch since Send) let lesson 2.1 say where those seconds went.
+      reportEvidence?.({
+        txHash: out.transaction.hash,
+        mode: network,
+        includedMs: String(Math.round(out.timings.included)),
+        finalMs: String(Math.round(out.timings.final)),
+      });
       setFinalBalance((await chain.viewAccount(me.accountId)).amount);
     } catch (e) {
       setError(kindError(e, network));

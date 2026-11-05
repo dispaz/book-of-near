@@ -1,0 +1,206 @@
+/* Lesson 2.1: follow a transaction across shards. One state, a flat grid (2D) or the 3D scene. */
+.shs {
+  position: absolute;
+  top: var(--head-h, 112px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(
+    16px + var(--bar-h, 56px) + 16px + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px)
+  );
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .shs {
+    top: var(--head-h, 104px);
+    left: 448px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    gap: 12px;
+  }
+  .shs.three {
+    overflow: hidden;
+  }
+}
+.shs p {
+  margin: 0;
+}
+.shs code {
+  font:
+    600 13px ui-monospace,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- flat grid ---------- */
+.shs-2d {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #f3efe4;
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 6px;
+}
+.shs-2d svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 40vh;
+}
+.shs-cell {
+  fill: #fffdf7;
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+.shs-svg-label {
+  font: 600 11px var(--ui);
+  fill: var(--ink);
+}
+.shs-path {
+  stroke: var(--ink);
+  stroke-width: 2.2;
+}
+.shs-hopmark circle {
+  fill: var(--accent);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.shs-hopmark text {
+  font: 700 12px var(--ui);
+  fill: var(--ink);
+}
+.shs-hopmark.current circle {
+  fill: #f2c230;
+  stroke-width: 3;
+}
+.shs-hopmark {
+  cursor: pointer;
+}
+
+/* ---------- 3D ---------- */
+.shs-3d {
+  position: relative;
+  height: 260px;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #f3efe4;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.shs-3d-box {
+  position: absolute;
+  inset: 0;
+}
+.shs-3d .sk-status {
+  top: 8px;
+  right: 12px;
+  max-width: calc(100% - 24px);
+  font-size: 19px;
+}
+@media (min-width: 900px) {
+  .shs.three .shs-3d {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 260px;
+  }
+}
+.shs-loading,
+.shs-empty p {
+  padding: 12px;
+  font: 500 14px var(--ui);
+  color: var(--mute);
+}
+.shs-empty {
+  border: 2px dashed var(--ink);
+  border-radius: 12px;
+  background: var(--glass);
+}
+
+/* ---------- facts ---------- */
+.shs-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--ink);
+  border-top: 5px solid var(--accent);
+  border-radius: 12px;
+  background: var(--glass);
+  font: 500 15px/1.4 var(--serif);
+}
+.shs-facts:empty {
+  display: none;
+}
+.shs-note {
+  font: 500 14px/1.4 var(--serif);
+  color: var(--mute);
+}
+.shs-warn {
+  font: 600 15px/1.4 var(--ui);
+  color: #8a1f17;
+}
+.shs-detail dl {
+  margin: 6px 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 4px 14px;
+}
+.shs-detail dt {
+  font: 700 12px var(--ui);
+  color: var(--mute);
+}
+.shs-detail dd {
+  margin: 0;
+  font: 500 14px var(--serif);
+  overflow-wrap: anywhere;
+}
+.shs-kind {
+  font: 500 15px/1.35 var(--serif);
+  overflow-wrap: anywhere;
+}
+.shs-steps {
+  margin: 0;
+  padding-left: 18px;
+  font: 500 14px/1.45 var(--serif);
+}
+.shs-when {
+  font: 700 12px var(--ui);
+  color: var(--mute);
+}
+.shs-bar {
+  display: flex;
+  height: 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.shs-bar .a {
+  background: #fffdf7;
+}
+.shs-bar .b {
+  background: var(--accent);
+}
+.shs-bar .c {
+  background: #e9e2d0;
+}
+@media (max-width: 899px) {
+  .shs-facts {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+  .shs-detail dl {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+}
+
+/* Reduced motion: end states only (the global CSS already cuts transitions). */
+.shs.still * {
+  animation: none !important;
+  transition: none !important;
+}
