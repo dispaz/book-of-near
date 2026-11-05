@@ -169,3 +169,10 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 ## 2026-11-03 · Deploy on release
 - `.github/workflows/deploy.yml`: publishing a GitHub release (or running the workflow by hand with a ref) checks out the tag, runs typecheck and unit tests, builds, and deploys `dist` to Cloudflare Pages `book-of-near` as production (`--branch main`) with `cloudflare/wrangler-action@v3`.
 - Owner setup: repo secrets `CLOUDFLARE_API_TOKEN` (Pages: Edit) and `CLOUDFLARE_ACCOUNT_ID`; optional repo variables `VITE_CHAIN_MODE` (default `demo`), `VITE_WORKER_URL`, `VITE_RETURN_ACCOUNT_ID`. The Pages project must exist (`npx wrangler pages project create book-of-near --production-branch main`). The Worker is not deployed by this workflow.
+
+## 2026-11-05 · #23 Mainnet wallet connection and funds check
+- New seam `src/chain/mainnet/` (documented in `docs/chain.md`, no `Chain` change): `MainnetWallet` interface with `DemoWallet` (simulated `demo-learner.near`, 25 NEAR) and `NearConnectWallet` (`@hot-labs/near-connect` 0.12.0 + mainnet RPC `view_account`, lazy, injected connector so tests never touch a real wallet).
+- `checkFunds` gives `enough` / `not-enough` / `no-wallet` (the last two name the testnet fallback). `signWithConfirmation` is the only signing path: it checks the request, shows summary, receiver and total NEAR in a dialog, and asks the wallet only after "Confirm".
+- UI: `MainnetWalletProvider` in `main.tsx`, `WalletPanel`, `FundsNotice`, page `/wallet`. Demo wallet by default; the real wallet loads only after "Use my own wallet".
+- Tests: Vitest for funds, signing order, DemoWallet, NearConnectWallet (fake connector and fetch, RPC fallback), provider/UI, no-network imports; e2e `e2e/wallet.spec.ts` in demo mode.
+- Untested: a real wallet sign-in and a real mainnet signature (needs a human; never done in tests).

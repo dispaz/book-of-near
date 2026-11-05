@@ -14,6 +14,8 @@ import { HomePage } from "./progress/HomePage";
 import { OpeningQuiz } from "./progress/OpeningQuiz";
 import { TestOut } from "./progress/TestOut";
 import { ChainProvider } from "./chain/ChainContext";
+import { MainnetWalletProvider } from "./chain/mainnet";
+import { WalletPage } from "./ui/WalletPage";
 
 // The claude.ai review copy (`npm run build:artifact`) is served as one page, so it routes on the hash.
 const createRouter = import.meta.env.MODE === "artifact" ? createHashRouter : createBrowserRouter;
@@ -22,6 +24,7 @@ const router = createRouter([
   { path: "/", element: <HomePage /> },
   { path: "/start", element: <OpeningQuiz /> },
   { path: "/test-out", element: <TestOut /> },
+  { path: "/wallet", element: <WalletPage /> },
   { path: "/lesson/:id", element: <LessonPage /> },
   { path: "*", element: <ContentsPage /> },
 ]);
@@ -29,7 +32,9 @@ const router = createRouter([
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ChainProvider>
-      <RouterProvider router={router} />
+      <MainnetWalletProvider>
+        <RouterProvider router={router} />
+      </MainnetWalletProvider>
     </ChainProvider>
   </StrictMode>,
 );
