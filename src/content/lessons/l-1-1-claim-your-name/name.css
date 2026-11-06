@@ -1,0 +1,74 @@
+/* Lesson 1.1: what is added to the shared .stx column of lesson 0.3 (scene.css, imported by Scene.tsx).
+   Ink outlines on paper; a dashed outline means "not created yet". */
+.cn-cast {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.cn-cast.one {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (max-width: 899px) {
+  .cn-cast {
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 4px;
+  }
+  .cn-cast .stx-acct-role {
+    font-size: 10px;
+  }
+  .cn-cast .stx-arrow span {
+    display: none;
+  }
+}
+.cn-ghost {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+}
+.cn-rules {
+  margin: 0;
+  padding-left: 1.2em;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cn-pick {
+  font:
+    700 20px ui-monospace,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+}
+.cn-compare {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+.cn-compare .stx-acct-id {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.stx-form.cn-form input {
+  width: 9em;
+  text-align: left;
+}
+.cn-feedback {
+  margin: 0;
+  padding: 4px 8px;
+  border-left: 4px solid var(--ink);
+  background: #fff;
+  font: 600 13px var(--ui);
+}
+.cn-feedback.hint,
+.cn-feedback.wait {
+  border-left-color: var(--mute);
+  color: var(--mute);
+}
+.cn-feedback.bad {
+  border-left-color: var(--red);
+  color: var(--red);
+}
+.cn-feedback.good {
+  border-left-color: var(--accent);
+}

@@ -169,3 +169,10 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 ## 2026-11-03 · Deploy on release
 - `.github/workflows/deploy.yml`: publishing a GitHub release (or running the workflow by hand with a ref) checks out the tag, runs typecheck and unit tests, builds, and deploys `dist` to Cloudflare Pages `book-of-near` as production (`--branch main`) with `cloudflare/wrangler-action@v3`.
 - Owner setup: repo secrets `CLOUDFLARE_API_TOKEN` (Pages: Edit) and `CLOUDFLARE_ACCOUNT_ID`; optional repo variables `VITE_CHAIN_MODE` (default `demo`), `VITE_WORKER_URL`, `VITE_RETURN_ACCOUNT_ID`. The Pages project must exist (`npx wrangler pages project create book-of-near --production-branch main`). The Worker is not deployed by this workflow.
+
+## 2026-11-05 · Lesson 1.1: Claim your name (#14)
+- Script `docs/lessons/stage-1/1.1.md`; manifest, shared state `useClaim.ts` (one state, both views), `Scene.tsx` (2D cards, docked name box, check, honest take) and a lazy `Scene3D.tsx` (you, the `testnet` registrar, a dashed ghost that becomes the new account; compare step shows the named block beside the ghost of its hex twin).
+- Live availability goes through `chain.accountExists`, debounced; creation is `createNamedAccount` (`testnet.create_account`, 0.1 NEAR deposit, fresh key from `chain.newKeyPair()`), then `viewAccount` and `listKeys` read the account back. Evidence `{ accountId, txHash, mode }` goes into the completion record. The chosen name feeds later captions through `vars`/`setVars`.
+- Reuses lesson 0.3's `.stx` layout CSS and `tx.ts` helpers (`near`, `short`, `kindError`).
+- Tests: `name.test.ts`, `layout3d.test.ts`, `e2e/lessons/l-1-1-claim-your-name.spec.ts` (demo walk in 2D and 3D, own-name text and view switch, outcome state). `e2e/progress.spec.ts` now uses 1.3 as its planned-lesson example, because 1.1 is ready.
+- Not run on live testnet in this session; the demo and the chain contract suite cover the call shape. The ENS and mainnet registrar claims in the Honest take are marked unverified.
