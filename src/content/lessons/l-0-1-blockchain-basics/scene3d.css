@@ -1,8 +1,6 @@
-/* Lesson 0.1, 3D view. The canvas fills the scene area; the free part of it (measured by Scene3D and
-   passed as --bb3-l / --bb3-r / --bb3-b) holds the scene, the status note and the details panel. */
+/* Lesson 0.1, 3D view. It is a book scene (docs/book-scene.md): the layout of the canvas, the status
+   note and the panel (.book-scene, .book-scene-panel, --book-*) comes from scene-kit.css. */
 .bb3 {
-  position: absolute;
-  inset: 0;
   font-family: var(--ui);
   color: var(--ink);
 }
@@ -14,30 +12,6 @@
     monospace;
 }
 
-/* The status note sits at the bottom of the free area, the panel just above it. */
-.bb3 .sk-status {
-  top: auto;
-  left: var(--bb3-l, 16px);
-  right: var(--bb3-r, 16px);
-  bottom: var(--bb3-b, 45%);
-  max-width: none;
-  text-align: left;
-  font-size: 21px;
-}
-.bb3-panel {
-  position: absolute;
-  z-index: 1;
-  left: var(--bb3-l, 16px);
-  right: var(--bb3-r, 16px);
-  bottom: calc(var(--bb3-b, 45%) + var(--bb3-sh, 0px));
-  max-width: 560px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.bb3-panel:empty {
-  display: none;
-}
 .bb3-panel p {
   margin: 0;
 }
@@ -47,9 +21,6 @@
 }
 .bb3-panel code {
   font-size: 13px;
-}
-.bb3.summary .sk-status {
-  display: none;
 }
 
 /* ---------- Tags that follow the 3D objects ---------- */
@@ -220,9 +191,9 @@
 .bb3-balances {
   position: absolute;
   z-index: 1;
-  top: var(--bb3-t, 112px);
-  left: var(--bb3-l, 16px);
-  right: var(--bb3-r, 16px);
+  top: var(--book-t, 112px);
+  left: var(--book-l, 16px);
+  right: var(--book-r, 16px);
   margin: 0;
   display: flex;
   align-items: center;

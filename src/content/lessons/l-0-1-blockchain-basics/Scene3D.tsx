@@ -1,31 +1,24 @@
-import { useContext, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import {
   Anchor,
-  BookBackdrop,
+  BookScene,
   Coin,
   focusOf,
-  frameCamera,
-  InkStage,
   inset,
   Label,
-  PrintOnPage,
   spreadBeside,
   spreadFor,
   textBlock,
   Traveller,
-  ViewOffset,
+  useFreeFrame,
   type Box,
   type Focus,
-  type Frame,
   type Reserve,
   type Vec3,
 } from "../../../scene-kit";
-import { SpreadContext } from "../../../app/intro";
-import { BarSlot } from "../../../ui/StageBar";
-import { tourFor, type Shot, type TourTarget } from "./tour";
+import { tourFor, type TourTarget } from "./tour";
 import { PEOPLE, shortHash, START, type Chain, type Person, type Tx } from "./ledger";
 import { AUTO_TAMPER_NOTE, BlockDetails, COMPARE_RESULT, EditAmount, useHotLines } from "./parts";
 import {
@@ -191,14 +184,6 @@ function baseShot(step: number, g: Geo): { focus: Focus; reserve: Reserve } {
   return { focus: focusOf([chain], g.elevation - 4), reserve: { ...g.reserve, top: 30 } };
 }
 
-/** The reading shot: the step's figure and the words printed on the left page, seen from higher up. */
-function withPage(f: Focus): Focus {
-  const [cx, , cz] = f.center;
-  const figure: Box = [cx - f.width / 2, cx + f.width / 2, cz - f.depth / 2, cz + f.depth / 2, f.height];
-  const words: Box = [TEXT.x0, TEXT.x1, TEXT.z0, TEXT.z1, 0];
-  return focusOf([figure, words], READING_ELEVATION);
-}
-
 /** What one shot of the tour looks at: low and close, turned a little, like a camera on a dolly. */
 function shotFocus(t: TourTarget, step: number, g: Geo, base: Focus): Focus {
   const around = (c: Vec3, width: number, depth: number, height: number, el: number, az: number): Focus => ({
@@ -238,64 +223,6 @@ function shotFocus(t: TourTarget, step: number, g: Geo, base: Focus): Focus {
   }
 }
 
-interface Tour {
-  shots: Shot[];
-  /** The shot the camera is on, or null when no tour runs (the reading shot). */
-  shot: Shot | null;
-  playing: boolean;
-  toggle: () => void;
-}
-
-/**
- * The play button's camera tour of the current figure: each shot holds a few seconds, then the camera
- * returns to the reading shot. Pause holds the shot. A new step ends the tour.
- */
-function useTour(m: LedgerLesson): Tour {
-  const { step } = m;
-  const shots = tourFor(step, m.shown.length);
-  const [state, setState] = useState<{ step: number; i: number; playing: boolean } | null>(null);
-  const active = state && state.step === step && state.i < shots.length ? state : null;
-  const count = shots.length;
-  useEffect(() => {
-    if (!active?.playing) return;
-    const id = setTimeout(
-      () => setState((s) => (s && s.i + 1 < count ? { ...s, i: s.i + 1 } : null)),
-      SHOT_SECONDS * 1000,
-    );
-    return () => clearTimeout(id);
-  }, [active, count]);
-  return {
-    shots,
-    shot: active ? shots[active.i]! : null,
-    playing: !!active?.playing,
-    toggle: () => setState(active ? { ...active, playing: !active.playing } : { step, i: 0, playing: true }),
-  };
-}
-
-/** Play / pause and the caption of the current shot, in the stage bar. */
-function TourControls({ tour, idle }: { tour: Tour; idle: string }) {
-  const slot = useContext(BarSlot);
-  if (!slot || !tour.shots.length) return null;
-  return createPortal(
-    <div className="tour" role="group" aria-label="Tour of the figure">
-      <button
-        type="button"
-        className="tour-play"
-        aria-label={tour.playing ? "Pause the tour" : "Play the tour"}
-        onClick={tour.toggle}
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          {tour.playing ? <path d="M8 5v14M16 5v14" /> : <path className="fill" d="M8 5.5 19 12 8 18.5z" />}
-        </svg>
-      </button>
-      <p className="tour-caption" aria-live="polite" data-testid="tour-caption">
-        {tour.shot?.caption ?? idle}
-      </p>
-    </div>,
-    slot,
-  );
-}
-
 /**
  * The open pop-up book the scene stands on: one spread per layout, big enough for all its steps.
  * Row: the notebooks reach x = ±6, the copies run from z = -3.5 and the chain's cards to about z = 3.
@@ -310,12 +237,6 @@ const SPREAD = {
 };
 /** Where the step's words are printed on the row spread's left page. */
 const TEXT = textBlock(SPREAD.row, 6.4);
-/** Screens at least this wide print the words on the page; narrower ones keep them docked. */
-const PRINT_MIN_WIDTH = 1100;
-/** Camera elevation for reading the printed page: steep enough that the type is easy to read. */
-const READING_ELEVATION = 52;
-/** Seconds each shot of the tour holds before the camera moves on. */
-const SHOT_SECONDS = 3.4;
 /**
  * Running heads, on the loop spread only: on the row spread the step label heads the printed page and
  * a running head on the right page would run into the ledgers' name labels.
@@ -368,7 +289,7 @@ export default function Scene3D({
   const panel = useRef<HTMLDivElement>(null);
   const { step } = m;
   const summary = step >= CHECK;
-  const { frame, size, wide, print } = useFreeFrame(root, panel, summary);
+  const { frame, size, wide, print } = useFreeFrame(root, panel, { summary });
   const g = !print && frame.right - frame.left < 620 ? SNAKE : ROW;
   const shot = shotFor(
     step,
@@ -379,23 +300,8 @@ export default function Scene3D({
   const strip = g.compact && step >= SEND && step <= LINKS && step !== HASH;
   const stripH = strip ? 34 : 0;
   const inner = inset({ ...frame, top: frame.top + stripH }, shot.reserve);
-  const tour = useTour(m);
-  // Wide screens print the step on the left page: the lesson page lays its words out as print. During
-  // a tour close-up, or when the learner orbits the page out of sight, the words go back to their usual
-  // docked place, so the step's text and its controls stay readable and usable.
-  const spread = useContext(SpreadContext);
-  const [pageInView, setPageInView] = useState(true);
-  const printed = print && !tour.shot && pageInView;
-  const { setPrinted } = spread;
-  useEffect(() => {
-    setPrinted(printed);
-    return () => setPrinted(false);
-  }, [printed, setPrinted]);
   // Steps after the quiz stay on the quiz's spread.
   const sheet = Math.min(step, CHECK);
-  const reading = print ? withPage(shot.focus) : shot.focus;
-  const focus = tour.shot ? shotFocus(tour.shot.target, step, g, shot.focus) : reading;
-  const view = frameCamera(focus, inner, size.width, size.height, 0.9);
   const hidden = summary && !wide; // Phones: the Check and Honest take fill the screen, as in 2D.
 
   // At the blocks step the opened block's slip pops up out of the block itself (see ChainBlocks).
@@ -403,7 +309,7 @@ export default function Scene3D({
   return (
     <div
       ref={root}
-      className={`bb3${g.compact ? " compact" : ""}${summary ? " summary" : ""}${reducedMotion ? " still" : ""}`}
+      className={`book-scene bb3${g.compact ? " compact" : ""}${summary ? " summary" : ""}${reducedMotion ? " still" : ""}`}
       data-testid="ledger-scene"
       data-scene-state={m.state}
       data-view="3d"
@@ -412,8 +318,18 @@ export default function Scene3D({
       role="group"
       aria-label="Toy ledger of Ana, Ben and Cora, in 3D"
     >
-      <InkStage
-        view={view}
+      <BookScene
+        page={step}
+        sheet={sheet}
+        spread={g.compact ? SPREAD.loop : SPREAD.row}
+        heads={g.compact ? HEADS : undefined}
+        caption={FIGURES[sheet]}
+        text={print ? TEXT : null}
+        focus={shot.focus}
+        frame={inner}
+        size={size}
+        shots={tourFor(step, m.shown.length)}
+        shotFocus={(t: TourTarget) => shotFocus(t, step, g, shot.focus)}
         flat={flat}
         reducedMotion={reducedMotion}
         state={m.state}
@@ -421,25 +337,9 @@ export default function Scene3D({
         status={m.status}
         minDistance={3}
         maxDistance={140}
-        page={step}
-        backdrop={
-          <>
-            <BookBackdrop
-              spread={g.compact ? SPREAD.loop : SPREAD.row}
-              heads={g.compact ? HEADS : undefined}
-              folios={[4 + 2 * sheet, 5 + 2 * sheet]}
-              caption={FIGURES[sheet]}
-            />
-            {print ? (
-              <PrintOnPage block={TEXT} el={spread.page} place={printed} onInView={setPageInView} />
-            ) : null}
-          </>
-        }
       >
-        <ViewOffset frame={inner} reducedMotion={reducedMotion} />
         {hidden ? null : <World m={m} g={g} reducedMotion={reducedMotion} />}
-      </InkStage>
-      <TourControls tour={tour} idle={FIGURES[sheet] ?? ""} />
+      </BookScene>
       <ReadablePages m={m} strip={strip} />
       {strip ? (
         <p className="bb3-balances" aria-label="Balances">
@@ -451,7 +351,7 @@ export default function Scene3D({
           <span className="unit">coins</span>
         </p>
       ) : null}
-      <div className="bb3-panel" ref={panel}>
+      <div className="book-scene-panel bb3-panel" ref={panel}>
         {details ? (
           <BlockDetails
             chain={m.chain}
@@ -471,86 +371,6 @@ export default function Scene3D({
       </div>
     </div>
   );
-}
-
-/**
- * The free part of the canvas, between the lesson's title, step card, stage bar, this view's panel and
- * its status note. Also places the panel and the status note (CSS variables on the root).
- */
-function useFreeFrame(
-  root: RefObject<HTMLDivElement | null>,
-  panel: RefObject<HTMLDivElement | null>,
-  summary: boolean,
-) {
-  const [m, setM] = useState({
-    frame: { left: 0, top: 0, right: 1, bottom: 1 } as Frame,
-    size: { width: 1, height: 1 },
-    wide: true,
-    print: false,
-  });
-  const measure = useRef<() => void>(() => undefined);
-  useLayoutEffect(() => {
-    measure.current = () => {
-      const el = root.current;
-      const lesson = el?.closest(".lesson");
-      if (!el || !lesson) return;
-      const R = el.getBoundingClientRect();
-      const rect = (sel: string) => lesson.querySelector(sel)?.getBoundingClientRect() ?? null;
-      const W = R.width;
-      const H = R.height;
-      const wide = W >= 900;
-      // Wide enough to print the step on the book's left page: the heading and note are then part of
-      // the picture, not boxes over it, so the whole width between the title and the bar is free.
-      const print = W >= PRINT_MIN_WIDTH && !summary;
-      const title = rect(".lesson-title");
-      const head = print ? null : rect(".step-head");
-      const dock = print ? null : rect(".lesson-dock");
-      const bar = rect(".stage-bar");
-      const titleB = Math.max(title ? title.bottom - R.top : 100, head ? head.bottom - R.top : 0) + 12;
-      const dockT = dock ? dock.top - R.top : H * 0.55;
-      const dockR = dock ? dock.right - R.left : 416;
-      const barT = bar ? bar.top - R.top : H - 72;
-      let col: Frame;
-      // The honest take: everything left of its panel, above the dock (the quiz step's summary page
-      // covers the scene anyway).
-      const side = rect(".lesson-panel");
-      if (print) col = { left: 24, right: W - 24, top: titleB, bottom: barT - 14 };
-      else if (wide && summary)
-        col = { left: 24, right: side ? side.left - R.left - 32 : W - 24, top: titleB, bottom: dockT - 12 };
-      else if (wide) col = { left: dockR + 32, right: W - 24, top: titleB, bottom: barT - 14 };
-      else col = { left: 12, right: W - 12, top: titleB, bottom: dockT - 10 };
-      el.style.setProperty("--bb3-t", `${Math.round(col.top)}px`);
-      // The panel and the status note stay over the right page, clear of the printed words.
-      el.style.setProperty("--bb3-l", `${Math.round(print ? W * 0.47 : col.left)}px`);
-      el.style.setProperty("--bb3-r", `${Math.round(W - col.right)}px`);
-      el.style.setProperty("--bb3-b", `${Math.round(H - col.bottom)}px`);
-      const status = el.querySelector<HTMLElement>(".sk-status");
-      const sh = status?.textContent ? status.offsetHeight + 6 : 0;
-      el.style.setProperty("--bb3-sh", `${sh}px`);
-      const ph = panel.current?.offsetHeight ? panel.current.offsetHeight + 8 : 0;
-      // Keep a band of the scene visible, even when the panel is tall.
-      const bottom = Math.max(col.top + 70, col.bottom - sh - ph);
-      const next = { frame: { ...col, bottom }, size: { width: W, height: H }, wide, print };
-      setM((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
-    };
-    measure.current();
-  });
-  useEffect(() => {
-    const el = root.current;
-    const lesson = el?.closest(".lesson");
-    if (!el || !lesson) return;
-    const ro = new ResizeObserver(() => measure.current());
-    ro.observe(el);
-    for (const sel of [".lesson-title", ".step-head", ".lesson-dock", ".stage-bar", ".lesson-panel"]) {
-      const t = lesson.querySelector(sel);
-      if (t) ro.observe(t);
-    }
-    if (panel.current) ro.observe(panel.current);
-    const status = el.querySelector(".sk-status");
-    if (status) ro.observe(status);
-    return () => ro.disconnect();
-  }, [root, panel]);
-  return m;
 }
 
 /** Everything in the scene for the current step. */

@@ -184,3 +184,11 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Scripted agent (`key.ts`, unit tested): keyword prompts, no model. Hint button and No-hint mode; the completion record carries `hintsUsed`, `noHintMode`, `refusedAttacks` and a tx hash.
 - Not run on real testnet in this pass (demo mode only). `e2e/lessons/l-1-2-function-call-key.spec.ts`: walk in 2D and 3D, refusals with reasons, vars, hints, "not understood".
 - Review fixes (1.2): an attack counts toward the three only when the Chain gives a refusal `reason`; included-but-failed calls show as "Failed". On load the lesson picks up an existing function-call key on the practice account so a reload does not orphan it (on testnet it works only if the key secret is still in the key store; not tested on real testnet). Error names and the balance-before-permission order are marked "confirm on testnet" in the script. New e2e: reduced motion, `?webgl=0`, 2D/3D switch mid-lesson, phone-size, placeholders in steps 4 and 6.
+
+## 2026-11-06 · Book scene as the standard 3D view
+- Source: session c7e5f652 (3 Nov) built lesson 0.1's 3D view as a living pop-up book (`6c3aa68`, `a7fcbd0`, `c08a44e`). Its wiring lived in 0.1's `Scene3D.tsx`; now it is kit code. Rules: `docs/book-scene.md`, decision: `docs/adr/0001-book-scene-standard.md`.
+- Kit: `src/scene-kit/BookScene.tsx` (`<BookScene>`, `useFreeFrame`, `useTour`, `<TourControls>`) and `bookLayout.ts` (pure: `readingShot`, `folios`, tour cursor, `freeFrame`; unit tested). Layout CSS `.book-scene`, `.book-scene-panel`, `--book-*` in `scene-kit.css`.
+- Lesson 0.1 uses `<BookScene>`; ~200 lines gone from its `Scene3D.tsx`. Same e2e; layout readings and screenshots match the old build at 1440, 1024 and 390 wide, except the fix below.
+- Fix: the free-frame measurement could keep a stale step-heading height (fonts, swapped chrome elements), so on phones the 3D view's balance pills could sit under the step card. It now re-measures when fonts load and watches swapped elements.
+- `npm run new-lesson -- … --book` writes `Scene3D.tsx` as a book scene and sets `views: ["2d", "3d"]`. Checked by scaffolding a throwaway lesson: typecheck, lint, build, and 3D screenshots (printed page on desktop, docked on tablet and phone).
+- Not yet moved: 0.2, 0.3, 1.1, 1.2 (plain `InkStage`).

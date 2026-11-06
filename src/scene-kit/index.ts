@@ -15,6 +15,26 @@ export {
   type TextBlock,
 } from "./book";
 export { PrintOnPage } from "./PrintOnPage";
+export {
+  BookScene,
+  TourControls,
+  useFreeFrame,
+  useTour,
+  type BookSceneProps,
+  type FreeFrameState,
+  type Tour,
+} from "./BookScene";
+export {
+  folios,
+  freeFrame,
+  PRINT_MIN_WIDTH,
+  READING_ELEVATION,
+  readingShot,
+  SHOT_SECONDS,
+  type Chrome,
+  type FreeFrame,
+  type Shot,
+} from "./bookLayout";
 export { homography, matrix3d } from "./homography";
 export { POP, popState } from "./pop";
 export {
