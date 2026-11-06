@@ -42,8 +42,8 @@ export function describeSigning(kind: MainnetWallet["kind"], req: SigningRequest
 
 export type SigningOutcome =
   | { ok: true; txHash: string }
-  | { ok: false; reason: Exclude<SigningRefusal, "failed">; message?: undefined }
-  | { ok: false; reason: "failed"; message: string };
+  | { ok: false; reason: Exclude<SigningRefusal, "failed" | "unconfirmed">; message?: undefined }
+  | { ok: false; reason: "failed" | "unconfirmed"; message: string };
 
 /** One signing at a time per wallet, from the first check until the wallet answers. */
 const inFlight = new WeakSet<MainnetWallet>();
@@ -67,11 +67,26 @@ export async function signWithConfirmation(
     if (first) return first;
     if (!(await confirm(describeSigning(wallet.kind, request)))) return { ok: false, reason: "declined" };
     // The balance may have changed while the dialog was open: read it again.
-    await wallet.refresh().catch(() => undefined);
+    try {
+      await wallet.refresh();
+    } catch {
+      return {
+        ok: false,
+        reason: "failed",
+        message: "We could not check your balance just now. Nothing was sent. Please try again.",
+      };
+    }
     const second = precheck(wallet, request);
     if (second) return second;
     try {
       const { txHash } = await wallet.signAndSend(request);
+      if (txHash === null)
+        return {
+          ok: false,
+          reason: "unconfirmed",
+          message:
+            "Your wallet did not say whether this went through. Check your wallet's history before you try again.",
+        };
       return { ok: true, txHash };
     } catch (e) {
       return {

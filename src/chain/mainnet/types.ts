@@ -61,7 +61,8 @@ export interface SigningPreview {
 }
 
 export interface SignedResult {
-  txHash: string;
+  /** The transaction id, or null when the wallet gave no result (some wallets redirect away), so we cannot say it went through. */
+  txHash: string | null;
 }
 
 /** Why a signing request ended without a transaction. */
@@ -73,7 +74,9 @@ export type SigningRefusal =
   /** Another signing is already open or waiting for the wallet. */
   | "busy"
   /** The learner confirmed but the wallet or network failed (popup closed, RPC down, transaction failed). */
-  | "failed";
+  | "failed"
+  /** The wallet gave no result: it may or may not have gone through. The learner should check their wallet. */
+  | "unconfirmed";
 
 export interface MainnetWallet {
   /** "demo": simulated, no network. "mainnet": a real wallet through NEAR Connect. */
@@ -83,7 +86,10 @@ export interface MainnetWallet {
   /** Opens the wallet picker (mainnet) or connects the simulated account (demo). Never throws. */
   connect(): Promise<WalletState>;
   disconnect(): Promise<void>;
-  /** Re-reads the balance. */
+  /**
+   * Re-reads the balance. Rejects if it cannot be read (network); the state then stays exactly as
+   * it was, so a connected wallet is never dropped by a failed re-read.
+   */
   refresh(): Promise<WalletState>;
   /**
    * Asks the wallet to sign and send. Only call through `signWithConfirmation`, which shows the

@@ -160,11 +160,8 @@ export class NearConnectWallet implements MainnetWallet {
   async refresh(): Promise<WalletState> {
     const s = this.current;
     if (s.status !== "connected") return s;
-    try {
-      return this.set({ ...s, balance: await this.readBalance(s.accountId) });
-    } catch (e) {
-      return this.set({ status: "error", message: (e as Error).message });
-    }
+    // A failed read rejects and leaves the state (and last known balance) untouched.
+    return this.set({ ...s, balance: await this.readBalance(s.accountId) });
   }
 
   async signAndSend(request: SigningRequest): Promise<SignedResult> {
@@ -176,7 +173,9 @@ export class NearConnectWallet implements MainnetWallet {
       receiverId: request.receiverId,
       actions: request.actions.map(toConnectorAction),
     });
-    await this.refresh();
+    // The money may have moved already: a failed balance re-read must not change the outcome.
+    await this.refresh().catch(() => undefined);
+    if (!out) return { txHash: null }; // redirect-style wallets resolve with nothing
     if (out.status && typeof out.status === "object" && "Failure" in out.status)
       throw new Error("The transaction was sent but failed on the network, so it did not go through.");
     const txHash = out.transaction?.hash ?? out.transaction_outcome?.id ?? "";

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { parseNear } from "../units";
 import { DemoWallet } from "./DemoWallet";
 import { describeSigning, signWithConfirmation } from "./signing";
-import type { SigningRequest } from "./types";
+import type { MainnetWallet, SigningRequest, WalletState } from "./types";
 
 const transfer = (near: string): SigningRequest => ({
   summary: "Send a tiny test payment.",
@@ -62,18 +62,81 @@ describe("signWithConfirmation: failures, single flight, fee reserve", () => {
   });
 
   it("re-reads the balance after the learner confirms and refuses if it dropped", async () => {
-    const wallet = await connectedWallet({ balance: parseNear("1") });
-    const real = wallet.signAndSend.bind(wallet);
-    const sign = vi.spyOn(wallet, "signAndSend");
-    const r = await signWithConfirmation(wallet, transfer("0.5"), async () => {
-      await real(transfer("0.6")); // balance falls while the dialog is open
-      sign.mockClear();
+    // The fake only learns the new balance when refresh() is called, so the second check can
+    // only see it if signWithConfirmation really re-reads.
+    const fake = new FakeWallet(parseNear("1"));
+    const r = await signWithConfirmation(fake, transfer("0.5"), async () => {
+      fake.remoteBalance = parseNear("0.1"); // balance falls while the dialog is open
       return true;
     });
+    expect(fake.refreshCalls).toBe(1);
     expect(r).toMatchObject({ ok: false, reason: "not-enough" });
-    expect(sign).not.toHaveBeenCalled();
+    expect(fake.sendCalls).toBe(0);
+  });
+
+  it("does not drop the wallet when the re-read fails before signing: refuses with a clear message", async () => {
+    const fake = new FakeWallet(parseNear("1"));
+    fake.refreshFails = true;
+    const r = await signWithConfirmation(fake, transfer("0.5"), async () => true);
+    expect(r).toMatchObject({ ok: false, reason: "failed" });
+    expect(!r.ok && r.message).toMatch(/could not check your balance/i);
+    expect(fake.sendCalls).toBe(0);
+    expect(fake.state().status).toBe("connected");
+  });
+
+  it("reports success and keeps the wallet connected when the re-read after a send fails", async () => {
+    const fake = new FakeWallet(parseNear("1"));
+    fake.failRefreshAfterSend = true;
+    const r = await signWithConfirmation(fake, transfer("0.5"), async () => true);
+    expect(r).toEqual({ ok: true, txHash: "FAKE" });
+    expect(fake.state().status).toBe("connected");
+  });
+
+  it("reports unconfirmed (not failed) when the wallet gives no result", async () => {
+    const fake = new FakeWallet(parseNear("1"));
+    fake.nextTxHash = null;
+    const r = await signWithConfirmation(fake, transfer("0.5"), async () => true);
+    expect(r).toMatchObject({ ok: false, reason: "unconfirmed" });
+    expect(!r.ok && r.message).toMatch(/check your wallet/i);
   });
 });
+
+/** A wallet whose balance only changes when refresh() is called. */
+class FakeWallet implements MainnetWallet {
+  readonly kind = "demo" as const;
+  remoteBalance: bigint;
+  refreshCalls = 0;
+  sendCalls = 0;
+  refreshFails = false;
+  failRefreshAfterSend = false;
+  nextTxHash: string | null = "FAKE";
+  private current: WalletState;
+  constructor(balance: bigint) {
+    this.remoteBalance = balance;
+    this.current = { status: "connected", accountId: "ana.near", balance };
+  }
+  state() {
+    return this.current;
+  }
+  subscribe() {
+    return () => {};
+  }
+  async connect() {
+    return this.current;
+  }
+  async disconnect() {}
+  async refresh() {
+    this.refreshCalls += 1;
+    if (this.refreshFails) throw new Error("rpc down");
+    this.current = { status: "connected", accountId: "ana.near", balance: this.remoteBalance };
+    return this.current;
+  }
+  async signAndSend() {
+    this.sendCalls += 1;
+    if (this.failRefreshAfterSend) this.refreshFails = true;
+    return { txHash: this.nextTxHash };
+  }
+}
 
 describe("describeSigning", () => {
   it("never shows 0 NEAR for a non-zero deposit, and notes the fee and call arguments", () => {
