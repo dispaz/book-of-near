@@ -67,9 +67,12 @@ Most lessons offer a 2D and a 3D view of one shared state (see `docs/lesson-temp
 1. Put the scene's state in a small hook with no three.js (see `scene-kit-demo/demo.ts`), with pure
    helpers unit tested. Derive the end state of each step from `step`, so jumping to a step via the URL
    shows the right picture.
-2. `Scene.tsx` renders `<InkStage>` with 3D primitives; `Fallback.tsx` renders `<SvgStage>` with the SVG
-   ones. Both use the hook, the same `state` string and `<SceneAction>` for step buttons.
-3. Manifest: `needsWebGL: true`, `scene: () => import("./Scene")`, `fallback: Fallback`.
+2. `Scene.tsx` holds the hook and the step actions (`<SceneAction>`, Check, Honest take) and draws
+   `view === "3d" ? <Scene3D …/> : <Scene2D …/>`. `Scene3D` is lazy (`React.lazy(() => import("./Scene3D"))`)
+   and renders a `<BookScene>` with 3D primitives; the 2D view uses the SVG primitives. Both use the same
+   `state` string.
+3. Manifest: `views: ["2d", "3d"]`, `scene: () => import("./Scene")`. (The kit demo is the older
+   3D-first shape: `needsWebGL: true` plus a `fallback` component.)
 4. E2E: assert on `[data-scene-state]`; pick with the labelled buttons; wait for
    `.sk-stage[data-camera="still"]` before clicking on canvas coordinates.
 

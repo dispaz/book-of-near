@@ -296,11 +296,9 @@ import {
   useFreeFrame,
   type Box,
   type Focus,
-  type Shot,
 } from "../../../scene-kit";
-
-// Step numbers (0-based) from manifest.ts. Keep them in sync with Scene.tsx.
-const CHECK = 3;
+import type { SceneProps } from "../../../app/types";
+import { CHECK, tourFor, type Target } from "./tour";
 
 // ─── BOOK SCENE (docs/book-scene.md) ───────────────────────────────────────────────────────────
 // The figure stands on the RIGHT page. Wide screens print the step on the LEFT page; narrow screens,
@@ -316,24 +314,18 @@ const HEADS: [string, string] = [${q(`Stage ${stage}`)}, ${q(title)}];
 /** TODO(author): one figure caption per sheet (steps 0 to CHECK; later steps share the quiz's sheet). */
 const FIGURES = ["Fig. 1  Placeholder", "Fig. 2  Placeholder", "Fig. 3  Placeholder", "Fig. 4  Placeholder"];
 /** TODO(author): what the scene shows at each step, in one sentence, for screen readers. */
-const DESCRIPTION = "Placeholder: what the 3D scene shows.";
-
-/** What a tour shot looks at. TODO(author): add the lesson's objects. */
-type Target = { kind: "all" } | { kind: "block" };
+const DESCRIPTION = [
+  "Placeholder: what the 3D scene shows at the hook.",
+  "Placeholder: what the 3D scene shows at the concept.",
+  "Placeholder: what the 3D scene shows while you try it.",
+  "Placeholder: what the 3D scene shows at the check.",
+  "Placeholder: what the 3D scene shows at the honest take.",
+];
 
 /** What the camera keeps in view at a step: the figure, with its labels. */
 function focusFor(_step: number): Focus {
   const box: Box = [FIGURE.minX, FIGURE.maxX, FIGURE.minZ, FIGURE.maxZ, 2.6];
   return focusOf([box], 34);
-}
-
-/** The play button's camera tour of a step's figure. TODO(author): two or three shots per step. */
-function tourFor(step: number): Shot<Target>[] {
-  if (step >= CHECK) return [];
-  return [
-    { caption: "The whole figure.", target: { kind: "all" } },
-    { caption: "Close up: the block.", target: { kind: "block" } },
-  ];
 }
 
 /** What one tour shot looks at: low and close, turned a little. */
@@ -354,7 +346,7 @@ export default function Scene3D({
   done: boolean;
   reducedMotion: boolean;
   flat: boolean;
-  mode: string;
+  mode: SceneProps["mode"];
 }) {
   const root = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -388,7 +380,7 @@ export default function Scene3D({
         flat={flat}
         reducedMotion={reducedMotion}
         state={done ? "done" : "idle"}
-        description={DESCRIPTION}
+        description={DESCRIPTION[step] ?? ""}
         status={done ? "Done" : undefined}
       >
         {/* Phones: the quiz and the honest take fill the screen, as in 2D. */}
@@ -402,7 +394,100 @@ export default function Scene3D({
 `;
 }
 
-export function renderSpec({ id, stage, title, chain }) {
+/** The 3D view's camera tour (docs/book-scene.md, rule 5): pure, so it is unit tested without three.js. */
+export function renderBookTour() {
+  return `/**
+ * The camera tour of each step's figure (3D view, the play button in the stage bar): a few shots, each
+ * with a caption. It only moves the camera; it never acts for the learner. Pure, unit tested.
+ */
+import type { Shot } from "../../../scene-kit/bookLayout";
+
+// Step numbers (0-based) from manifest.ts. Keep them in sync with Scene.tsx.
+export const CHECK = 3;
+
+/** What a tour shot looks at. TODO(author): add the lesson's objects. */
+export type Target = { kind: "all" } | { kind: "block" };
+
+/** The tour for a step: the whole figure first, then close-ups. None at the check and honest take. */
+export function tourFor(step: number): Shot<Target>[] {
+  if (step >= CHECK) return [];
+  // TODO(author): two or three shots per step; close-up captions start with "Close up:".
+  return [
+    { caption: "The whole figure.", target: { kind: "all" } },
+    { caption: "Close up: the block.", target: { kind: "block" } },
+  ];
+}
+`;
+}
+
+export function renderBookTourTest() {
+  return `import { describe, expect, it } from "vitest";
+import { CHECK, tourFor } from "./tour";
+
+describe("tourFor", () => {
+  it("gives every step before the check a short tour that starts with the whole figure", () => {
+    for (let step = 0; step < CHECK; step++) {
+      const shots = tourFor(step);
+      expect(shots.length).toBeGreaterThanOrEqual(2);
+      expect(shots[0]!.target).toEqual({ kind: "all" });
+      for (const s of shots.slice(1)) expect(s.caption).toMatch(/^Close up:/);
+    }
+  });
+
+  it("has no tour at the check and the honest take", () => {
+    expect(tourFor(CHECK)).toEqual([]);
+    expect(tourFor(CHECK + 1)).toEqual([]);
+  });
+});
+`;
+}
+
+/** The e2e tests every book lesson needs (docs/book-scene.md, "Tests every book lesson needs"). */
+function bookSpecTests() {
+  return `
+  test.describe("3D book scene", () => {
+    const LOAD_3D = 20_000;
+
+    test("wide screens print the step on the left page; the tour moves the camera and docks the words", async ({
+      browser,
+    }) => {
+      const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const page = await ctx.newPage();
+      await seedRoute(page);
+      await page.goto(\`/lesson/\${ID}?view=3d&step=2\`);
+      await expect(page.locator(".book-scene .sk-stage")).toBeVisible({ timeout: LOAD_3D });
+      await expect(page.locator("main.lesson")).toHaveAttribute("data-spread", "");
+      await expect(page.locator(".book-page")).toHaveCSS("transform", /matrix3d/);
+
+      const caption = page.getByTestId("tour-caption");
+      await expect(caption).toHaveText(/^Fig\\. 2/);
+      await page.getByRole("button", { name: "Play the tour" }).click();
+      await expect(caption).not.toHaveText(/^Fig\\. 2/);
+      // While the tour runs, the words go back to their docked place: still readable.
+      await expect(page.locator("main.lesson")).not.toHaveAttribute("data-spread", /.*/);
+      await expect(page.getByTestId("caption")).toBeVisible();
+      // A new step ends the tour and prints the words again.
+      await nextStep(page);
+      await expect(caption).toHaveText(/^Fig\\. 3/);
+      await expect(page.locator("main.lesson")).toHaveAttribute("data-spread", "", { timeout: 10_000 });
+      await ctx.close();
+    });
+
+    test("phones keep the step's words docked, not printed on the page", async ({ browser }) => {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 760 } });
+      const page = await ctx.newPage();
+      await seedRoute(page);
+      await page.goto(\`/lesson/\${ID}?view=3d&step=2\`);
+      await expect(page.locator(".book-scene .sk-stage")).toBeVisible({ timeout: LOAD_3D });
+      await expect(page.locator("main.lesson")).not.toHaveAttribute("data-spread", /.*/);
+      await expect(page.locator(".book-page")).toHaveCSS("display", "contents");
+      await ctx.close();
+    });
+  });
+`;
+}
+
+export function renderSpec({ id, stage, title, chain, book }) {
   const evidence = chain
     ? `, evidence: { txHash: expect.stringMatching(/^[1-9A-HJ-NP-Za-km-z]{43,44}$/) }`
     : "";
@@ -447,7 +532,7 @@ test.describe(\`lesson \${ID}\`, () => {
     await page.goto(\`/lesson/\${ID}\`);
     await expect(page.getByTestId("scene-area")).toContainText("REPLACE WITH THE LESSON OUTCOME");
   });
-});
+${book ? bookSpecTests() : ""}});
 `;
 }
 
@@ -471,7 +556,10 @@ export function scaffold(root, opts) {
   const sceneFile = join(dir, "Scene.tsx");
   const specFile = join(root, "e2e/lessons", `${opts.id}.spec.ts`);
   const scene3dFile = join(dir, "Scene3D.tsx");
-  for (const f of opts.book ? [sceneFile, scene3dFile, specFile] : [sceneFile, specFile])
+  const tourFile = join(dir, "tour.ts");
+  const tourTestFile = join(dir, "tour.test.ts");
+  const bookFiles = opts.book ? [scene3dFile, tourFile, tourTestFile] : [];
+  for (const f of [sceneFile, ...bookFiles, specFile])
     if (existsSync(f)) throw new Error(`${f} already exists. Remove it first or edit it by hand.`);
 
   mkdirSync(dir, { recursive: true });
@@ -479,7 +567,13 @@ export function scaffold(root, opts) {
   const files = {
     [join(dir, "manifest.ts")]: renderManifest(full),
     [sceneFile]: renderScene(full),
-    ...(opts.book ? { [scene3dFile]: renderBookScene3D(full) } : {}),
+    ...(opts.book
+      ? {
+          [scene3dFile]: renderBookScene3D(full),
+          [tourFile]: renderBookTour(),
+          [tourTestFile]: renderBookTourTest(),
+        }
+      : {}),
     [specFile]: renderSpec(full),
   };
   for (const [f, src] of Object.entries(files)) writeFileSync(f, src);

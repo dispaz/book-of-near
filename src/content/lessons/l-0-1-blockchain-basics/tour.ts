@@ -2,6 +2,8 @@
  * The camera tour of each step's figure (3D view, the play button in the stage bar): a few shots, each
  * with a caption. It only moves the camera; it never acts for the learner. Pure, unit tested.
  */
+// Type-only and from the pure module, so the unit test never loads three.js.
+import type { Shot as KitShot } from "../../../scene-kit/bookLayout";
 import type { Person } from "./ledger";
 import { BLOCKS, COMPARE, HASH, HONEST, LINKS, NOTEBOOK, SEND, TAMPER } from "./useLedgerLesson";
 
@@ -13,10 +15,7 @@ export type TourTarget =
   | { kind: "link"; i: number }
   | { kind: "copy"; who: Person };
 
-export interface Shot {
-  caption: string;
-  target: TourTarget;
-}
+export type Shot = KitShot<TourTarget>;
 
 const all = (caption: string): Shot => ({ caption, target: { kind: "all" } });
 
