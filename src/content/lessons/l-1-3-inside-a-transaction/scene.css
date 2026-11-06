@@ -1,0 +1,487 @@
+/* Lesson 1.3: a transaction card, what the chain did with each action, and the copies sent again. Ink
+   outlines on paper, the stage accent as the one highlight, red only for a failure or a refusal. Wide
+   screens: a column to the right of the docked lesson card. Narrow screens: a band between the title and
+   the dock (--bar-h and --dock-h come from LessonPage). */
+.tl {
+  position: absolute;
+  top: var(--head-h, 112px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(
+    16px + var(--bar-h, 56px) + 16px + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px)
+  );
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .tl {
+    top: var(--head-h, 104px);
+    left: 448px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    justify-content: center;
+    gap: 14px;
+  }
+  .tl.three {
+    justify-content: flex-start;
+  }
+  .tl.summary {
+    top: calc(var(--head-h, 104px) + 20px);
+    left: max(16px, env(safe-area-inset-left, 0px));
+    width: 400px;
+    right: auto;
+    bottom: auto;
+    justify-content: flex-start;
+    overflow: visible;
+  }
+}
+@media (max-width: 899px) {
+  .tl.summary {
+    display: none;
+  }
+}
+.tl p {
+  margin: 0;
+}
+.tl code {
+  font:
+    600 12px ui-monospace,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Cards ---------- */
+.tl-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+.tl-card {
+  min-width: 0;
+  padding: 8px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #fffdf7;
+  box-shadow: 3px 3px 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tl-role {
+  font: 700 11px var(--ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.tl-line {
+  font: 500 14px/1.35 var(--serif);
+  overflow-wrap: anywhere;
+}
+.tl-dim {
+  color: var(--mute);
+  font: 500 14px/1.35 var(--serif);
+}
+.tl-acct {
+  padding-top: 4px;
+  border-top: 1.5px dashed var(--ink);
+}
+.tl-status {
+  font: 600 20px/1.2 var(--hand);
+}
+.tl-sum {
+  font: 500 15px/1.4 var(--serif);
+}
+
+/* The transaction's fields. */
+.tl-fields {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 3px 10px;
+  margin: 0;
+  font: 500 14px/1.35 var(--serif);
+}
+.tl-fields dt {
+  font: 700 13px var(--ui);
+}
+.tl-fields dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.tl-fields.sketch dd {
+  color: var(--mute);
+}
+.tl-note {
+  display: block;
+  font: 500 12px/1.3 var(--ui);
+  color: var(--mute);
+}
+.tl-acts,
+.tl-slots {
+  margin: 0;
+  padding-left: 1.3em;
+}
+.tl-slots li {
+  margin: 2px 0;
+  padding: 0 6px;
+  border: 1.5px dashed var(--ink);
+  border-radius: 6px;
+  list-style-position: inside;
+}
+.tl-tx {
+  border-color: var(--accent);
+  box-shadow: 3px 3px 0 var(--accent);
+}
+
+/* What the chain did. */
+.tl-result.no {
+  border-color: var(--red);
+  box-shadow: 3px 3px 0 var(--red);
+}
+.tl-badge {
+  display: inline-block;
+  padding: 0 7px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  font: 700 12px var(--ui);
+}
+.tl-badge.ok {
+  border-color: var(--green);
+  color: var(--green);
+}
+.tl-badge.no {
+  border-color: var(--red);
+  color: var(--red);
+}
+.tl-fates {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font: 500 14px/1.35 var(--serif);
+}
+.tl-fate {
+  display: inline-block;
+  min-width: 8.5em;
+  font: 700 12px var(--ui);
+}
+.tl-fates .done .tl-fate {
+  color: var(--green);
+}
+.tl-fates .undone {
+  color: var(--mute);
+}
+.tl-fates .undone .tl-fate::before {
+  content: "↺ ";
+}
+.tl-fates .failed .tl-fate {
+  color: var(--red);
+}
+.tl-fates .skipped {
+  color: var(--mute);
+  text-decoration: line-through;
+}
+.tl-why {
+  display: block;
+  margin-top: 2px;
+  padding-left: 8px;
+  border-left: 4px solid var(--red);
+  font: 500 14px/1.35 var(--serif);
+}
+
+/* Copies sent again. */
+.tl-replay ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: 500 14px/1.35 var(--serif);
+}
+
+/* ---------- Errors, the builder (docked above the lesson card) ---------- */
+.tl-error {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border: 2px solid var(--red);
+  border-radius: 12px;
+  background: #fff;
+  font: 500 15px/1.4 var(--serif);
+}
+.tl-error p {
+  margin: 0;
+}
+.tl-error-title {
+  font: 700 15px var(--ui);
+  color: var(--red);
+}
+.tl-need {
+  margin: 0;
+  font: 600 15px var(--ui);
+  color: var(--red);
+}
+.tl-form {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 14px;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  font: 600 14px var(--ui);
+}
+.tl-form-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tl-form label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.tl-form input {
+  padding: 5px 6px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: #fff;
+  font: 600 14px var(--ui);
+  color: var(--ink);
+}
+.tl-form input[inputmode] {
+  width: 4.5em;
+  text-align: right;
+}
+.tl-form input:focus-visible,
+.tl-form button:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 1px;
+}
+.tl-suffix {
+  font:
+    500 12px ui-monospace,
+    Menlo,
+    monospace;
+  color: var(--mute);
+  white-space: nowrap;
+}
+.tl-form .btn.primary {
+  margin-left: auto;
+}
+.tl-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.tl-chip {
+  padding: 3px 9px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  font: 600 13px var(--ui);
+  color: var(--ink);
+  cursor: pointer;
+}
+.tl-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.tl-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.tl-rows li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  background: #fff;
+  font: 500 13px var(--ui);
+}
+.tl-rows li.tl-dim {
+  border-style: dashed;
+}
+.tl-rows li.again {
+  border-color: var(--red);
+}
+.tl-n {
+  width: 1.4em;
+  font-weight: 700;
+  text-align: center;
+}
+.tl-what {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tl-rows button {
+  width: 30px;
+  height: 26px;
+  padding: 0;
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  background: #fffdf7;
+  font: 700 14px var(--ui);
+  color: var(--ink);
+  cursor: pointer;
+}
+.tl-rows button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.tl-form-hint {
+  margin: 0;
+  font: 500 12px var(--ui);
+  color: var(--mute);
+}
+.tl-form-error {
+  margin: 0;
+  padding: 4px 8px;
+  border-left: 4px solid var(--red);
+  background: #fff;
+  color: var(--red);
+  font: 600 13px var(--ui);
+}
+.tl-replay-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tl-replay-row .btn.primary {
+  margin-left: 0;
+}
+
+/* ---------- 3D window ---------- */
+.tl-3d {
+  position: relative;
+  flex: 1 1 260px;
+  min-height: 220px;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #f3efe4;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.tl-3d-box {
+  position: absolute;
+  inset: 0;
+}
+.tl-3d .sk-status {
+  top: 8px;
+  right: 12px;
+  max-width: calc(100% - 24px);
+  font-size: 19px;
+}
+.tl-3d-loading {
+  padding: 12px;
+  font: 500 14px var(--ui);
+  color: var(--mute);
+}
+.tl-under {
+  flex: none;
+  max-height: 40%;
+  overflow-y: auto;
+}
+/* 3D: the slabs carry the actions and the nonce, so the full field list stays for screen readers only,
+   except at step 2, where reading the fields is the point. */
+.tl.three:not(.step-1) .tl-under .tl-tx {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+@media (max-width: 899px) {
+  /* Phones: a compact builder, so the scene keeps its room. */
+  .tl-suffix,
+  .tl-form-hint {
+    display: none;
+  }
+  .tl-form {
+    gap: 4px;
+    padding: 6px 8px;
+  }
+  .tl-add {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .tl-chip {
+    flex: none;
+  }
+  .tl-rows li {
+    padding: 1px 4px;
+  }
+  .tl-rows button {
+    width: 28px;
+    height: 24px;
+  }
+}
+@media (max-width: 899px) {
+  /* Phones: the 3D window gets the room; the panels stay for screen readers and the 3D labels show them. */
+  .tl-under {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .tl-card {
+    padding: 6px 8px;
+  }
+  .tl-panels {
+    grid-template-columns: 1fr;
+  }
+  .tl-3d .sk-label {
+    font-size: 17px;
+  }
+  .tl-3d .sk-label.small {
+    font-size: 9px;
+  }
+  .tl-3d .sk-label.hint {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+  .tl-3d .sk-status {
+    font-size: 16px;
+  }
+}
+
+/* ---------- Reduced motion: end states only ---------- */
+.tl.still *,
+.tl.still {
+  animation: none !important;
+  transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tl *,
+  .tl-form {
+    animation: none !important;
+    transition: none !important;
+  }
+}
