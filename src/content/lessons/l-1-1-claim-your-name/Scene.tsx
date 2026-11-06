@@ -85,7 +85,7 @@ function ClaimScene({
   return (
     <>
       <div
-        className={`stx cn${reducedMotion ? " still" : ""}${summary ? " summary" : ""}${three ? " three" : ""}`}
+        className={`stx cn scroll-fade-narrow${reducedMotion ? " still" : ""}${summary ? " summary" : ""}${three ? " three" : ""}`}
         data-testid="name-scene"
         data-scene-state={claim.state}
         data-view={view}

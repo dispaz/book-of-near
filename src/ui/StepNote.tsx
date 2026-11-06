@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 
 interface Rect {
@@ -109,6 +109,7 @@ export function arrowFor(anchor: Rect, card: Rect, blocked?: Blocked) {
     for (const end of ends) {
       for (const bow of BOWS) {
         if (least === 0) break;
+        if (end === ends[0] && bow === BOWS[0]) continue; // the default, already costed
         const a = arc(end, bow);
         const c = cost(a, blocked);
         if (c < least) {
@@ -143,7 +144,7 @@ function isContent(el: Element): boolean {
     const r = el.getBoundingClientRect();
     return !!svg && r.width * r.height < (svg.width * svg.height) / 4;
   }
-  if (el.closest(".step-head, .lesson-title, .lesson-tools, .stage-bar, .lesson-dock")) return true;
+  if (el.closest(".step-head, .lesson-tools, .stage-bar, .lesson-dock")) return true;
   if (/^(CANVAS|HTML|BODY|MAIN)$/.test(el.tagName)) return false;
   if (/^(BUTTON|INPUT|SELECT|TEXTAREA|IMG|CODE)$/.test(el.tagName)) return true;
   for (const n of el.childNodes) if (n.nodeType === Node.TEXT_NODE && n.textContent?.trim()) return true;
@@ -224,7 +225,10 @@ export function StepNote({
         left: LEFT,
         top: num("--head-h", 110),
         right: LEFT + (c.offsetWidth || W),
-        bottom: (dock ? rel(dock.getBoundingClientRect()).top : L.height - num("--bar-h", 56) - 32) - 14,
+        bottom:
+          (dock
+            ? rel(dock.getBoundingClientRect()).top
+            : L.height - (2 * num("--bar-gap", 16) + num("--bar-h", 56))) - 14,
       };
       const size = { w: c.offsetWidth || W, h: c.offsetHeight || 120 };
       // The note lives in the margin or in the dock, never on top of the page. If the element is not
@@ -350,7 +354,14 @@ function DockedNote({
   const [open, setOpen] = useState(false);
   const [long, setLong] = useState(false);
   const [foldedH, setFoldedH] = useState<number | null>(null);
+  const [sheet, setSheet] = useState<CSSProperties | null>(null);
   const box = useRef<HTMLDivElement>(null);
+  const wrap = useRef<HTMLDivElement>(null);
+  const more = useRef<HTMLButtonElement>(null);
+  const less = useRef<HTMLButtonElement>(null);
+  // Whether focus goes back to "Read more" once the note folds (not after a tap elsewhere).
+  const refocus = useRef(false);
+  const id = useId();
   // Only offer "Read more" when the folded text is actually cut.
   useLayoutEffect(() => {
     const el = box.current?.querySelector<HTMLElement>(".note-text");
@@ -362,6 +373,52 @@ function DockedNote({
     ro.observe(el);
     return () => ro.disconnect();
   }, [compact, open]);
+
+  const close = useCallback((restoreFocus: boolean) => {
+    refocus.current = restoreFocus;
+    setOpen(false);
+  }, []);
+
+  // Open: the sheet sits above the step's controls (they stay usable), below the step heading and inside
+  // the lesson page. Escape or a tap outside folds it.
+  useLayoutEffect(() => {
+    if (!open) {
+      setSheet(null);
+      if (refocus.current) more.current?.focus();
+      refocus.current = false;
+      return;
+    }
+    less.current?.focus();
+    const place = () => {
+      const w = wrap.current;
+      const lesson = w?.closest(".lesson");
+      if (!w || !lesson) return;
+      const W = w.getBoundingClientRect();
+      const L = lesson.getBoundingClientRect();
+      const head = lesson.querySelector(".step-head")?.getBoundingClientRect();
+      const slot = lesson.querySelector(".action-slot");
+      const S = slot && slot.childElementCount > 0 ? slot.getBoundingClientRect() : null;
+      const floor = Math.min(S && S.top < W.top ? S.top - 8 : W.bottom, L.bottom - 8);
+      const ceiling = Math.max(head ? head.bottom + 8 : 0, L.top + 8);
+      setSheet({ bottom: W.bottom - floor, maxHeight: Math.max(80, floor - ceiling) });
+    };
+    place();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close(true);
+    };
+    const onDown = (e: PointerEvent) => {
+      if (!box.current?.contains(e.target as Node)) close(false);
+    };
+    window.addEventListener("resize", place);
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    return () => {
+      window.removeEventListener("resize", place);
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown);
+    };
+  }, [open, close]);
+
   if (!compact) {
     return (
       <div className="note docked">
@@ -371,21 +428,41 @@ function DockedNote({
     );
   }
   return (
-    <div className="note-wrap" style={open && foldedH ? { height: foldedH } : undefined}>
-      <div ref={box} className={`note docked compact${open ? " open" : ""}`}>
+    <div ref={wrap} className="note-wrap" style={open && foldedH ? { height: foldedH } : undefined}>
+      <div
+        ref={box}
+        id={id}
+        className={`note docked compact${open ? " open" : ""}`}
+        style={open && sheet ? sheet : undefined}
+      >
+        {open ? (
+          // At the top of the sheet, so it folds without scrolling to the end.
+          <button
+            ref={less}
+            type="button"
+            className="note-more"
+            aria-expanded="true"
+            aria-controls={id}
+            onClick={() => close(true)}
+          >
+            Show less
+          </button>
+        ) : null}
         <div className="note-clip">
           {body}
-          {long || open ? (
+          {long && !open ? (
             <button
+              ref={more}
               type="button"
               className="note-more"
-              aria-expanded={open}
+              aria-expanded="false"
+              aria-controls={id}
               onClick={() => {
-                if (!open) setFoldedH(box.current?.getBoundingClientRect().height ?? null);
-                setOpen(!open);
+                setFoldedH(box.current?.getBoundingClientRect().height ?? null);
+                setOpen(true);
               }}
             >
-              {open ? "Show less" : "Read more"}
+              Read more
             </button>
           ) : null}
         </div>

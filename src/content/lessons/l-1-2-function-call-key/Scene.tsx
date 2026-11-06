@@ -51,7 +51,7 @@ function KeyScene({ step, setGate, setVars, reducedMotion, mode, view, flat, rep
   return (
     <>
       <div
-        className={`kl${reducedMotion ? " still" : ""}${summary ? " summary" : ""}${three ? " three" : ""}`}
+        className={`kl scroll-fade-narrow${reducedMotion ? " still" : ""}${summary ? " summary" : ""}${three ? " three" : ""}`}
         data-testid="key-scene"
         data-scene-state={lesson.state}
         data-view={view}

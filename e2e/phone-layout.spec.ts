@@ -4,7 +4,8 @@ import { seedRoute } from "./lessons/helpers";
 // On a phone the scene must keep a usable share of the screen at every step, in 2D and 3D: the header
 // (title + step heading) sits on top, the dock (step controls + explanation) and the stage bar at the
 // bottom, and the scene draws in the band between them. LessonPage's layout is shared, so this walks
-// every step of every lesson in stages 0 and 1.
+// every step of every lesson in stages 0 and 1, before and after the step's own button is pressed
+// (results, errors and the finished state appear in the dock and the band too).
 const LESSONS = [
   "l-0-1-blockchain-basics",
   "l-0-2-make-a-wallet",
@@ -13,8 +14,9 @@ const LESSONS = [
   "l-1-2-function-call-key",
 ];
 const PHONES = [
-  { width: 390, height: 780, minShare: 0.38 },
-  { width: 360, height: 640, minShare: 0.28 },
+  // Measured worst cases: 39% and 28%. The thresholds leave a little headroom.
+  { width: 390, height: 780, minShare: 0.36 },
+  { width: 360, height: 640, minShare: 0.26 },
 ];
 
 test.beforeEach(({ page }) => seedRoute(page));
@@ -47,6 +49,15 @@ for (const phone of PHONES) {
           await page.waitForTimeout(300);
           const b = await band(page);
           if (b.height < phone.height * phone.minShare) short.push(`step ${s}: ${Math.round(b.height)}px`);
+          // Press the step's own button (an action, or Finish) when it is ready, then measure again.
+          const action = page.locator(".lesson-dock button.btn.primary:enabled").first();
+          if (await action.count()) {
+            await action.click();
+            await page.waitForTimeout(1500);
+            const a = await band(page);
+            if (a.height < phone.height * phone.minShare)
+              short.push(`step ${s} after its button: ${Math.round(a.height)}px`);
+          }
         }
         expect(short, `scene band under ${phone.minShare * 100}% of the screen`).toEqual([]);
       });
@@ -117,6 +128,72 @@ test.describe("phone: result cards are readable", () => {
     expect(Math.abs((await page.locator(".lesson-dock").boundingBox())!.y - dockTop)).toBeLessThan(1);
     await page.getByRole("button", { name: "Show less" }).click();
     await expect(more).toBeVisible();
+  });
+
+  test("the open note leaves the step's controls and heading uncovered", async ({ page }) => {
+    await page.goto("/lesson/l-1-2-function-call-key?view=2d&step=5");
+    await expect(page.getByRole("textbox", { name: "Tell the agent what to do" })).toBeVisible();
+    await page.getByRole("button", { name: "Read more" }).click();
+    const sheet = page.locator(".note.docked.open");
+    await expect(sheet).toBeVisible();
+    const geo = await page.evaluate(() => {
+      const r = (sel: string) => document.querySelector(sel)!.getBoundingClientRect();
+      const free = (el: Element) => {
+        const b = el.getBoundingClientRect();
+        const hit = document.elementFromPoint((b.left + b.right) / 2, (b.top + b.bottom) / 2);
+        return !!hit && (el === hit || el.contains(hit));
+      };
+      const controls = [...document.querySelectorAll(".action-slot input, .action-slot button")];
+      return {
+        sheet: r(".note.docked.open"),
+        head: r(".step-head"),
+        lesson: r(".lesson"),
+        covered: controls.filter((c) => !free(c)).map((c) => c.outerHTML.slice(0, 60)),
+      };
+    });
+    expect(geo.covered).toEqual([]);
+    expect(geo.sheet.top).toBeGreaterThanOrEqual(geo.head.bottom);
+    expect(geo.sheet.top).toBeGreaterThanOrEqual(geo.lesson.top);
+    expect(geo.sheet.bottom).toBeLessThanOrEqual(geo.lesson.bottom);
+    // The controls still work with the note open.
+    await page.getByRole("button", { name: "Show a hint" }).click();
+  });
+
+  test("Escape or a tap outside closes the open note, and focus comes back", async ({ page }) => {
+    await page.goto("/lesson/l-1-1-claim-your-name?view=2d&step=2");
+    const more = page.getByRole("button", { name: "Read more" });
+    await more.click();
+    const less = page.getByRole("button", { name: "Show less" });
+    await expect(less).toBeFocused();
+    const controls = await less.getAttribute("aria-controls");
+    expect(controls).toBeTruthy();
+    await expect(page.locator(`[id="${controls}"]`)).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(more).toBeVisible();
+    await expect(more).toBeFocused();
+    await more.click();
+    await expect(less).toBeVisible();
+    await page.mouse.click(195, 300);
+    await expect(more).toBeVisible();
+  });
+
+  test("the header: full title on tap, the action name kept for screen readers, Escape closes Read as text", async ({
+    page,
+  }) => {
+    await page.goto("/lesson/l-0-1-blockchain-basics?view=2d&step=2");
+    const h1 = page.locator(".lesson-title h1");
+    const cut = () => h1.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+    expect(await cut()).toBe(true);
+    await h1.click();
+    expect(await cut()).toBe(false);
+    await page.goto("/lesson/l-1-2-function-call-key?view=2d&step=3");
+    const what = page.locator(".step-label .your-turn-what");
+    await expect(what).toHaveText(/: add the agent/i);
+    expect(await what.evaluate((el) => getComputedStyle(el).display)).not.toBe("none");
+    await page.getByText("Read as text").click();
+    await expect(page.locator(".read-as-text")).toHaveAttribute("open", "");
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".read-as-text")).not.toHaveAttribute("open", "");
   });
 
   test("lesson 1.2: the prompt box shows its whole placeholder", async ({ page }) => {

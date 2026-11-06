@@ -3,6 +3,7 @@
   --ink: #16141f;
   --paper: #efeadd;
   --paper-2: #f6f2e8;
+  --page: #f3efe4;
   --desk: #d8dfd6;
   --wood: #e9e1cf;
   --orange: #ff8a3d;
@@ -183,7 +184,7 @@ body:has(.lesson) {
   overflow: hidden;
   border: 1.5px solid var(--ink);
   border-radius: 4px 14px 14px 4px;
-  background: linear-gradient(90deg, #16141f22 0, #16141f00 28px), #f3efe4;
+  background: linear-gradient(90deg, #16141f22 0, #16141f00 28px), var(--page);
   box-shadow:
     2px 2px 0 #f3efe4,
     3px 3px 0 var(--ink),
@@ -191,8 +192,10 @@ body:has(.lesson) {
     6px 6px 0 var(--ink),
     0 18px 40px #16141f33;
   --book-gap: 12px;
-  /* The space under and over the stage bar. Scenes and panels reserve --bar-gap + --bar-h + --bar-gap. */
+  /* The space under and over the stage bar (8px on phones). --bar-h is measured by LessonPage.
+     --bar-reserve is what scenes and panels keep free at the bottom for the bar: gap + bar + gap. */
   --bar-gap: 16px;
+  --bar-reserve: calc(var(--bar-gap) + var(--bar-h, 56px) + var(--bar-gap));
 }
 @media (max-width: 560px) {
   .lesson {
@@ -307,6 +310,11 @@ body:has(.lesson) {
     justify-content: flex-end;
     flex-wrap: wrap;
     gap: 6px;
+    /* The row spans the page width; only its pills take taps, so the title under it stays tappable. */
+    pointer-events: none;
+  }
+  .lesson-tools > * {
+    pointer-events: auto;
   }
   .lesson-title,
   .lesson:has(.lesson-tools > :nth-child(2)) .lesson-title {
@@ -348,9 +356,7 @@ body:has(.lesson) {
   position: absolute;
   left: max(16px, env(safe-area-inset-left, 0px));
   /* --bar-h is measured by LessonPage; 56px is the one-line stage bar. */
-  bottom: calc(
-    var(--bar-gap, 16px) + var(--bar-h, 56px) + var(--bar-gap, 16px) + env(safe-area-inset-bottom, 0px)
-  );
+  bottom: calc(var(--bar-reserve, 88px) + env(safe-area-inset-bottom, 0px));
   width: min(400px, calc(100% - 32px));
   max-height: 52%;
   display: flex;
@@ -630,7 +636,7 @@ body:has(.lesson) {
 .stage-menu {
   position: absolute;
   left: 50%;
-  bottom: calc(var(--bar-gap, 16px) + var(--bar-h, 56px) + 12px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--bar-reserve, 88px) - var(--bar-gap, 16px) + 12px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   width: min(460px, calc(100% - 32px));
   max-height: 60%;
@@ -844,8 +850,22 @@ body:has(.lesson) {
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  /* A tap on the cut title shows it whole (LessonPage toggles data-full). */
+  .lesson-title h1 {
+    pointer-events: auto;
+    cursor: pointer;
+  }
+  .lesson-title h1[data-full] {
+    white-space: normal;
+  }
+  /* Hidden from sight only: screen readers still hear what the step asks for. */
   .step-label .your-turn-what {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
   /* Phones: the step heading is the first thing read, the scene the second. Keep the heading tight:
      "Read as text" sits at the right of the step label and opens as a drop-down over the scene. */
@@ -932,15 +952,15 @@ body:has(.lesson) {
   padding-left: 32px;
   font-size: 13px;
   line-height: calc(15px * 1.45);
-  background: linear-gradient(90deg, #f6f2e800, var(--paper-2) 28px);
+  background: linear-gradient(90deg, transparent, var(--paper-2) 28px);
 }
+/* StepNote sets bottom and max-height: above the step's controls, below the step heading. */
 .note.docked.compact.open {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 4;
-  max-height: calc(100dvh - var(--head-h, 200px) - var(--bar-h, 56px) - 3 * var(--bar-gap, 8px) - 24px);
   overflow: auto;
   overscroll-behavior: contain;
   box-shadow:
@@ -948,8 +968,13 @@ body:has(.lesson) {
     0 -10px 30px #16141f33;
 }
 .note.docked.compact.open .note-more {
+  position: sticky;
+  top: -8px;
   display: block;
-  margin: 6px 0 0 auto;
+  margin: -8px -14px 4px auto;
+  padding: 8px 14px 4px 24px;
+  background: var(--paper-2);
+  border-radius: 0 0 0 10px;
 }
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -958,6 +983,33 @@ body:has(.lesson) {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+}
+
+/* ---------- Scroll fade ----------
+   A column or panel taller than its room scrolls. The fade sticks to its bottom edge while there is
+   more below, so a line cut at the edge reads as "scroll for more"; at the end it sits in empty space.
+   Set --fade-bg to the background behind it and --fade-pad-x / --fade-pad-b to the box's padding.
+   .scroll-fade-narrow: only below 900px (wide layouts there do not scroll). */
+.scroll-fade::after,
+.scroll-fade-narrow::after {
+  content: "";
+  position: sticky;
+  bottom: calc(-1 * var(--fade-pad-b, 0px));
+  display: block;
+  flex: none;
+  height: 24px;
+  margin: -8px calc(-1 * var(--fade-pad-x, 0px)) calc(-1 * var(--fade-pad-b, 0px));
+  background: linear-gradient(transparent, var(--fade-bg, var(--page)));
+  pointer-events: none;
+}
+/* The narrow columns lie on the page: keep the fade off the shadow along the spine, which is darker. */
+.scroll-fade-narrow::after {
+  clip-path: inset(0 0 0 14px);
+}
+@media (min-width: 900px) {
+  .scroll-fade-narrow::after {
+    content: none;
   }
 }
 
@@ -994,7 +1046,7 @@ body:has(.lesson) {
   position: absolute;
   z-index: 1;
   inset: var(--head-h, 110px) max(16px, env(safe-area-inset-right, 0px))
-    calc(var(--bar-gap, 16px) + var(--bar-h, 56px) + var(--bar-gap, 16px) + env(safe-area-inset-bottom, 0px))
+    calc(var(--bar-reserve, 88px) + env(safe-area-inset-bottom, 0px))
     max(16px, env(safe-area-inset-left, 0px));
   overflow: auto;
   overscroll-behavior: contain;

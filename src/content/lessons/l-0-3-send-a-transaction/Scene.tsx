@@ -153,7 +153,7 @@ function TransactionScene({
   return (
     <>
       <div
-        className={`stx${reducedMotion ? " still" : ""}${summary ? " summary" : ""}${three ? " three" : ""}`}
+        className={`stx scroll-fade-narrow${reducedMotion ? " still" : ""}${summary ? " summary" : ""}${three ? " three" : ""}`}
         data-testid="tx-scene"
         data-scene-state={tx.state}
         data-view={view}

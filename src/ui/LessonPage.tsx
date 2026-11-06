@@ -68,6 +68,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
   const reducedMotion = useReducedMotion();
   const [flat, setFlat] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [fullTitle, setFullTitle] = useState(false);
   const [opened, setOpened] = useState<Set<number>>(() => new Set());
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   const [barSlot, setBarSlot] = useState<HTMLElement | null>(null);
@@ -205,11 +206,14 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
       if (closed || (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       if (e.key === "ArrowRight" && canNext) goTo(step + 1);
       else if (e.key === "ArrowLeft") goTo(step - 1);
-      else if (e.key === "Escape") setMenuOpen(false);
+      else if (e.key === "Escape") {
+        setMenuOpen(false);
+        root?.querySelector(".read-as-text[open]")?.removeAttribute("open");
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [step, canNext, goTo, closed]);
+  }, [step, canNext, goTo, closed, root]);
 
   useRecordPosition(lesson.id, step);
   const reportEvidence = useCallback(
@@ -273,7 +277,14 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
           </Link>{" "}
           · Stage {stage.id} · {stage.name}
         </p>
-        <h1 title={lesson.title}>{lesson.title}</h1>
+        {/* Phones cut the title to one line; a tap shows it whole (see ink.css). */}
+        <h1
+          title={lesson.title}
+          data-full={fullTitle ? "" : undefined}
+          onClick={() => setFullTitle((f) => !f)}
+        >
+          {lesson.title}
+        </h1>
       </header>
 
       <div className="lesson-tools" inert={closed}>
