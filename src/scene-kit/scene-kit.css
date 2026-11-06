@@ -151,3 +151,37 @@
     animation: none;
   }
 }
+
+/* Book scene (BookScene.tsx, docs/book-scene.md). The canvas fills the scene area; useFreeFrame measures
+   the free part of it and passes it as --book-t / --book-l / --book-r / --book-b. The status note sits at
+   the bottom of the free area, the scene's own panel (forms, results) just above it. */
+.book-scene {
+  position: absolute;
+  inset: 0;
+}
+.book-scene .sk-status {
+  top: auto;
+  left: var(--book-l, 16px);
+  right: var(--book-r, 16px);
+  bottom: var(--book-b, 45%);
+  max-width: none;
+  text-align: left;
+  font-size: 21px;
+}
+.book-scene.summary .sk-status {
+  display: none;
+}
+.book-scene-panel {
+  position: absolute;
+  z-index: 1;
+  left: var(--book-l, 16px);
+  right: var(--book-r, 16px);
+  bottom: calc(var(--book-b, 45%) + var(--book-sh, 0px));
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.book-scene-panel:empty {
+  display: none;
+}

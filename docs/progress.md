@@ -169,3 +169,11 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 ## 2026-11-03 · Deploy on release
 - `.github/workflows/deploy.yml`: publishing a GitHub release (or running the workflow by hand with a ref) checks out the tag, runs typecheck and unit tests, builds, and deploys `dist` to Cloudflare Pages `book-of-near` as production (`--branch main`) with `cloudflare/wrangler-action@v3`.
 - Owner setup: repo secrets `CLOUDFLARE_API_TOKEN` (Pages: Edit) and `CLOUDFLARE_ACCOUNT_ID`; optional repo variables `VITE_CHAIN_MODE` (default `demo`), `VITE_WORKER_URL`, `VITE_RETURN_ACCOUNT_ID`. The Pages project must exist (`npx wrangler pages project create book-of-near --production-branch main`). The Worker is not deployed by this workflow.
+
+## 2026-11-06 · Book scene as the standard 3D view
+- Source: session c7e5f652 (3 Nov) built lesson 0.1's 3D view as a living pop-up book (`6c3aa68`, `a7fcbd0`, `c08a44e`). Its wiring lived in 0.1's `Scene3D.tsx`; now it is kit code. Rules: `docs/book-scene.md`, decision: `docs/adr/0001-book-scene-standard.md`.
+- Kit: `src/scene-kit/BookScene.tsx` (`<BookScene>`, `useFreeFrame`, `useTour`, `<TourControls>`) and `bookLayout.ts` (pure: `readingShot`, `folios`, tour cursor, `freeFrame`; unit tested). Layout CSS `.book-scene`, `.book-scene-panel`, `--book-*` in `scene-kit.css`.
+- Lesson 0.1 uses `<BookScene>`; ~200 lines gone from its `Scene3D.tsx`. Same e2e; layout readings and screenshots match the old build at 1440, 1024 and 390 wide, except the fix below.
+- Fix: the free-frame measurement could keep a stale step-heading height (fonts, swapped chrome elements), so on phones the 3D view's balance pills could sit under the step card. It now re-measures when fonts load and watches swapped elements.
+- `npm run new-lesson -- … --book` writes `Scene3D.tsx` as a book scene and sets `views: ["2d", "3d"]`. Checked by scaffolding a throwaway lesson: typecheck, lint, build, and 3D screenshots (printed page on desktop, docked on tablet and phone).
+- Not yet moved: 0.2, 0.3, 1.1, 1.2 (plain `InkStage`).

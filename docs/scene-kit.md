@@ -19,6 +19,7 @@ Never import `src/scene-kit` (the 3D half) from a manifest, the app shell or the
 | Component | Notes |
 | --- | --- |
 | `<InkStage view flat reducedMotion state description status? onMiss? backdrop? page?>` | Canvas wrapper: paper ground (or `backdrop`, e.g. a `BookBackdrop`), camera rig, orbit, overlay. Exposes `data-scene-state={state}`, `data-view`, `data-camera="moving"\|"still"` and, during the pop-up, `data-pop="turn"\|"rise"\|"fill"` on `.sk-stage`. `status` is a handwritten, `aria-live` note top right. A new `page` (e.g. the step) turns the page and pops the figure up again. |
+| `<BookScene …>`, `useFreeFrame`, `useTour`, `<TourControls>` | **The standard 3D lesson view** (`docs/book-scene.md`): `InkStage` on an open book with the step printed on the left page, a page turn per step and a camera tour. Build new 3D views with this, not bare `InkStage`. |
 | `<BookBackdrop spread heads? folios? caption?>` | An open pop-up book on a desk for the scene to stand on (pages at y = 0). Size it with `spreadFor` (spine at x = 0) or `spreadBeside` (figure on the right page, left page free for print). Objects cast hatched ink shadows; a page curls over when `InkStage`'s `page` changes. |
 | `<PrintOnPage block el place onInView>` | Prints an HTML element on the left page (`textBlock(spread)`), following it in perspective; reports when the block leaves the screen so the caller can lay the words out normally again. Used with the app's `SpreadContext`. |
 | `<AccountBlock name color? size? coins? note?>` | Rounded ink block with soft shadow and a name label. |
@@ -60,7 +61,7 @@ so the same tests drive both.
 
 ## Building a lesson scene
 
-Most lessons offer a 2D and a 3D view of one shared state (see `docs/lesson-template.md`, "Two views"). The 3D view uses the primitives above inside `<InkStage>`; the 2D view uses the SVG primitives. `SceneProps.view` says which to draw.
+Most lessons offer a 2D and a 3D view of one shared state (see `docs/lesson-template.md`, "Two views"). The 3D view is a book scene: the primitives above inside `<BookScene>` (see `docs/book-scene.md`; `npm run new-lesson -- … --book` scaffolds one). The 2D view uses the SVG primitives. `SceneProps.view` says which to draw.
 
 
 1. Put the scene's state in a small hook with no three.js (see `scene-kit-demo/demo.ts`), with pure
