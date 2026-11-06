@@ -4,6 +4,9 @@ import type { TxOutcome } from "../../../chain/types";
 import { ChainError } from "../../../chain/errors";
 import {
   balanceProblem,
+  comesBack,
+  labelCandidates,
+  readRemembered,
   deposited,
   fates,
   isRollback,
@@ -19,14 +22,53 @@ import {
 const items = (...kinds: Item["kind"][]): Item[] => kinds.map((kind, i) => ({ id: i + 1, kind }));
 
 describe("workshop account name", () => {
-  it("takes the first six letters or digits of the practice account", () => {
+  it("takes the first six letters or digits of the practice account, after any bon- prefix", () => {
     expect(workshopLabel("98793cd91a3f870fb126f66285808c7e094afcfc4eda8a970f6648cdf0dbd6de")).toBe(
       "tx-98793c",
     );
-    expect(workshopLabel("bon-mvxj55ov.testnet")).toBe("tx-bonmvx");
+    expect(workshopLabel("bon-mvxj55ov.testnet")).toBe("tx-mvxj55");
   });
   it("adds a number when the first try is taken", () => {
-    expect(workshopLabel("bon-mvxj55ov.testnet", 2)).toBe("tx-bonmvx-2");
+    expect(workshopLabel("bon-mvxj55ov.testnet", 2)).toBe("tx-mvxj55-2");
+  });
+});
+
+describe("free names", () => {
+  it("tries the name, then the name with 2, 3 and so on", () => {
+    expect(labelCandidates("shop").slice(0, 3)).toEqual(["shop", "shop2", "shop3"]);
+    expect(labelCandidates("shop", 2).slice(0, 2)).toEqual(["shop2", "shop3"]);
+  });
+});
+
+describe("what comes back after a failure", () => {
+  it("names the NEAR when the batch sent some", () => {
+    expect(comesBack(parseNear("0.03"))).toBe("and the NEAR sent to it (0.03 NEAR) comes back");
+  });
+  it("says nothing moves when the batch sent none", () => {
+    expect(comesBack(0n)).toBe("and no NEAR was sent to it, so none moves");
+  });
+});
+
+describe("the remembered workshop transaction", () => {
+  const hash = "5ph3ozQCRrX1mZ8pNnB3vKfQe2r5yUuT7hJ9sWcLoukY";
+  it("reads a well-formed record", () => {
+    expect(readRemembered(JSON.stringify({ id: "tx-abc.testnet", txHash: hash }))).toEqual({
+      id: "tx-abc.testnet",
+      txHash: hash,
+    });
+  });
+  it("ignores anything else", () => {
+    for (const raw of [
+      null,
+      "",
+      "not json",
+      "[]",
+      JSON.stringify({ id: "tx-abc.testnet" }),
+      JSON.stringify({ id: "tx-abc.testnet", txHash: "0xdeadbeef" }),
+      JSON.stringify({ id: 3, txHash: hash }),
+      JSON.stringify({ id: "Bad Id", txHash: hash }),
+    ])
+      expect(readRemembered(raw)).toBeNull();
   });
 });
 

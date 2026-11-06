@@ -9,8 +9,10 @@ import { useChain, useChainMode } from "../../../chain/ChainContext";
 import { isChainError } from "../../../chain/errors";
 import { createNamedAccount } from "../../../chain/ops";
 import type {
+  AccessKeyInfo,
   InvalidTxReason,
   PracticeAccount,
+  PublicKey,
   SignedTransaction,
   TxOutcome,
   TxPhase,
@@ -20,7 +22,11 @@ import {
   DEFAULT_LABEL,
   WORKSHOP_DEPOSIT,
   balanceProblem,
+  comesBack,
   deposited,
+  labelCandidates,
+  readRemembered,
+  type Remembered,
   fates,
   hasAllKinds,
   isRollback,
@@ -121,13 +127,18 @@ function remember(network: string, value: { id: string; txHash: string }) {
     // Private mode or blocked storage: the lesson still works, it just cannot show the old transaction.
   }
 }
-function recall(network: string): { id: string; txHash: string } | null {
+function recall(network: string): Remembered | null {
   try {
-    const raw = localStorage.getItem(storeKey(network));
-    return raw ? (JSON.parse(raw) as { id: string; txHash: string }) : null;
+    return readRemembered(localStorage.getItem(storeKey(network)));
   } catch {
     return null;
   }
+}
+
+/** True when `keys` belong to a workshop account the lesson made: our key is its one full-access key. */
+function onlyOurs(keys: AccessKeyInfo[], publicKey: PublicKey): boolean {
+  const full = keys.filter((k) => k.permission.type === "FullAccess");
+  return full.length === 1 && full[0]!.publicKey === publicKey;
 }
 
 export function useTxLesson({
@@ -170,16 +181,26 @@ export function useTxLesson({
         const acc = await chain.practiceAccount();
         if (!live) return;
         setMe(acc);
-        for (let n = 1; n <= WORKSHOP_TRIES; n++) {
-          const id = `${workshopLabel(acc.accountId, n)}.testnet`;
+        // The account remembered in this browser first, then the names the lesson would have made.
+        const stored = recall(chain.network);
+        const named = Array.from(
+          { length: WORKSHOP_TRIES },
+          (_, i) => `${workshopLabel(acc.accountId, i + 1)}.testnet`,
+        );
+        const candidates = stored ? [stored.id, ...named.filter((n) => n !== stored.id)] : named;
+        let free: string | null = null;
+        for (const id of candidates) {
           if (!(await chain.accountExists(id))) {
-            if (live) setFreeId(id);
-            break;
+            // Only the lesson's own names can be made; stop at the first free one.
+            if (named.includes(id)) {
+              free = id;
+              break;
+            }
+            continue;
           }
+          // Reuse it only when our key is its one full-access key: then nobody else controls it.
           const keys = await chain.listKeys(id).catch(() => []);
-          const ours = keys.some((k) => k.publicKey === acc.publicKey && k.permission.type === "FullAccess");
-          if (!ours) continue;
-          const stored = recall(chain.network);
+          if (!onlyOurs(keys, acc.publicKey)) continue;
           const outcome =
             stored?.id === id
               ? await chain.getTransaction(stored.txHash, acc.accountId).catch(() => null)
@@ -188,8 +209,9 @@ export function useTxLesson({
           if (!live) return;
           setWorkshopBalance(view.amount);
           setWorkshop({ id, outcome, reused: true });
-          break;
+          return;
         }
+        if (live) setFreeId(free);
       } catch (e) {
         if (live) setError({ text: message(e), demo: false });
       } finally {
@@ -213,18 +235,51 @@ export function useTxLesson({
     setGate(stepDone);
   }, [stepDone, setGate]);
 
+  /** The first name under the workshop account that nobody has yet, trying `base`, `base2`, … */
+  async function firstFree(base: string, start: number, parentId: string): Promise<string | null> {
+    for (const l of labelCandidates(base, start)) {
+      const read = readLabel(l, parentId);
+      if (read.ok && !(await chain.accountExists(read.id))) return l;
+    }
+    return null;
+  }
+
+  // Suggest a free name: a workshop account from an earlier visit may already have shop, shop2…
+  // Only while the learner has not typed a name of their own.
+  const typed = useRef(false);
+  useEffect(() => {
+    if (!workshop?.reused) return;
+    let live = true;
+    void firstFree(DEFAULT_LABEL, 1, workshop.id).then((l) => {
+      if (live && l && !typed.current) setLabelRaw(l);
+    });
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per workshop account
+  }, [workshop]);
+
   // The "break it" step starts from the batch that worked, under a new name, with the same key twice.
-  // A layout effect, so the builder never shows the old rows for a frame.
+  // A layout effect, so the builder never shows the old rows for a frame; then, if that name is taken
+  // (an earlier visit), the next free one.
   useLayoutEffect(() => {
     if (step !== BREAK || !worked || prefilled.current) return;
     prefilled.current = true;
-    if (label.trim().toLowerCase() === worked.label) setLabelRaw(`${worked.label}2`);
+    if (label.trim().toLowerCase() === worked.label) {
+      typed.current = false;
+      setLabelRaw(`${worked.label}2`);
+      if (workshop)
+        void firstFree(worked.label, 2, workshop.id).then((l) => {
+          if (l && !typed.current) setLabelRaw(l);
+        });
+    }
     setItems(() => {
       const base = worked.items.map((i) => ({ id: nextId.current++, kind: i.kind }));
       return base.some((i) => i.kind === "again")
         ? base
         : [...base, { id: nextId.current++, kind: "again" as const }];
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once, when the step opens
   }, [step, worked, label]);
 
   const parent = workshop?.id ?? null;
@@ -246,11 +301,11 @@ export function useTxLesson({
   const amountVar = worked ? near(worked.amount) : typedAmount.ok ? near(typedAmount.amount) : undefined;
   // What the "break it" batch sends, and so what comes back: from the batch sent, or the rows on the builder.
   const backVar = broke
-    ? near(broke.deposit)
+    ? comesBack(broke.deposit)
     : step >= BREAK && typedAmount.ok
-      ? near(deposited(items, typedAmount.amount))
+      ? comesBack(deposited(items, typedAmount.amount))
       : worked
-        ? near(worked.deposit)
+        ? comesBack(worked.deposit)
         : undefined;
   const nonceVar = worked ? worked.signed.nonce.toString() : undefined;
   useEffect(() => {
@@ -259,7 +314,7 @@ export function useTxLesson({
     if (subVar) v.sub = subVar;
     if (failVar) v.failsub = failVar;
     if (amountVar) v.amount = amountVar;
-    if (backVar) v.back = backVar;
+    if (backVar) v.comesback = backVar;
     if (nonceVar) v.nonce = nonceVar;
     if (Object.keys(v).length) varsRef.current?.(v);
   }, [parentVar, subVar, failVar, amountVar, backVar, nonceVar]);
@@ -299,8 +354,10 @@ export function useTxLesson({
         setError({ text: `${out.status.error.message} Please try again.`, demo: false });
         return;
       }
-      if (!(await chain.accountExists(id))) {
-        setError({ text: `The registrar did not make ${id}. Please try again.`, demo: false });
+      // The account must exist and hold our key, or the lesson could not sign for it.
+      const keys = (await chain.accountExists(id)) ? await chain.listKeys(id).catch(() => []) : [];
+      if (!keys.some((k) => k.publicKey === me.publicKey && k.permission.type === "FullAccess")) {
+        setError({ text: `The registrar did not make ${id} with your key. Please try again.`, demo: false });
         return;
       }
       remember(chain.network, { id, txHash: out.transaction.hash });
@@ -331,11 +388,19 @@ export function useTxLesson({
     setPhase(null);
     const batch = items;
     try {
-      const keys = await Promise.all(Array.from({ length: keysNeeded(batch) }, () => chain.newKeyPair()));
       const [existedBefore, before] = await Promise.all([
         chain.accountExists(name.id),
         chain.viewAccount(workshop.id).then((v) => v.amount),
       ]);
+      // Creating an account that exists fails at once and still costs a fee: say so before sending.
+      if (existedBefore && batch.some((i) => i.kind === "create")) {
+        const free = await firstFree(label.trim().toLowerCase(), 2, workshop.id);
+        setProblem(
+          `${name.id} already exists, so creating it would fail.${free ? ` Try ${free}.` : " Pick another name."}`,
+        );
+        return;
+      }
+      const keys = await Promise.all(Array.from({ length: keysNeeded(batch) }, () => chain.newKeyPair()));
       const unsigned = await chain.buildTransaction({
         signerId: workshop.id,
         publicKey: me.publicKey,
@@ -491,6 +556,7 @@ export function useTxLesson({
     workshopBalance,
     label,
     setLabel: (t: string) => {
+      typed.current = true;
       setLabelRaw(t);
       setProblem(null);
     },

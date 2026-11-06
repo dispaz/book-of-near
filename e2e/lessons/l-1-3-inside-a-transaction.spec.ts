@@ -166,6 +166,9 @@ test.describe(`lesson ${ID}`, () => {
     const result = page.getByTestId("tx-result");
     await expect(result).toContainText("was not created");
     await expect(result).not.toContainText("came back");
+    // The step's note says the same: no NEAR was sent, so none comes back.
+    await expect(page.getByTestId("explain")).toContainText("no NEAR was sent to it");
+    await expect(page.getByTestId("explain")).not.toContainText("comes back");
   });
 
   test("a failure that undoes nothing does not open the gate", async ({ page }) => {
@@ -175,21 +178,21 @@ test.describe(`lesson ${ID}`, () => {
     await nextStep(page);
     await buildBatch(page);
     await nextStep(page);
-    // The account from the batch that worked already exists: creating it again fails at once.
+    // The account from the batch that worked already exists: the app says so before sending, and
+    // suggests a free name, so no fee is spent on a batch that would fail at once.
     await expect(page.getByLabel("New account name")).toHaveValue("shop2");
     await page.getByLabel("New account name").fill("shop");
     await page.getByRole("button", { name: "Send the batch" }).click();
-    await expect(scene(page)).toHaveAttribute("data-scene-state", /failed:yes;rolledback:no/, {
-      timeout: 15_000,
-    });
-    await expect(page.getByTestId("tx-result")).toContainText("already existed");
-    await expect(page.getByTestId("tx-result")).not.toContainText("was not created");
+    await expect(page.getByRole("alert")).toContainText("already exists");
+    await expect(page.getByRole("alert")).toContainText("shop2");
+    await expect(page.getByTestId("tx-result")).toContainText("Batch 1");
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /failed:no/);
     await expect(next(page)).toBeDisabled();
     // "Same key again" alone, on a new name: it fails first, so nothing ran to undo.
     await page.getByLabel("New account name").fill("solo");
     for (let i = 0; i < 3; i++) await page.getByRole("button", { name: "Remove action 1" }).click();
     await page.getByRole("button", { name: "Send the batch" }).click();
-    await expect(page.getByTestId("tx-result")).toContainText("Batch 3");
+    await expect(page.getByTestId("tx-result")).toContainText("Batch 2");
     await expect(scene(page)).toHaveAttribute("data-scene-state", /rolledback:no/);
     await expect(next(page)).toBeDisabled();
   });
@@ -198,6 +201,8 @@ test.describe(`lesson ${ID}`, () => {
     await page.goto(`/lesson/${ID}?view=2d`);
     await nextStep(page);
     await makeWorkshop(page);
+    await nextStep(page);
+    await buildBatch(page); // makes shop.<workshop>
     // Leave and come back inside the app (same chain), through the stage bar's contents.
     await page.getByRole("button", { name: "Contents" }).click();
     await page
@@ -210,7 +215,70 @@ test.describe(`lesson ${ID}`, () => {
     await expect(scene(page)).toHaveAttribute("data-scene-state", /parent:yes.*reused:yes/, {
       timeout: 15_000,
     });
+    // Back at the builder, the suggested name is a free one (shop exists from the first visit), so the
+    // first send works and costs no failed fee.
+    await expect(page.locator(".step-label")).toContainText("Step 1 of");
+    await nextStep(page);
+    await nextStep(page);
+    await expect(page.getByLabel("New account name")).toHaveValue("shop2");
+    for (const a of ["Create account", "Send NEAR", "Add a key"])
+      await page.getByRole("button", { name: `Add: ${a}` }).click();
+    await page.getByRole("button", { name: "Send the batch" }).click();
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /batch:ok;failed:no/, {
+      timeout: 15_000,
+    });
   });
+
+  // A tall builder must not squeeze or cover the step's note on ordinary laptop screens.
+  for (const vp of [
+    { width: 1280, height: 800 },
+    { width: 1366, height: 768 },
+  ])
+    for (const view of ["2d", "3d"] as const)
+      test(`the "break it" note is shown in full at ${vp.width}x${vp.height} (${view})`, async ({ page }) => {
+        await page.setViewportSize(vp);
+        await page.goto(`/lesson/${ID}?view=${view}`);
+        await nextStep(page);
+        await makeWorkshop(page);
+        await nextStep(page);
+        await buildBatch(page);
+        await nextStep(page);
+        await expect(
+          page.getByRole("list", { name: "Actions in this transaction" }).getByRole("listitem"),
+        ).toHaveCount(4);
+        const note = page.getByTestId("explain");
+        await expect(note).toContainText("The fee for the work done is still paid.");
+        await page.waitForTimeout(1000); // let the note settle in the margin or the dock
+        const seen = await note.evaluate((el) => {
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          const rects = [...range.getClientRects()].filter((r) => r.width > 0);
+          const ends = [rects[0]!, rects[rects.length - 1]!];
+          const clipped = (r: DOMRect) => {
+            if (r.top < 0 || r.bottom > window.innerHeight) return true;
+            for (let a = el.parentElement; a; a = a.parentElement) {
+              const s = getComputedStyle(a);
+              if (/hidden|auto|scroll|clip/.test(`${s.overflowY} ${s.overflow}`)) {
+                const b = a.getBoundingClientRect();
+                if (r.bottom > b.bottom + 1 || r.top < b.top - 1) return true;
+              }
+            }
+            return false;
+          };
+          const covered = (r: DOMRect) => {
+            const hit = document.elementFromPoint(r.left + 2, (r.top + r.bottom) / 2);
+            return !hit || !(hit === el || el.contains(hit) || hit.contains(el));
+          };
+          return {
+            clipped: ends.some(clipped),
+            covered: ends.some(covered),
+            cut: el.scrollHeight > el.clientHeight + 1,
+          };
+        });
+        expect(seen).toEqual({ clipped: false, covered: false, cut: false });
+        // And the note does not lie over the builder's buttons.
+        await page.getByRole("button", { name: "Remove action 4" }).click({ trial: true });
+      });
 
   test("an old signed transaction sent again does not run again: its nonce is used", async ({ page }) => {
     await page.goto(`/lesson/${ID}?view=2d`);

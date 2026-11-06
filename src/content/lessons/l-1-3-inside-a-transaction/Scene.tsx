@@ -91,8 +91,6 @@ function TxScene({ step, setGate, setVars, reducedMotion, mode, view, flat, repo
       <div
         className={`tl scroll-fade-narrow step-${step}${reducedMotion ? " still" : ""}${summary ? " summary" : ""}${three ? " three" : ""}`}
         data-testid="tx-scene"
-        // The builder makes the dock tall: a margin note would lie over its rows, so keep the note docked.
-        data-notes={step === BUILD || step === BREAK ? "dock" : undefined}
         data-scene-state={lesson.state}
         data-view={view}
         data-mode={mode}

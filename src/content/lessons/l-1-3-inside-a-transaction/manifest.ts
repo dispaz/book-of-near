@@ -19,7 +19,7 @@ export default {
     sub: "shop.your-workshop.testnet",
     failsub: "shop2.your-workshop.testnet",
     amount: "0.02",
-    back: "0.02",
+    comesback: "and the NEAR sent to it comes back",
     nonce: "N",
   },
   steps: [
@@ -47,7 +47,7 @@ export default {
     {
       caption: "Now break it. Send a batch for {failsub} that adds the same key twice.",
       explain:
-        "Adding a key the account already has fails. When an action fails, the chain undoes every action of that transaction, even the ones that already ran. {failsub} is not created, and the NEAR sent to it ({back} NEAR) comes back. The fee for the work done is still paid.",
+        "Adding a key the account already has fails. When an action fails, the chain undoes every action of that transaction, even the ones that already ran. {failsub} is not created, {comesback}. The fee for the work done is still paid.",
       explainAt: "result",
       action: { label: "send a batch that fails", gate: true },
     },

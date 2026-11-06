@@ -292,6 +292,23 @@
   flex-wrap: wrap;
   gap: 5px;
 }
+/* The add buttons sit beside Send, so the builder stays short and the step's note keeps its room in
+   the margin above it. */
+.tl-bottom {
+  flex-wrap: nowrap;
+  align-items: flex-end;
+}
+.tl-bottom .tl-add {
+  flex: 1 1 0;
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  /* Long batches scroll inside the builder instead of pushing it up the page. */
+  .tl-rows {
+    max-height: 148px;
+    overflow-y: auto;
+  }
+}
 .tl-chip {
   padding: 3px 9px;
   border: 1.5px solid var(--ink);

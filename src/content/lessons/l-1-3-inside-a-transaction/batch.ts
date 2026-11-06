@@ -17,7 +17,11 @@ export const DEFAULT_LABEL = "shop";
 
 /** "tx-" + the first six letters or digits of the practice account, and "-2", "-3"… if taken. */
 export function workshopLabel(practiceId: string, attempt = 1): string {
-  const head = practiceId.replace(/[^a-z\d]/g, "").slice(0, 6);
+  // Helper-made practice accounts are all called bon-<random>.testnet: skip the shared prefix.
+  const head = practiceId
+    .replace(/^bon-/, "")
+    .replace(/[^a-z\d]/g, "")
+    .slice(0, 6);
   return `tx-${head}${attempt > 1 ? `-${attempt}` : ""}`;
 }
 
@@ -139,6 +143,39 @@ export function fates(count: number, out: Pick<TxOutcome, "status">): Fate[] {
     return Array.from({ length: count }, () => "undone");
   const at = s.error.type === "ActionError" ? (s.error.index ?? 0) : 0;
   return Array.from({ length: count }, (_, i) => (i < at ? "undone" : i === at ? "failed" : "skipped"));
+}
+
+/** Names to try for a new account, in order: `shop`, `shop2`, `shop3`… (from `start`; 1 = the bare name). */
+export function labelCandidates(base: string, start = 1, count = 20): string[] {
+  return Array.from({ length: count }, (_, i) => (start + i === 1 ? base : `${base}${start + i}`));
+}
+
+/** The end of the "break it" note: what happens to the NEAR the batch sent. */
+export function comesBack(deposit: bigint): string {
+  return deposit > 0n
+    ? `and the NEAR sent to it (${near(deposit)} NEAR) comes back`
+    : "and no NEAR was sent to it, so none moves";
+}
+
+/** The workshop account and the id of the transaction that made it, as kept in the browser. */
+export interface Remembered {
+  id: string;
+  txHash: string;
+}
+
+/** Reads what the lesson kept in localStorage; anything malformed is ignored. */
+export function readRemembered(raw: string | null): Remembered | null {
+  if (!raw) return null;
+  try {
+    const v: unknown = JSON.parse(raw);
+    if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+    const { id, txHash } = v as Record<string, unknown>;
+    if (typeof id !== "string" || accountIdProblem(id)) return null;
+    if (typeof txHash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{43,44}$/.test(txHash)) return null;
+    return { id, txHash };
+  } catch {
+    return null;
+  }
 }
 
 /** The NEAR a batch sends: the amount once per Send row. */
