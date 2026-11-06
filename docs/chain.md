@@ -123,3 +123,21 @@ A new **simulated contract** for a lesson needs no interface change: write a `De
   - `getTransaction` timings come from block timestamps (only `executed` and `final` are non-zero).
 - **Counter contract.** `contracts/counter/counter.wat` (hand-written WebAssembly, ~2 KB), built to `counter.wasm` with `npm run build:counter` (wabt; no Rust). Same methods as the demo counter. `counter.test.ts` runs it in Node with a fake NEAR host.
 - **Tests.** `npm run test:testnet` runs `runChainContract` against real testnet (11/11 pass). Set `TESTNET_STORE=/path/outside/repo.json` to reuse a throwaway practice key when the public helper is rate-limited. E2E: `TESTNET=1 npx playwright test --grep @testnet`.
+
+
+## Mainnet wallet and funds check (#23)
+
+Separate from `Chain` on purpose: `Chain` is the practice network (demo or testnet); this is the learner's **own wallet on mainnet**, used only for the final badge claim and the optional capped swap. No `Chain` method was added. Code is in `src/chain/mainnet/`; import from `src/chain/mainnet`.
+
+| Piece | What it does |
+| --- | --- |
+| `MainnetWallet` (`types.ts`) | `kind` (`demo` or `mainnet`), `state()`, `subscribe`, `connect`, `disconnect`, `refresh`, `signAndSend`. `WalletState` is `disconnected`, `connecting`, `connected { accountId, balance }` or `error { message }`. `balance` is spendable yoctoNEAR (amount minus 10^19 per storage byte). |
+| `DemoWallet` | Demo mode's wallet: `demo-learner.near` with 25 NEAR, no network, deterministic hashes (`demo-0001`). Options `balance`, `accountId` (use a small balance to show "not enough"). |
+| `NearConnectWallet` | The real one: `@hot-labs/near-connect` 0.12.0 for login and signing, mainnet RPC `view_account` for the balance (fallback list in `MAINNET_RPC_URLS`). Lazy chunk, loaded only after "Use my own wallet". The connector is injected, so tests use a fake. |
+| `checkFunds(state, { amount, feeReserve? })` | Pure. Returns `enough`, `not-enough` (with `shortfall`) or `no-wallet`; the last two carry `fallback: "testnet"` and plain-English `message`. Default fee reserve 0.01 NEAR. |
+| `signWithConfirmation(wallet, request, confirm)` | The only signing path. Never throws. One signing at a time per wallet (a second call resolves `busy`, including while the wallet is answering). Refuses (`no-wallet`, `invalid-request`, `not-enough`: amount plus fee reserve, the same rule as `checkFunds`) before any dialog; shows `describeSigning` (summary, receiver, total with unit, never "0 NEAR" for a tiny deposit, per-action lines with call arguments, fee note, warning) through `confirm`; re-reads the balance after "Confirm"; asks the wallet only if `confirm` resolved true (`declined` otherwise). A wallet that rejects (popup closed, RPC down, transaction `Failure`, no tx id) gives `{ ok: false, reason: "failed", message }`. |
+| React | `MainnetWalletProvider` (in `main.tsx`), `useMainnetWallet()` (`state`, `waiting`, `connect`, `disconnect`, `sign(request)`, `usingReal`; the raw wallet is not exposed), `WalletPanel`, `FundsNotice amount=...`. `sign` renders the confirmation dialog itself, then a "Waiting for your wallet" overlay until the wallet answers. Page at `/wallet`. |
+
+Demo parity: the provider starts on `DemoWallet`; nothing from near-connect loads and no request is made until the learner opts in. If the real wallet fails to load, the demo wallet stays with a notice.
+
+Not verified (needs a human with a mainnet wallet, see spike 7): a real sign-in and a real `signAndSendTransaction`. The call shapes follow the package's `.d.ts`. Run it by hand once before the final badge depends on it.
