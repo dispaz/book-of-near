@@ -7,7 +7,11 @@ const TITLE = "Inside a NEAR transaction";
 const STAGE = 1;
 const HASH = /^[1-9A-HJ-NP-Za-km-z]{43,44}$/;
 
-test.beforeEach(({ page }) => seedRoute(page));
+// The walks run in real time on software WebGL: give every test of this lesson three times the timeout.
+test.beforeEach(({ page }) => {
+  test.slow();
+  return seedRoute(page);
+});
 
 const scene = (page: Page) => page.locator("[data-scene-state]").first();
 const next = (page: Page) => page.getByRole("button", { name: "Next step" });
@@ -100,8 +104,8 @@ test.describe(`lesson ${ID}`, () => {
     const fields = page.getByTestId("tx-fields");
     for (const part of ["Signer", "Receiver", "Actions", "Nonce", "Block hash", "Transaction id"])
       await expect(fields).toContainText(part);
-    await expect(fields).toContainText("one higher each time");
-    await expect(fields).toContainText("too old");
+    await expect(fields).toContainText("+1 each time");
+    await expect(fields).toContainText("deadline");
     await expect(fields).toContainText("create_account");
   });
 
@@ -118,10 +122,9 @@ test.describe(`lesson ${ID}`, () => {
     await expect(rows.first()).toContainText("Send");
     // Sending NEAR to an account that does not exist yet fails, and nothing is left behind.
     await page.getByRole("button", { name: "Send the batch" }).click();
-    await expect(scene(page)).toHaveAttribute("data-scene-state", /failed:yes;rolledback:yes/, {
-      timeout: 15_000,
-    });
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /failed:yes/, { timeout: 15_000 });
     await expect(page.getByTestId("tx-result")).toContainText("does not exist");
+    await expect(page.getByTestId("tx-result")).toContainText("was not created");
     await expect(next(page)).toBeDisabled();
     // Fix the order: move "Create account" up to the top, and send again.
     await page.getByRole("button", { name: "Move action 2 up" }).click();
@@ -148,9 +151,68 @@ test.describe(`lesson ${ID}`, () => {
     await expect(result.getByText("Ran, then undone")).toHaveCount(3);
     await expect(result).toContainText("was not created");
     await expect(result).toContainText("Only the fee");
+    await expect(result).toContainText("The 0.02 NEAR it was sent came back");
   });
 
-  test("re-sending an old signed transaction is refused with InvalidNonce", async ({ page }) => {
+  test("a batch with no Send row says nothing about NEAR coming back", async ({ page }) => {
+    await page.goto(`/lesson/${ID}?view=2d`);
+    await nextStep(page);
+    await makeWorkshop(page);
+    await nextStep(page);
+    await buildBatch(page);
+    await nextStep(page);
+    await page.getByRole("button", { name: "Remove action 2" }).click();
+    await breakBatch(page);
+    const result = page.getByTestId("tx-result");
+    await expect(result).toContainText("was not created");
+    await expect(result).not.toContainText("came back");
+  });
+
+  test("a failure that undoes nothing does not open the gate", async ({ page }) => {
+    await page.goto(`/lesson/${ID}?view=2d`);
+    await nextStep(page);
+    await makeWorkshop(page);
+    await nextStep(page);
+    await buildBatch(page);
+    await nextStep(page);
+    // The account from the batch that worked already exists: creating it again fails at once.
+    await expect(page.getByLabel("New account name")).toHaveValue("shop2");
+    await page.getByLabel("New account name").fill("shop");
+    await page.getByRole("button", { name: "Send the batch" }).click();
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /failed:yes;rolledback:no/, {
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("tx-result")).toContainText("already existed");
+    await expect(page.getByTestId("tx-result")).not.toContainText("was not created");
+    await expect(next(page)).toBeDisabled();
+    // "Same key again" alone, on a new name: it fails first, so nothing ran to undo.
+    await page.getByLabel("New account name").fill("solo");
+    for (let i = 0; i < 3; i++) await page.getByRole("button", { name: "Remove action 1" }).click();
+    await page.getByRole("button", { name: "Send the batch" }).click();
+    await expect(page.getByTestId("tx-result")).toContainText("Batch 3");
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /rolledback:no/);
+    await expect(next(page)).toBeDisabled();
+  });
+
+  test("coming back to the lesson reuses the workshop account", async ({ page }) => {
+    await page.goto(`/lesson/${ID}?view=2d`);
+    await nextStep(page);
+    await makeWorkshop(page);
+    // Leave and come back inside the app (same chain), through the stage bar's contents.
+    await page.getByRole("button", { name: "Contents" }).click();
+    await page
+      .getByRole("dialog", { name: "Contents" })
+      .getByRole("link", { name: "Claim your name" })
+      .click();
+    await expect(page).toHaveURL(/l-1-1-claim-your-name/);
+    await page.getByRole("button", { name: "Contents" }).click();
+    await page.getByRole("dialog", { name: "Contents" }).getByRole("link", { name: TITLE }).click();
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /parent:yes.*reused:yes/, {
+      timeout: 15_000,
+    });
+  });
+
+  test("an old signed transaction sent again does not run again: its nonce is used", async ({ page }) => {
     await page.goto(`/lesson/${ID}?view=2d`);
     await nextStep(page);
     await makeWorkshop(page);
@@ -163,8 +225,9 @@ test.describe(`lesson ${ID}`, () => {
     await expect(scene(page)).toHaveAttribute("data-scene-state", /replayed:1/, { timeout: 15_000 });
     await replay2(page);
     const log = page.getByTestId("replay-log");
-    await expect(log.getByText("Refused")).toHaveCount(2);
+    await expect(log.getByText("Not run again")).toHaveCount(2);
     await expect(log).toContainText("InvalidNonce");
+    await expect(log).toContainText("its nonce is used");
   });
 });
 
@@ -239,7 +302,7 @@ test.describe(`lesson ${ID}: motion, fallback, switching, phones, own values`, (
     const caption = page.getByTestId("caption");
     await nextStep(page);
     await expect(caption).toContainText("cafe2.");
-    const explain = page.getByText(/the 0\.03 NEAR comes back/);
+    const explain = page.getByText(/\(0\.03 NEAR\) comes back/);
     await expect(explain.first()).toBeAttached();
     await breakBatch(page);
     await nextStep(page);

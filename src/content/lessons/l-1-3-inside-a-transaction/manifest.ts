@@ -19,6 +19,7 @@ export default {
     sub: "shop.your-workshop.testnet",
     failsub: "shop2.your-workshop.testnet",
     amount: "0.02",
+    back: "0.02",
     nonce: "N",
   },
   steps: [
@@ -32,7 +33,7 @@ export default {
     {
       caption: "First make {parent}, an account to work in. Then look inside the transaction that made it.",
       explain:
-        "Every transaction has the same parts. The signer signs it and pays the fee. The receiver is the one account its actions apply to. Then come the actions. The nonce and the block hash you met in lesson 0.3. Step 5 shows why they are there.",
+        "Every transaction has the same parts. The signer signs it and pays the fee. The receiver is the one account its actions apply to. Then come the actions. The nonce and the block hash you met in lesson 0.3. Later in this lesson you see why they are there.",
       explainAt: "fields",
       action: { label: "make the workshop account", gate: true },
     },
@@ -48,15 +49,15 @@ export default {
       caption:
         "Now break one. Send a batch for {failsub} that adds the same key twice, and see what is left.",
       explain:
-        "Adding a key the account already has fails. When an action fails, the chain undoes every action of that transaction, even the ones that already ran. {failsub} is not created and the {amount} NEAR comes back. The fee for the work done is still paid.",
+        "Adding a key the account already has fails. When an action fails, the chain undoes every action of that transaction, even the ones that already ran. {failsub} is not created, and the NEAR sent to it ({back} NEAR) comes back. The fee for the work done is still paid.",
       explainAt: "result",
       action: { label: "send a batch that fails", gate: true },
     },
     {
       caption:
-        "Your first batch had nonce {nonce}. Send that same signed transaction again, unchanged, and watch the network refuse it.",
+        "Your first batch had nonce {nonce}. Send that same signed transaction again, unchanged, and see that the chain will not run it twice.",
       explain:
-        "Anyone who sees a signed transaction could send a copy. The nonce stops that: each key's nonce only goes up, so a used one is refused before anything runs, and the copy costs nothing. The block hash adds a deadline: once that block is too old, even an unused transaction expires.",
+        "Anyone who sees a signed transaction could send a copy. The nonce stops that: each key's nonce only goes up, so a copy with a used nonce never runs again and costs nothing. A node simply answers with the first result. The block hash adds a deadline: once that block is too old, even an unused transaction expires.",
       explainAt: "replay",
       action: { label: "re-send an old transaction", gate: true },
     },

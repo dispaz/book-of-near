@@ -53,7 +53,7 @@ export default function Scene3D({
   flat: boolean;
   reducedMotion: boolean;
 }) {
-  const { step, me, workshop, last, worked, items, refused } = lesson;
+  const { step, me, workshop, last, worked, items, notRun } = lesson;
   const phone = useMediaQuery("(max-width: 899px)");
   const box = useRef<HTMLDivElement>(null);
   const size = useBoxSize(box);
@@ -79,13 +79,13 @@ export default function Scene3D({
   if (step === HOOK)
     slabs = [1, 2, 3].map((n) => ({ key: `slot${n}`, text: `action ${n}`, fate: "idle" as const }));
   else if (step === OPEN)
-    slabs = workshop
+    slabs = workshop?.outcome
       ? workshop.outcome.transaction.actions.map((a, i) => ({
           key: `w${i}`,
           text: a.type === "FunctionCall" ? `call ${a.methodName}` : a.type,
           fate: "done" as const,
         }))
-      : [{ key: "w", text: "call create_account", fate: "idle" }];
+      : [{ key: "w", text: "call create_account", fate: workshop ? ("done" as const) : ("idle" as const) }];
   else if (shownBatch)
     slabs = shownBatch.items.map((it, i) => ({
       key: `s${it.id}`,
@@ -93,7 +93,7 @@ export default function Scene3D({
       fate: step === REPLAY ? ("idle" as const) : (shownBatch.fates[i] ?? "skipped"),
     }));
   else slabs = items.map((it) => ({ key: `b${it.id}`, text: SHORT_NAME[it.kind], fate: "idle" as const }));
-  const replayed = step === REPLAY && refused.length > 0;
+  const replayed = step === REPLAY && notRun.length > 0;
   const sent = (step === OPEN && !!workshop) || sentNow || (step === REPLAY && !replayed);
 
   // Back right: the account an earlier step made, kept in view.
@@ -101,7 +101,7 @@ export default function Scene3D({
     step === OPEN && workshop
       ? { name: short(workshop.id, 14, 8), note: "made by this transaction" }
       : step === BREAK && worked
-        ? { name: short(worked.receiver, 14, 8), note: "made in step 3" }
+        ? { name: short(worked.receiver, 14, 8), note: "made earlier" }
         : null;
 
   const failed = shownBatch && !shownBatch.ok ? shownBatch : null;
@@ -113,7 +113,7 @@ export default function Scene3D({
           .join(", ")}.`
       : "The transaction has no actions yet.",
     failed ? `${failed.receiver} was rolled back: it was not created.` : "",
-    replayed ? `The copy was refused: ${refused[refused.length - 1]?.reason}.` : "",
+    replayed ? "The copy did not run again: its nonce is used." : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -121,7 +121,7 @@ export default function Scene3D({
   const shownNonce =
     step === REPLAY && worked
       ? worked.signed.nonce
-      : step === OPEN && workshop
+      : step === OPEN && workshop?.outcome
         ? workshop.outcome.transaction.nonce
         : shownBatch
           ? shownBatch.signed.nonce
@@ -213,7 +213,7 @@ export default function Scene3D({
         </Traveller>
         {replayed ? (
           <Label position={[stackAt(false)[0], 3, stackAt(false)[2]]} variant="hint">
-            {`copy refused: ${refused[refused.length - 1]?.reason ?? ""}. Nothing ran.`}
+            {"copy not run again: its nonce is used"}
           </Label>
         ) : null}
       </InkStage>

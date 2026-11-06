@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { parseNear } from "../../../chain/units";
 import type { TxOutcome } from "../../../chain/types";
+import { ChainError } from "../../../chain/errors";
 import {
+  balanceProblem,
+  deposited,
   fates,
+  isRollback,
   hasAllKinds,
   move,
   readAmount,
@@ -94,5 +98,60 @@ describe("what happened to each action", () => {
   it("undone before the failure, failed at it, never ran after it", () => {
     expect(fates(4, failedAt(2))).toEqual(["undone", "undone", "failed", "skipped"]);
     expect(fates(3, failedAt(0))).toEqual(["failed", "skipped", "skipped"]);
+  });
+  it("a storage shortfall is found after all actions ran, so every action is undone", () => {
+    // nearcore reports LackBalanceForState with no action index; DemoChain gives the last index.
+    for (const index of [null, 2] as const) {
+      const out = {
+        status: {
+          type: "Failure",
+          error: {
+            type: "ActionError",
+            index,
+            kind: { type: "LackBalanceForState", accountId: "a.testnet", amount: 1n },
+            message: "x",
+          },
+        },
+      } as unknown as TxOutcome;
+      expect(fates(3, out)).toEqual(["undone", "undone", "undone"]);
+    }
+  });
+});
+
+describe("the NEAR a batch sends", () => {
+  it("counts every Send row, and nothing when there is none", () => {
+    expect(deposited(items("create", "transfer", "addkey"), parseNear("0.02"))).toBe(parseNear("0.02"));
+    expect(deposited(items("transfer", "transfer"), parseNear("0.02"))).toBe(parseNear("0.04"));
+    expect(deposited(items("create", "addkey"), parseNear("0.02"))).toBe(0n);
+  });
+});
+
+describe("a real roll back", () => {
+  const base = { ok: false, existedBefore: false, existsAfter: false };
+  it("needs a failure that undid something, on an account that did not exist before", () => {
+    expect(isRollback({ ...base, fates: ["undone", "undone", "failed"] })).toBe(true);
+  });
+  it("is not one when nothing ran before the failure", () => {
+    expect(isRollback({ ...base, fates: ["failed", "skipped"] })).toBe(false);
+  });
+  it("is not one when the account already existed", () => {
+    expect(isRollback({ ...base, existedBefore: true, existsAfter: true, fates: ["failed"] })).toBe(false);
+  });
+  it("is not one when the batch worked", () => {
+    expect(isRollback({ ...base, ok: true, existsAfter: true, fates: ["done"] })).toBe(false);
+  });
+});
+
+describe("errors in plain words", () => {
+  it("says what to do when an account is short of NEAR", () => {
+    const short = new ChainError("InvalidTransaction", "x", "NotEnoughBalance");
+    expect(balanceProblem(short, "tx-abc.testnet")).toMatch(/tx-abc\.testnet .*too little NEAR/);
+    expect(balanceProblem(new ChainError("InvalidTransaction", "x", "LackBalanceForState"), "a")).toMatch(
+      /too little NEAR/,
+    );
+  });
+  it("leaves other errors alone", () => {
+    expect(balanceProblem(new ChainError("InvalidTransaction", "x", "InvalidNonce"), "a")).toBeNull();
+    expect(balanceProblem(new Error("x"), "a")).toBeNull();
   });
 });

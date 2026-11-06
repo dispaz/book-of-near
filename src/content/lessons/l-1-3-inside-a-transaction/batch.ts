@@ -3,12 +3,13 @@
  * action. No chain access here; the scene goes through useChain().
  */
 import { accountIdProblem } from "../../../chain/accountId";
+import { isChainError } from "../../../chain/errors";
 import { actions } from "../../../chain/ops";
 import type { Action, PublicKey, TxOutcome } from "../../../chain/types";
 import { formatNear, parseNear } from "../../../chain/units";
 
 /** What the practice account sends the workshop account through the registrar (script, section 6). */
-export const WORKSHOP_DEPOSIT = parseNear("0.2");
+export const WORKSHOP_DEPOSIT = parseNear("0.1");
 export const MIN_AMOUNT = parseNear("0.01");
 export const MAX_AMOUNT = parseNear("0.05");
 export const DEFAULT_AMOUNT_TEXT = "0.02";
@@ -132,8 +133,41 @@ export const FATE_TEXT: Record<Fate, string> = {
 export function fates(count: number, out: Pick<TxOutcome, "status">): Fate[] {
   const s = out.status;
   if (s.type !== "Failure") return Array.from({ length: count }, () => "done");
-  const at = s.error.type === "ActionError" ? s.error.index : 0;
+  // A storage shortfall is checked after every action ran (nearcore gives it no action index), so all
+  // of them ran and all were undone.
+  if (s.error.type === "ActionError" && s.error.kind.type === "LackBalanceForState")
+    return Array.from({ length: count }, () => "undone");
+  const at = s.error.type === "ActionError" ? (s.error.index ?? 0) : 0;
   return Array.from({ length: count }, (_, i) => (i < at ? "undone" : i === at ? "failed" : "skipped"));
+}
+
+/** The NEAR a batch sends: the amount once per Send row. */
+export function deposited(list: Item[], amount: bigint): bigint {
+  return BigInt(list.filter((i) => i.kind === "transfer").length) * amount;
+}
+
+/**
+ * A failure that shows a roll back: something ran and was undone, on an account that did not exist
+ * before and still does not. A failure at the first action, or on an existing account, undoes nothing.
+ */
+export function isRollback(s: {
+  ok: boolean;
+  fates: Fate[];
+  existedBefore: boolean;
+  existsAfter: boolean;
+}): boolean {
+  return !s.ok && s.fates.includes("undone") && !s.existedBefore && !s.existsAfter;
+}
+
+/** A plain message and a way forward when an account is short of NEAR; null for other errors. */
+export function balanceProblem(
+  e: unknown,
+  who: string,
+  fix = "Lower the amount, or continue in demo mode, which needs no NEAR.",
+): string | null {
+  if (!isChainError(e) || (e.reason !== "NotEnoughBalance" && e.reason !== "LackBalanceForState"))
+    return null;
+  return `${who} has too little NEAR left for this. ${fix}`;
 }
 
 /** "0.0194" style: up to 4 decimals. */

@@ -40,12 +40,12 @@ const QUESTIONS: CheckQuestion[] = [
     ],
   },
   {
-    prompt: "Why did the network refuse your old transaction when you sent it again?",
+    prompt: "Why did your old transaction not run again when you sent it a second time?",
     options: [
       { text: "Its nonce was already used by that key.", correct: true },
       {
         text: "Its signature wore out.",
-        why: "A signature does not wear out. The network checked the nonce.",
+        why: "A signature does not wear out. What counts is that its nonce was used.",
       },
       {
         text: "Someone else had sent it first.",
@@ -117,7 +117,12 @@ function TxScene({ step, setGate, setVars, reducedMotion, mode, view, flat, repo
         <Docked>
           <div className="tl-error" role="alert" data-testid="tx-error">
             <p className="tl-error-title">That did not work</p>
-            <p>{lesson.error}</p>
+            <p>{lesson.error.text}</p>
+            {lesson.error.demo && lesson.network !== "demo" ? (
+              <button type="button" className="btn" onClick={lesson.continueInDemo}>
+                Continue in demo mode
+              </button>
+            ) : null}
           </div>
         </Docked>
       ) : null}
@@ -126,7 +131,9 @@ function TxScene({ step, setGate, setVars, reducedMotion, mode, view, flat, repo
           {lesson.busy === "workshop"
             ? "Making it…"
             : lesson.workshop
-              ? "Made ✓"
+              ? lesson.workshop.reused
+                ? "Already made ✓"
+                : "Made ✓"
               : "Make the workshop account"}
         </SceneAction>
       ) : null}
@@ -136,7 +143,7 @@ function TxScene({ step, setGate, setVars, reducedMotion, mode, view, flat, repo
       {step === REPLAY && lesson.worked ? <ReplayControls lesson={lesson} /> : null}
       {step > OPEN && step < CHECK && !lesson.workshop ? (
         <p className="tl-need" role="status">
-          There is no workshop account yet. Go back to step 2 and make it.
+          There is no workshop account yet. Go back and make it first.
         </p>
       ) : null}
 
@@ -160,10 +167,10 @@ function TxScene({ step, setGate, setVars, reducedMotion, mode, view, flat, repo
           ]}
           weaknesses={[
             "One receiver per transaction. To act on two accounts you need two transactions, or a contract that calls others.",
-            "All-or-nothing stops at one receipt. When a contract calls another, later steps run in later blocks, and earlier ones stay done if a later one fails (Stage 2).",
+            "All-or-nothing covers one account's actions only. When a contract calls another contract, that call runs later, in another block, and if it fails the earlier work stays done (Stage 2 shows this).",
             "A failed transaction still costs a fee.",
             "The deadline cuts both ways. A transaction signed now must be sent within a set number of blocks (86,400 in NEAR's docs example, about 14 hours), which makes slow signing setups harder.",
-            "Ethereum is closing the gap. A plain Ethereum transaction has one recipient and one call, but since EIP-7702 an account can batch calls, such as approve and transferFrom, when its wallet supports it.",
+            "Ethereum is closing the gap. A plain Ethereum transaction has one recipient and one call. EIP-7702, part of Ethereum's Pectra upgrade, lets a plain account borrow a contract's code, so it can batch calls such as approve and transferFrom when its wallet supports it.",
           ]}
         />
       ) : null}
@@ -211,6 +218,12 @@ function TxCard({ lesson, marks }: { lesson: Lesson; marks: boolean }) {
       ) : (
         <Sketch />
       )}
+      {step === OPEN && workshop?.reused && !workshop.outcome ? (
+        <p className="tl-dim">
+          You made {workshop.id} on an earlier visit, so the lesson uses it again. Its transaction is not at
+          hand here; the next step shows a new one, field by field.
+        </p>
+      ) : null}
       {workshop && step >= OPEN ? (
         <p className="tl-line tl-acct">
           Workshop account <b>{workshop.id}</b>
@@ -263,12 +276,12 @@ function Fields({ tx }: { tx: SignedTransaction }) {
       <dt>Nonce</dt>
       <dd>
         <code>{tx.nonce.toString()}</code>
-        <span className="tl-note">this key's counter, one higher each time</span>
+        <span className="tl-note">the key's counter, +1 each time</span>
       </dd>
       <dt>Block hash</dt>
       <dd>
         <code title={tx.blockHash}>{short(tx.blockHash, 8, 6)}</code>
-        <span className="tl-note">a recent block; too old, and the transaction expires</span>
+        <span className="tl-note">a recent block: sets a deadline</span>
       </dd>
       <dt>Transaction id</dt>
       <dd>
@@ -311,17 +324,17 @@ function Result({ sent, marks }: { sent: Sent | null; marks: boolean }) {
             <p className="tl-line">
               {sent.receiver} exists
               {sent.receiverBalance !== null ? <> and holds {near(sent.receiverBalance)} NEAR</> : null}. One
-              fee, paid by the workshop account: {near(sent.before - sent.after - sent.amount)} NEAR.
+              fee, paid by the workshop account: {near(sent.before - sent.after - sent.deposit)} NEAR.
             </p>
           ) : (
             <p className="tl-line">
               {sent.existedBefore
-                ? `${sent.receiver} is as it was before.`
+                ? `${sent.receiver} already existed, and it is as it was before.`
                 : sent.existsAfter
                   ? `${sent.receiver} exists.`
                   : `${sent.receiver} was not created.`}{" "}
-              Only the fee was paid: {near(sent.before - sent.after)} NEAR. The {near(sent.amount)} NEAR came
-              back.
+              Only the fee was paid: {near(sent.before - sent.after)} NEAR.
+              {sent.deposit > 0n ? ` The ${near(sent.deposit)} NEAR it was sent came back.` : ""}
             </p>
           )}
         </>
@@ -342,21 +355,26 @@ function ReplayLog({ lesson, marks }: { lesson: Lesson; marks: boolean }) {
       {lesson.replays.length === 0 ? <p className="tl-dim">Nothing sent again yet.</p> : null}
       <ol>
         {[...lesson.replays].reverse().map((r) => (
-          <li key={r.n} className={r.reason ? "no" : "ok"}>
-            <span className={`tl-badge ${r.reason ? "no" : "ok"}`}>{r.reason ? "Refused" : "Accepted"}</span>{" "}
+          <li key={r.n} className={r.notRun ? "no" : "ok"}>
+            <span className={`tl-badge ${r.notRun ? "no" : "ok"}`}>{r.notRun ? "Not run again" : "Ran"}</span>{" "}
             The batch that {r.which}, nonce <code>{r.txNonce.toString()}</code>.
-            {r.reason ? (
+            {r.notRun ? (
               <span className="tl-why">
-                <code>{r.reason}</code> {r.message}
+                {r.reason ? <code>{r.reason} </code> : null}
+                The chain will not run it again: its nonce is used.
                 {r.keyNonce !== null ? ` The key's nonce is now ${r.keyNonce.toString()}.` : ""} Nothing ran,
                 and nothing was charged.
               </span>
-            ) : null}
+            ) : (
+              <span className="tl-why">{r.message}</span>
+            )}
           </li>
         ))}
       </ol>
       <p className="tl-dim">
-        The block hash is a second guard: after a set number of blocks, even an unused transaction expires.
+        A real node answers an exact copy with the first result; the app checks the nonce first, so you see
+        why. The block hash is a second guard: after a set number of blocks, even an unused transaction
+        expires.
       </p>
     </section>
   );
@@ -368,7 +386,7 @@ function Summary({ lesson }: { lesson: Lesson }) {
     <p className="tl-sum">
       Your batch made {lesson.worked.receiver}.{" "}
       {lesson.broke ? `The broken one left nothing behind (${lesson.broke.receiver}). ` : ""}
-      {lesson.refused.length ? `${lesson.refused.length} copies refused.` : ""}
+      {lesson.notRun.length ? `${lesson.notRun.length} copies sent again; none ran.` : ""}
     </p>
   );
 }
