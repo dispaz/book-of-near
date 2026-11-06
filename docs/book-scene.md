@@ -13,7 +13,7 @@ Start a new lesson as a book scene with `npm run new-lesson -- <id> --stage N --
 | Cover → open book → 2D page → 3D grows out of the page | Lesson start and 2D → 3D switch | App (`LessonPage`, `IntroContext`), automatic |
 | Desk, open book, cloth cover, ribbon, page edges | Under the scene | `BookBackdrop` (via `BookScene`) |
 | The step's figure, standing on the **right page** | Pages at y = 0 | The lesson (children of `BookScene`) |
-| The step's heading, note and action, **printed on the left page** | Wide screens (≥ 1100 px), not at the quiz / honest take | `PrintOnPage` + `SpreadContext` (via `BookScene`); the lesson page lays its `.book-page` out as print |
+| The step's heading, note and action, **printed on the left page** | Scene area ≥ 1100 px wide (`PRINT_MIN_WIDTH`), not at the quiz / honest take | `PrintOnPage` + `SpreadContext` (via `BookScene`); the lesson page lays its `.book-page` out as print |
 | Page numbers at the foot, "Fig. n  …" caption under the figure | Right page foot | `BookBackdrop` (`folios(sheet)`, `caption`) |
 | Running heads (`Stage n`, lesson title) | Page heads, only when the words are docked | `BookBackdrop` (`heads`) |
 | Page turn: the figure folds flat, the page curls over, outlines rise, hatching fills in | Every new step (`page`) | `InkStage` + `PopUp` (via `BookScene`) |
@@ -21,7 +21,7 @@ Start a new lesson as a book scene with `npm run new-lesson -- <id> --stage N --
 | Status note and the scene's own panel (forms, results) | Bottom of the free area, over the right page | `.book-scene .sk-status`, `.book-scene-panel` (scene-kit.css), placed by `useFreeFrame` |
 
 **The words are never lost.** They go back to their docked place (`data-spread` off) when the screen is
-narrower than 1100 px, at the quiz and the honest take, during a tour close-up, and when the learner orbits
+scene area is narrower than 1100 px, at the quiz and the honest take, during a tour close-up, and when the learner orbits
 the page off screen.
 
 ## Building one
@@ -79,7 +79,7 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
 4. **Sheets, not steps, for the backdrop.** `sheet = Math.min(step, CHECK)`: the quiz and the honest take
    share the last spread. One `FIGURES` caption per sheet, written as `Fig. n  <what the figure shows>`.
    Captions are decoration and repeat the step, so put nothing in them that is not elsewhere.
-5. **The tour only moves the camera.** `tourFor(step)` returns two or three `Shot<Target>`s
+5. **The tour only moves the camera.** `tourFor(step)`, in its own pure `tour.ts`, returns two or three `Shot<Target>`s
    (`{ caption, target }`): first the whole figure, then close-ups. Captions start with "Close up:" and
    follow the copy rules. No tour at the quiz / honest take (return `[]`). `shotFocus(target)` gives a low,
    close `Focus` (elevation about 24–30°, azimuth about −10 to −18°). Keep `tourFor` pure and unit test it.
@@ -89,8 +89,9 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
    a labelled HTML tag.
 8. **Colours.** Figures follow the ink rule (paper white, black outlines, the stage accent for meaning).
    The desk and book colours are the setting and stay the same on every stage.
-9. **Reduced motion.** No page turn, no pop-up, no tour easing: the camera jumps. Nothing extra to do if
-   you use `BookScene`, `Traveller` and the kit primitives.
+9. **Reduced motion.** No page turn, no pop-up and no camera easing: the camera jumps from shot to shot.
+   The tour still plays when the learner presses play (it is their choice), one still shot after another.
+   Nothing extra to do if you use `BookScene`, `Traveller` and the kit primitives.
 
 ### Tests every book lesson needs
 
@@ -101,6 +102,9 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
 - E2E at 390 × 760, 3D: no `data-spread`; `.book-page` is `display: contents` (docked).
 - Unit: `tourFor` (every step but the quiz has shots; targets exist at that step).
 - The lesson's normal walk, reduced-motion and `?webgl=0` tests, in 2D and 3D.
+
+`--book` scaffolds the print, tour and phone e2e tests and the `tourFor` unit test; the author adds the
+rest as the lesson grows.
 
 Lesson 0.1's spec (`e2e/lessons/l-0-1-blockchain-basics.spec.ts`, "wide screens print the step…" and
 "phones keep the step's words docked…") is the reference.
@@ -115,7 +119,7 @@ From `src/scene-kit` (3D half, lazy only):
 | `useFreeFrame(root, panel, { summary, printMinWidth? })` | Measures the free part of the canvas between the lesson chrome; returns `{ frame, size, wide, print }`; sets `--book-t/l/r/b/sh` on `root`. |
 | `useTour(shots, page)`, `<TourControls tour idle>` | The tour on its own, if a scene needs it without `BookScene`. |
 | `readingShot(focus, text, elevation?)`, `folios(sheet, first?)`, `freeFrame(chrome, opts)` | Pure helpers (`bookLayout.ts`, unit tested). |
-| `PRINT_MIN_WIDTH` (1100), `READING_ELEVATION` (52), `SHOT_SECONDS` (3.4) | Shared constants. |
+| `PRINT_MIN_WIDTH` (1100), `WIDE_MIN_WIDTH` (900), `READING_ELEVATION` (52), `SHOT_SECONDS` (3.4) | Shared constants. Widths are of the scene area, not the screen. Below `WIDE_MIN_WIDTH` the scene sits above the dock instead of beside it. |
 | `spreadBeside`, `spreadFor`, `textBlock` | Spread sizing (`book.ts`). |
 
 Lower-level pieces (`BookBackdrop`, `PrintOnPage`, `PopUp`, `homography`) are described in `docs/scene-kit.md`.

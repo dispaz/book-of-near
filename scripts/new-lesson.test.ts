@@ -193,11 +193,17 @@ describe("scaffold", () => {
       expect(existsSync(join(root, f))).toBe(true);
     }
     expect(existsSync(join(root, "src/content/lessons/throwaway/Scene3D.tsx"))).toBe(false);
+    expect(readFileSync(join(root, "e2e/lessons/throwaway.spec.ts"), "utf8")).not.toContain("data-spread");
   });
 
   it("--book also writes the 3D book scene", () => {
     const res = scaffold(root, { id: "booky", stage: 0, title: "Booky", chain: false, book: true });
-    expect(res.files.some((f: string) => f.endsWith("booky/Scene3D.tsx"))).toBe(true);
+    for (const f of ["Scene3D.tsx", "tour.ts", "tour.test.ts"])
+      expect(res.files.some((p: string) => p.endsWith(`booky/${f}`))).toBe(true);
+    const spec = readFileSync(join(root, "e2e/lessons/booky.spec.ts"), "utf8");
+    expect(spec).toContain("data-spread");
+    expect(spec).toContain("Play the tour");
+    expect(spec).toContain("width: 390");
     expect(readFileSync(join(root, "src/content/lessons/booky/Scene3D.tsx"), "utf8")).toContain("<BookScene");
   });
 

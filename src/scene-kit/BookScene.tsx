@@ -208,6 +208,9 @@ export function useFreeFrame(
 
 // ---------- the book scene ----------
 
+/** How much of the free frame the step's focus fills (frameCamera). */
+const FILL = 0.9;
+
 export interface BookSceneProps<T> extends Pick<
   InkStageProps,
   "flat" | "reducedMotion" | "state" | "description" | "status" | "onMiss" | "minDistance" | "maxDistance"
@@ -236,11 +239,6 @@ export interface BookSceneProps<T> extends Pick<
   shots?: Shot<T>[];
   /** What the camera looks at for one tour shot. */
   shotFocus?: (target: T) => Focus;
-  /** How much of the frame the focus fills (frameCamera). */
-  fill?: number;
-  readingElevation?: number;
-  /** Page number of the first sheet's left page. */
-  firstFolio?: number;
   children: ReactNode;
 }
 
@@ -262,9 +260,6 @@ export function BookScene<T>({
   size,
   shots = [],
   shotFocus,
-  fill = 0.9,
-  readingElevation,
-  firstFolio,
   reducedMotion,
   children,
   ...stage
@@ -277,9 +272,9 @@ export function BookScene<T>({
     setPrinted(printed);
     return () => setPrinted(false);
   }, [printed, setPrinted]);
-  const reading = text ? readingShot(focus, text, readingElevation) : focus;
+  const reading = text ? readingShot(focus, text) : focus;
   const shot = tour.shot && shotFocus ? shotFocus(tour.shot.target) : reading;
-  const view = frameCamera(shot, frame, size.width, size.height, fill);
+  const view = frameCamera(shot, frame, size.width, size.height, FILL);
   return (
     <>
       <InkStage
@@ -289,12 +284,7 @@ export function BookScene<T>({
         page={page}
         backdrop={
           <>
-            <BookBackdrop
-              spread={spread}
-              heads={heads}
-              folios={folios(sheet, firstFolio)}
-              caption={caption}
-            />
+            <BookBackdrop spread={spread} heads={heads} folios={folios(sheet)} caption={caption} />
             {text ? <PrintOnPage block={text} el={words} place={printed} onInView={setPageInView} /> : null}
           </>
         }

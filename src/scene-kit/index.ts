@@ -31,6 +31,7 @@ export {
   READING_ELEVATION,
   readingShot,
   SHOT_SECONDS,
+  WIDE_MIN_WIDTH,
   type Chrome,
   type FreeFrame,
   type Shot,
