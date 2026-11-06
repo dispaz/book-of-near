@@ -23,8 +23,8 @@
   .lesson-panel {
     /* Fill the space between the title and the docked step card (--dock-h, --bar-h set by LessonPage). */
     max-height: calc(
-      100% - var(--head-h, 108px) - 16px - var(--bar-h, 56px) - 16px - var(--dock-h, 44%) - 12px -
-        env(safe-area-inset-bottom, 0px)
+      100% - var(--head-h, 108px) - var(--bar-gap, 16px) - var(--bar-h, 56px) - var(--bar-gap, 16px) -
+        var(--dock-h, 44%) - 12px - env(safe-area-inset-bottom, 0px)
     );
     font-size: 15px;
   }
@@ -159,7 +159,9 @@
   position: absolute;
   z-index: 20;
   right: max(16px, env(safe-area-inset-right, 0px));
-  bottom: calc(16px + var(--bar-h, 56px) + 16px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(
+    var(--bar-gap, 16px) + var(--bar-h, 56px) + var(--bar-gap, 16px) + env(safe-area-inset-bottom, 0px)
+  );
   padding: 10px 16px;
   border: 1.5px solid var(--ink);
   border-radius: 999px;
@@ -167,4 +169,17 @@
   box-shadow: 3px 3px 0 var(--ink);
   font: 700 14px var(--ui);
   cursor: pointer;
+}
+
+/* A panel taller than its room scrolls. A fade sticks to its bottom edge while there is more below, so a
+   line cut at the edge reads as "scroll for more"; at the end the fade sits in empty space. */
+.lesson-panel::after {
+  content: "";
+  position: sticky;
+  bottom: -14px;
+  display: block;
+  height: 28px;
+  margin: 0 -16px -14px;
+  background: linear-gradient(#f6f2e800, var(--paper-2));
+  pointer-events: none;
 }

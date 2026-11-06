@@ -301,7 +301,12 @@ function Detail({ claim, flat }: { claim: Claim; flat: boolean }) {
     );
   if (step === CREATE)
     return (
-      <section className="stx-detail" aria-label="The new account" data-explain={mark("create")}>
+      <section
+        className="stx-detail"
+        aria-label="The new account"
+        data-explain={mark("create")}
+        data-testid={created ? "created-card" : undefined}
+      >
         <p className="stx-detail-title">{created ? "Created" : "The call"}</p>
         {created ? (
           <dl>
