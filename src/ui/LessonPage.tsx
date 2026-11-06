@@ -100,7 +100,14 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
       // --tools-h: the pill row (phones put the title under it). --title-b: where the title and pills
       // end (narrow screens put the step heading there). --head-h: where the whole header, step heading
       // included, ends, so lesson panels start below it instead of at a fixed offset.
-      if (tools) root.style.setProperty("--tools-h", `${tools.offsetHeight}px`);
+      // Phones put the one-line title beside the mode link under the pills, so --tools-h is the pill
+      // row only; a testnet notice under the pills is tall, and then the title goes below all of it.
+      if (tools) {
+        const pill = tools.querySelector<HTMLElement>(".pill");
+        const notice = tools.querySelector(".mode-notice");
+        const h = !notice && pill ? pill.offsetHeight : tools.offsetHeight;
+        root.style.setProperty("--tools-h", `${h}px`);
+      }
       const titleB = Math.max(
         title ? title.offsetTop + title.offsetHeight : 0,
         tools ? tools.offsetTop + tools.offsetHeight : 0,
@@ -128,6 +135,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
   );
   const webgl = lesson.needsWebGL ? glAvailable : true;
   const wide = useMediaQuery("(min-width: 900px)");
+  const phone = useMediaQuery("(max-width: 560px)");
   const [chosenView, setView] = useSceneView({
     available: twoViews,
     webgl: glAvailable,
@@ -265,7 +273,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
           </Link>{" "}
           · Stage {stage.id} · {stage.name}
         </p>
-        <h1>{lesson.title}</h1>
+        <h1 title={lesson.title}>{lesson.title}</h1>
       </header>
 
       <div className="lesson-tools" inert={closed}>
@@ -285,7 +293,10 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
           <p className="step-label">
             Step {step + 1} of {lesson.steps.length}
             {current.action?.gate && !opened.has(step) ? (
-              <span className="your-turn"> · Your turn: {current.action.label}</span>
+              <span className="your-turn">
+                {" "}
+                · Your turn<span className="your-turn-what">: {current.action.label}</span>
+              </span>
             ) : null}
           </p>
           <p className="step-caption" aria-live="polite" data-testid="caption">
@@ -310,6 +321,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
               anchor={spread ? undefined : current.explainAt}
               layer={root}
               wide={wide}
+              compact={phone}
             >
               {finish}
             </StepNote>

@@ -191,10 +191,13 @@ body:has(.lesson) {
     6px 6px 0 var(--ink),
     0 18px 40px #16141f33;
   --book-gap: 12px;
+  /* The space under and over the stage bar. Scenes and panels reserve --bar-gap + --bar-h + --bar-gap. */
+  --bar-gap: 16px;
 }
 @media (max-width: 560px) {
   .lesson {
     --book-gap: 4px;
+    --bar-gap: 8px;
     border-radius: 3px 10px 10px 3px;
   }
 }
@@ -308,7 +311,8 @@ body:has(.lesson) {
   .lesson-title,
   .lesson:has(.lesson-tools > :nth-child(2)) .lesson-title {
     top: calc(16px + var(--tools-h, 32px) + 8px + env(safe-area-inset-top, 0px));
-    max-width: calc(100% - 32px);
+    /* Beside the "Use testnet" link under the pills (--tools-h is the pill row; see LessonPage). */
+    max-width: calc(100% - 32px - 96px);
   }
 }
 .lesson-title h1 {
@@ -344,7 +348,9 @@ body:has(.lesson) {
   position: absolute;
   left: max(16px, env(safe-area-inset-left, 0px));
   /* --bar-h is measured by LessonPage; 56px is the one-line stage bar. */
-  bottom: calc(16px + var(--bar-h, 56px) + 16px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(
+    var(--bar-gap, 16px) + var(--bar-h, 56px) + var(--bar-gap, 16px) + env(safe-area-inset-bottom, 0px)
+  );
   width: min(400px, calc(100% - 32px));
   max-height: 52%;
   display: flex;
@@ -546,7 +552,7 @@ body:has(.lesson) {
 .stage-bar {
   position: absolute;
   left: 50%;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--bar-gap, 16px) + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   width: min(440px, calc(100% - 32px));
   display: flex;
@@ -624,7 +630,7 @@ body:has(.lesson) {
 .stage-menu {
   position: absolute;
   left: 50%;
-  bottom: calc(16px + var(--bar-h, 56px) + 12px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--bar-gap, 16px) + var(--bar-h, 56px) + 12px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   width: min(460px, calc(100% - 32px));
   max-height: 60%;
@@ -817,14 +823,133 @@ body:has(.lesson) {
 
 @media (max-width: 560px) {
   .stage-bar {
-    padding: 6px 8px;
+    padding: 4px 8px;
   }
   .lesson-dock {
     max-height: 44%;
+    gap: 8px;
   }
   .note {
     font-size: 15px;
   }
+  /* Phones: the running head is one line (the cover showed the full title; the contents menu links home),
+     and the step label drops the action's name, which the step's own button repeats. */
+  .lesson-title .eyebrow {
+    display: none;
+  }
+  .lesson-title h1 {
+    font-size: 20px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .step-label .your-turn-what {
+    display: none;
+  }
+  /* Phones: the step heading is the first thing read, the scene the second. Keep the heading tight:
+     "Read as text" sits at the right of the step label and opens as a drop-down over the scene. */
+  .step-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 8px;
+    padding: 8px 12px 8px 14px;
+  }
+  .step-label {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .read-as-text {
+    order: 1;
+    flex: none;
+    margin-top: 0;
+  }
+  .step-caption {
+    order: 2;
+    flex: 1 1 100%;
+    font-size: 17px;
+  }
+  .step-head:has(.read-as-text[open]) {
+    z-index: 6;
+  }
+  .read-as-text[open] ol {
+    position: absolute;
+    left: -1.5px;
+    right: -1.5px;
+    top: calc(100% + 6px);
+    z-index: 5;
+    max-height: 50vh;
+    margin: 0;
+    padding: 10px 14px 10px 34px;
+    border: 1.5px solid var(--ink);
+    border-radius: 14px;
+    background: var(--paper-2, #fffdf7);
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+}
+
+/* ---------- The docked note on phones (StepNote compact) ----------
+   Two lines and "Read more". Opened, it lies over the scene, growing upwards from the dock, which keeps
+   its folded height. */
+.note-wrap {
+  position: relative;
+  flex: none;
+}
+.note.docked.compact {
+  padding: 8px 14px;
+  background: var(--paper-2, #fffdf7);
+  backdrop-filter: none;
+}
+.note.docked.compact .note-clip {
+  position: relative;
+}
+.note.docked.compact:not(.open) .note-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* With step controls above it, the folded note keeps to one line. */
+.lesson-dock:has(.action-slot:not(:empty)) .note.docked.compact:not(.open) .note-text {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+.note-more {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: 700 13px/1.45 var(--ui);
+  text-decoration: underline;
+  color: var(--ink);
+  cursor: pointer;
+}
+.note.docked.compact:not(.open) .note-more {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding-left: 32px;
+  font-size: 13px;
+  line-height: calc(15px * 1.45);
+  background: linear-gradient(90deg, #f6f2e800, var(--paper-2) 28px);
+}
+.note.docked.compact.open {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  max-height: calc(100dvh - var(--head-h, 200px) - var(--bar-h, 56px) - 3 * var(--bar-gap, 8px) - 24px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  box-shadow:
+    3px 3px 0 var(--ink),
+    0 -10px 30px #16141f33;
+}
+.note.docked.compact.open .note-more {
+  display: block;
+  margin: 6px 0 0 auto;
 }
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -869,7 +994,7 @@ body:has(.lesson) {
   position: absolute;
   z-index: 1;
   inset: var(--head-h, 110px) max(16px, env(safe-area-inset-right, 0px))
-    calc(16px + var(--bar-h, 56px) + 16px + env(safe-area-inset-bottom, 0px))
+    calc(var(--bar-gap, 16px) + var(--bar-h, 56px) + var(--bar-gap, 16px) + env(safe-area-inset-bottom, 0px))
     max(16px, env(safe-area-inset-left, 0px));
   overflow: auto;
   overscroll-behavior: contain;

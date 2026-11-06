@@ -8,7 +8,8 @@
   left: max(16px, env(safe-area-inset-left, 0px));
   right: max(16px, env(safe-area-inset-right, 0px));
   bottom: calc(
-    16px + var(--bar-h, 56px) + 16px + var(--dock-h, 40%) + 8px + env(safe-area-inset-bottom, 0px)
+    var(--bar-gap, 16px) + var(--bar-h, 56px) + var(--bar-gap, 16px) + var(--dock-h, 40%) + 8px +
+      env(safe-area-inset-bottom, 0px)
   );
   display: flex;
   flex-direction: column;

@@ -338,8 +338,14 @@ function AskForm({ lesson, attack }: { lesson: Lesson; attack: boolean }) {
               onChange={(e) => lesson.setPrompt(e.target.value)}
             />
           </label>
-          <button type="submit" className="btn primary" disabled={!lesson.canAsk}>
-            {lesson.busy === "ask" ? "Sending…" : "Ask the agent"}
+          <button type="submit" className="btn primary kl-ask" disabled={!lesson.canAsk}>
+            {lesson.busy === "ask" ? (
+              "Sending…"
+            ) : (
+              <>
+                Ask<span className="kl-ask-long"> the agent</span>
+              </>
+            )}
           </button>
         </div>
         {attack ? (
