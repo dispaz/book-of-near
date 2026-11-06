@@ -7,9 +7,7 @@
   top: var(--head-h, 112px);
   left: max(16px, env(safe-area-inset-left, 0px));
   right: max(16px, env(safe-area-inset-right, 0px));
-  bottom: calc(
-    16px + var(--bar-h, 56px) + 16px + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px)
-  );
+  bottom: calc(var(--bar-reserve, 88px) + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -285,6 +283,9 @@
 }
 .tl-form .btn.primary {
   margin-left: auto;
+  /* "Send" and " the batch" are two pieces of one label: no flex gap between them. */
+  gap: 0;
+  white-space: pre;
 }
 .tl-add {
   display: flex;
@@ -424,22 +425,62 @@
     display: none;
   }
   .tl-form {
-    gap: 4px;
-    padding: 6px 8px;
+    gap: 3px;
+    padding: 4px 8px;
+  }
+  .tl-form input {
+    padding: 3px 6px;
+  }
+  /* The add buttons share the bottom row with Send and scroll sideways. */
+  .tl-bottom {
+    flex-wrap: nowrap;
   }
   .tl-add {
+    flex: 1 1 0;
+    min-width: 0;
     flex-wrap: nowrap;
     overflow-x: auto;
   }
   .tl-chip {
     flex: none;
+    padding: 2px 8px;
+    font-size: 12px;
+  }
+  .tl-long {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  /* The actions become small tags in a wrapping line: number, short name, move up, remove. */
+  .tl-rows {
+    flex-direction: row;
+    flex-wrap: wrap;
   }
   .tl-rows li {
-    padding: 1px 4px;
+    padding: 1px 3px;
+  }
+  .tl-rows .tl-what {
+    display: none;
+  }
+  .tl-what-short {
+    font: 600 12px var(--ui);
+    white-space: nowrap;
   }
   .tl-rows button {
-    width: 28px;
-    height: 24px;
+    width: 24px;
+    height: 20px;
+    font-size: 12px;
+  }
+  .tl-rows button[aria-label$="down"] {
+    display: none;
+  }
+}
+@media (min-width: 900px) {
+  .tl-what-short {
+    display: none;
   }
 }
 @media (max-width: 899px) {

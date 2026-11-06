@@ -5,7 +5,16 @@ import { ActionSlot, SceneAction } from "../../../ui/SceneAction";
 import { Check, HonestTake, type CheckQuestion } from "../../../lesson-kit";
 import { useChain } from "../../../chain/ChainContext";
 import type { SignedTransaction } from "../../../chain/types";
-import { FATE_TEXT, ITEM_NAME, describeAction, itemText, near, short, type ItemKind } from "./batch";
+import {
+  FATE_TEXT,
+  ITEM_NAME,
+  SHORT_NAME,
+  describeAction,
+  itemText,
+  near,
+  short,
+  type ItemKind,
+} from "./batch";
 import {
   BREAK,
   BUILD,
@@ -80,8 +89,10 @@ function TxScene({ step, setGate, setVars, reducedMotion, mode, view, flat, repo
   return (
     <>
       <div
-        className={`tl step-${step}${reducedMotion ? " still" : ""}${summary ? " summary" : ""}${three ? " three" : ""}`}
+        className={`tl scroll-fade-narrow step-${step}${reducedMotion ? " still" : ""}${summary ? " summary" : ""}${three ? " three" : ""}`}
         data-testid="tx-scene"
+        // The builder makes the dock tall: a margin note would lie over its rows, so keep the note docked.
+        data-notes={step === BUILD || step === BREAK ? "dock" : undefined}
         data-scene-state={lesson.state}
         data-view={view}
         data-mode={mode}
@@ -444,20 +455,6 @@ function Builder({ lesson, breaking }: { lesson: Lesson; breaking: boolean }) {
             <span>NEAR</span>
           </label>
         </div>
-        <div className="tl-add" role="group" aria-label="Add an action">
-          {kinds.map((k) => (
-            <button
-              key={k}
-              type="button"
-              className="tl-chip"
-              aria-label={`Add: ${ITEM_NAME[k]}`}
-              disabled={locked}
-              onClick={() => lesson.add(k)}
-            >
-              + {CHIP_NAME[k]}
-            </button>
-          ))}
-        </div>
         <ol className="tl-rows" aria-label="Actions in this transaction">
           {lesson.items.length === 0 ? <li className="tl-dim">No actions yet. Add some above.</li> : null}
           {lesson.items.map((item, i) => (
@@ -465,6 +462,9 @@ function Builder({ lesson, breaking }: { lesson: Lesson; breaking: boolean }) {
               <span className="tl-n">{i + 1}</span>
               <span className="tl-what">
                 {itemText(item.kind, lesson.amountText.trim() || "?", lesson.label.trim() || "?")}
+              </span>
+              <span className="tl-what-short" aria-hidden="true">
+                {SHORT_NAME[item.kind]}
               </span>
               <button
                 type="button"
@@ -493,19 +493,39 @@ function Builder({ lesson, breaking }: { lesson: Lesson; breaking: boolean }) {
             </li>
           ))}
         </ol>
-        {/* The send button stays at the bottom, so adding rows never moves it under the pointer. */}
-        <div className="tl-form-row">
-          {lesson.problem ? (
-            <p className="tl-form-error" role="alert">
-              {lesson.problem}
-            </p>
-          ) : (
-            <p className="tl-form-hint">
-              {breaking ? "The last action adds the same key again." : "One transaction, signed once."}
-            </p>
-          )}
+        {lesson.problem ? (
+          <p className="tl-form-error" role="alert">
+            {lesson.problem}
+          </p>
+        ) : (
+          <p className="tl-form-hint">
+            {breaking ? "The last action adds the same key again." : "One transaction, signed once."}
+          </p>
+        )}
+        {/* The add buttons and Send stay at the bottom, so adding rows never moves them under the pointer. */}
+        <div className="tl-form-row tl-bottom">
+          <div className="tl-add" role="group" aria-label="Add an action">
+            {kinds.map((k) => (
+              <button
+                key={k}
+                type="button"
+                className="tl-chip"
+                aria-label={`Add: ${ITEM_NAME[k]}`}
+                disabled={locked}
+                onClick={() => lesson.add(k)}
+              >
+                + {CHIP_NAME[k]}
+              </button>
+            ))}
+          </div>
           <button type="submit" className="btn primary" disabled={!lesson.canSend}>
-            {lesson.busy === "send" ? "Sending…" : done ? "Send the batch again" : "Send the batch"}
+            {lesson.busy === "send" ? (
+              "Sending…"
+            ) : (
+              <>
+                Send<span className="tl-long"> the batch{done ? " again" : ""}</span>
+              </>
+            )}
           </button>
         </div>
       </form>

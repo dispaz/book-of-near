@@ -12,6 +12,7 @@ const LESSONS = [
   "l-0-3-send-a-transaction",
   "l-1-1-claim-your-name",
   "l-1-2-function-call-key",
+  "l-1-3-inside-a-transaction",
 ];
 const PHONES = [
   // Measured worst cases: 39% and 28%. The thresholds leave a little headroom.
@@ -209,6 +210,41 @@ test.describe("phone: result cards are readable", () => {
     expect(fits).toBe(true);
   });
 });
+
+// Lesson 1.3's builder only shows once the workshop account exists, so opening a step by URL does not
+// draw it: walk there and check the band with the builder at its tallest (four rows, "break it" step).
+for (const phone of PHONES) {
+  for (const view of ["2d", "3d"] as const) {
+    test(`l-1-3-inside-a-transaction ${view}: the builder leaves the scene its band at ${phone.width}x${phone.height}`, async ({
+      page,
+    }) => {
+      test.slow();
+      await page.setViewportSize({ width: phone.width, height: phone.height });
+      await page.goto(`/lesson/l-1-3-inside-a-transaction?view=${view}&step=2`);
+      const scene = page.locator("[data-scene-state]").first();
+      const next = page.getByRole("button", { name: "Next step" });
+      await page.getByRole("button", { name: "Make the workshop account" }).click();
+      await expect(scene).toHaveAttribute("data-scene-state", /parent:yes/, { timeout: 30_000 });
+      await next.click();
+      for (const a of ["Create account", "Send NEAR", "Add a key"])
+        await page.getByRole("button", { name: `Add: ${a}` }).click();
+      const b3 = await band(page);
+      await page.getByRole("button", { name: "Send the batch" }).click();
+      await expect(scene).toHaveAttribute("data-scene-state", /batch:ok/, { timeout: 30_000 });
+      await next.click();
+      await expect(
+        page.getByRole("list", { name: "Actions in this transaction" }).getByRole("listitem"),
+      ).toHaveCount(4);
+      await page.waitForTimeout(300);
+      const b4 = await band(page);
+      const short = [b3, b4]
+        .map((b, i) => ({ step: i + 3, h: b.height }))
+        .filter((b) => b.h < phone.height * phone.minShare)
+        .map((b) => `step ${b.step}: ${Math.round(b.h)}px`);
+      expect(short, `scene band under ${phone.minShare * 100}% of the screen`).toEqual([]);
+    });
+  }
+}
 
 test.describe("desktop is unchanged", () => {
   test.use({ viewport: { width: 1280, height: 800 } });

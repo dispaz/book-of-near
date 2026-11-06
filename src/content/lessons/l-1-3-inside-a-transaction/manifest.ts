@@ -38,24 +38,21 @@ export default {
       action: { label: "make the workshop account", gate: true },
     },
     {
-      caption:
-        "Stack actions for {sub}: create the account, send it NEAR, add a key. Put them in order and send them as one transaction.",
+      caption: "Stack three actions for {sub}, in order, and send them as one transaction.",
       explain:
         "All the actions in one transaction go to one receiver, here the new account {sub}. They run in the order you list them. {parent} signs once and pays one fee. Order matters: an account must exist before it can get NEAR or keys.",
       explainAt: "builder",
       action: { label: "send a batch that works", gate: true },
     },
     {
-      caption:
-        "Now break one. Send a batch for {failsub} that adds the same key twice, and see what is left.",
+      caption: "Now break it. Send a batch for {failsub} that adds the same key twice.",
       explain:
         "Adding a key the account already has fails. When an action fails, the chain undoes every action of that transaction, even the ones that already ran. {failsub} is not created, and the NEAR sent to it ({back} NEAR) comes back. The fee for the work done is still paid.",
       explainAt: "result",
       action: { label: "send a batch that fails", gate: true },
     },
     {
-      caption:
-        "Your first batch had nonce {nonce}. Send that same signed transaction again, unchanged, and see that the chain will not run it twice.",
+      caption: "Your first batch had nonce {nonce}. Send that same signed transaction again, unchanged.",
       explain:
         "Anyone who sees a signed transaction could send a copy. The nonce stops that: each key's nonce only goes up, so a copy with a used nonce never runs again and costs nothing. A node simply answers with the first result. The block hash adds a deadline: once that block is too old, even an unused transaction expires.",
       explainAt: "replay",
