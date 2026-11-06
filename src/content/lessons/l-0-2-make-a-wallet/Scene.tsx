@@ -98,7 +98,7 @@ export default function Scene({ step, goTo, setGate, reducedMotion, mode, view, 
         />
       )}
       {showPanel ? (
-        <section className="lesson-panel wallet-panel" aria-label={panelTitle} data-step={step}>
+        <section className="lesson-panel scroll-fade wallet-panel" aria-label={panelTitle} data-step={step}>
           <h2 className="panel-title">{panelTitle}</h2>
           <PanelBody w={w} step={step} goTo={goTo} mode={mode} />
         </section>

@@ -6,10 +6,7 @@
   top: var(--head-h, 112px);
   left: max(16px, env(safe-area-inset-left, 0px));
   right: max(16px, env(safe-area-inset-right, 0px));
-  bottom: calc(
-    var(--bar-gap, 16px) + var(--bar-h, 56px) + var(--bar-gap, 16px) + var(--dock-h, 44%) + 10px +
-      env(safe-area-inset-bottom, 0px)
-  );
+  bottom: calc(var(--bar-reserve, 88px) + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -628,21 +625,4 @@
 .stx-3d-box {
   position: absolute;
   inset: 0;
-}
-
-/* Phones: the column scrolls when its cards are taller than the band. A fade at the bottom edge says
-   there is more below (at the end it sits in empty space). Lesson 1.1 shares this column. */
-@media (max-width: 899px) {
-  .stx::after {
-    content: "";
-    position: sticky;
-    bottom: 0;
-    flex: none;
-    height: 24px;
-    margin-top: -8px;
-    background: linear-gradient(#f3efe400, #f3efe4);
-    /* Not over the shadow along the book's spine, where the page is darker than the fade. */
-    clip-path: inset(0 0 0 14px);
-    pointer-events: none;
-  }
 }

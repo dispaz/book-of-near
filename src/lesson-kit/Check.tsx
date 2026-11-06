@@ -60,7 +60,7 @@ export function Check({
   return (
     <>
       <div className="check-backdrop" aria-hidden="true" onClick={() => setMin(true)} />
-      <section className="lesson-panel check" role="dialog" aria-labelledby={`${uid}-t`}>
+      <section className="lesson-panel scroll-fade check" role="dialog" aria-labelledby={`${uid}-t`}>
         <div className="check-head">
           <h2 id={`${uid}-t`} className="panel-title">
             {title}

@@ -45,7 +45,7 @@ export function HonestTake({
     ? "NEAR is not different here from most chains."
     : `Compared with ${listFormat.format(chains)}.`;
   return (
-    <section className="lesson-panel honest-take" aria-labelledby={id}>
+    <section className="lesson-panel scroll-fade honest-take" aria-labelledby={id}>
       <h2 id={id} className="panel-title">
         Honest take
       </h2>
