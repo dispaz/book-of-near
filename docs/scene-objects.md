@@ -1,6 +1,8 @@
 # Scene objects: one shape per concept
 
-Status: **proposal, for review** (7 Nov 2026). Nothing here is built yet.
+Status: **proposal, partly decided** (7 Nov 2026). Nothing here is built yet. Owner decisions so far:
+transaction = parcel, signature = stamp, contract = scroll that shows it runs code. Account still open
+(mailbox or wallet).
 
 ## Why
 
@@ -28,16 +30,16 @@ both views.
 | --- | --- | --- | --- | --- |
 | **Block** | A page with a torn-off tab, linked to the previous page by a string (the hash) | A blockchain is a book of pages; the string is the hash link | sealed, tampered (string snaps, red) | `ChainBlock` pieces, 0.1's `LedgerBlock` |
 | **Blockchain** | A short stack/row of linked block pages | Same object, repeated | another chain = different page edge | `ChainBlock` |
-| **Account / address** | A mailbox (post box) with a name plate | Has an address, receives things, belongs to someone | named (plate), implicit (hex plate, small), not created (dashed) | `AccountBlock` |
+| **Account / address** | A mailbox with a name plate (open: or a wallet, see question 1) | Has an address, receives parcels, belongs to someone | named (plate), implicit (hex plate, small), not created (dashed) | `AccountBlock` |
 | **Balance / token** | A coin; several coins as a short stack on the account | Universal money sign | NEAR coin vs other token (different face mark) | `Coin` |
-| **Transaction** | A sealed envelope | A message from one account to another, sealed by a signature | draft (open flap), signed (sealed), in flight, included (stamped), failed (red cross) | lesson-made cards, 1.3's card |
-| **Action** | A slip of paper inside the envelope | A transaction is a list of actions | ran / undone / failed / never ran | 1.3's action rows |
-| **Signing / signature** | A wax seal pressed onto the envelope | Proves who sent it; tampering breaks it | valid, broken (cracked, red) | 0.2 sign/verify blocks |
+| **Transaction** | A parcel, addressed to one receiver | Sent from one account to another, packed with actions; one address label = one receiver | packing (open box), signed (stamped), in flight, delivered, failed (red cross). **Opens**: click or focus to lift the lid and preview every action inside, in order | lesson-made cards, 1.3's card |
+| **Action** | An item packed inside the parcel (a labelled card or small object per kind: create account, send NEAR, add key, call) | A transaction is a list of actions | ran / undone / failed / never ran | 1.3's action rows |
+| **Signing / signature** | A stamp pressed onto the parcel (the sender's mark) | Proves who sent it; opening and changing the parcel breaks it | valid, broken (torn, red) | 0.2 sign/verify blocks |
 | **Key (full access)** | A plain key | Opens everything | revoked (struck out) | `Key` |
 | **Key (function-call)** | A key with a paper tag on a string; the tag names the contract and allowance | Same key, visibly limited | allowance as a gauge on the tag; empty; revoked | `Key` + note |
 | **Wallet** | A key ring holding one or more keys | A wallet is where your keys live, not your money | locked / unlocked | 0.2's wallet box |
-| **Contract** | A small machine (music-box / vending style) with an input slot and an output tray | Code that takes calls and gives results | idle, running (crank turns), panicked (red) | `ContractBlock` |
-| **Receipt** | A ticket stub torn from the envelope | What an action becomes when it moves on (Stage 2) | pending, done, failed | — |
+| **Contract** | A scroll with a small gear (cog) on its seal; the gear turns when the contract runs | A contract is written rules (the scroll) that run as code (the gear) | idle, running (gear turns, lines on the scroll light up), panicked (red) | `ContractBlock` |
+| **Receipt** | A delivery slip that comes with the parcel | What an action becomes when it moves on (Stage 2) | pending, done, failed | — |
 | **Gas / fee** | Small ink drops / a meter | Work costs a little, spent as you go | full / used | — |
 | **RPC node** | A post-office counter window | The door you hand your envelope to | busy, down | 0.3's `RpcNode` |
 | **Shard** | A section of the book (a group of pages with its own coloured ribbon) | NEAR splits the chain into parallel parts | — | `ShardSlab` |
@@ -59,7 +61,13 @@ Open: chain signatures (Stage 4 showpiece) and intents will need rows when those
 
 ## Questions for review
 
-1. Mailbox for account, or a door / house with a name plate?
-2. Envelope + wax seal for transaction + signature, or a parcel with a stamp?
-3. Contract as a machine, or a scroll with a seal (a "contract" document)? The machine shows "it
-   runs code"; the scroll is closer to the word but looks like a passive document.
+Answered (7 Nov 2026):
+- Transaction: **parcel with a stamp** (the stamp is the signature). A parcel can be opened to preview
+  all the actions packed inside.
+- Contract: **scroll**, with a sign that it runs code (the gear on its seal).
+
+Open:
+1. Account: **mailbox or wallet?** The owner leans to wallet; mailbox also works. If the account is a
+   wallet, the key ring needs another home (keys hang inside the wallet?), because today "wallet" means
+   the place your keys live (lesson 0.2), not the account on chain. Mailbox keeps the two apart and
+   matches parcels (a parcel is delivered to a mailbox).
