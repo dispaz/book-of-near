@@ -54,6 +54,21 @@ export {
   useInk,
   type PickProps,
 } from "./primitives";
+export {
+  ActionCard,
+  Cross,
+  FATE_FILL,
+  FATE_MARK,
+  Mailbox,
+  Parcel,
+  Scroll,
+  Stamp,
+  Strike,
+  TaggedKey,
+  type ActionFate,
+  type ParcelItem,
+} from "./objects3d";
+export * from "./objects";
 export { Traveller } from "./Traveller";
 export { CameraRig } from "./CameraRig";
 export { useStage } from "./context";

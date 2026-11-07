@@ -185,3 +185,23 @@
 .book-scene-panel:empty {
   display: none;
 }
+
+/* Scene objects (svg/objects.tsx): the contract's gear turns while it runs. */
+.sk-gear.spin {
+  animation: sk-gear-spin 2.4s linear infinite;
+}
+@keyframes sk-gear-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-gear.spin {
+    animation: none;
+  }
+}
+.sk-icon {
+  display: inline-block;
+  vertical-align: -0.3em;
+  flex: none;
+}

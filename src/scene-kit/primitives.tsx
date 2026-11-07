@@ -25,11 +25,14 @@ export function Outline({
   threshold = 25,
   width = 1.6,
   thickness = 0.035,
+  dashed = false,
 }: {
   mode?: "edges" | "hull";
   threshold?: number;
   width?: number;
   thickness?: number;
+  /** Dashed edges: something that does not exist yet. */
+  dashed?: boolean;
 }) {
   const hull = useRef<Mesh>(null);
   useLayoutEffect(() => {
@@ -37,7 +40,12 @@ export function Outline({
     const parent = m?.parent as Mesh | null | undefined;
     if (m && parent?.geometry) m.geometry = parent.geometry;
   });
-  if (mode === "edges") return <Edges threshold={threshold} lineWidth={width} color={INK} />;
+  if (mode === "edges")
+    return dashed ? (
+      <Edges threshold={threshold} lineWidth={width} color={INK} dashed dashSize={0.09} gapSize={0.07} />
+    ) : (
+      <Edges threshold={threshold} lineWidth={width} color={INK} />
+    );
   return <mesh ref={hull} material={hullMaterial(thickness)} raycast={noRaycast} />;
 }
 
@@ -78,7 +86,7 @@ export function Label({
 }
 
 /** A name above an object. In flat view it moves behind the object, so it shows above it on screen. */
-function NameLabel({ height, depth, children }: { height: number; depth: number; children: string }) {
+export function NameLabel({ height, depth, children }: { height: number; depth: number; children: string }) {
   const { flat } = useStage();
   return <Label position={flat ? [0, height - 0.9, -depth * 0.85] : [0, height, 0]}>{children}</Label>;
 }
@@ -139,7 +147,7 @@ export function Pickable({
 }
 
 /** Draws a ring under a selected object. */
-function SelectRing({
+export function SelectRing({
   selected,
   radius,
   color,
@@ -175,7 +183,7 @@ function SelectRing({
   );
 }
 
-function maybePickable(pick: PickProps, name: string, anchorY: number, node: ReactNode) {
+export function maybePickable(pick: PickProps, name: string, anchorY: number, node: ReactNode) {
   if (!pick.onPick) return node;
   return (
     <Pickable

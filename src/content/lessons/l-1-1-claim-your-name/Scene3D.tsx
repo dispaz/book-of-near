@@ -1,31 +1,30 @@
 /**
- * Lesson 1.1 in 3D: your account, the registrar and the new account in a row. The new account starts as
- * a dashed ghost; when the registrar creates it, a solid block drops in with its name on a label. The
- * compare step puts the named block beside the ghost of its hex twin. It only draws the shared state
+ * Lesson 1.1 in 3D: your account (a mailbox), the registrar (a contract: a scroll that runs code) and the
+ * new account in a row. The new account starts as a dashed mailbox; the create transaction travels to the
+ * registrar as a stamped parcel, and when the account exists a solid mailbox drops in and the 0.1 NEAR coin
+ * lands in it. The compare step puts the named mailbox beside the dashed one of its hex twin. It only draws the shared state
  * from useClaim. Loaded lazily from Scene.tsx, so the 2D view never downloads three.js.
  */
 import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Line } from "@react-three/drei";
 import type { Group } from "three";
 import {
-  AccountBlock,
   Anchor,
   Coin,
-  ContractBlock,
   InkStage,
-  INK,
   Label,
+  Mailbox,
+  Parcel,
+  Scroll,
   Traveller,
   ViewOffset,
   frameCamera,
   inset,
   useStage,
-  type Vec3,
 } from "../../../scene-kit";
 import { useMediaQuery } from "../../../ui/hooks";
 import { near, short } from "../l-0-3-send-a-transaction/tx";
-import { HEX, ME, NAMED, NEW_ACCOUNT, REGISTRAR, SIZE, shotFor } from "./layout3d";
+import { HEX, ME, NAMED, NEW_ACCOUNT, OBJ, REGISTRAR, SIZE, coinAt, parcelAt, shotFor } from "./layout3d";
 import { COMPARE, CONCEPT, CREATE, PICK, type Claim } from "./useClaim";
 
 export default function Scene3D({
@@ -69,11 +68,8 @@ export default function Scene3D({
       : step === PICK
         ? "…"
         : "your name?";
-  const coinAt: Vec3 = created
-    ? [NEW_ACCOUNT[0], SIZE + 0.08, NEW_ACCOUNT[2]]
-    : busy
-      ? [REGISTRAR[0], SIZE + 0.08, REGISTRAR[2]]
-      : [ME[0], SIZE + 0.08, ME[2]];
+  const sending = { busy: !!busy, created: !!created };
+  const coin = coinAt(sending);
 
   return (
     <div ref={box} className="stx-3d-box">
@@ -92,10 +88,10 @@ export default function Scene3D({
 
         {step !== COMPARE ? (
           <>
-            {/* Your practice account. */}
-            <AccountBlock
+            {/* Your practice account: a mailbox. */}
+            <Mailbox
               position={ME}
-              size={SIZE}
+              size={OBJ}
               name={claim.start !== null ? near(claim.start) : "…"}
               pickLabel="Your practice account"
               selected={picked === "me"}
@@ -115,11 +111,13 @@ export default function Scene3D({
 
         {step >= CONCEPT && step !== COMPARE ? (
           <>
-            {/* The registrar: a contract that makes .testnet names. Pick it on the Create step. */}
-            <ContractBlock
+            {/* The registrar: a contract (a scroll that runs code) that makes .testnet names. */}
+            <Scroll
               position={REGISTRAR}
-              size={SIZE}
+              size={OBJ}
               name="testnet"
+              note={phone ? undefined : "registrar"}
+              running={busy}
               pickLabel={claim.canCreate ? "Ask the registrar to create your name" : "The registrar"}
               selected={picked === "registrar"}
               onPick={
@@ -141,21 +139,34 @@ export default function Scene3D({
               </Label>
             ) : null}
 
-            {/* The new account: a dashed ghost until the registrar makes it. */}
+            {/* The new account: a dashed mailbox until the registrar makes it. */}
             {created ? (
               <Drop>
-                <AccountBlock position={NEW_ACCOUNT} size={SIZE} name={created.id} />
+                <Mailbox position={NEW_ACCOUNT} size={OBJ} name={created.id} flag />
               </Drop>
             ) : (
-              <Ghost position={NEW_ACCOUNT} size={SIZE} label={newName} sub="not created yet" />
+              <>
+                <Mailbox position={NEW_ACCOUNT} size={OBJ} name={newName} state="pending" />
+                <Label position={[NEW_ACCOUNT[0], 0.25, NEW_ACCOUNT[2] + SIZE / 2 + 0.45]} variant="small">
+                  not created yet
+                </Label>
+              </>
             )}
             <Anchor name="name-box" position={[NEW_ACCOUNT[0], SIZE * 0.6, NEW_ACCOUNT[2]]} />
 
-            {/* The 0.1 NEAR deposit, on its way to the registrar and on into the new account. */}
+            {/* The create transaction: a stamped parcel to the registrar, carrying the 0.1 NEAR. */}
             {step >= CREATE ? (
-              <Traveller to={coinAt} arc={2.2} duration={0.9}>
+              <Traveller to={parcelAt(sending)} arc={2.2} duration={0.9}>
+                <Parcel size={0.7} stamped name="the create transaction" />
+                <Label position={[0, 0.05, 0.85]} variant="small">
+                  {created ? "delivered" : busy ? "on its way" : "create_account + 0.1 NEAR"}
+                </Label>
+              </Traveller>
+            ) : null}
+            {coin ? (
+              <Traveller to={coin} arc={2.2} duration={0.9}>
                 <Coin />
-                <Label position={[0, -0.55, SIZE / 2 + 0.05]} variant="small">
+                <Label position={[0, 0.05, 0.8]} variant="small">
                   0.1 NEAR
                 </Label>
               </Traveller>
@@ -165,11 +176,14 @@ export default function Scene3D({
 
         {step === COMPARE && created ? (
           <>
-            <AccountBlock position={NAMED} size={SIZE} name={created.id} />
+            <Mailbox position={NAMED} size={OBJ} name={created.id} />
             <Label position={[NAMED[0], 0.25, NAMED[2] + SIZE / 2 + 0.45]} variant="small">
               named · exists
             </Label>
-            <Ghost position={HEX} size={SIZE} label={short(created.hexId, 8, 6)} sub="hex · not created" />
+            <Mailbox position={HEX} size={OBJ} name={short(created.hexId, 8, 6)} state="pending" />
+            <Label position={[HEX[0], 0.25, HEX[2] + SIZE / 2 + 0.45]} variant="small">
+              hex · not created
+            </Label>
             <Anchor name="compare" position={[0, SIZE * 0.6, 0]} />
           </>
         ) : null}
@@ -207,37 +221,7 @@ function useBoxSize(ref: RefObject<HTMLElement | null>) {
   return size;
 }
 
-// ---------- objects made for this lesson ----------
-
-/** A dashed outline of a block: an account that does not exist (yet). */
-function Ghost({ position, size, label, sub }: { position: Vec3; size: number; label: string; sub: string }) {
-  const h = size / 2;
-  const a: Vec3[] = [
-    [-h, 0, -h],
-    [h, 0, -h],
-    [h, 0, h],
-    [-h, 0, h],
-    [-h, 0, -h],
-  ];
-  const top = a.map(([x, , z]) => [x, size, z] as Vec3);
-  const posts = a.slice(0, 4).map(([x, , z]) => [[x, 0, z] as Vec3, [x, size, z] as Vec3]);
-  const dash = { color: INK, lineWidth: 1.6, dashed: true, dashSize: 0.1, gapSize: 0.08 };
-  return (
-    <group position={position}>
-      <Line points={a} {...dash} />
-      <Line points={top} {...dash} />
-      {posts.map((p, i) => (
-        <Line key={i} points={p} {...dash} />
-      ))}
-      <Label position={[0, size + 0.55, 0]} variant="small">
-        {label}
-      </Label>
-      <Label position={[0, 0.25, size / 2 + 0.45]} variant="small">
-        {sub}
-      </Label>
-    </group>
-  );
-}
+// ---------- motion made for this lesson ----------
 
 /** Falls into place from above when it first appears (at once under reduced motion). */
 function Drop({ children }: { children: ReactNode }) {

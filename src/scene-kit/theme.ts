@@ -13,5 +13,7 @@ export const COLORS = {
   slab: "#e9e2d0",
   contract: "#cfc6f2",
   chain: "#d7e3d0",
+  /** Parcels (transactions): brown paper. */
+  kraft: "#e3c79b",
   paper: PAPER,
 } as const;

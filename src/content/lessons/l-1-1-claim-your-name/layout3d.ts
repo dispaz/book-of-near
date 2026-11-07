@@ -7,6 +7,7 @@
  */
 import { focusOf as kitFocus, type Box, type Focus } from "../../../scene-kit/framing";
 import type { Vec3 } from "../../../scene-kit/motion";
+import { mailboxDims, scrollDims } from "../../../scene-kit/objects";
 import { COMPARE, HOOK } from "./useClaim";
 
 export const SIZE = 1.3;
@@ -22,6 +23,28 @@ const box = (p: Vec3): Box => [p[0] - 1.4, p[0] + 1.4, p[2] - 0.8, p[2] + 1.3, 2
 
 /** Seen from the front, aimed a little low, at the blocks rather than their tags. */
 const focusOf = (boxes: Box[], elevation: number): Focus => kitFocus(boxes, elevation, 0, 0.3);
+
+/** The size the objects are drawn at (mailboxes and scrolls are slimmer than the old blocks). */
+export const OBJ = SIZE * 1.35;
+
+type Sending = { busy: boolean; created: boolean };
+
+const BESIDE = mailboxDims(OBJ).width / 2 + 0.45;
+const SCROLL_TOP = scrollDims(OBJ).height;
+
+/** The create transaction, a stamped parcel on the ground: beside your mailbox, then at the registrar. */
+export function parcelAt({ busy, created }: Sending): Vec3 {
+  return busy || created
+    ? [REGISTRAR[0] - 0.95, 0, REGISTRAR[2] + 0.75]
+    : [ME[0] + BESIDE + 0.1, 0, ME[2] - 0.35];
+}
+
+/** The 0.1 NEAR deposit: over the registrar while it works, then on the ground by the new mailbox. */
+export function coinAt({ busy, created }: Sending): Vec3 | null {
+  if (created) return [NEW_ACCOUNT[0] + BESIDE, 0.07, NEW_ACCOUNT[2] + 0.5];
+  if (busy) return [REGISTRAR[0], SCROLL_TOP + 0.25, REGISTRAR[2]];
+  return null;
+}
 
 export function shotFor(step: number, phone: boolean): Focus {
   const elevation = phone ? 52 : 36;
