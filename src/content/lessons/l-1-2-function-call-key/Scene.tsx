@@ -4,7 +4,8 @@ import type { SceneProps } from "../../../app/types";
 import { ActionSlot, SceneAction } from "../../../ui/SceneAction";
 import { Check, HonestTake, type CheckQuestion } from "../../../lesson-kit";
 import { useChain } from "../../../chain/ChainContext";
-import { near, REASON_TEXT, short, type Attempt } from "./key";
+import { ObjectIcon } from "../../../scene-kit/svg/objects";
+import { ATTACKS, ATTEMPT_LABEL, ATTEMPT_SHORT, near, REASON_TEXT, short, type Attempt } from "./key";
 import { ADD, ATTACK, CALL, CHECK, HONEST, LIMIT, REVOKE, useKeyLesson, type Lesson } from "./useKeyLesson";
 import "./scene.css";
 
@@ -21,15 +22,15 @@ const QUESTIONS: CheckQuestion[] = [
     ],
   },
   {
-    prompt: "How do you take back a function-call key you gave to an agent?",
+    prompt: "How do you take back a key you gave to an app?",
     options: [
       { text: "Delete the key with a transaction signed by your full-access key.", correct: true },
       {
-        text: "Ask the agent to give it back.",
-        why: "A key you gave out stays valid until it is deleted. Asking changes nothing on the chain.",
+        text: "Ask the app to forget it.",
+        why: "A key stays valid on the chain until it is deleted. Asking changes nothing on the chain.",
       },
       {
-        text: "Lower your account balance to zero.",
+        text: "Move all your NEAR to another account.",
         why: "The allowance belongs to the key, not to your balance, and the key keeps working.",
       },
     ],
@@ -57,7 +58,7 @@ function KeyScene({ step, setGate, setVars, reducedMotion, mode, view, flat, rep
         data-view={view}
         data-mode={mode}
         role="group"
-        aria-label="Your account, the agent and its limited key"
+        aria-label="Your account, the Counter app and its limited key"
       >
         {summary ? null : three ? (
           <>
@@ -85,9 +86,9 @@ function KeyScene({ step, setGate, setVars, reducedMotion, mode, view, flat, rep
         {summary && lesson.keyState !== "none" ? (
           <p className="kl-sum">
             {lesson.keyState === "revoked"
-              ? "The agent's key is revoked."
-              : "The agent's key is on your account."}{" "}
-            {lesson.refused.length} attacks refused, {lesson.hints} hints used.
+              ? "The app's key is deleted."
+              : "The app's key is on your account."}{" "}
+            {lesson.refused.length} of {ATTACKS.length} misuses refused.
           </p>
         ) : null}
       </div>
@@ -101,20 +102,19 @@ function KeyScene({ step, setGate, setVars, reducedMotion, mode, view, flat, rep
         </Docked>
       ) : null}
       {step === ADD ? <AllowanceForm lesson={lesson} /> : null}
-      {step === CALL || step === ATTACK ? <AskForm lesson={lesson} attack={step === ATTACK} /> : null}
-      {step === REVOKE ? (
-        <SceneAction onClick={lesson.revoke} disabled={!lesson.canRevoke}>
-          {lesson.busy === "revoke"
-            ? "Deleting…"
-            : lesson.keyState === "revoked"
-              ? "Deleted ✓"
-              : "Delete the agent's key"}
+      {step === CALL ? (
+        <SceneAction onClick={() => void lesson.tryIt("count")} disabled={!lesson.canCount}>
+          {lesson.busy === "try" ? "Counting…" : ATTEMPT_LABEL.count}
         </SceneAction>
       ) : null}
+      {step === ATTACK ? <Misuse lesson={lesson} /> : null}
+      {step === REVOKE ? <Revoke lesson={lesson} /> : null}
       {(step === CALL || step === ATTACK || step === REVOKE) && lesson.keyState === "none" ? (
-        <p className="kl-needkey" role="status">
-          The agent has no key yet. Go back to step 3 and add it.
-        </p>
+        <Docked>
+          <p className="kl-needkey" role="status">
+            The app has no key yet. Go back to step 3 and give it one.
+          </p>
+        </Docked>
       ) : null}
 
       {step === CHECK ? (
@@ -134,6 +134,7 @@ function KeyScene({ step, setGate, setVars, reducedMotion, mode, view, flat, rep
             "Limits live in the account, not in an app. A NEAR account can hold many keys. A function-call key is limited to one contract, optional method names and a gas allowance, and the chain checks it on every transaction.",
             "A leaked limited key has a ceiling. It cannot move NEAR or attach a deposit, and when its allowance is spent it stops working.",
             "Revoking is one transaction. Delete the key with a full-access key.",
+            "It works for any helper. The chain does not know who holds a key: an app, a server, a bot or an AI agent. The same limits apply.",
           ]}
           weaknesses={[
             'The limits are coarse. A key is bound to one contract and, at most, some method names. It cannot say "at most 1 NEAR a day" or "only to this friend". Finer rules need a contract.',
@@ -162,10 +163,13 @@ function Cards({ lesson, marks }: { lesson: Lesson; marks: boolean }) {
   const { me, balance, keyInfo, keyState, initial, left, counter, says, step } = lesson;
   const perm = keyInfo?.permission.type === "FunctionCall" ? keyInfo.permission : null;
   const share = initial && left !== null && initial > 0n ? Number((left * 1000n) / initial) / 10 : 0;
+  const keys = keyState === "active" ? 2 : 1;
   return (
     <div className="kl-cards">
       <section className="kl-card" aria-label="Your practice account" {...mark(marks, "account")}>
-        <p className="kl-role">Your practice account</p>
+        <p className="kl-role">
+          <ObjectIcon kind="mailbox" /> Your practice account
+        </p>
         <p className="kl-id" title={me?.accountId}>
           {me ? short(me.accountId, 8, 6) : "…"}
         </p>
@@ -173,22 +177,28 @@ function Cards({ lesson, marks }: { lesson: Lesson; marks: boolean }) {
           Balance <b>{balance !== null ? `${near(balance)} NEAR` : "…"}</b>
         </p>
         <p className="kl-line kl-key full">
-          <KeyIcon /> Full-access key: <b>yours</b>. Can do anything.
+          <ObjectIcon kind="key" size={18} /> Full-access key: <b>yours</b>. Can do anything.
+        </p>
+        <p className="kl-line" data-testid="key-count">
+          Keys on this account: <b>{keys}</b>
         </p>
         {keyState !== "none" ? (
           <p className="kl-line" {...mark(marks, "counter")}>
-            Counter contract: <b data-testid="counter-value">{counter}</b>
+            <ObjectIcon kind="scroll" size={18} /> Counter contract:{" "}
+            <b data-testid="counter-value">{counter}</b>
           </p>
         ) : null}
       </section>
 
       <section
         className={`kl-card kl-keycard ${keyState}`}
-        aria-label="The agent's key"
+        aria-label="The app's key"
         data-testid="key-card"
         {...mark(marks, "keycard")}
       >
-        <p className="kl-role">The agent's key</p>
+        <p className="kl-role">
+          <ObjectIcon kind="tagged-key" /> The app's key
+        </p>
         {keyState === "none" ? (
           <p className="kl-line kl-dim">
             {step === LIMIT
@@ -197,13 +207,12 @@ function Cards({ lesson, marks }: { lesson: Lesson; marks: boolean }) {
           </p>
         ) : keyState === "revoked" ? (
           <p className="kl-line">
-            <KeyIcon /> <s>Function-call key</s> <b className="kl-revoked">Revoked</b>. Deleted from your
-            account.
+            <s>Function-call key</s> <b className="kl-revoked">Deleted</b>. Gone from your account.
           </p>
         ) : (
           <>
             <p className="kl-line">
-              <KeyIcon /> Function-call key. Can call: <b>this account's counter contract</b>
+              Function-call key. Can call: <b>this account's counter contract</b>
               {perm && perm.methodNames.length === 0 ? ", any method" : ""}.
             </p>
             <p className="kl-line">
@@ -226,10 +235,15 @@ function Cards({ lesson, marks }: { lesson: Lesson; marks: boolean }) {
         ) : null}
       </section>
 
-      <section className="kl-card kl-agent" aria-label="The agent">
-        <p className="kl-role">The agent (a script, not an AI)</p>
-        <p className="kl-says" data-testid="agent-says" aria-live="polite">
-          {says ?? (keyState === "none" ? "Give me a key and I will help." : "Tell me what to do.")}
+      <section className="kl-card kl-app" aria-label="The Counter app">
+        <p className="kl-role">
+          <ObjectIcon kind="app" /> The Counter app
+        </p>
+        <p className="kl-says" data-testid="app-says" aria-live="polite">
+          {says ??
+            (keyState === "none"
+              ? "Counts your clicks on the chain. It needs a key to sign."
+              : "Holds its own key and signs with it.")}
         </p>
       </section>
     </div>
@@ -250,7 +264,10 @@ function Log({ attempts, marks }: { attempts: Attempt[]; marks: boolean }) {
         {[...attempts].reverse().map((a) => (
           <li key={a.id} className={a.ok ? "ok" : "no"}>
             <span className="kl-badge">{a.ok ? "Accepted" : a.reason ? "Refused" : "Failed"}</span>{" "}
-            <q>{a.prompt}</q>
+            <span className="kl-what">
+              {a.label}
+              {a.afterDelete ? " (deleted key)" : ""}
+            </span>
             {a.ok ? null : (
               <span className="kl-why">
                 {a.reason ? <code>{a.reason} </code> : "The call ran but failed. "}
@@ -264,15 +281,6 @@ function Log({ attempts, marks }: { attempts: Attempt[]; marks: boolean }) {
   );
 }
 
-function KeyIcon() {
-  return (
-    <svg className="kl-keyicon" viewBox="0 0 24 24" width="18" height="18" role="img" aria-label="key">
-      <circle cx="7" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="2" />
-      <path d="M11 12h10M17 12v4M21 12v3" fill="none" stroke="currentColor" strokeWidth="2" />
-    </svg>
-  );
-}
-
 // ---------- docked controls ----------
 
 function AllowanceForm({ lesson }: { lesson: Lesson }) {
@@ -281,7 +289,7 @@ function AllowanceForm({ lesson }: { lesson: Lesson }) {
     <Docked>
       <form
         className="kl-form"
-        aria-label="Add the agent's key"
+        aria-label="Give the app a key"
         onSubmit={(e) => {
           e.preventDefault();
           void lesson.addKey();
@@ -300,7 +308,7 @@ function AllowanceForm({ lesson }: { lesson: Lesson }) {
             <span>NEAR</span>
           </label>
           <button type="submit" className="btn primary" disabled={added || !lesson.canAdd}>
-            {lesson.busy === "add" ? "Adding…" : added ? "Added ✓" : "Add the agent's key"}
+            {lesson.busy === "add" ? "Adding…" : added ? "Given ✓" : "Give the app a key"}
           </button>
         </div>
         {lesson.allowanceProblem ? (
@@ -315,68 +323,63 @@ function AllowanceForm({ lesson }: { lesson: Lesson }) {
   );
 }
 
-function AskForm({ lesson, attack }: { lesson: Lesson; attack: boolean }) {
+/** The hacked app: one button per misuse, each signed with the app's key. A tick when it was refused. */
+function Misuse({ lesson }: { lesson: Lesson }) {
   return (
     <Docked>
-      <form
-        className="kl-form"
-        aria-label="Talk to the agent"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void lesson.ask();
-        }}
-      >
-        <div className="kl-form-row">
-          <label className="grow">
-            <span className="visually-hidden">Tell the agent what to do</span>
-            <input
-              aria-label="Tell the agent what to do"
-              className="wide"
-              value={lesson.prompt}
-              placeholder={attack ? "Try to make it misbehave" : "Add one to the counter"}
-              disabled={lesson.busy !== null || lesson.keyState !== "active"}
-              onChange={(e) => lesson.setPrompt(e.target.value)}
-            />
-          </label>
-          <button type="submit" className="btn primary kl-ask" disabled={!lesson.canAsk}>
-            {lesson.busy === "ask" ? (
-              "Sending…"
-            ) : (
-              <>
-                Ask<span className="kl-ask-long"> the agent</span>
-              </>
-            )}
-          </button>
-        </div>
-        {attack ? (
-          <div className="kl-hints">
-            <button type="button" className="btn" onClick={lesson.showHint} disabled={lesson.noHints}>
-              Show a hint
+      <div className="kl-form kl-tries" role="group" aria-label="Misuse the app's key">
+        {ATTACKS.map((k) => {
+          const refused = lesson.refused.includes(k);
+          return (
+            <button
+              key={k}
+              type="button"
+              className={`btn${refused ? "" : " primary"}`}
+              disabled={!lesson.canAttack}
+              onClick={() => void lesson.tryIt(k)}
+            >
+              <span className="kl-long">{ATTEMPT_LABEL[k]}</span>
+              <span className="kl-short" aria-hidden="true">
+                {ATTEMPT_SHORT[k]}
+              </span>
+              {refused ? (
+                <span className="kl-refused">
+                  <span className="kl-long"> · refused</span> ✓
+                </span>
+              ) : null}
             </button>
-            <label className="kl-nohint">
-              <input
-                type="checkbox"
-                checked={lesson.noHints}
-                onChange={(e) => lesson.setNoHints(e.target.checked)}
-              />
-              <span>No-hint mode</span>
-            </label>
-            {lesson.hint ? (
-              <button
-                type="button"
-                className="kl-hint"
-                data-testid="hint"
-                onClick={() => lesson.setPrompt(lesson.hint ?? "")}
-                title="Use this prompt"
-              >
-                Hint: {lesson.hint}
-              </button>
-            ) : (
-              <span className="kl-form-hint">Hints used: {lesson.hints}.</span>
-            )}
-          </div>
+          );
+        })}
+        <p className="kl-form-hint">Each button sends a transaction signed with the app's key.</p>
+      </div>
+    </Docked>
+  );
+}
+
+function Revoke({ lesson }: { lesson: Lesson }) {
+  const deleted = lesson.keyState === "revoked";
+  return (
+    <Docked>
+      <div className="kl-form kl-tries" role="group" aria-label="Delete the app's key">
+        <button
+          type="button"
+          className="btn primary"
+          onClick={() => void lesson.revoke()}
+          disabled={!lesson.canRevoke}
+        >
+          {lesson.busy === "revoke" ? "Deleting…" : deleted ? "Deleted ✓" : "Delete the app's key"}
+        </button>
+        {deleted ? (
+          <button
+            type="button"
+            className="btn"
+            onClick={() => void lesson.tryIt("count")}
+            disabled={!lesson.canCountAgain}
+          >
+            {lesson.goneShown ? "Count again · refused ✓" : "Count again"}
+          </button>
         ) : null}
-      </form>
+      </div>
     </Docked>
   );
 }

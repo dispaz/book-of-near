@@ -1,7 +1,8 @@
 /**
  * The ONE state of lesson 1.2, shared by the 2D and the 3D view. Everything on chain goes through
- * useChain(). The "agent" is a keyword script (key.ts): it turns a prompt into a transaction and signs it
- * with the limited key, and the chain accepts or refuses. No three.js here, so 2D never loads 3D code.
+ * useChain(). The Counter app is played by the lesson: each button becomes a transaction signed with the
+ * app's function-call key (key.ts), and the chain accepts or refuses it. No three.js here, so 2D never
+ * loads 3D code.
  */
 import { useEffect, useRef, useState } from "react";
 import type { SceneProps } from "../../../app/types";
@@ -13,20 +14,18 @@ import { parseNear, tgas } from "../../../chain/units";
 import type { AccessKeyInfo, PracticeAccount, PublicKey, TransactionRequest } from "../../../chain/types";
 import counterWasmUrl from "../../../../contracts/counter/counter.wasm?url";
 import {
-  AGENT_GAS_TGAS,
+  APP_GAS_TGAS,
   ATTACKS,
+  ATTEMPT_LABEL,
+  REASON_TEXT,
   DEFAULT_ALLOWANCE_TEXT,
-  NOT_UNDERSTOOD,
   OTHER_CONTRACT,
-  SUGGESTION,
   THIEF,
-  agentLine,
+  appLine,
+  keyGoneShown,
   near,
-  nextHint,
   readAllowance,
-  readPrompt,
   refusedKinds,
-  ALLOWED_PROMPT,
   type Attempt,
   type Intent,
 } from "./key";
@@ -65,19 +64,15 @@ export function useKeyLesson({
   const [balance, setBalance] = useState<bigint | null>(null);
   const [allowanceText, setAllowanceText] = useState(DEFAULT_ALLOWANCE_TEXT);
   const [allowanceProblem, setAllowanceProblem] = useState<string | null>(null);
-  const [agentKey, setAgentKey] = useState<PublicKey | null>(null);
+  const [appKey, setAppKey] = useState<PublicKey | null>(null);
   const [keyInfo, setKeyInfo] = useState<AccessKeyInfo | null>(null);
   const [initial, setInitial] = useState<bigint | null>(null);
   const [keyState, setKeyState] = useState<KeyState>("none");
   const [counter, setCounter] = useState(0);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
-  const [prompt, setPrompt] = useState(ALLOWED_PROMPT);
   const [says, setSays] = useState<string | null>(null);
   const [aim, setAim] = useState<Intent | null>(null);
-  const [hints, setHints] = useState(0);
-  const [hint, setHint] = useState<string | null>(null);
-  const [noHints, setNoHints] = useState(false);
-  const [busy, setBusy] = useState<null | "add" | "ask" | "revoke">(null);
+  const [busy, setBusy] = useState<null | "add" | "try" | "revoke">(null);
   const [error, setError] = useState<string | null>(null);
   const [passed, setPassed] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -101,7 +96,7 @@ export function useKeyLesson({
         if (found && live) {
           const num = await chain.viewCall(acc.accountId, "get_num", {}).catch(() => null);
           if (!live) return;
-          setAgentKey(found.publicKey);
+          setAppKey(found.publicKey);
           setKeyInfo(found);
           if (found.permission.type === "FunctionCall") setInitial(found.permission.allowance ?? null);
           setKeyState("active");
@@ -119,6 +114,7 @@ export function useKeyLesson({
   const typed = readAllowance(allowanceText);
   const refused = refusedKinds(attempts);
   const counted = attempts.some((a) => a.intent === "count" && a.ok);
+  const goneShown = keyGoneShown(attempts);
 
   const done = [
     true,
@@ -160,11 +156,10 @@ export function useKeyLesson({
     if (!txHash) return;
     evidenceRef.current?.({
       txHash,
-      hintsUsed: String(hints),
-      noHintMode: noHints ? "on" : "off",
       refusedAttacks: String(refused.length),
+      deletedKeyRefused: goneShown ? "yes" : "no",
     });
-  }, [txHash, hints, noHints, refused.length]);
+  }, [txHash, refused.length, goneShown]);
 
   async function readKey(key: PublicKey, account: string) {
     const keys = await chain.listKeys(account);
@@ -212,7 +207,7 @@ export function useKeyLesson({
         setError("The key did not show up on the chain. Please try again.");
         return;
       }
-      setAgentKey(key);
+      setAppKey(key);
       setInitial(r.amount);
       setTxHash(out.transaction.hash);
       setKeyState("active");
@@ -224,9 +219,9 @@ export function useKeyLesson({
     }
   }
 
-  /** What each intent asks the chain to do, signed with the agent's limited key. */
+  /** What each try asks the chain to do, signed with the app's limited key. */
   async function requestFor(intent: Intent, key: PublicKey, account: string): Promise<TransactionRequest> {
-    const gas = tgas(AGENT_GAS_TGAS);
+    const gas = tgas(APP_GAS_TGAS);
     switch (intent) {
       case "count":
         return {
@@ -255,7 +250,7 @@ export function useKeyLesson({
           actions: [
             actions.functionCall(
               "create_account",
-              { new_account_id: "agent-made.testnet", new_public_key: key },
+              { new_account_id: "app-made.testnet", new_public_key: key },
               gas,
             ),
           ],
@@ -270,49 +265,45 @@ export function useKeyLesson({
     }
   }
 
-  async function ask() {
-    if (!me || !agentKey || busy || keyState !== "active") return;
-    const text = prompt.trim();
-    const intent = readPrompt(text);
-    if (!intent) {
-      setSays(NOT_UNDERSTOOD);
-      return;
-    }
-    setBusy("ask");
+  /** Signs `intent` with the app's key and sends it. After the delete, a Count shows the key is gone. */
+  async function tryIt(intent: Intent) {
+    const afterDelete = keyState === "revoked";
+    if (!me || !appKey || busy || (keyState !== "active" && !afterDelete)) return;
+    const label = ATTEMPT_LABEL[intent];
+    setBusy("try");
     setError(null);
     setAim(intent);
-    setSays(agentLine(intent, me.accountId));
+    setSays(appLine(intent, me.accountId));
     const id = attempts.length + 1;
     try {
-      const out = await chain.sendTransaction(await requestFor(intent, agentKey, me.accountId), { pace });
+      const out = await chain.sendTransaction(await requestFor(intent, appKey, me.accountId), { pace });
       const failed = out.status.type === "Failure";
       const msg = out.status.type === "Failure" ? out.status.error.message : "The chain accepted it.";
       // Included but failed: no `reason` (only refused transactions have one), so it is not a refused attack.
-      setAttempts((a) => [...a, { id, intent, prompt: text, ok: !failed, message: msg }]);
+      setAttempts((a) => [...a, { id, intent, label, ok: !failed, message: msg, afterDelete }]);
       setSays(
         failed
-          ? `The chain included it, but it failed: ${msg} It does not count as a refused attack. The gas was still paid.`
+          ? `The chain included it, but it failed: ${msg} It does not count as refused. The gas was still paid.`
           : "Done. The chain accepted it.",
       );
-      await refresh(me.accountId, agentKey);
+      if (!afterDelete) await refresh(me.accountId, appKey);
     } catch (e) {
       if (isChainError(e) && e.kind === "InvalidTransaction") {
         setAttempts((a) => [
           ...a,
-          { id, intent, prompt: text, ok: false, reason: e.reason, message: e.message },
+          { id, intent, label, ok: false, reason: e.reason, message: e.message, afterDelete },
         ]);
-        setSays(`Refused by the chain: ${e.message}`);
+        setSays(`Refused by the chain. ${(e.reason && REASON_TEXT[e.reason]) ?? e.message}`);
       } else {
         setError(message(e));
       }
     } finally {
       setBusy(null);
-      setPrompt(intent === "count" ? ALLOWED_PROMPT : "");
     }
   }
 
   async function revoke() {
-    if (!me || !agentKey || busy || keyState !== "active") return;
+    if (!me || !appKey || busy || keyState !== "active") return;
     setBusy("revoke");
     setError(null);
     try {
@@ -320,7 +311,7 @@ export function useKeyLesson({
         {
           signerId: me.accountId,
           receiverId: me.accountId,
-          actions: [actions.deleteKey(agentKey)],
+          actions: [actions.deleteKey(appKey)],
         },
         { pace },
       );
@@ -328,7 +319,7 @@ export function useKeyLesson({
         setError(out.status.error.message);
         return;
       }
-      const info = await readKey(agentKey, me.accountId);
+      const info = await readKey(appKey, me.accountId);
       if (info) {
         setError("The key is still on the chain. Please try again.");
         return;
@@ -336,7 +327,7 @@ export function useKeyLesson({
       setTxHash(out.transaction.hash);
       setKeyState("revoked");
       setAim(null);
-      setSays("My key is gone. Anything I sign now is refused.");
+      setSays("The app's key is deleted. Try Count once more: the chain will refuse it.");
       setBalance((await chain.viewAccount(me.accountId)).amount);
     } catch (e) {
       setError(message(e));
@@ -345,18 +336,12 @@ export function useKeyLesson({
     }
   }
 
-  function showHint() {
-    if (noHints) return;
-    const next = nextHint(attempts);
-    setHints((h) => h + 1);
-    setHint(next ? SUGGESTION[next] : "You have tried everything. Press Next.");
-  }
-
   const state = [
     `step:${step}`,
     `key:${keyState}`,
     `counter:${counter}`,
     `refused:${refused.length}`,
+    `gone:${goneShown ? "shown" : "no"}`,
     `error:${error ? "yes" : "no"}`,
     `network:${chain.network}`,
   ].join(";");
@@ -372,15 +357,20 @@ export function useKeyLesson({
           : "Set an allowance, then add the key.";
   else if (step === CALL)
     status =
-      keyState === "none" ? "Add the agent's key first (step 3)." : counted ? "It worked. Press Next." : null;
+      keyState === "none"
+        ? "Give the app its key first (step 3)."
+        : counted
+          ? "It worked. Press Next."
+          : null;
   else if (step === ATTACK)
     status =
       keyState === "none"
-        ? "Add the agent's key first (step 3)."
+        ? "Give the app its key first (step 3)."
         : refused.length >= ATTACKS.length
-          ? "Three attacks refused. Press Next."
-          : `${refused.length} of ${ATTACKS.length} attacks refused.`;
-  else if (step === REVOKE && keyState === "revoked") status = "The key is revoked. Press Next.";
+          ? "All three refused. Press Next."
+          : `${refused.length} of ${ATTACKS.length} refused.`;
+  else if (step === REVOKE && keyState === "revoked")
+    status = goneShown ? "The deleted key was refused. Press Next." : "The key is deleted. Press Next.";
 
   return {
     step,
@@ -394,24 +384,16 @@ export function useKeyLesson({
       setAllowanceProblem(null);
     },
     keyInfo,
-    agentKey,
+    appKey,
     initial,
     left,
     keyState,
     counter,
     attempts,
     refused,
-    prompt,
-    setPrompt,
+    goneShown,
     says,
     aim,
-    hints,
-    hint,
-    noHints,
-    setNoHints: (on: boolean) => {
-      setNoHints(on);
-      if (on) setHint(null);
-    },
     busy,
     error,
     passed,
@@ -419,12 +401,13 @@ export function useKeyLesson({
     state,
     status,
     canAdd: step === ADD && keyState === "none" && busy === null && !!me,
-    canAsk: (step === CALL || step === ATTACK) && keyState === "active" && busy === null,
+    canCount: step === CALL && keyState === "active" && busy === null,
+    canAttack: step === ATTACK && keyState === "active" && busy === null,
     canRevoke: step === REVOKE && keyState === "active" && busy === null,
+    canCountAgain: step === REVOKE && keyState === "revoked" && busy === null && !goneShown,
     addKey,
-    ask,
+    tryIt,
     revoke,
-    showHint,
     otherContract: OTHER_CONTRACT,
     thief: THIEF,
   };

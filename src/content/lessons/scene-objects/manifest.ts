@@ -21,6 +21,7 @@ export default {
     {
       caption: "Keys and coins: a full-access key, a function-call key with its tag, a revoked one, a coin.",
     },
+    { caption: "App: a screen on a stand. A program that can hold a key and sign with it. Ok and hacked." },
   ],
   scene: () => import("./Scene"),
 } satisfies LessonManifest;

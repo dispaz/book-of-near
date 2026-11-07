@@ -118,7 +118,7 @@ test.describe("phone: result cards are readable", () => {
     const more = page.getByRole("button", { name: "Read more" });
     await expect(more).toBeVisible();
     // Let the dock settle: the step's form portals in and the web fonts load.
-    await expect(page.getByRole("textbox", { name: "Tell the agent what to do" })).toBeVisible();
+    await expect(page.getByRole("group", { name: "Misuse the app's key" })).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
     const folded = (await note.boundingBox())!.height;
     const dockTop = (await page.locator(".lesson-dock").boundingBox())!.y;
@@ -132,8 +132,9 @@ test.describe("phone: result cards are readable", () => {
   });
 
   test("the open note leaves the step's controls and heading uncovered", async ({ page }) => {
-    await page.goto("/lesson/l-1-2-function-call-key?view=2d&step=5");
-    await expect(page.getByRole("textbox", { name: "Tell the agent what to do" })).toBeVisible();
+    // Step 3: its controls (the allowance and "Give the app a key") work without an earlier step.
+    await page.goto("/lesson/l-1-2-function-call-key?view=2d&step=3");
+    await expect(page.getByRole("button", { name: "Give the app a key" })).toBeVisible();
     await page.getByRole("button", { name: "Read more" }).click();
     const sheet = page.locator(".note.docked.open");
     await expect(sheet).toBeVisible();
@@ -157,7 +158,14 @@ test.describe("phone: result cards are readable", () => {
     expect(geo.sheet.top).toBeGreaterThanOrEqual(geo.lesson.top);
     expect(geo.sheet.bottom).toBeLessThanOrEqual(geo.lesson.bottom);
     // The controls still work with the note open.
-    await page.getByRole("button", { name: "Show a hint" }).click();
+    await page.getByRole("button", { name: "Give the app a key" }).click();
+    await expect(page.locator("[data-scene-state]").first()).toHaveAttribute(
+      "data-scene-state",
+      /key:active/,
+      {
+        timeout: 15_000,
+      },
+    );
   });
 
   test("Escape or a tap outside closes the open note, and focus comes back", async ({ page }) => {
@@ -189,7 +197,7 @@ test.describe("phone: result cards are readable", () => {
     expect(await cut()).toBe(false);
     await page.goto("/lesson/l-1-2-function-call-key?view=2d&step=3");
     const what = page.locator(".step-label .your-turn-what");
-    await expect(what).toHaveText(/: add the agent/i);
+    await expect(what).toHaveText(/: give the app a key/i);
     expect(await what.evaluate((el) => getComputedStyle(el).display)).not.toBe("none");
     await page.getByText("Read as text").click();
     await expect(page.locator(".read-as-text")).toHaveAttribute("open", "");
@@ -197,17 +205,16 @@ test.describe("phone: result cards are readable", () => {
     await expect(page.locator(".read-as-text")).not.toHaveAttribute("open", "");
   });
 
-  test("lesson 1.2: the prompt box shows its whole placeholder", async ({ page }) => {
+  test("lesson 1.2: the misuse buttons show their whole labels", async ({ page }) => {
     await page.goto("/lesson/l-1-2-function-call-key?view=2d&step=5");
-    const input = page.getByRole("textbox", { name: "Tell the agent what to do" });
-    const fits = await input.evaluate((el: HTMLInputElement) => {
-      const c = document.createElement("canvas").getContext("2d")!;
-      const s = getComputedStyle(el);
-      c.font = `${s.fontWeight} ${s.fontSize} ${s.fontFamily}`;
-      const room = el.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
-      return c.measureText(el.placeholder).width <= room;
-    });
-    expect(fits).toBe(true);
+    const group = page.getByRole("group", { name: "Misuse the app's key" });
+    await expect(group.getByRole("button")).toHaveCount(3);
+    const cut = await group
+      .getByRole("button")
+      .evaluateAll((els) =>
+        els.filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent),
+      );
+    expect(cut).toEqual([]);
   });
 });
 

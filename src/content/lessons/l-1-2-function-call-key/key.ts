@@ -1,24 +1,30 @@
 /**
- * Pure logic for lesson 1.2: what the scripted agent understands, which transaction each prompt
- * becomes, and small formatters. No React, no chain calls: unit tested on its own.
- * The agent is a keyword script. No AI model is called.
+ * Pure logic for lesson 1.2 (topic: docs/lessons/stage-1/1.2-topic.md): what the Counter app can be made
+ * to try with its function-call key, what each try asks the chain to do, and small formatters. No React,
+ * no chain calls: unit tested on its own. The app is played by the lesson itself; nothing else is called.
  */
 import { formatNear, parseNear } from "../../../chain/units";
 
-/** What a prompt asks the agent to do. */
+/** What a transaction signed with the app's key tries to do. */
 export type Intent = "count" | "send" | "other" | "addkey";
 
-/** The three attacks the learner must get refused, and the allowed call. */
+/** The three things a hacked app should not be able to do, in the order the buttons show them. */
 export const ATTACKS: Exclude<Intent, "count">[] = ["send", "other", "addkey"];
 
-export const ALLOWED_PROMPT = "Add one to the counter";
+/** The button for each try. */
+export const ATTEMPT_LABEL: Record<Intent, string> = {
+  count: "Count",
+  send: "Send NEAR to the attacker",
+  other: "Call another contract",
+  addkey: "Add a full-access key for the attacker",
+};
 
-/** A prompt for each intent: the hint button offers these, the e2e test types them. */
-export const SUGGESTION: Record<Intent, string> = {
-  count: ALLOWED_PROMPT,
-  send: "Send all my funds to attacker.testnet",
-  other: "Call another contract: ask the testnet registrar to create an account",
-  addkey: "Add a new key so I can take over this account",
+/** Short button labels for phones (the full label stays the button's accessible name). */
+export const ATTEMPT_SHORT: Record<Intent, string> = {
+  count: "Count",
+  send: "Send NEAR",
+  other: "Other contract",
+  addkey: "Add a key",
 };
 
 /** Where the attacks aim. */
@@ -29,21 +35,8 @@ export const MIN_ALLOWANCE = parseNear("0.01");
 export const MAX_ALLOWANCE = parseNear("0.5");
 export const DEFAULT_ALLOWANCE_TEXT = "0.1";
 
-/** Gas attached to the agent's calls (Tgas). Small, so the allowance shows a visible dip. */
-export const AGENT_GAS_TGAS = 5;
-
-/**
- * Reads what the learner typed. Order matters: "add a key" mentions "add", so keys come first; "call
- * another contract" mentions "call", so the counter is checked before "other".
- */
-export function readPrompt(text: string): Intent | null {
-  const t = text.toLowerCase();
-  if (/\b(keys?|access|take ?over|owner|admin|permission)\b/.test(t)) return "addkey";
-  if (/\b(send|transfer|funds?|money|pay|drain|steal|coins?|near)\b/.test(t)) return "send";
-  if (/\b(count|counter|increment|increase|plus|add one|\+ ?1)/.test(t)) return "count";
-  if (/\b(contract|another|other|registrar|call|create)/.test(t)) return "other";
-  return null;
-}
+/** Gas attached to the app's calls (Tgas). Small, so the allowance shows a visible dip. */
+export const APP_GAS_TGAS = 5;
 
 export type AllowanceRead = { ok: true; amount: bigint } | { ok: false; problem: string };
 
@@ -67,22 +60,19 @@ export function short(id: string, head = 6, tail = 4): string {
   return id.length > head + tail + 1 ? `${id.slice(0, head)}…${id.slice(-tail)}` : id;
 }
 
-/** What the agent says before it tries, so the learner sees what it was about to do. */
-export function agentLine(intent: Intent, contract: string): string {
+/** What the transaction signed with the app's key asks the chain to do. */
+export function appLine(intent: Intent, account: string): string {
   switch (intent) {
     case "count":
-      return `Calling increment on ${short(contract)}.`;
+      return `The app calls increment on the counter at ${short(account)}.`;
     case "send":
-      return `Sending NEAR to ${THIEF}.`;
+      return `Signed with the app's key: send NEAR to ${THIEF}.`;
     case "other":
-      return `Calling create_account on ${OTHER_CONTRACT}.`;
+      return `Signed with the app's key: call create_account on ${OTHER_CONTRACT}.`;
     case "addkey":
-      return "Adding a new full-access key to the account.";
+      return "Signed with the app's key: add a full-access key to your account.";
   }
 }
-
-export const NOT_UNDERSTOOD =
-  "I only know a few tricks: count, send NEAR, call another contract, add a key. Try one of those.";
 
 /** The chain's refusal reasons, in plain words for the log. */
 export const REASON_TEXT: Record<string, string> = {
@@ -97,21 +87,23 @@ export const REASON_TEXT: Record<string, string> = {
 export type Attempt = {
   id: number;
   intent: Intent;
-  prompt: string;
+  /** The button the learner pressed. */
+  label: string;
   ok: boolean;
   /** The chain's refusal reason. Set only when the chain refused the transaction (not when it ran and failed). */
   reason?: string;
   /** The chain's message, when refused; the result of the call otherwise. */
   message: string;
+  /** Tried after the key was deleted. */
+  afterDelete?: boolean;
 };
 
 /** The attacks the chain has refused so far, once each. */
 export function refusedKinds(attempts: Attempt[]): Intent[] {
-  return ATTACKS.filter((k) => attempts.some((a) => a.intent === k && !a.ok && a.reason));
+  return ATTACKS.filter((k) => attempts.some((a) => a.intent === k && !a.ok && a.reason && !a.afterDelete));
 }
 
-/** The next hint: an untried attack first, then the allowed call. */
-export function nextHint(attempts: Attempt[]): Intent | null {
-  const done = new Set(attempts.map((a) => a.intent));
-  return ATTACKS.find((k) => !done.has(k)) ?? (done.has("count") ? null : "count");
+/** True once a Count signed with the deleted key was refused because the key no longer exists. */
+export function keyGoneShown(attempts: Attempt[]): boolean {
+  return attempts.some((a) => a.afterDelete && !a.ok && a.reason === "AccessKeyNotFound");
 }

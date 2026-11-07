@@ -1,48 +1,32 @@
 /**
- * Lesson 1.3 in 3D: the signer on the left, the receiver on the right, and the transaction between them
- * as a stack of action slabs (the first action on top). When a batch is sent, the stack hops toward the
- * receiver and each slab takes its colour: done, undone, failed or never ran. A copy sent again stays
- * at the signer with the chain's reason. It only draws the shared state from useTxLesson. Loaded lazily
+ * Lesson 1.3 in 3D: the signer (a mailbox) on the left, the receiver on the right, and the transaction
+ * between them as an open parcel with its action cards above it (the first action on top). It is packed
+ * unstamped, stamped when signed, and hops toward the receiver when sent; each card then takes its colour:
+ * done, undone, failed or never ran. A failed batch turns the parcel red. A copy sent again stays at the
+ * signer with the chain's reason. It only draws the shared state from useTxLesson. Loaded lazily
  * from Scene.tsx, so the 2D view never downloads three.js.
  */
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import {
-  AccountBlock,
   Anchor,
   COLORS,
-  ContractBlock,
   InkStage,
   Label,
-  Outline,
+  Mailbox,
+  Parcel,
+  Scroll,
   Traveller,
   ViewOffset,
   frameCamera,
   inset,
-  useInk,
+  type ParcelItem,
 } from "../../../scene-kit";
-import type { Vec3 } from "../../../scene-kit/motion";
 import { useMediaQuery } from "../../../ui/hooks";
-import { FATE_TEXT, SHORT_NAME, short, type Fate } from "./batch";
-import { MADE, MAX_SLABS, RECEIVER, SIGNER, SIZE, SLAB, shot, slabY, stackAt } from "./layout3d";
+import { FATE_TEXT, SHORT_NAME, short } from "./batch";
+import { MADE, MAX_ITEMS, OBJ, PARCEL, RECEIVER, SIGNER, SIZE, parcelAt, shot } from "./layout3d";
 import { BREAK, BUILD, HOOK, OPEN, REPLAY, type Lesson } from "./useTxLesson";
 
-type Slab = { key: string; text: string; fate: Fate | "idle" };
-
-const FATE_COLOR: Record<Slab["fate"], string> = {
-  idle: COLORS.paper,
-  done: COLORS.green,
-  undone: COLORS.slab,
-  failed: COLORS.red,
-  skipped: COLORS.slab,
-};
-
-/** A mark after each action's name: done, undone, failed, never ran. */
-const FATE_MARK: Record<Fate, string> = {
-  done: "✓",
-  undone: "↺",
-  failed: "✗",
-  skipped: "–",
-};
+type Slab = ParcelItem;
 
 export default function Scene3D({
   lesson,
@@ -95,6 +79,8 @@ export default function Scene3D({
   else slabs = items.map((it) => ({ key: `b${it.id}`, text: SHORT_NAME[it.kind], fate: "idle" as const }));
   const replayed = step === REPLAY && notRun.length > 0;
   const sent = (step === OPEN && !!workshop) || sentNow || (step === REPLAY && !replayed);
+  // Signed (stamped) once it has been sent, or at the replay step, where it is the old signed copy.
+  const signed = sent || step === REPLAY;
 
   // Back right: the account an earlier step made, kept in view.
   const made =
@@ -140,34 +126,35 @@ export default function Scene3D({
         maxDistance={140}
       >
         <ViewOffset frame={frame} reducedMotion={reducedMotion} />
-        <AccountBlock
+        <Mailbox
           position={SIGNER}
-          size={SIZE}
+          size={OBJ}
           color={early ? COLORS.blue : COLORS.orange}
           name={signerName}
           note={me && !phone ? "signer" : undefined}
         />
         {early ? (
-          <ContractBlock
+          <Scroll
             position={RECEIVER}
-            size={SIZE}
-            color={COLORS.contract}
+            size={OBJ}
             name={receiverName}
             note={phone ? undefined : "receiver"}
+            running={step === OPEN && !!workshop}
           />
         ) : shownBatch?.ok ? (
-          <AccountBlock
+          <Mailbox
             position={RECEIVER}
-            size={SIZE}
+            size={OBJ}
             color={COLORS.blue}
             name={receiverName}
             note={phone ? undefined : "receiver"}
+            flag
             coins={1}
           />
         ) : (
           <>
-            <Ghost position={RECEIVER} />
-            <Label position={[RECEIVER[0], SIZE + 0.9, RECEIVER[2]]} variant="hint">
+            <Mailbox position={RECEIVER} size={OBJ} name={receiverName} state="pending" />
+            <Label position={[RECEIVER[0], 0.2, RECEIVER[2] + SIZE / 2 + 0.6]} variant="hint">
               {failed
                 ? failed.existsAfter
                   ? `${receiverName}: unchanged`
@@ -178,73 +165,50 @@ export default function Scene3D({
         )}
         <Anchor name="result" position={[RECEIVER[0], 0.8, RECEIVER[2]]} />
         {made ? (
-          <AccountBlock
+          <Mailbox
             position={MADE}
-            size={SIZE}
+            size={OBJ}
             color={step === OPEN ? COLORS.orange : COLORS.blue}
             name={made.name}
             note={made.note}
           />
         ) : null}
 
-        <Traveller to={stackAt(sent)} arc={2.2} duration={0.9} color={COLORS.orange}>
-          {slabs.slice(0, MAX_SLABS).map((s, i) => (
-            <ActionSlab key={s.key} y={slabY(i, slabs.length)} fate={s.fate} text={`${i + 1} ${s.text}`} />
-          ))}
-          {slabs.length > MAX_SLABS ? (
-            <Label position={[0, slabY(0, slabs.length) + 0.5, 0]} variant="small">
-              {`+${slabs.length - MAX_SLABS} more`}
-            </Label>
-          ) : null}
+        <Traveller to={parcelAt(sent)} arc={2.2} duration={0.9} color={COLORS.orange}>
+          <Parcel
+            size={PARCEL}
+            open
+            stamped={signed}
+            state={failed ? "failed" : "ok"}
+            items={slabs}
+            maxItems={MAX_ITEMS}
+            name="the transaction"
+          />
           {slabs.some((s) => s.fate !== "idle" && s.fate !== "done") ? (
-            <Label position={[0, -0.75, SLAB.d / 2 + 0.55]} variant="small">
+            <Label position={[0, 0.05, PARCEL * 0.9]} variant="small">
               {"↺ undone · ✗ failed · – never ran"}
             </Label>
           ) : null}
           {shownNonce !== null ? (
-            <Label position={[0, -0.3, SLAB.d / 2 + 0.55]} variant="small">
+            <Label position={[0, 0.05, PARCEL * 0.9 + 0.4]} variant="small">
               {`nonce ${shownNonce}`}
             </Label>
           ) : null}
           <Anchor
             name={step === HOOK ? "tx" : step === BUILD ? "builder" : step === REPLAY ? "replay" : "fields"}
-            position={[0, slabY(0, Math.max(1, slabs.length)) + 0.3, 0]}
+            position={[0, PARCEL * 0.9, 0]}
           />
         </Traveller>
         {replayed ? (
-          <Label position={[stackAt(false)[0], 3, stackAt(false)[2]]} variant="hint">
+          <Label
+            position={[parcelAt(false)[0], 0.05, parcelAt(false)[2] + PARCEL * 0.9 + 0.85]}
+            variant="hint"
+          >
             {"copy not run again: its nonce is used"}
           </Label>
         ) : null}
       </InkStage>
     </div>
-  );
-}
-
-/** One action of the transaction: a flat slab, coloured by what happened to it, with its name on it. */
-function ActionSlab({ y, fate, text }: { y: number; fate: Slab["fate"]; text: string }) {
-  const ink = useInk(FATE_COLOR[fate]);
-  return (
-    <group position={[0, y, 0]}>
-      <mesh material={ink}>
-        <boxGeometry args={[SLAB.w, SLAB.h, SLAB.d]} />
-        <Outline />
-      </mesh>
-      <Label position={[0, 0, SLAB.d / 2 + 0.02]} variant="small">
-        {fate === "idle" ? text : `${text} ${FATE_MARK[fate]}`}
-      </Label>
-    </group>
-  );
-}
-
-/** Where an account that does not exist would stand: a flat outline on the ground. */
-function Ghost({ position }: { position: Vec3 }) {
-  const ink = useInk(COLORS.slab);
-  return (
-    <mesh position={[position[0], 0.03, position[2]]} material={ink}>
-      <boxGeometry args={[SIZE, 0.06, SIZE]} />
-      <Outline />
-    </mesh>
   );
 }
 

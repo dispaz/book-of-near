@@ -52,6 +52,12 @@ The book backdrop is the exception: its gold cloth cover, navy ribbon, sage felt
 window light are the setting, not part of the drawing, and stay the same on every stage. Print on the
 page uses the stage accent darkened with ink.
 
+## Scene objects
+
+One shape per concept (account = mailbox, transaction = parcel with a stamp, contract = scroll, function-call
+key = key with a tag, app = screen), each with a `state` and a 2D twin: see `docs/scene-objects.md`. New
+lessons use these, not the blocks above; the blocks stay until stage 0 moves over.
+
 ## SVG primitives
 
 `SvgStage` (same `state`, `description`, `status`, `reducedMotion`, plus `note` and `viewBox`),

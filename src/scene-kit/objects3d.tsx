@@ -28,6 +28,7 @@ import {
   lookOf,
   mailboxDims,
   parcelDims,
+  screenDims,
   scrollDims,
   type ObjectLook,
   type ObjectState,
@@ -231,9 +232,9 @@ export type ActionFate = "idle" | "done" | "undone" | "failed" | "skipped";
 
 export const FATE_FILL: Record<ActionFate, string> = {
   idle: COLORS.paper,
-  done: COLORS.green,
+  done: COLORS.greenTint,
   undone: COLORS.slab,
-  failed: COLORS.red,
+  failed: COLORS.redTint,
   skipped: COLORS.slab,
 };
 
@@ -263,6 +264,7 @@ export function Parcel({
   color = COLORS.orange,
   to,
   stamped = false,
+  stampBroken = false,
   open = false,
   items = [],
   maxItems = 4,
@@ -274,6 +276,8 @@ export function Parcel({
   /** The address label: the receiver. */
   to?: string;
   stamped?: boolean;
+  /** The parcel was changed after it was stamped: the signature no longer matches. */
+  stampBroken?: boolean;
   open?: boolean;
   items?: ParcelItem[];
   maxItems?: number;
@@ -344,14 +348,14 @@ export function Parcel({
           position={[d.width * 0.32, d.height * 0.66, d.depth / 2 + 0.012]}
           size={size * 0.26}
           color={color}
-          broken={state === "failed"}
+          broken={stampBroken}
         />
       ) : null}
       {slots.map((s, i) => (
         <ActionCard
           key={items[i]!.key}
           position={[0, d.height + s.y, s.z]}
-          width={d.width * 0.95}
+          width={d.width * 1.15}
           item={items[i]!}
           number={i + 1}
         />
@@ -389,7 +393,7 @@ export function ActionCard({
   return (
     <group position={position}>
       <mesh material={ink}>
-        <boxGeometry args={[width, 0.28, 0.04]} />
+        <boxGeometry args={[width, 0.32, 0.04]} />
         <Outline />
       </mesh>
       <Label position={[0, 0, 0.04]} variant="small">
@@ -543,4 +547,71 @@ export function TaggedKey({
     </group>
   );
   return <group position={position}>{name && pick.onPick ? maybePickable(pick, name, 0, node) : node}</group>;
+}
+
+// ---------- app: a screen on a stand ----------
+
+/**
+ * An app: a screen on a small stand, with a title bar in the accent colour and a few lines of content.
+ * The thing that can hold a key and sign with it (a game, a website, a bot). Hacked: red cross.
+ */
+export function AppScreen({
+  position = [0, 0, 0],
+  name,
+  note,
+  size = 1.6,
+  color = COLORS.blue,
+  state = "ok",
+  ...pick
+}: ObjectProps & { name: string; note?: string; size?: number }) {
+  const d = screenDims(size);
+  const look = lookOf(state, color);
+  const dashed = look.dashed;
+  const y = d.stand + d.height / 2;
+  const body = (
+    <SelectRing selected={!!pick.selected} radius={size * 0.55} color={color}>
+      {/* Stand: a foot and a neck. */}
+      <Part fill={partFill(look, COLORS.paper)} dashed={dashed} position={[0, 0.03, 0]}>
+        <boxGeometry args={[d.width * 0.5, 0.06, size * 0.3]} />
+      </Part>
+      <Part fill={partFill(look, COLORS.paper)} dashed={dashed} position={[0, d.stand / 2, -0.04]}>
+        <boxGeometry args={[size * 0.08, d.stand, size * 0.06]} />
+      </Part>
+      <group position={[0, y, 0]} rotation={[-0.12, 0, 0]}>
+        {/* Frame and screen. */}
+        <Part fill={partFill(look, INK)} dashed={dashed}>
+          <boxGeometry args={[d.width, d.height, 0.08]} />
+        </Part>
+        <Part fill={partFill(look, COLORS.paper)} dashed={dashed} position={[0, -d.height * 0.06, 0.045]}>
+          <boxGeometry args={[d.width * 0.9, d.height * 0.72, 0.01]} />
+        </Part>
+        {/* Title bar. */}
+        <Part fill={look.fill} dashed={dashed} position={[0, d.height * 0.37, 0.045]}>
+          <boxGeometry args={[d.width * 0.9, d.height * 0.14, 0.012]} />
+        </Part>
+        {dashed
+          ? null
+          : [0.12, -0.06, -0.24].map((f, i) => (
+              <Part
+                key={f}
+                fill={COLORS.slab}
+                dashed={false}
+                position={[-d.width * (i === 2 ? 0.17 : 0.05), d.height * f, 0.055]}
+              >
+                <boxGeometry args={[d.width * (i === 2 ? 0.45 : 0.7), d.height * 0.08, 0.008]} />
+              </Part>
+            ))}
+        <StateMarks look={look} at={[0, 0, 0.12]} size={d.height * 0.9} />
+      </group>
+      <NameLabel height={d.total + 0.7} depth={0.4}>
+        {note ? `${name} · ${note}` : name}
+      </NameLabel>
+    </SelectRing>
+  );
+  return (
+    <group position={position}>
+      {dashed ? null : <SoftShadow position={[0, 0, 0.2]} size={[size * 1.3, size * 0.7]} />}
+      {maybePickable(pick, name, y, body)}
+    </group>
+  );
 }

@@ -1,45 +1,43 @@
 import { describe, expect, it } from "vitest";
 import {
-  ALLOWED_PROMPT,
-  SUGGESTION,
-  nextHint,
+  ATTACKS,
+  ATTEMPT_LABEL,
+  appLine,
+  keyGoneShown,
   readAllowance,
-  readPrompt,
   refusedKinds,
   type Attempt,
   type Intent,
 } from "./key";
 
-const attempt = (intent: Intent, ok: boolean, id = 1): Attempt => ({
+const attempt = (intent: Intent, ok: boolean, id = 1, extra: Partial<Attempt> = {}): Attempt => ({
   id,
   intent,
-  prompt: "",
+  label: ATTEMPT_LABEL[intent],
   ok,
   reason: ok ? undefined : "RequiresFullAccess",
   message: "",
+  ...extra,
 });
 
-describe("readPrompt", () => {
-  it("understands its own suggestions", () => {
-    for (const k of Object.keys(SUGGESTION) as Intent[]) expect(readPrompt(SUGGESTION[k])).toBe(k);
+describe("what the app can be made to try", () => {
+  it("offers one button per attack, plus the allowed Count", () => {
+    expect(ATTACKS).toEqual(["send", "other", "addkey"]);
+    expect(ATTEMPT_LABEL.count).toBe("Count");
+    expect(ATTEMPT_LABEL.send).toBe("Send NEAR to the attacker");
+    expect(ATTEMPT_LABEL.other).toBe("Call another contract");
+    expect(ATTEMPT_LABEL.addkey).toBe("Add a full-access key for the attacker");
   });
 
-  it("reads free wording", () => {
-    expect(readPrompt("please transfer my money away")).toBe("send");
-    expect(readPrompt("increment it")).toBe("count");
-    expect(readPrompt("give me access")).toBe("addkey");
-    expect(readPrompt("call the other contract")).toBe("other");
-  });
-
-  it("does not match a key inside another word", () => {
-    expect(readPrompt("press a keyboard")).toBeNull();
-    expect(readPrompt("give me the keys")).toBe("addkey");
-  });
-
-  it("does not understand small talk", () => {
-    expect(readPrompt("hello there")).toBeNull();
-    expect(readPrompt("")).toBeNull();
-    expect(readPrompt(ALLOWED_PROMPT)).toBe("count");
+  it("says what each try asks the chain to do, without calling the app an agent or an AI", () => {
+    for (const k of Object.keys(ATTEMPT_LABEL) as Intent[]) {
+      const line = appLine(k, "cf4342372b5836aaaa");
+      expect(line.length).toBeGreaterThan(10);
+      expect(line).not.toMatch(/agent|\bAI\b/i);
+    }
+    expect(appLine("count", "x")).toContain("increment");
+    expect(appLine("send", "x")).toContain("attacker.testnet");
+    expect(appLine("other", "x")).toContain("testnet");
   });
 });
 
@@ -70,11 +68,17 @@ describe("attempts", () => {
     expect(refusedKinds([{ ...failed, reason: "RequiresFullAccess" }])).toEqual(["send"]);
   });
 
-  it("hints at an untried attack first", () => {
-    expect(nextHint([])).toBe("send");
-    expect(nextHint([attempt("send", false)])).toBe("other");
-    const all = [attempt("send", false), attempt("other", false, 2), attempt("addkey", false, 3)];
-    expect(nextHint(all)).toBe("count");
-    expect(nextHint([...all, attempt("count", true, 4)])).toBeNull();
+  it("does not count a refused Count after the delete as an attack", () => {
+    const gone = attempt("count", false, 6, { afterDelete: true, reason: "AccessKeyNotFound" });
+    expect(refusedKinds([gone])).toEqual([]);
+  });
+
+  it("shows the key is gone only when a Count after the delete was refused for a missing key", () => {
+    expect(keyGoneShown([])).toBe(false);
+    expect(keyGoneShown([attempt("count", true)])).toBe(false);
+    expect(
+      keyGoneShown([attempt("count", false, 2, { afterDelete: true, reason: "AccessKeyNotFound" })]),
+    ).toBe(true);
+    expect(keyGoneShown([attempt("count", false, 2, { afterDelete: true, reason: "Other" })])).toBe(false);
   });
 });

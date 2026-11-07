@@ -1,4 +1,5 @@
 import {
+  AppScreen,
   Coin,
   InkStage,
   Key,
@@ -16,6 +17,7 @@ const VIEWS: CameraView[] = [
   { position: [0, 6, 13], target: [0, 1.4, 0] },
   { position: [0, 4.5, 10], target: [0, 1, 0] },
   { position: [0, 5, 14], target: [0, 0.8, 0] },
+  { position: [0, 4.5, 9], target: [0, 1, 0] },
 ];
 
 export default function Scene3D({
@@ -83,6 +85,12 @@ export default function Scene3D({
           <TaggedKey position={[-1.2, 1.4, 0]} tag="counter.ana" share={0.5} name="function call" />
           <TaggedKey position={[1.8, 1.4, 0]} tag="counter.ana" share={0.2} state="gone" name="revoked" />
           <Coin position={[4.4, 0.07, 0]} />
+        </>
+      ) : null}
+      {step === 4 ? (
+        <>
+          <AppScreen position={[-2, 0, 0]} name="Counter app" />
+          <AppScreen position={[2, 0, 0]} name="Counter app" note="hacked" state="failed" />
         </>
       ) : null}
     </InkStage>

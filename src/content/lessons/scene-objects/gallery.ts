@@ -35,4 +35,5 @@ export const DESCRIPTION = [
   "Four parcels: one being packed, one stamped and closed, one stamped and open with four action cards above it, and one failed with a red cross.",
   "Three scrolls with a gear on the seal: idle, running with the gear turning, and failed with a red cross.",
   "A full-access key, a function-call key with a tag and a half-full allowance gauge, a revoked one struck out, and a coin.",
+  "Two app screens on stands: a working one, and a hacked one with a red cross.",
 ];

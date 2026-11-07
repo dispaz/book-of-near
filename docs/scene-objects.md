@@ -1,8 +1,10 @@
 # Scene objects: one shape per concept
 
-Status: **proposal, partly decided** (7 Nov 2026). Nothing here is built yet. Owner decisions so far:
-transaction = parcel, signature = stamp, contract = scroll that shows it runs code. Account still open
-(mailbox or wallet).
+Status: **decided; stage 1 built** (7 Nov 2026). Owner decisions: account = mailbox, transaction =
+parcel, signature = stamp, contract = scroll that shows it runs code. Built and used by lessons 1.1–1.3:
+mailbox, parcel (+ action cards), stamp, scroll, tagged key, app screen, plus the existing key and coin.
+Not built yet: block, blockchain, wallet (key ring), receipt, gas, RPC node, shard, validator. Stage 0
+still draws the old blocks.
 
 ## Why
 
@@ -30,15 +32,16 @@ both views.
 | --- | --- | --- | --- | --- |
 | **Block** | A page with a torn-off tab, linked to the previous page by a string (the hash) | A blockchain is a book of pages; the string is the hash link | sealed, tampered (string snaps, red) | `ChainBlock` pieces, 0.1's `LedgerBlock` |
 | **Blockchain** | A short stack/row of linked block pages | Same object, repeated | another chain = different page edge | `ChainBlock` |
-| **Account / address** | A mailbox with a name plate (open: or a wallet, see question 1) | Has an address, receives parcels, belongs to someone | named (plate), implicit (hex plate, small), not created (dashed) | `AccountBlock` |
+| **Account / address** | A mailbox on a post, its name above it; the flag goes up when something arrived | Has an address, receives parcels, belongs to someone | named, implicit (hex name), not created (dashed), deleted (struck out); flag up | `AccountBlock` |
 | **Balance / token** | A coin; several coins as a short stack on the account | Universal money sign | NEAR coin vs other token (different face mark) | `Coin` |
-| **Transaction** | A parcel, addressed to one receiver | Sent from one account to another, packed with actions; one address label = one receiver | packing (open box), signed (stamped), in flight, delivered, failed (red cross). **Opens**: click or focus to lift the lid and preview every action inside, in order | lesson-made cards, 1.3's card |
-| **Action** | An item packed inside the parcel (a labelled card or small object per kind: create account, send NEAR, add key, call) | A transaction is a list of actions | ran / undone / failed / never ran | 1.3's action rows |
-| **Signing / signature** | A stamp pressed onto the parcel (the sender's mark) | Proves who sent it; opening and changing the parcel breaks it | valid, broken (torn, red) | 0.2 sign/verify blocks |
+| **Transaction** | A parcel, addressed to one receiver (the label) | Sent from one account to another, packed with actions; one address label = one receiver | packing (open, no stamp), signed (stamped), delivered, failed (red, red cross). **Open**: the flaps lift and the action cards stand above the box, first action on top | lesson-made cards, 1.3's slabs |
+| **Action** | A card packed in the parcel, standing above it when open | A transaction is a list of actions | idle, done ✓ (green tint), undone ↺, failed ✗ (red tint), never ran – | 1.3's action slabs |
+| **Signing / signature** | A stamp on the parcel (the sender's mark, with a postmark ring) | Proves who sent it; changing the parcel after it was stamped breaks it | valid, broken (`stampBroken`: red, struck). A failed transaction keeps a valid stamp | 0.2 sign/verify blocks |
 | **Key (full access)** | A plain key | Opens everything | revoked (struck out) | `Key` |
-| **Key (function-call)** | A key with a paper tag on a string; the tag names the contract and allowance | Same key, visibly limited | allowance as a gauge on the tag; empty; revoked | `Key` + note |
+| **Key (function-call)** | A key with a paper tag on a string; the tag names what it may call and shows the allowance as a gauge | Same key, visibly limited | gauge full to empty; revoked (grey, struck out) | `Key` + note |
 | **Wallet** | A key ring holding one or more keys | A wallet is where your keys live, not your money | locked / unlocked | 0.2's wallet box |
-| **Contract** | A scroll with a small gear (cog) on its seal; the gear turns when the contract runs | A contract is written rules (the scroll) that run as code (the gear) | idle, running (gear turns, lines on the scroll light up), panicked (red) | `ContractBlock` |
+| **Contract** | A scroll standing up, lines of rules on it, a gear on its seal | A contract is written rules (the scroll) that run as code (the gear) | idle, running (the gear turns), failed (red cross), not deployed (dashed) | `ContractBlock` |
+| **App** | A screen on a small stand, a title bar in the accent colour | A program that can hold a key and sign with it (a game, a website, a bot) | ok, hacked (red cross) | 1.2's agent block |
 | **Receipt** | A delivery slip that comes with the parcel | What an action becomes when it moves on (Stage 2) | pending, done, failed | — |
 | **Gas / fee** | Small ink drops / a meter | Work costs a little, spent as you go | full / used | — |
 | **RPC node** | A post-office counter window | The door you hand your envelope to | busy, down | 0.3's `RpcNode` |
@@ -50,24 +53,25 @@ Open: chain signatures (Stage 4 showpiece) and intents will need rows when those
 
 ## How it fits the code
 
-- Each row becomes one component in `src/scene-kit/objects/` (3D) and `src/scene-kit/svg/objects/` (2D),
-  with a shared `state` prop (`"pending" | "ok" | "failed" | "gone"`) and `pickLabel`.
-- A gallery page (the existing `scene-kit-demo` lesson) shows every object in every state, in both
-  views, so the set is reviewed as a whole before lessons switch.
-- Old names (`AccountBlock`, `ContractBlock`, ...) become thin aliases during the switch, then go.
-- Lessons move one at a time, one commit each, after the gallery is approved. Stage 1 first, then
-  0.1–0.3 (0.1 is also the `BookScene` reference on `main`, so do this after `main` is merged into
-  `stage-1`).
+| File | What |
+| --- | --- |
+| `src/scene-kit/objects.ts` | Pure: `OBJECTS` (concept → shape), `ObjectState` and `lookOf` (how each state looks), the objects' dimensions, `itemSlots` (where action cards stand), `gaugeShare`. Unit tested; safe to import from 2D code. |
+| `src/scene-kit/objects3d.tsx` | 3D: `Mailbox`, `Parcel` (+ `ActionCard`, `FATE_FILL`, `FATE_MARK`), `Stamp`, `Scroll`, `TaggedKey`, `AppScreen`, `Cross`, `Strike`. Exported from `src/scene-kit`. |
+| `src/scene-kit/svg/objects.tsx` | 2D twins: `SvgMailbox`, `SvgParcel`, `SvgStamp`, `SvgScroll`, `SvgTaggedKey`, `SvgAppScreen`, and `ObjectIcon` (the same shapes small, for HTML card headers). |
+| `src/content/lessons/scene-objects/` | Hidden gallery, `/lesson/scene-objects`: every object in every state, 2D and 3D. |
 
-## Questions for review
+- Every object takes `state` (`"ok" | "pending" | "failed" | "gone"`), an accent `color` and the usual
+  pick props (`onPick`, `pickLabel`, `selected`).
+- Lessons draw objects a little bigger than their layout unit (`OBJ = SIZE * 1.35`): mailboxes and
+  scrolls are slimmer than the old blocks.
+- Old names (`AccountBlock`, `ContractBlock`, ...) stay until stage 0 moves over, then go.
+- Next: stage 0 (0.1 is also the `BookScene` reference, now merged into `stage-1`), then the rows not
+  built yet as their lessons need them.
 
-Answered (7 Nov 2026):
-- Transaction: **parcel with a stamp** (the stamp is the signature). A parcel can be opened to preview
-  all the actions packed inside.
-- Contract: **scroll**, with a sign that it runs code (the gear on its seal).
+## Decisions (7 Nov 2026)
 
-Open:
-1. Account: **mailbox or wallet?** The owner leans to wallet; mailbox also works. If the account is a
-   wallet, the key ring needs another home (keys hang inside the wallet?), because today "wallet" means
-   the place your keys live (lesson 0.2), not the account on chain. Mailbox keeps the two apart and
-   matches parcels (a parcel is delivered to a mailbox).
+- Account: **mailbox**. It keeps "account" apart from "wallet" (where your keys live, lesson 0.2), and a
+  parcel is delivered to a mailbox.
+- Transaction: **parcel with a stamp** (the stamp is the signature). It opens to show the actions inside.
+- Contract: **scroll**, with a gear on its seal as the sign that it runs code.
+- App (added for lesson 1.2): **a screen on a stand**.

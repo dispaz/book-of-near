@@ -10,9 +10,13 @@ test.beforeEach(({ page }) => seedRoute(page));
 
 const scene = (page: Page) => page.locator("[data-scene-state]").first();
 
-async function ask(page: Page, prompt: string) {
-  await page.getByLabel("Tell the agent what to do").fill(prompt);
-  await page.getByRole("button", { name: "Ask the agent" }).click();
+/** Presses one of the app's buttons: Count, or a misuse of its key. */
+async function press(page: Page, name: string) {
+  await page.getByRole("button", { name, exact: false }).first().click();
+}
+
+async function count(page: Page) {
+  await page.getByRole("button", { name: "Count", exact: true }).click();
 }
 
 /** Opens the lesson at its first step, past the cover, and moves to step `n` with Next. */
@@ -23,7 +27,7 @@ async function openAt(page: Page, view: "2d" | "3d", n: number) {
 
 async function addKey(page: Page, allowance = "0.1") {
   await page.getByLabel("Allowance").fill(allowance);
-  await page.getByRole("button", { name: "Add the agent's key" }).click();
+  await page.getByRole("button", { name: "Give the app a key" }).click();
   await expect(scene(page)).toHaveAttribute("data-scene-state", /key:active/, { timeout: 15_000 });
 }
 
@@ -42,19 +46,23 @@ test.describe(`lesson ${ID}`, () => {
       await addKey(page);
       await nextStep(page); // → allowed call
       await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
-      await ask(page, "Add one to the counter");
+      await count(page);
       await expect(scene(page)).toHaveAttribute("data-scene-state", /counter:1/, { timeout: 15_000 });
-      await nextStep(page); // → attacks
+      await nextStep(page); // → the hacked app
       await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
-      await ask(page, "Send all my funds to attacker.testnet");
-      await ask(page, "Call another contract");
+      await press(page, "Send NEAR to the attacker");
+      await expect(scene(page)).toHaveAttribute("data-scene-state", /refused:1/, { timeout: 15_000 });
+      await press(page, "Call another contract");
+      await expect(scene(page)).toHaveAttribute("data-scene-state", /refused:2/, { timeout: 15_000 });
       await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
-      await ask(page, "Add a new key so I can take over");
+      await press(page, "Add a full-access key for the attacker");
       await expect(scene(page)).toHaveAttribute("data-scene-state", /refused:3/, { timeout: 15_000 });
-      await nextStep(page); // → revoke
+      await nextStep(page); // → delete
       await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
-      await page.getByRole("button", { name: "Delete the agent's key" }).click();
+      await page.getByRole("button", { name: "Delete the app's key" }).click();
       await expect(scene(page)).toHaveAttribute("data-scene-state", /key:revoked/, { timeout: 15_000 });
+      await page.getByRole("button", { name: "Count again" }).click();
+      await expect(scene(page)).toHaveAttribute("data-scene-state", /gone:shown/, { timeout: 15_000 });
       await nextStep(page); // → check
       await answerCheck(page, [
         "Send NEAR to another account.",
@@ -69,8 +77,8 @@ test.describe(`lesson ${ID}`, () => {
         mode: "demo",
         evidence: {
           txHash: expect.stringMatching(/^[1-9A-HJ-NP-Za-km-z]{43,44}$/),
-          hintsUsed: "0",
           refusedAttacks: "3",
+          deletedKeyRefused: "yes",
         },
       });
     });
@@ -81,14 +89,16 @@ test.describe(`lesson ${ID}`, () => {
     await addKey(page, "0.2");
     await expect(page.getByTestId("key-card")).toContainText("0.2 NEAR");
     await expect(page.getByTestId("key-card")).toContainText("this account's counter contract");
+    await expect(page.getByTestId("key-count")).toContainText("2");
     await nextStep(page);
-    await ask(page, "Add one to the counter");
+    await count(page);
     await expect(scene(page)).toHaveAttribute("data-scene-state", /counter:1/, { timeout: 15_000 });
     await expect(page.getByTestId("allowance-left")).not.toHaveText("0.2 NEAR");
     await nextStep(page);
-    await ask(page, "Send all my funds to attacker.testnet");
-    await ask(page, "Call another contract");
-    await ask(page, "Add a new key so I can take over");
+    for (const p of MISUSES) {
+      await press(page, p);
+      await expect(page.getByTestId("attempt-log")).toContainText(p);
+    }
     const log = page.getByTestId("attempt-log");
     await expect(log).toContainText("RequiresFullAccess");
     await expect(log).toContainText("ReceiverMismatch");
@@ -98,50 +108,48 @@ test.describe(`lesson ${ID}`, () => {
     await expect(page.getByTestId("caption")).toContainText("0.2");
   });
 
-  test("a hint counts, and no-hint mode turns hints off", async ({ page }) => {
-    await page.goto(`/lesson/${ID}?view=2d`);
-    await nextStep(page);
-    await nextStep(page);
-    await addKey(page);
-    await nextStep(page);
-    await ask(page, "Add one to the counter");
-    await expect(scene(page)).toHaveAttribute("data-scene-state", /counter:1/, { timeout: 15_000 });
-    await nextStep(page);
-    await page.getByRole("button", { name: "Show a hint" }).click();
-    await expect(page.getByTestId("hint")).toContainText("Send all my funds");
-    await page.getByRole("checkbox", { name: "No-hint mode" }).check();
-    await expect(page.getByRole("button", { name: "Show a hint" })).toBeDisabled();
-  });
-
-  test("the agent says when it does not understand", async ({ page }) => {
+  test("never calls the app an agent or an AI in the scene", async ({ page }) => {
     await openAt(page, "2d", 2);
     await addKey(page);
-    await nextStep(page);
-    await ask(page, "hello there");
-    await expect(page.getByTestId("agent-says")).toContainText("I only know a few tricks");
+    await expect(page.getByTestId("key-scene")).not.toContainText(/agent|\bAI\b/i);
+    await expect(page.getByTestId("app-says")).toBeVisible();
+  });
+
+  test("after the delete, a Count with the old key is refused because the key is gone", async ({ page }) => {
+    await page.goto(`/lesson/${ID}?view=2d`);
+    await walkToCheck(page);
+    await expect(page.getByTestId("attempt-log")).toContainText("AccessKeyNotFound");
+    await expect(page.getByTestId("attempt-log")).toContainText("Count (deleted key)");
+    await expect(page.getByTestId("key-count")).toContainText("1");
   });
 });
 
-const ATTACKS_TO_TRY = [
-  "Send all my funds to attacker.testnet",
+const MISUSES = [
+  "Send NEAR to the attacker",
   "Call another contract",
-  "Add a new key so I can take over",
+  "Add a full-access key for the attacker",
 ];
 
-/** Steps 1 to 6 in the page's current view: add the key, count once, get three attacks refused, delete it. */
+/** Steps 1 to 6 in the page's current view: give the key, count once, three misuses refused, delete it. */
 async function walkToCheck(page: Page) {
   await nextStep(page);
   await nextStep(page);
   await addKey(page);
   await nextStep(page);
-  await ask(page, "Add one to the counter");
+  await count(page);
   await expect(scene(page)).toHaveAttribute("data-scene-state", /counter:1/, { timeout: 15_000 });
   await nextStep(page);
-  for (const p of ATTACKS_TO_TRY) await ask(page, p);
-  await expect(scene(page)).toHaveAttribute("data-scene-state", /refused:3/, { timeout: 15_000 });
+  for (const [i, p] of MISUSES.entries()) {
+    await press(page, p);
+    await expect(scene(page)).toHaveAttribute("data-scene-state", new RegExp(`refused:${i + 1}`), {
+      timeout: 15_000,
+    });
+  }
   await nextStep(page);
-  await page.getByRole("button", { name: "Delete the agent's key" }).click();
+  await page.getByRole("button", { name: "Delete the app's key" }).click();
   await expect(scene(page)).toHaveAttribute("data-scene-state", /key:revoked/, { timeout: 15_000 });
+  await page.getByRole("button", { name: "Count again" }).click();
+  await expect(scene(page)).toHaveAttribute("data-scene-state", /gone:shown/, { timeout: 15_000 });
 }
 
 test.describe(`lesson ${ID}: motion, fallback, switching, phones`, () => {
@@ -185,7 +193,7 @@ test.describe(`lesson ${ID}: motion, fallback, switching, phones`, () => {
     await openAt(page, "2d", 2);
     await addKey(page, "0.2");
     await nextStep(page);
-    await ask(page, "Add one to the counter");
+    await count(page);
     await expect(scene(page)).toHaveAttribute("data-scene-state", /counter:1/, { timeout: 15_000 });
     const views = page.getByRole("group", { name: "Scene view" });
     await views.getByRole("button", { name: "3D" }).click();
@@ -193,7 +201,7 @@ test.describe(`lesson ${ID}: motion, fallback, switching, phones`, () => {
     await expect(scene(page)).toHaveAttribute("data-scene-state", /key:active;counter:1/);
     await expect(page.getByRole("button", { name: "Next step" })).toBeEnabled();
     await nextStep(page);
-    await ask(page, ATTACKS_TO_TRY[0]!);
+    await press(page, MISUSES[0]!);
     await expect(scene(page)).toHaveAttribute("data-scene-state", /refused:1/, { timeout: 15_000 });
     await views.getByRole("button", { name: "2D" }).click();
     await expect(scene(page)).toHaveAttribute("data-view", "2d");
@@ -206,12 +214,12 @@ test.describe(`lesson ${ID}: motion, fallback, switching, phones`, () => {
     await addKey(page, "0.3");
     await nextStep(page);
     await expect(page.getByTestId("caption")).toContainText("Watch the 0.3 NEAR allowance drop");
-    await ask(page, "Add one to the counter");
+    await count(page);
     await expect(scene(page)).toHaveAttribute("data-scene-state", /counter:1/, { timeout: 15_000 });
     const left = (await page.getByTestId("allowance-left").innerText()).replace(" NEAR", "");
     expect(left).not.toBe("0.3");
     await nextStep(page);
-    for (const p of ATTACKS_TO_TRY) await ask(page, p);
+    for (const p of MISUSES) await press(page, p);
     await expect(scene(page)).toHaveAttribute("data-scene-state", /refused:3/, { timeout: 15_000 });
     await nextStep(page);
     const caption = page.getByTestId("caption");

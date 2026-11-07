@@ -41,6 +41,7 @@ export const OBJECTS = {
   fullAccessKey: { shape: "key", note: "opens everything" },
   functionCallKey: { shape: "tagged-key", note: "a key with a tag: one contract, an allowance" },
   token: { shape: "coin", note: "money" },
+  app: { shape: "screen", note: "an app: a program that can hold a key and sign with it" },
 } as const;
 
 export type Concept = keyof typeof OBJECTS;
@@ -87,11 +88,19 @@ export function scrollDims(size: number) {
   return { width, height, roller, gear: size * 0.12 };
 }
 
+/** An app: a screen on a small stand, a title bar across its top. */
+export function screenDims(size: number) {
+  const width = size * 0.9;
+  const height = size * 0.62;
+  const stand = size * 0.3;
+  return { width, height, stand, total: stand + height };
+}
+
 /**
  * Where the action cards stand when a parcel is open: a column above the box, the first action on top.
  * Offsets from the parcel's top middle. At most `max` cards (the lesson shows "+n more").
  */
-export function itemSlots(count: number, max: number, gap = 0.36): { y: number; z: number }[] {
+export function itemSlots(count: number, max: number, gap = 0.4): { y: number; z: number }[] {
   const n = Math.min(count, max);
-  return Array.from({ length: n }, (_, i) => ({ y: 0.35 + (n - 1 - i) * gap, z: 0.02 * i }));
+  return Array.from({ length: n }, (_, i) => ({ y: 0.75 + (n - 1 - i) * gap, z: 0.02 * i }));
 }

@@ -12,9 +12,9 @@ type Fate = "idle" | "done" | "undone" | "failed" | "skipped";
 
 const FILL: Record<Fate, string> = {
   idle: PAPER,
-  done: COLORS.green,
+  done: COLORS.greenTint,
   undone: COLORS.slab,
-  failed: COLORS.red,
+  failed: COLORS.redTint,
   skipped: COLORS.slab,
 };
 const MARK: Record<Fate, string> = { idle: "", done: "✓", undone: "↺", failed: "✗", skipped: "–" };
@@ -115,7 +115,7 @@ export function SvgMailbox({
         {...ink(look, PAPER)}
       />
       {/* Flag. */}
-      <g transform={`rotate(${flag && state === "ok" ? 0 : -90} ${x + w / 2 - 6} ${y - post - body / 2})`}>
+      <g transform={`rotate(${flag && state === "ok" ? 0 : 90} ${x + w / 2 - 6} ${y - post - body / 2})`}>
         <line
           x1={x + w / 2 - 6}
           y1={y - post - body / 2}
@@ -204,6 +204,7 @@ export function SvgParcel({
   color = COLORS.orange,
   to,
   stamped = false,
+  stampBroken = false,
   open = false,
   items = [],
   maxItems = 4,
@@ -214,6 +215,8 @@ export function SvgParcel({
   size?: number;
   to?: string;
   stamped?: boolean;
+  /** The parcel was changed after it was stamped: the signature no longer matches. */
+  stampBroken?: boolean;
   open?: boolean;
   items?: SvgParcelItem[];
   maxItems?: number;
@@ -266,13 +269,7 @@ export function SvgParcel({
         </>
       ) : null}
       {stamped && !look.dashed ? (
-        <SvgStamp
-          x={x + w * 0.3}
-          y={top + h * 0.3}
-          size={size * 0.24}
-          color={color}
-          broken={state === "failed"}
-        />
+        <SvgStamp x={x + w * 0.3} y={top + h * 0.3} size={size * 0.24} color={color} broken={stampBroken} />
       ) : null}
       {slots.map((s, i) => {
         const it = items[i]!;
@@ -436,9 +433,56 @@ export function SvgTaggedKey({
   return name ? pick(p, name, [x - 76, y - 24, 120, 98], node) : node;
 }
 
+// ---------- app: a screen on a stand ----------
+
+export function SvgAppScreen({
+  x,
+  y,
+  name,
+  note,
+  size = 90,
+  color = COLORS.blue,
+  state = "ok",
+  ...p
+}: SvgObjectProps & { name: string; note?: string; size?: number }) {
+  const look = lookOf(state, color);
+  const w = size * 0.95;
+  const h = size * 0.62;
+  const stand = size * 0.28;
+  const top = y - stand - h;
+  const node = (
+    <g>
+      {look.dashed ? null : <SvgShadow x={x + 4} y={y + 3} w={size} />}
+      <rect x={x - w * 0.25} y={y - 5} width={w * 0.5} height="5" {...ink(look, PAPER)} />
+      <rect x={x - 4} y={y - stand} width="8" height={stand} {...ink(look, PAPER)} />
+      <rect x={x - w / 2} y={top} width={w} height={h} rx="5" {...ink(look, INK)} />
+      <rect x={x - w * 0.45} y={top + h * 0.08} width={w * 0.9} height={h * 0.16} {...ink(look)} />
+      <rect x={x - w * 0.45} y={top + h * 0.26} width={w * 0.9} height={h * 0.66} {...ink(look, PAPER)} />
+      {look.dashed
+        ? null
+        : [0.42, 0.58, 0.74].map((f, i) => (
+            <line
+              key={f}
+              x1={x - w * 0.36}
+              x2={x + w * (i === 2 ? 0 : 0.3)}
+              y1={top + h * f}
+              y2={top + h * f}
+              stroke={COLORS.slab}
+              strokeWidth="5"
+            />
+          ))}
+      <Marks look={look} x={x} y={top + h / 2} size={h * 0.8} />
+      <SvgLabel x={x} y={top - 12}>
+        {note ? `${name} · ${note}` : name}
+      </SvgLabel>
+    </g>
+  );
+  return pick(p, name, [x - w / 2 - 10, top - 34, w + 20, h + stand + 40], node);
+}
+
 // ---------- small icons for HTML cards ----------
 
-export type IconKind = "mailbox" | "parcel" | "stamp" | "scroll" | "key" | "tagged-key" | "coin";
+export type IconKind = "mailbox" | "parcel" | "stamp" | "scroll" | "key" | "tagged-key" | "coin" | "app";
 
 /** A small drawing of a scene object, for the header of an HTML card. Decorative: hidden from readers. */
 export function ObjectIcon({ kind, size = 22, color }: { kind: IconKind; size?: number; color?: string }) {
@@ -520,6 +564,17 @@ export function ObjectIcon({ kind, size = 22, color }: { kind: IconKind; size?: 
               <rect x="1.5" y="16" width="9" height="6" rx="1" fill={PAPER} stroke={INK} strokeWidth="1.2" />
             </>
           ) : null}
+        </>
+      );
+      break;
+    case "app":
+      body = (
+        <>
+          <rect x="2.5" y="3" width="19" height="14" rx="2" {...s} fill={INK} />
+          <rect x="4" y="4.5" width="16" height="3" fill={color ?? COLORS.blue} />
+          <rect x="4" y="8" width="16" height="7.5" fill={PAPER} />
+          <rect x="10.5" y="17" width="3" height="3.5" fill={PAPER} stroke={INK} strokeWidth="1.2" />
+          <rect x="7" y="20.5" width="10" height="2" fill={PAPER} stroke={INK} strokeWidth="1.2" />
         </>
       );
       break;

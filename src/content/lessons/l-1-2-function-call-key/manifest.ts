@@ -1,8 +1,10 @@
 import type { LessonManifest } from "../../../app/types";
 
-// Lesson script: docs/lessons/stage-1/1.2.md. Template: docs/lesson-template.md.
-// Shape: hook (full-access key) → concept (function-call key) → do (add key, allowed call, attacks, revoke)
-// → check → honest take. Keep the step numbers in useKeyLesson.ts in sync.
+// Topic: docs/lessons/stage-1/1.2-topic.md. Lesson script: docs/lessons/stage-1/1.2.md.
+// Template: docs/lesson-template.md.
+// Shape: hook (one full-access key) → concept (two kinds of key) → do (give the app a key, the app counts,
+// the hacked app is refused three times, delete the key) → check → honest take.
+// Keep the step numbers in useKeyLesson.ts in sync.
 export default {
   id: "l-1-2-function-call-key",
   stage: 1,
@@ -12,52 +14,55 @@ export default {
   needsChain: true,
   // Both views draw one state (useKeyLesson); the 3D view (Scene3D) loads only when chosen.
   views: ["2d", "3d"],
-  summary: "Add a limited key that can call one contract and nothing else.",
+  summary: "Give an app a limited key that can call one contract and nothing else.",
   // The learner's allowance is used in later text; `left` is what the key has left.
   vars: { allowance: "0.1", left: "0.1" },
   steps: [
     {
-      caption: "An assistant wants to act for you. Would you hand it the key to your whole account?",
+      caption:
+        "A small app wants to save your clicks on the chain. Would you give it the key to your whole account?",
       explain:
-        "Your practice account has a full-access key. Whoever holds it can do anything: send all your coins, add keys, even delete the account. That is too much to give a helper. NEAR lets an account hold many keys, and some can be limited.",
+        "Your practice account has one key, a full-access key. Whoever holds it can do anything: send all your NEAR, add keys, delete the account. An app that only counts clicks needs far less. On NEAR an account can hold many keys, and a key can be limited.",
       explainAt: "account",
     },
     {
-      caption: "A function-call key can call one contract and pay gas up to an allowance. Nothing else.",
+      caption:
+        "A full-access key can do anything. A function-call key can call one contract and spend a little on gas. Nothing else.",
       explain:
-        "A function-call key signs only for the contract you name. It cannot send NEAR, attach NEAR to a call, or add keys. Its allowance is the most NEAR it may spend on gas, the fee for the work a transaction causes. When the allowance is gone, the key stops working.",
+        "A function-call key names one contract, and optionally which of its methods. Its allowance is the most NEAR it may spend on gas, the fee for the work a transaction causes. It can never send NEAR, attach NEAR to a call or add keys. The chain checks this on every transaction.",
       explainAt: "keycard",
     },
     {
       caption:
-        "Set the allowance, then add a key for the agent. It will be able to call only your counter contract.",
+        "Set an allowance, then give the Counter app its own key. It will be able to call only the counter.",
       explain:
-        "One transaction does two things. It puts a small counter contract on your account, and it adds the agent's key with that contract as its only target. Then the app reads the key back from the chain, so what you see is what the chain holds. The allowance belongs to the key, not to your balance.",
+        "One transaction does two things. It puts a small counter contract on your account (the app's code), and it adds a new function-call key that may call only that contract. The app keeps the private half. Then the app reads the key back from the chain. Your account now has two keys.",
       explainAt: "keycard",
-      action: { label: "add the agent's key", gate: true },
+      action: { label: "give the app a key", gate: true },
     },
     {
       caption:
-        "Ask the agent to count. It signs with its own key and the chain accepts. Watch the {allowance} NEAR allowance drop.",
+        "Click Count. The app signs with its own key, and you are not asked to approve. Watch the {allowance} NEAR allowance drop.",
       explain:
-        "The agent is a plain script: it turns your words into a transaction and signs it with the limited key. No AI model is called. It calls increment on your counter. The call works, and the gas it used comes out of the key's allowance.",
+        "The app calls increment on the counter, signed with its function-call key, not yours. The chain checks: right contract, enough allowance. It accepts. The gas comes out of the key's allowance, not your balance.",
       explainAt: "counter",
-      action: { label: "ask the agent to count", gate: true },
-    },
-    {
-      caption: "Now try to make the agent misbehave. Type a prompt and watch the chain refuse it.",
-      explain:
-        "The chain does not read the prompt. It checks each transaction against the key's permission. Try three different attacks: send funds, call another contract, add a new key. A refused transaction is not included, and it costs nothing.",
-      explainAt: "log",
-      action: { label: "get three attacks refused", gate: true },
+      action: { label: "count once", gate: true },
     },
     {
       caption:
-        "You are done with the agent. Delete its key. It still had {left} NEAR of its {allowance} NEAR allowance.",
+        "Suppose the app is hacked. The attacker has its key. Try three things it should not be able to do.",
       explain:
-        "To revoke a key you delete it. Only a full-access key can do that, and you still hold one. After that the chain refuses every transaction signed with the deleted key. Whatever allowance was left goes with it.",
+        "The attacker can sign anything with the app's key. The chain does not trust the app: it checks each transaction against the key's permission. A refused transaction is not included, and it costs nothing.",
+      explainAt: "log",
+      action: { label: "get all three refused", gate: true },
+    },
+    {
+      caption:
+        "You are done with the app. Delete its key. It still had {left} NEAR of its {allowance} NEAR allowance.",
+      explain:
+        "To take a key back you delete it, with your full-access key. Asking the app to forget it changes nothing on the chain. Whatever allowance was left goes with it. Then try Count once more: the chain refuses a key that no longer exists.",
       explainAt: "keycard",
-      action: { label: "delete the agent's key", gate: true },
+      action: { label: "delete the app's key", gate: true },
     },
     {
       caption: "Two quick questions. Then the honest take.",

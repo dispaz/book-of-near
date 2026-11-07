@@ -1,4 +1,4 @@
-/* Lesson 1.2: the account, the agent's limited key and what the chain says. Ink outlines on paper, the
+/* Lesson 1.2: the account, the Counter app's limited key and what the chain says. Ink outlines on paper, the
    stage accent as the one highlight, red only for a refusal. Wide screens: a column to the right of the
    docked lesson card. Narrow screens: a band between the title and the dock (--bar-h and --dock-h come
    from LessonPage). */
@@ -70,6 +70,9 @@
   gap: 3px;
 }
 .kl-role {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font: 700 11px var(--ui);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -276,27 +279,19 @@
   color: var(--red);
   font: 600 13px var(--ui);
 }
-.kl-hints {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+/* The misuse and delete buttons: one full-width column, the hint under them. */
+.kl-tries {
+  align-items: stretch;
   gap: 8px;
 }
-.kl-hints .btn {
+.kl-tries .btn {
   margin-left: 0;
 }
-.kl-nohint {
-  font: 600 13px var(--ui);
+.kl-short {
+  display: none;
 }
-.kl-hint {
-  padding: 3px 8px;
-  border: 1.5px dashed var(--ink);
-  border-radius: 8px;
-  background: #fff;
-  font: 500 13px var(--ui);
-  color: var(--ink);
-  text-align: left;
-  cursor: pointer;
+.kl-refused {
+  font-weight: 500;
 }
 
 /* ---------- 3D window ---------- */
@@ -346,7 +341,7 @@
   .kl-cards {
     grid-template-columns: 1fr 1fr;
   }
-  .kl-agent {
+  .kl-app {
     grid-column: 1 / -1;
   }
   .kl-3d .sk-label {
@@ -358,6 +353,12 @@
   .kl-3d .sk-label.hint {
     font-size: 11px;
     padding: 3px 8px;
+    /* The refusal reason is the only place it shows on phones (the log is hidden): wrap it. */
+    white-space: normal;
+    width: max-content;
+    max-width: 260px;
+    border-radius: 10px;
+    text-align: center;
   }
   .kl-3d .sk-status {
     font-size: 16px;
@@ -379,8 +380,7 @@
 }
 
 /* Phones: the docked forms stay short and their text whole. The allowance row wraps instead of squeezing
-   its button into three lines; "Ask the agent" shows as "Ask" (the full name stays for screen readers),
-   so the prompt box is wide enough for its placeholder. */
+   its button into three lines. */
 .kl-form .btn {
   white-space: nowrap;
 }
@@ -392,7 +392,21 @@
   .kl-form-row label.grow {
     flex: 1 1 0;
   }
-  .kl-ask-long {
+  /* The misuse buttons share one row with short labels; the full label stays for screen readers. */
+  .kl-tries {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .kl-tries .btn {
+    flex: 1 1 auto;
+  }
+  .kl-tries .kl-form-hint {
+    display: none;
+  }
+  .kl-short {
+    display: inline;
+  }
+  .kl-long {
     position: absolute;
     width: 1px;
     height: 1px;
