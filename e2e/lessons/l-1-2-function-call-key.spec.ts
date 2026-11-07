@@ -77,6 +77,7 @@ test.describe(`lesson ${ID}`, () => {
         mode: "demo",
         evidence: {
           txHash: expect.stringMatching(/^[1-9A-HJ-NP-Za-km-z]{43,44}$/),
+          addKeyTxHash: expect.stringMatching(/^[1-9A-HJ-NP-Za-km-z]{43,44}$/),
           refusedAttacks: "3",
           deletedKeyRefused: "yes",
         },

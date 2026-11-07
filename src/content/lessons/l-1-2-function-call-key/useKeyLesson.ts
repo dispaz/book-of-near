@@ -76,6 +76,7 @@ export function useKeyLesson({
   const [error, setError] = useState<string | null>(null);
   const [passed, setPassed] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [addKeyTxHash, setAddKeyTxHash] = useState<string | null>(null);
 
   // The practice account, through the Chain interface.
   useEffect(() => {
@@ -149,17 +150,19 @@ export function useKeyLesson({
     varsRef.current?.(v);
   }, [allowanceVar, leftVar]);
 
-  // Evidence for the completion record: never keys, only counts and a transaction hash.
+  // Evidence for the completion record: never keys, only counts and transaction hashes. txHash is the
+  // latest key transaction (the delete, once done); addKeyTxHash keeps the add so both can be checked.
   const evidenceRef = useRef(reportEvidence);
   evidenceRef.current = reportEvidence;
   useEffect(() => {
     if (!txHash) return;
     evidenceRef.current?.({
       txHash,
+      ...(addKeyTxHash ? { addKeyTxHash } : {}),
       refusedAttacks: String(refused.length),
       deletedKeyRefused: goneShown ? "yes" : "no",
     });
-  }, [txHash, refused.length, goneShown]);
+  }, [txHash, addKeyTxHash, refused.length, goneShown]);
 
   async function readKey(key: PublicKey, account: string) {
     const keys = await chain.listKeys(account);
@@ -210,6 +213,7 @@ export function useKeyLesson({
       setAppKey(key);
       setInitial(r.amount);
       setTxHash(out.transaction.hash);
+      setAddKeyTxHash(out.transaction.hash);
       setKeyState("active");
       await refresh(me.accountId, key);
     } catch (e) {
