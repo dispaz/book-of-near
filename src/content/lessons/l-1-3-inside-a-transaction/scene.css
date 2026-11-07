@@ -479,8 +479,14 @@
   .tl-rows li {
     padding: 1px 3px;
   }
+  /* Hidden on screen only: screen readers still hear the full action (the short tag is aria-hidden). */
   .tl-rows .tl-what {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
   .tl-what-short {
     font: 600 12px var(--ui);

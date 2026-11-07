@@ -47,6 +47,7 @@ export type Lesson = ReturnType<typeof useKeyLesson>;
 async function counterCode(network: string): Promise<Uint8Array> {
   if (network === "demo") return demoContractCode("counter");
   const res = await fetch(counterWasmUrl);
+  if (!res.ok) throw new Error(`Could not load the counter contract (HTTP ${res.status}). Please try again.`);
   return new Uint8Array(await res.arrayBuffer());
 }
 

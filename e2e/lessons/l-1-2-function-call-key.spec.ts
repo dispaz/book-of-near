@@ -82,6 +82,9 @@ test.describe(`lesson ${ID}`, () => {
           deletedKeyRefused: "yes",
         },
       });
+      // The delete must not overwrite the add: both key transactions stay in the record.
+      const { evidence } = (await completionOf(page, ID)) as { evidence: Record<string, string> };
+      expect(evidence.txHash).not.toBe(evidence.addKeyTxHash);
     });
   }
 
