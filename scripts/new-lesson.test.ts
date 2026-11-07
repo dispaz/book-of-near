@@ -7,6 +7,7 @@ import {
   readManifestInfo,
   planLesson,
   renderManifest,
+  renderBookScene3D,
   renderScene,
   renderSpec,
   scaffold,
@@ -18,7 +19,11 @@ describe("parseArgs", () => {
   it("reads flags", () => {
     expect(
       parseArgs(["my-lesson", "--stage", "2", "--title", "Hello there", "--chain", "--order", "4"]),
-    ).toEqual({ id: "my-lesson", stage: 2, title: "Hello there", chain: true, order: 4 });
+    ).toEqual({ id: "my-lesson", stage: 2, title: "Hello there", chain: true, book: false, order: 4 });
+  });
+
+  it("reads --book", () => {
+    expect(parseArgs(["my-lesson", "1", "Claim a name", "--book"]).book).toBe(true);
   });
 
   it("reads positionals, as the /new-lesson command passes them", () => {
@@ -27,6 +32,7 @@ describe("parseArgs", () => {
       stage: 1,
       title: "Claim a name",
       chain: false,
+      book: false,
       order: undefined,
     });
   });
@@ -128,6 +134,30 @@ describe("templates", () => {
     expect(src).toContain("TODO(author)");
   });
 
+  it("--book: offers both views and loads the 3D book scene lazily", () => {
+    const book = { ...opts, book: true };
+    expect(renderManifest(book)).toContain('views: ["2d", "3d"]');
+    expect(renderManifest(opts)).not.toContain("views:");
+    const scene = renderScene(book);
+    expect(scene).toContain('const Scene3D = lazy(() => import("./Scene3D"))');
+    expect(scene).toContain('view === "3d"');
+    expect(renderScene(opts)).not.toContain("Scene3D");
+  });
+
+  it("--book: the 3D view is a BookScene with a spread, a printed text block, a caption and a tour", () => {
+    const src = renderBookScene3D(opts);
+    expect(src).toContain('from "../../../scene-kit"');
+    expect(src).toContain("<BookScene");
+    expect(src).toContain("useFreeFrame(");
+    expect(src).toContain("spreadBeside(");
+    expect(src).toContain("textBlock(");
+    expect(src).toContain("text={print ? TEXT : null}");
+    expect(src).toContain("className={`book-scene");
+    expect(src).toContain("shots={");
+    expect(src).toContain("Fig. 1");
+    expect(src).toContain("TODO(author)");
+  });
+
   it("writes an e2e spec that walks to Finish and holds a fixme stub for the author", () => {
     const src = renderSpec(opts);
     expect(src).toContain('const ID = "x-lesson"');
@@ -162,6 +192,19 @@ describe("scaffold", () => {
     ]) {
       expect(existsSync(join(root, f))).toBe(true);
     }
+    expect(existsSync(join(root, "src/content/lessons/throwaway/Scene3D.tsx"))).toBe(false);
+    expect(readFileSync(join(root, "e2e/lessons/throwaway.spec.ts"), "utf8")).not.toContain("data-spread");
+  });
+
+  it("--book also writes the 3D book scene", () => {
+    const res = scaffold(root, { id: "booky", stage: 0, title: "Booky", chain: false, book: true });
+    for (const f of ["Scene3D.tsx", "tour.ts", "tour.test.ts"])
+      expect(res.files.some((p: string) => p.endsWith(`booky/${f}`))).toBe(true);
+    const spec = readFileSync(join(root, "e2e/lessons/booky.spec.ts"), "utf8");
+    expect(spec).toContain("data-spread");
+    expect(spec).toContain("Play the tour");
+    expect(spec).toContain("width: 390");
+    expect(readFileSync(join(root, "src/content/lessons/booky/Scene3D.tsx"), "utf8")).toContain("<BookScene");
   });
 
   it("replaces a planned manifest in place", () => {

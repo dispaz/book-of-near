@@ -1,6 +1,6 @@
 ---
 description: Scaffold a lesson (manifest, 2D scene, demo-mode e2e test) from the lesson template
-argument-hint: <id> <stage> "<title>" [--chain] [--order N]
+argument-hint: <id> <stage> "<title>" [--chain] [--book] [--order N]
 allowed-tools: Bash(npm run new-lesson:*), Bash(node scripts/new-lesson.mjs:*)
 ---
 
@@ -8,7 +8,8 @@ Scaffold a Book of NEAR lesson with arguments: $ARGUMENTS
 
 1. Read `docs/lesson-template.md` (the lesson shape and rules).
 2. Run `npm run new-lesson -- $ARGUMENTS`. The id is kebab-case; pass `--chain` when the lesson does
-   something on chain. If the script refuses (lesson already ready, wrong stage, unknown stage), report its
+   something on chain, and `--book` when it has a 3D view (almost always): that adds `Scene3D.tsx` as a
+   book scene (`docs/book-scene.md`). If the script refuses (lesson already ready, wrong stage, unknown stage), report its
    message and stop. Do not delete or edit an existing ready lesson to get past it.
 3. Report the files it created and whether it replaced a planned manifest.
 4. If the lesson script exists at the path printed by the script (`docs/lessons/stage-<n>/...`), say so;

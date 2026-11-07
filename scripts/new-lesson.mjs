@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // Scaffolds a lesson from the template in docs/lesson-template.md.
 //
-//   npm run new-lesson -- <id> --stage N --title "Title" [--chain] [--order N]
-//   node scripts/new-lesson.mjs <id> <stage> "Title" [--chain]
+//   npm run new-lesson -- <id> --stage N --title "Title" [--chain] [--book] [--order N]
+//   node scripts/new-lesson.mjs <id> <stage> "Title" [--chain] [--book]
 //
 // Creates src/content/lessons/<id>/{manifest.ts,Scene.tsx} and e2e/lessons/<id>.spec.ts.
+// --book also writes Scene3D.tsx: the 3D view as a book scene (docs/book-scene.md), and offers both views.
 // A planned manifest with the same id is replaced in place (same order, same summary).
 // A ready (or card) lesson is never overwritten.
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -12,8 +13,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const USAGE =
-  'Usage: npm run new-lesson -- <id> --stage N --title "Title" [--chain] [--order N]\n' +
-  '   or: node scripts/new-lesson.mjs <id> <stage> "Title" [--chain]';
+  'Usage: npm run new-lesson -- <id> --stage N --title "Title" [--chain] [--book] [--order N]\n' +
+  '   or: node scripts/new-lesson.mjs <id> <stage> "Title" [--chain] [--book]';
 
 const ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 /** Lessons with order 10 and up are backlog topics or developer placeholders, not numbered lessons. */
@@ -28,6 +29,7 @@ export function parseArgs(argv) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--chain") flags.chain = true;
+    else if (a === "--book") flags.book = true;
     else if (a === "--stage" || a === "--title" || a === "--order") {
       const v = argv[++i];
       if (v === undefined) throw new Error(`${a} needs a value.\n${USAGE}`);
@@ -49,6 +51,7 @@ export function parseArgs(argv) {
     stage: Number(stageText),
     title,
     chain: flags.chain === true,
+    book: flags.book === true,
     order: flags.order === undefined ? undefined : Number(flags.order),
   };
 }
@@ -90,7 +93,12 @@ const q = (s) => JSON.stringify(s);
 export const scriptPath = ({ id, stage, order }) =>
   `docs/lessons/stage-${stage}/${order < NUMBERED_MAX ? `${stage}.${order}` : id}.md`;
 
-export function renderManifest({ id, stage, title, order, chain, summary }) {
+export function renderManifest({ id, stage, title, order, chain, book, summary }) {
+  const views = book
+    ? `  // Both views draw one shared state (Scene.tsx); the 3D view is a book scene (docs/book-scene.md).
+  views: ["2d", "3d"],
+`
+    : "";
   return `import type { LessonManifest } from "../../../app/types";
 
 // Scaffolded by \`npm run new-lesson\`. Template: docs/lesson-template.md.
@@ -125,15 +133,30 @@ export default {
       caption: "Honest take: what NEAR does well here, and what it does badly.",
     },
   ],
-  scene: () => import("./Scene"),
+${views}  scene: () => import("./Scene"),
 } satisfies LessonManifest;
 `;
 }
 
-export function renderScene({ title, chain }) {
-  const props = chain
-    ? "{ step, setGate, reducedMotion, mode, reportEvidence }"
-    : "{ step, setGate, reducedMotion, mode }";
+export function renderScene({ title, chain, book }) {
+  const props = `{ step, setGate, reducedMotion, mode${book ? ", view, flat" : ""}${chain ? ", reportEvidence" : ""} }`;
+  const reactImport = book ? "{ lazy, Suspense, useState }" : "{ useState }";
+  const lazy3d = book
+    ? `
+// The 3D view pulls in three.js, so it loads only when the learner picks 3D. It is a book scene
+// (docs/book-scene.md) and draws the same state as the 2D view below.
+const Scene3D = lazy(() => import("./Scene3D"));
+`
+    : "";
+  const open3d = book
+    ? `{view === "3d" ? (
+        <Suspense fallback={<p className="visually-hidden">Loading the 3D view…</p>}>
+          <Scene3D step={step} done={done} reducedMotion={reducedMotion} flat={flat} mode={mode} />
+        </Suspense>
+      ) : (
+      `
+    : "";
+  const close3d = book ? ")}" : "";
   const chainImports = chain
     ? `import { useChain } from "../../../chain/ChainContext";
 import { isChainError } from "../../../chain/errors";
@@ -178,11 +201,11 @@ import { parseNear } from "../../../chain/units";
         </SceneAction>`
     : `<SceneAction onClick={run}>Try it</SceneAction>`;
   const status = chain ? `{error ?? (done ? "Done" : "Not yet")}` : `{done ? "Done" : "Not yet"}`;
-  return `import { useState } from "react";
+  return `import ${reactImport} from "react";
 import type { SceneProps } from "../../../app/types";
 import { SceneAction } from "../../../ui/SceneAction";
 import { Check, HonestTake, type CheckQuestion } from "../../../lesson-kit";
-${chainImports}
+${chainImports}${lazy3d}
 // Step numbers (0-based) from manifest.ts.
 const DO = 2;
 const CHECK = 3;
@@ -207,7 +230,7 @@ ${doAction}
   return (
     <>
       {/* 2D ink scene. Expose the state tests assert on in data-scene-state. */}
-      <svg
+      ${open3d}<svg
         viewBox="0 0 800 500"
         role="img"
         aria-label={done ? "The action is done" : "Waiting for your action"}
@@ -230,7 +253,7 @@ ${doAction}
         <text x="400" y="320" textAnchor="middle" fontFamily="Caveat, cursive" fontSize="24" fill="#16141f">
           ${status}
         </text>
-      </svg>
+      </svg>${close3d}
       {step === DO && !done ? (
         ${button}
       ) : null}
@@ -259,7 +282,212 @@ ${doAction}
 `;
 }
 
-export function renderSpec({ id, stage, title, chain }) {
+/** The 3D view as a book scene (docs/book-scene.md): a working starting point with TODO(author) marks. */
+export function renderBookScene3D({ stage, title }) {
+  return `import { useRef } from "react";
+import {
+  AccountBlock,
+  BookScene,
+  focusOf,
+  inset,
+  spreadBeside,
+  spreadFor,
+  textBlock,
+  useFreeFrame,
+  type Box,
+  type Focus,
+} from "../../../scene-kit";
+import type { SceneProps } from "../../../app/types";
+import { CHECK, tourFor, type Target } from "./tour";
+
+// ─── BOOK SCENE (docs/book-scene.md) ───────────────────────────────────────────────────────────
+// The figure stands on the RIGHT page. Wide screens print the step on the LEFT page; narrow screens,
+// the quiz and the honest take keep the words docked and use the smaller centred spread.
+// TODO(author): make FIGURE the ground box (x, z) that holds every step's objects and their labels.
+// ────────────────────────────────────────────────────────────────────────────────────────────────
+const FIGURE = { minX: -2, maxX: 2, minZ: -1.6, maxZ: 1.6 };
+const SPREAD = { print: spreadBeside(FIGURE), docked: spreadFor(FIGURE) };
+/** Where the step's words are printed on the left page. */
+const TEXT = textBlock(SPREAD.print);
+/** Running heads, only when the words are docked (the printed step heads the page otherwise). */
+const HEADS: [string, string] = [${q(`Stage ${stage}`)}, ${q(title)}];
+/** TODO(author): one figure caption per sheet (steps 0 to CHECK; later steps share the quiz's sheet). */
+const FIGURES = ["Fig. 1  Placeholder", "Fig. 2  Placeholder", "Fig. 3  Placeholder", "Fig. 4  Placeholder"];
+/** TODO(author): what the scene shows at each step, in one sentence, for screen readers. */
+const DESCRIPTION = [
+  "Placeholder: what the 3D scene shows at the hook.",
+  "Placeholder: what the 3D scene shows at the concept.",
+  "Placeholder: what the 3D scene shows while you try it.",
+  "Placeholder: what the 3D scene shows at the check.",
+  "Placeholder: what the 3D scene shows at the honest take.",
+];
+
+/** What the camera keeps in view at a step: the figure, with its labels. */
+function focusFor(_step: number): Focus {
+  const box: Box = [FIGURE.minX, FIGURE.maxX, FIGURE.minZ, FIGURE.maxZ, 2.6];
+  return focusOf([box], 34);
+}
+
+/** What one tour shot looks at: low and close, turned a little. */
+function shotFocus(t: Target, base: Focus): Focus {
+  if (t.kind === "all") return { ...base, elevation: 28, azimuth: -14 };
+  return { center: [0, 0.8, 0], width: 3, depth: 3, height: 2.6, elevation: 24, azimuth: -18 };
+}
+
+/** The 3D view: the same state as the 2D view in Scene.tsx, drawn on an open pop-up book. */
+export default function Scene3D({
+  step,
+  done,
+  reducedMotion,
+  flat,
+  mode,
+}: {
+  step: number;
+  done: boolean;
+  reducedMotion: boolean;
+  flat: boolean;
+  mode: SceneProps["mode"];
+}) {
+  const root = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const summary = step >= CHECK;
+  const { frame, size, wide, print } = useFreeFrame(root, panel, { summary });
+  // Steps after the quiz stay on the quiz's sheet.
+  const sheet = Math.min(step, CHECK);
+  const focus = focusFor(step);
+  const inner = inset(frame, { top: 24, bottom: 24 });
+  return (
+    <div
+      ref={root}
+      className={\`book-scene\${summary ? " summary" : ""}\`}
+      data-view="3d"
+      data-mode={mode}
+      role="group"
+      aria-label={${q(`${title}, in 3D`)}}
+    >
+      <BookScene
+        page={step}
+        sheet={sheet}
+        spread={print ? SPREAD.print : SPREAD.docked}
+        heads={print ? undefined : HEADS}
+        caption={FIGURES[sheet]}
+        text={print ? TEXT : null}
+        focus={focus}
+        frame={inner}
+        size={size}
+        shots={tourFor(step)}
+        shotFocus={(t: Target) => shotFocus(t, focus)}
+        flat={flat}
+        reducedMotion={reducedMotion}
+        state={done ? "done" : "idle"}
+        description={DESCRIPTION[step] ?? ""}
+        status={done ? "Done" : undefined}
+      >
+        {/* Phones: the quiz and the honest take fill the screen, as in 2D. */}
+        {summary && !wide ? null : <AccountBlock name={done ? "Done" : "Not yet"} coins={done ? 3 : 0} />}
+      </BookScene>
+      {/* The scene's own forms and results, over the right page (scene-kit.css places it). */}
+      <div className="book-scene-panel" ref={panel} />
+    </div>
+  );
+}
+`;
+}
+
+/** The 3D view's camera tour (docs/book-scene.md, rule 5): pure, so it is unit tested without three.js. */
+export function renderBookTour() {
+  return `/**
+ * The camera tour of each step's figure (3D view, the play button in the stage bar): a few shots, each
+ * with a caption. It only moves the camera; it never acts for the learner. Pure, unit tested.
+ */
+import type { Shot } from "../../../scene-kit/bookLayout";
+
+// Step numbers (0-based) from manifest.ts. Keep them in sync with Scene.tsx.
+export const CHECK = 3;
+
+/** What a tour shot looks at. TODO(author): add the lesson's objects. */
+export type Target = { kind: "all" } | { kind: "block" };
+
+/** The tour for a step: the whole figure first, then close-ups. None at the check and honest take. */
+export function tourFor(step: number): Shot<Target>[] {
+  if (step >= CHECK) return [];
+  // TODO(author): two or three shots per step; close-up captions start with "Close up:".
+  return [
+    { caption: "The whole figure.", target: { kind: "all" } },
+    { caption: "Close up: the block.", target: { kind: "block" } },
+  ];
+}
+`;
+}
+
+export function renderBookTourTest() {
+  return `import { describe, expect, it } from "vitest";
+import { CHECK, tourFor } from "./tour";
+
+describe("tourFor", () => {
+  it("gives every step before the check a short tour that starts with the whole figure", () => {
+    for (let step = 0; step < CHECK; step++) {
+      const shots = tourFor(step);
+      expect(shots.length).toBeGreaterThanOrEqual(2);
+      expect(shots[0]!.target).toEqual({ kind: "all" });
+      for (const s of shots.slice(1)) expect(s.caption).toMatch(/^Close up:/);
+    }
+  });
+
+  it("has no tour at the check and the honest take", () => {
+    expect(tourFor(CHECK)).toEqual([]);
+    expect(tourFor(CHECK + 1)).toEqual([]);
+  });
+});
+`;
+}
+
+/** The e2e tests every book lesson needs (docs/book-scene.md, "Tests every book lesson needs"). */
+function bookSpecTests() {
+  return `
+  test.describe("3D book scene", () => {
+    const LOAD_3D = 20_000;
+
+    test("wide screens print the step on the left page; the tour moves the camera and docks the words", async ({
+      browser,
+    }) => {
+      const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const page = await ctx.newPage();
+      await seedRoute(page);
+      await page.goto(\`/lesson/\${ID}?view=3d&step=2\`);
+      await expect(page.locator(".book-scene .sk-stage")).toBeVisible({ timeout: LOAD_3D });
+      await expect(page.locator("main.lesson")).toHaveAttribute("data-spread", "");
+      await expect(page.locator(".book-page")).toHaveCSS("transform", /matrix3d/);
+
+      const caption = page.getByTestId("tour-caption");
+      await expect(caption).toHaveText(/^Fig\\. 2/);
+      await page.getByRole("button", { name: "Play the tour" }).click();
+      await expect(caption).not.toHaveText(/^Fig\\. 2/);
+      // While the tour runs, the words go back to their docked place: still readable.
+      await expect(page.locator("main.lesson")).not.toHaveAttribute("data-spread", /.*/);
+      await expect(page.getByTestId("caption")).toBeVisible();
+      // A new step ends the tour and prints the words again.
+      await nextStep(page);
+      await expect(caption).toHaveText(/^Fig\\. 3/);
+      await expect(page.locator("main.lesson")).toHaveAttribute("data-spread", "", { timeout: 10_000 });
+      await ctx.close();
+    });
+
+    test("phones keep the step's words docked, not printed on the page", async ({ browser }) => {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 760 } });
+      const page = await ctx.newPage();
+      await seedRoute(page);
+      await page.goto(\`/lesson/\${ID}?view=3d&step=2\`);
+      await expect(page.locator(".book-scene .sk-stage")).toBeVisible({ timeout: LOAD_3D });
+      await expect(page.locator("main.lesson")).not.toHaveAttribute("data-spread", /.*/);
+      await expect(page.locator(".book-page")).toHaveCSS("display", "contents");
+      await ctx.close();
+    });
+  });
+`;
+}
+
+export function renderSpec({ id, stage, title, chain, book }) {
   const evidence = chain
     ? `, evidence: { txHash: expect.stringMatching(/^[1-9A-HJ-NP-Za-km-z]{43,44}$/) }`
     : "";
@@ -304,7 +532,7 @@ test.describe(\`lesson \${ID}\`, () => {
     await page.goto(\`/lesson/\${ID}\`);
     await expect(page.getByTestId("scene-area")).toContainText("REPLACE WITH THE LESSON OUTCOME");
   });
-});
+${book ? bookSpecTests() : ""}});
 `;
 }
 
@@ -327,7 +555,11 @@ export function scaffold(root, opts) {
   const dir = join(lessonsDir, opts.id);
   const sceneFile = join(dir, "Scene.tsx");
   const specFile = join(root, "e2e/lessons", `${opts.id}.spec.ts`);
-  for (const f of [sceneFile, specFile])
+  const scene3dFile = join(dir, "Scene3D.tsx");
+  const tourFile = join(dir, "tour.ts");
+  const tourTestFile = join(dir, "tour.test.ts");
+  const bookFiles = opts.book ? [scene3dFile, tourFile, tourTestFile] : [];
+  for (const f of [sceneFile, ...bookFiles, specFile])
     if (existsSync(f)) throw new Error(`${f} already exists. Remove it first or edit it by hand.`);
 
   mkdirSync(dir, { recursive: true });
@@ -335,6 +567,13 @@ export function scaffold(root, opts) {
   const files = {
     [join(dir, "manifest.ts")]: renderManifest(full),
     [sceneFile]: renderScene(full),
+    ...(opts.book
+      ? {
+          [scene3dFile]: renderBookScene3D(full),
+          [tourFile]: renderBookTour(),
+          [tourTestFile]: renderBookTourTest(),
+        }
+      : {}),
     [specFile]: renderSpec(full),
   };
   for (const [f, src] of Object.entries(files)) writeFileSync(f, src);

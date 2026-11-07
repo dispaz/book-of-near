@@ -86,6 +86,7 @@ does this; `e2e/book.spec.ts` tests the cover).
 Almost every lesson offers both views (`views: ["2d", "3d"]` in the manifest). The lesson page shows a 2D / 3D switch, remembers the choice and passes `view` to the scene. Rules:
 - Keep the lesson state in ONE place (a hook or reducer in `Scene.tsx`) and render `view === "3d" ? <Scene3D …/> : <Scene2D …/>` from it, so switching mid-lesson keeps every gate, value and result.
 - Load the 3D view with `React.lazy(() => import("./Scene3D"))`, so 2D never downloads three.js.
+- The 3D view is a book scene (`<BookScene>`, rules in `docs/book-scene.md`): the figure on the right page, the step printed on the left page on wide screens, a page turn per step and a camera tour. Scaffold with `--book`.
 - Both views show the same facts and offer the same actions (the shared `SceneAction` buttons and forms live outside the views, or are reused by both). Tests must pass in both: run the lesson walk with `?view=2d` and `?view=3d`.
 - Without WebGL the page forces 2D. Under reduced motion the 3D view jumps to end states.
 - 2D-only is allowed for lessons that are mostly text or forms; note why in the manifest.
