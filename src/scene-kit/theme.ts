@@ -13,5 +13,10 @@ export const COLORS = {
   slab: "#e9e2d0",
   contract: "#cfc6f2",
   chain: "#d7e3d0",
+  /** Parcels (transactions): brown paper. */
+  kraft: "#e3c79b",
+  /** Light tints for action cards: dark small text stays readable on them; the marks carry the meaning. */
+  greenTint: "#bfe6cf",
+  redTint: "#f4bdb8",
   paper: PAPER,
 } as const;

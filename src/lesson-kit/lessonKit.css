@@ -23,7 +23,7 @@
   .lesson-panel {
     /* Fill the space between the title and the docked step card (--dock-h, --bar-h set by LessonPage). */
     max-height: calc(
-      100% - var(--head-h, 108px) - 16px - var(--bar-h, 56px) - 16px - var(--dock-h, 44%) - 12px -
+      100% - var(--head-h, 108px) - var(--bar-reserve, 88px) - var(--dock-h, 44%) - 12px -
         env(safe-area-inset-bottom, 0px)
     );
     font-size: 15px;
@@ -129,8 +129,9 @@
   top: 50%;
   transform: translate(-50%, -50%);
   width: min(560px, calc(100% - 32px));
-  max-height: calc(100% - var(--head-h, 110px) - var(--bar-h, 56px) - 64px);
-  margin-top: calc((var(--head-h, 110px) - var(--bar-h, 56px) - 32px) / 2);
+  /* Centred in the room between the header and the stage bar, 16px clear of both. */
+  max-height: calc(100% - var(--head-h, 110px) - var(--bar-reserve, 88px) - 32px);
+  margin-top: calc((var(--head-h, 110px) - var(--bar-reserve, 88px)) / 2);
   box-shadow:
     0 4px 0 var(--ink),
     0 24px 60px #16141f40;
@@ -159,7 +160,7 @@
   position: absolute;
   z-index: 20;
   right: max(16px, env(safe-area-inset-right, 0px));
-  bottom: calc(16px + var(--bar-h, 56px) + 16px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--bar-reserve, 88px) + env(safe-area-inset-bottom, 0px));
   padding: 10px 16px;
   border: 1.5px solid var(--ink);
   border-radius: 999px;
@@ -167,4 +168,11 @@
   box-shadow: 3px 3px 0 var(--ink);
   font: 700 14px var(--ui);
   cursor: pointer;
+}
+
+/* Panels scroll with a fade at the bottom (.scroll-fade in ink.css): match their colour and padding. */
+.lesson-panel {
+  --fade-bg: var(--paper-2);
+  --fade-pad-x: 16px;
+  --fade-pad-b: 14px;
 }

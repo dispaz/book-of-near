@@ -6,9 +6,7 @@
   top: var(--head-h, 112px);
   left: max(16px, env(safe-area-inset-left, 0px));
   right: max(16px, env(safe-area-inset-right, 0px));
-  bottom: calc(
-    16px + var(--bar-h, 56px) + 16px + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px)
-  );
+  bottom: calc(var(--bar-reserve, 88px) + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: 8px;

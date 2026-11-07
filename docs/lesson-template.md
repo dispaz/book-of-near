@@ -7,13 +7,17 @@ Every lesson has the same five-part shape. Scaffold one with `/new-lesson` or
 
 | What | Where |
 | --- | --- |
+| Topic (what the idea is, why it exists, how NEAR does it, misunderstandings, comparison, sources) | `docs/lessons/stage-<n>/<n>.<order>-topic.md` (for example `stage-1/1.2-topic.md`) |
 | Researched script (steps, check, Honest take, demo data, sources) | `docs/lessons/stage-<n>/<n>.<order>.md` (for example `stage-0/0.1.md`); unnumbered lessons use `<id>.md` |
 | Manifest (steps, captions, gates) | `src/content/lessons/<id>/manifest.ts` |
 | Scene (one state, a 2D SVG view and a lazy 3D view) | `src/content/lessons/<id>/Scene.tsx` |
 | End-to-end test (demo mode) | `e2e/lessons/<id>.spec.ts`, helpers in `e2e/lessons/helpers.ts` |
 | Shared building blocks | `src/lesson-kit/`: `<Check>`, `<HonestTake>` |
 
-Write the script first. The code copies from it; it does not invent facts.
+Write in this order: **topic, then script, then code.** The topic file explains the idea on its own,
+with sources, and ends with "What the lesson must show". The script turns that list into steps and may
+only teach what the topic says. The code copies from the script; it does not invent facts. Scene
+objects come from `docs/scene-objects.md` (one shape per concept), not from lesson-made boxes.
 
 ## The shape
 

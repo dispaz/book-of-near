@@ -1,0 +1,417 @@
+/* Lesson 1.2: the account, the Counter app's limited key and what the chain says. Ink outlines on paper, the
+   stage accent as the one highlight, red only for a refusal. Wide screens: a column to the right of the
+   docked lesson card. Narrow screens: a band between the title and the dock (--bar-h and --dock-h come
+   from LessonPage). */
+.kl {
+  position: absolute;
+  top: var(--head-h, 112px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--bar-reserve, 88px) + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .kl {
+    top: var(--head-h, 104px);
+    left: 448px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    justify-content: center;
+    gap: 14px;
+  }
+  .kl.summary {
+    top: calc(var(--head-h, 104px) + 20px);
+    left: max(16px, env(safe-area-inset-left, 0px));
+    width: 400px;
+    right: auto;
+    bottom: auto;
+    justify-content: flex-start;
+    overflow: visible;
+  }
+}
+@media (max-width: 899px) {
+  .kl.summary {
+    display: none;
+  }
+}
+.kl p {
+  margin: 0;
+}
+.kl code {
+  font:
+    600 12px ui-monospace,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Cards ---------- */
+.kl-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+.kl-card {
+  min-width: 0;
+  padding: 8px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #fffdf7;
+  box-shadow: 3px 3px 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.kl-role {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 11px var(--ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.kl-id {
+  font:
+    600 14px ui-monospace,
+    Menlo,
+    monospace;
+}
+.kl-line {
+  font: 500 14px/1.35 var(--serif);
+}
+.kl-dim {
+  color: var(--mute);
+  font: 500 14px/1.35 var(--serif);
+}
+.kl-keyicon {
+  vertical-align: -3px;
+}
+.kl-keycard.active {
+  border-color: var(--accent);
+  box-shadow: 3px 3px 0 var(--accent);
+}
+.kl-keycard.none {
+  border-style: dashed;
+  box-shadow: none;
+}
+.kl-keycard.revoked {
+  border-color: var(--red);
+  box-shadow: 3px 3px 0 var(--red);
+}
+.kl-revoked {
+  color: var(--red);
+}
+.kl-meter {
+  height: 8px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: #fff;
+  overflow: hidden;
+}
+.kl-meter span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.5s;
+}
+.kl-can {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font: 500 14px/1.4 var(--serif);
+}
+.kl-can li::before {
+  display: inline-block;
+  width: 1.3em;
+  font-weight: 700;
+}
+.kl-can .yes::before {
+  content: "✓";
+  color: var(--green);
+}
+.kl-can .no::before {
+  content: "✗";
+  color: var(--red);
+}
+.kl-says {
+  font: 600 20px/1.2 var(--hand);
+}
+.kl-status {
+  font: 600 20px/1.2 var(--hand);
+}
+.kl-sum {
+  font: 500 15px/1.4 var(--serif);
+}
+
+/* ---------- What the chain said ---------- */
+.kl-log {
+  padding: 8px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #fffdf7;
+  max-height: 190px;
+  overflow-y: auto;
+}
+.kl-log ol {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kl-log li {
+  font: 500 14px/1.35 var(--serif);
+}
+.kl-badge {
+  display: inline-block;
+  padding: 0 7px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  font: 700 12px var(--ui);
+}
+.kl-log .no .kl-badge {
+  border-color: var(--red);
+  color: var(--red);
+}
+.kl-log .ok .kl-badge {
+  border-color: var(--green);
+  color: var(--green);
+}
+.kl-why {
+  display: block;
+  margin-top: 2px;
+  padding-left: 8px;
+  border-left: 4px solid var(--red);
+}
+
+/* ---------- Errors, forms (docked above the lesson card) ---------- */
+.kl-error {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border: 2px solid var(--red);
+  border-radius: 12px;
+  background: #fff;
+  font: 500 15px/1.4 var(--serif);
+}
+.kl-error p {
+  margin: 0;
+}
+.kl-error-title {
+  font: 700 15px var(--ui);
+  color: var(--red);
+}
+.kl-needkey {
+  margin: 0;
+  font: 600 15px var(--ui);
+  color: var(--red);
+}
+.kl-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 14px;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  font: 600 15px var(--ui);
+}
+.kl-form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kl-form label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.kl-form label.grow {
+  flex: 1;
+  min-width: 0;
+}
+.kl-form input[type="text"],
+.kl-form input:not([type]),
+.kl-form input[inputmode] {
+  width: 5.5em;
+  padding: 6px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: #fff;
+  font: 600 15px var(--ui);
+  color: var(--ink);
+  text-align: right;
+}
+.kl-form input.wide {
+  width: 100%;
+  text-align: left;
+}
+.kl-form input:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 1px;
+}
+.kl-form .btn {
+  margin-left: auto;
+}
+.kl-form-hint {
+  margin: 0;
+  font: 500 12px var(--ui);
+  color: var(--mute);
+}
+.kl-form-error {
+  margin: 0;
+  padding: 4px 8px;
+  border-left: 4px solid var(--red);
+  background: #fff;
+  color: var(--red);
+  font: 600 13px var(--ui);
+}
+/* The misuse and delete buttons: one full-width column, the hint under them. */
+.kl-tries {
+  align-items: stretch;
+  gap: 8px;
+}
+.kl-tries .btn {
+  margin-left: 0;
+}
+.kl-short {
+  display: none;
+}
+.kl-refused {
+  font-weight: 500;
+}
+
+/* ---------- 3D window ---------- */
+.kl-3d {
+  position: relative;
+  flex: 1 1 260px;
+  min-height: 200px;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #f3efe4;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.kl-3d-box {
+  position: absolute;
+  inset: 0;
+}
+.kl-3d .sk-status {
+  top: 8px;
+  right: 12px;
+  max-width: calc(100% - 24px);
+  font-size: 19px;
+}
+.kl-3d-loading {
+  padding: 12px;
+  font: 500 14px var(--ui);
+  color: var(--mute);
+}
+.kl.three .kl-log {
+  flex: none;
+  max-height: 120px;
+}
+@media (max-width: 899px) {
+  /* Phones: the 3D window gets the room; the log stays for screen readers and the 3D label shows the refusal. */
+  .kl.three .kl-log {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    padding: 0;
+    border: 0;
+  }
+  .kl-card {
+    padding: 6px 8px;
+  }
+  .kl-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+  .kl-app {
+    grid-column: 1 / -1;
+  }
+  .kl-3d .sk-label {
+    font-size: 17px;
+  }
+  .kl-3d .sk-label.small {
+    font-size: 9px;
+  }
+  .kl-3d .sk-label.hint {
+    font-size: 11px;
+    padding: 3px 8px;
+    /* The refusal reason is the only place it shows on phones (the log is hidden): wrap it. */
+    white-space: normal;
+    width: max-content;
+    max-width: 260px;
+    border-radius: 10px;
+    text-align: center;
+  }
+  .kl-3d .sk-status {
+    font-size: 16px;
+  }
+}
+
+/* ---------- Reduced motion: end states only ---------- */
+.kl.still *,
+.kl.still {
+  animation: none !important;
+  transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kl *,
+  .kl-form {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Phones: the docked forms stay short and their text whole. The allowance row wraps instead of squeezing
+   its button into three lines. */
+.kl-form .btn {
+  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  .kl-form-row {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .kl-form-row label.grow {
+    flex: 1 1 0;
+  }
+  /* The misuse buttons share one row with short labels; the full label stays for screen readers. */
+  .kl-tries {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .kl-tries .btn {
+    flex: 1 1 auto;
+  }
+  .kl-tries .kl-form-hint {
+    display: none;
+  }
+  .kl-short {
+    display: inline;
+  }
+  .kl-long {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
