@@ -238,3 +238,12 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Stages 2–7: completed topics and scripts for all remaining lessons (2.1–2.2, 3.1–3.3, 4.1–4.3, 5.1–5.2, 6.1–6.2, 7.1–7.2) plus stage readmes.
 - Rule enshrined in `CLAUDE.md`, `docs/lesson-template.md`, and `.claude/commands/new-lesson.md`: both the topic guide (protocol truth) and lesson script (UI/scene blueprint) must be consulted when developing any lesson.
 
+
+## 2026-11-08 · Lesson 2.1 on the book-scene standard (Closes #17)
+- Rebuilt from the reviewed `stage-2` work (81c6515) onto the new script and topic (`docs/lessons/stage-2/2.1.md`, `2.1-topic.md`). Kept the trace model (`trace.ts`), the recorded example `HhRTH4…ULp` (7 hops, shards 9/4/5, 5 blocks) and the additive `includedMs`/`finalMs` evidence from 0.3.
+- 3D is now a `<BookScene>`: mailbox and parcel at step 1, then one ribbon per shard, a chunk cell per shard per block and a receipt slip per hop that travels along arcs. Every object is a pick: the parcel loads the path, ribbons describe their shard, the newest slip follows on, older slips are looked at again. Tour per step (`tour.ts`), step printed on the left page at ≥1100 px.
+- One fixed figure box (`layout3d.ts`): the grid's pitch shrinks to fit any trace, so the spread never resizes. The 2D view draws the same layout and the same objects in SVG.
+- Step 1 is a choice card (my 0.3 transaction / recorded example) + "Load transaction path"; step 5 has "Inspect breakdown" (hand-over, shard hops, finality from the learner's own 0.3 stopwatch; hops only for the recorded example). Honest take marks the Solana claim unverified.
+- New kit objects: `ReceiptSlip`, `ShardRibbon` and SVG twins (`slipDims`, `ribbonOutline` unit tested).
+- Picks read the latest state through a ref: while a page turns, the previous step's figure is still pickable and used to act on the old step.
+- Not tested: opening a learner's own 0.3 transaction on real testnet (demo and recorded paths are).

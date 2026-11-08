@@ -3,8 +3,9 @@
 Status: **decided; stage 1 built** (7 Nov 2026). Owner decisions: account = mailbox, transaction =
 parcel, signature = stamp, contract = scroll that shows it runs code. Built and used by lessons 1.1–1.3:
 mailbox, parcel (+ action cards), stamp, scroll, tagged key, app screen, plus the existing key and coin.
-Not built yet: block, blockchain, wallet (key ring), receipt, gas, RPC node, shard, validator. Stage 0
-still draws the old blocks.
+Built for lesson 2.1 (8 Nov 2026): receipt (`ReceiptSlip` / `SvgReceiptSlip`, a refund shows ↩) and shard
+(`ShardRibbon` / `SvgShardRibbon`, a flat ribbon with a swallowtail end). Not built yet: block, blockchain,
+wallet (key ring), gas, RPC node, validator. Stage 0 still draws the old blocks.
 
 ## Why
 

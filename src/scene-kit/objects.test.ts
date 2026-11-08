@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { COLORS } from "./theme";
-import { OBJECTS, gaugeShare, itemSlots, lookOf, mailboxDims, parcelDims, scrollDims } from "./objects";
+import {
+  OBJECTS,
+  gaugeShare,
+  itemSlots,
+  lookOf,
+  mailboxDims,
+  parcelDims,
+  ribbonOutline,
+  scrollDims,
+  slipDims,
+} from "./objects";
 
 describe("lookOf", () => {
   it("fills an ok object with its accent, solid outline", () => {
@@ -76,5 +86,24 @@ describe("OBJECTS", () => {
     expect(OBJECTS.transaction.shape).toBe("parcel");
     expect(OBJECTS.signature.shape).toBe("stamp");
     expect(OBJECTS.contract.shape).toBe("scroll");
+    expect(OBJECTS.receipt.shape).toBe("slip");
+    expect(OBJECTS.shard.shape).toBe("ribbon");
+  });
+});
+
+describe("receipt slip and shard ribbon", () => {
+  it("a slip is a small landscape card with a folded corner, scaling with size", () => {
+    const a = slipDims(1);
+    expect(a.width).toBeGreaterThan(a.height);
+    expect(a.fold).toBeLessThan(a.height);
+    expect(slipDims(2).width).toBeCloseTo(a.width * 2);
+  });
+  it("a ribbon lies flat along x with a swallowtail notch at its left end", () => {
+    const r = ribbonOutline(4, 0.4);
+    const xs = r.map(([x]) => x);
+    expect(Math.min(...xs)).toBeCloseTo(-2);
+    expect(Math.max(...xs)).toBeCloseTo(2);
+    // The notch: a point on the left end's middle line that sits right of the end.
+    expect(r.some(([x, z]) => z === 0 && x > -2 && x < -1.5)).toBe(true);
   });
 });

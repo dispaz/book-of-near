@@ -1,0 +1,181 @@
+/* Lesson 2.1: follow a transaction across shards. One state, a flat page (2D) or the pop-up book (3D). */
+.shs {
+  position: absolute;
+  top: var(--head-h, 112px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--bar-reserve, 88px) + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .shs {
+    top: var(--head-h, 104px);
+    left: 448px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    gap: 12px;
+  }
+}
+.shs p,
+.shs-panel p {
+  margin: 0;
+}
+.shs code,
+.shs-panel code {
+  font:
+    600 13px ui-monospace,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- flat page ---------- */
+.shs-2d {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #fffdf7;
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 6px;
+}
+.shs-2d svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 46vh;
+}
+.shs-cell {
+  fill: #fffdf7;
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+.shs-cell.lit {
+  fill: var(--accent);
+}
+.shs-svg-label {
+  font: 600 12px var(--ui);
+  fill: var(--ink);
+}
+.shs-path {
+  stroke: var(--ink);
+  stroke-width: 2.2;
+}
+.shs-path.refund {
+  stroke-dasharray: 6 4;
+}
+
+/* ---------- 3D: the facts in the book scene's panel ---------- */
+.shs-panel .shs-facts.compact {
+  max-height: min(34vh, 300px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ---------- facts ---------- */
+.shs-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--ink);
+  border-top: 5px solid var(--accent);
+  border-radius: 12px;
+  background: var(--glass);
+  font: 500 15px/1.4 var(--serif);
+  color: var(--ink);
+}
+.shs-facts:empty {
+  display: none;
+}
+.shs-note {
+  font: 500 14px/1.4 var(--serif);
+  color: var(--mute);
+}
+.shs-warn {
+  font: 600 15px/1.4 var(--ui);
+  color: #8a1f17;
+}
+.shs-detail dl {
+  margin: 6px 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 4px 14px;
+}
+.shs-detail dt {
+  font: 700 12px var(--ui);
+  color: var(--mute);
+}
+.shs-detail dd {
+  margin: 0;
+  font: 500 14px var(--serif);
+  overflow-wrap: anywhere;
+}
+.shs-kind {
+  font: 500 15px/1.35 var(--serif);
+  overflow-wrap: anywhere;
+}
+.shs-steps {
+  margin: 0;
+  padding-left: 18px;
+  font: 500 14px/1.45 var(--serif);
+}
+.shs-when {
+  font: 700 12px var(--ui);
+  color: var(--mute);
+}
+.shs-bar {
+  display: flex;
+  height: 14px;
+  margin-top: 4px;
+  border: 1.5px solid var(--ink);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.shs-bar span + span {
+  border-left: 1.5px solid var(--ink);
+}
+.shs-legend {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font: 500 14px/1.5 var(--serif);
+}
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 4px;
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+.handover {
+  background: #fffdf7;
+}
+.hops {
+  background: var(--accent);
+}
+.finality {
+  background: #e9e2d0;
+}
+@media (max-width: 899px) {
+  .shs-facts {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+  .shs-detail dl {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+}
+
+/* Reduced motion: end states only (the global CSS already cuts transitions). */
+.shs.still * {
+  animation: none !important;
+  transition: none !important;
+}

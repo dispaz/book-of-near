@@ -5,7 +5,7 @@
  */
 import type { ReactNode } from "react";
 import { COLORS, INK, PAPER } from "../theme";
-import { itemSlots, lookOf, type ObjectLook, type ObjectState } from "../objects";
+import { itemSlots, lookOf, ribbonOutline, slipDims, type ObjectLook, type ObjectState } from "../objects";
 import { SvgCoin, SvgLabel, SvgPickable, SvgShadow, type SvgPickProps } from "./index";
 
 type Fate = "idle" | "done" | "undone" | "failed" | "skipped";
@@ -478,6 +478,88 @@ export function SvgAppScreen({
     </g>
   );
   return pick(p, name, [x - w / 2 - 10, top - 34, w + 20, h + stand + 40], node);
+}
+
+// ---------- receipt: a delivery slip ----------
+
+/** A receipt (2D twin of `ReceiptSlip`): a slip, an accent stripe, a folded corner. (x, y) is its base. */
+export function SvgReceiptSlip({
+  x,
+  y,
+  size = 40,
+  color = COLORS.pink,
+  refund = false,
+  fate = "idle",
+  label,
+  state = "ok",
+  ...p
+}: SvgObjectProps & { size?: number; refund?: boolean; fate?: Fate; label?: string }) {
+  const look = lookOf(state, color);
+  const d = slipDims(size);
+  const w = d.width;
+  const h = d.height;
+  const f = d.fold;
+  const top = y - h;
+  const left = x - w / 2;
+  const mark = refund ? "↩" : MARK[fate];
+  const tag = [label, mark].filter(Boolean).join(" ");
+  const name = p.pickLabel ?? (refund ? "Refund receipt" : "Receipt");
+  const node = (
+    <g>
+      <path
+        d={`M${left},${top} h${w - f} l${f},${f} v${h - f} h${-w} z`}
+        {...ink(look, FILL[fate])}
+        strokeWidth={2}
+      />
+      <path d={`M${left + w - f},${top} v${f} h${f}`} fill="none" stroke={INK} strokeWidth={1.5} />
+      <rect
+        x={left + 3}
+        y={top + h * 0.18}
+        width={w - f - 6}
+        height={h * 0.16}
+        {...ink(look, refund ? COLORS.slab : (look.fill ?? color))}
+        strokeWidth={1}
+      />
+      {look.dashed ? null : (
+        <g stroke={COLORS.slab} strokeWidth={h * 0.08}>
+          <line x1={left + w * 0.15} x2={left + w * 0.85} y1={top + h * 0.55} y2={top + h * 0.55} />
+          <line x1={left + w * 0.15} x2={left + w * 0.7} y1={top + h * 0.75} y2={top + h * 0.75} />
+        </g>
+      )}
+      <Marks look={look} x={x} y={top + h / 2} size={h * 0.8} />
+      {tag ? (
+        <SvgLabel x={x} y={top - 6} variant="small">
+          {tag}
+        </SvgLabel>
+      ) : null}
+    </g>
+  );
+  return pick(p, name, [left - 4, top - 18, w + 8, h + 22], node);
+}
+
+// ---------- shard: a ribbon ----------
+
+/** A shard (2D twin of `ShardRibbon`): a ribbon along x with a swallowtail notch, its name at that end. */
+export function SvgShardRibbon({
+  x,
+  y,
+  length,
+  width,
+  name,
+  color = COLORS.slab,
+  ...p
+}: SvgPickProps & { x: number; y: number; length: number; width: number; name: string; color?: string }) {
+  const pts = ribbonOutline(length, width).map(([px, pz]) => `${x + px},${y + pz}`);
+  const notch = Math.min(width * 0.6, length * 0.1);
+  const node = (
+    <g>
+      <polygon points={pts.join(" ")} fill={color} stroke={INK} strokeWidth={1.5} strokeLinejoin="round" />
+      <SvgLabel x={x - length / 2 + notch + 4} y={y + 4} variant="small" anchor="start">
+        {name}
+      </SvgLabel>
+    </g>
+  );
+  return pick(p, name, [x - length / 2 - 2, y - width / 2 - 2, length + 4, width + 4], node);
 }
 
 // ---------- small icons for HTML cards ----------

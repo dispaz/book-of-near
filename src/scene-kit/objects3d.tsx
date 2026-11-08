@@ -4,10 +4,10 @@
  * gear, function-call key = key with a tag. Every object takes a `state` (ok, pending, failed, gone) and
  * draws it the same way, so lessons never restyle objects.
  */
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Line } from "@react-three/drei";
-import { MeshBasicMaterial, type Group } from "three";
+import { MeshBasicMaterial, Shape, type Group } from "three";
 import {
   Coin,
   Key,
@@ -28,8 +28,10 @@ import {
   lookOf,
   mailboxDims,
   parcelDims,
+  ribbonOutline,
   screenDims,
   scrollDims,
+  slipDims,
   type ObjectLook,
   type ObjectState,
 } from "./objects";
@@ -614,4 +616,121 @@ export function AppScreen({
       {maybePickable(pick, name, y, body)}
     </group>
   );
+}
+
+// ---------- receipt: a delivery slip ----------
+
+/**
+ * A receipt: a small delivery slip standing on the page, a stripe of the accent colour across its top and
+ * its top right corner folded over. What an action becomes when it moves on to another account (and
+ * maybe another shard). `refund` is the slip that carries unused gas back: it shows a return arrow and a
+ * plain stripe. `fate` tints it like an action card (done ✓, failed ✗). `label` is a short tag above it.
+ */
+export function ReceiptSlip({
+  position = [0, 0, 0],
+  size = 0.8,
+  color = COLORS.pink,
+  refund = false,
+  fate = "idle",
+  label,
+  state = "ok",
+  ...pick
+}: ObjectProps & { size?: number; refund?: boolean; fate?: ActionFate; label?: string }) {
+  const d = slipDims(size);
+  const look = lookOf(state, color);
+  const dashed = look.dashed;
+  const y = d.height / 2 + 0.02;
+  const mark = refund ? "↩" : FATE_MARK[fate];
+  const tag = [label, mark].filter(Boolean).join(" ");
+  const name = pick.pickLabel ?? (refund ? "Refund receipt" : "Receipt");
+  const body = (
+    <SelectRing selected={!!pick.selected} radius={size * 0.45} color={color}>
+      <group position={[0, y, 0]} rotation={[-0.18, 0, 0]}>
+        <Part fill={partFill(look, FATE_FILL[fate])} dashed={dashed}>
+          <boxGeometry args={[d.width, d.height, d.depth]} />
+        </Part>
+        {/* The stripe: the accent colour, plain grey on a refund. */}
+        <Part
+          fill={partFill(look, refund ? COLORS.slab : (look.fill ?? color))}
+          dashed={dashed}
+          position={[-d.fold / 2, d.height * 0.3, d.depth / 2 + 0.004]}
+        >
+          <boxGeometry args={[d.width - d.fold - 0.02, d.height * 0.14, 0.006]} />
+        </Part>
+        {/* Two lines of writing. */}
+        {dashed
+          ? null
+          : [-0.02, -0.24].map((f) => (
+              <Part
+                key={f}
+                fill={COLORS.slab}
+                dashed={false}
+                position={[0, d.height * f, d.depth / 2 + 0.004]}
+              >
+                <boxGeometry args={[d.width * 0.7, d.height * 0.07, 0.004]} />
+              </Part>
+            ))}
+        {/* The folded corner. */}
+        <Part
+          fill={partFill(look, COLORS.paper)}
+          dashed={dashed}
+          position={[d.width / 2 - d.fold / 2, d.height / 2 - d.fold / 2, d.depth / 2 + 0.008]}
+          rotation={[0, 0, Math.PI / 4]}
+        >
+          <boxGeometry args={[d.fold * 0.7, d.fold * 0.7, 0.006]} />
+        </Part>
+        <StateMarks look={look} at={[0, 0, d.depth + 0.04]} size={d.height * 0.9} />
+      </group>
+      {tag ? (
+        <Label position={[0, d.height + 0.22, 0]} variant="small">
+          {tag}
+        </Label>
+      ) : null}
+    </SelectRing>
+  );
+  return (
+    <group position={position}>
+      {dashed ? null : <SoftShadow position={[0, 0, 0.08]} size={[d.width * 1.3, d.width * 0.5]} />}
+      {maybePickable(pick, name, y, body)}
+    </group>
+  );
+}
+
+// ---------- shard: a ribbon ----------
+
+/**
+ * A shard: one ribbon lying flat on the page along x, a swallowtail notch at its left end where its name
+ * is written. A section of the book: each row of chunks sits on its shard's ribbon. `color` is the
+ * ribbon's cloth (the accent for the shards that matter now); `selected` lifts it a little.
+ */
+export function ShardRibbon({
+  position = [0, 0, 0],
+  length,
+  width,
+  name,
+  color = COLORS.slab,
+  ...pick
+}: PickProps & { position?: Vec3; length: number; width: number; name: string; color?: string }) {
+  const shape = useMemo(() => {
+    const s = new Shape();
+    ribbonOutline(length, width).forEach(([x, z], i) => (i ? s.lineTo(x, -z) : s.moveTo(x, -z)));
+    s.closePath();
+    return s;
+  }, [length, width]);
+  const ink = useInk(color);
+  const lift = pick.selected ? 0.05 : 0;
+  const notch = Math.min(width * 0.6, length * 0.1);
+  const body = (
+    <group position={[0, lift, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} material={ink}>
+        <extrudeGeometry args={[shape, { depth: 0.025, bevelEnabled: false }]} />
+        <Outline threshold={30} />
+      </mesh>
+      {/* The name is centred on its point: keep it clear of the notch. */}
+      <Label position={[-length / 2 + notch + 0.5, 0.06, 0]} variant="small">
+        {name}
+      </Label>
+    </group>
+  );
+  return <group position={position}>{maybePickable(pick, name, 0.1, body)}</group>;
 }

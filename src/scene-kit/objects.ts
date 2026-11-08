@@ -42,6 +42,8 @@ export const OBJECTS = {
   functionCallKey: { shape: "tagged-key", note: "a key with a tag: one contract, an allowance" },
   token: { shape: "coin", note: "money" },
   app: { shape: "screen", note: "an app: a program that can hold a key and sign with it" },
+  receipt: { shape: "slip", note: "a delivery slip: what an action becomes when it moves on" },
+  shard: { shape: "ribbon", note: "a section of the book, marked by its own ribbon" },
 } as const;
 
 export type Concept = keyof typeof OBJECTS;
@@ -94,6 +96,30 @@ export function screenDims(size: number) {
   const height = size * 0.62;
   const stand = size * 0.3;
   return { width, height, stand, total: stand + height };
+}
+
+/** A receipt: a small delivery slip standing up, its top right corner folded over. */
+export function slipDims(size: number) {
+  const width = size * 0.62;
+  const height = size * 0.4;
+  return { width, height, depth: size * 0.03, fold: height * 0.32 };
+}
+
+/**
+ * A shard ribbon lying flat, as (x, z) points of its outline: a strip of `length` along x centred on
+ * 0, `width` across, with a swallowtail notch cut into its left end (where its name goes).
+ */
+export function ribbonOutline(length: number, width: number): [number, number][] {
+  const l = length / 2;
+  const w = width / 2;
+  const notch = Math.min(width * 0.6, length * 0.1);
+  return [
+    [-l, -w],
+    [l, -w],
+    [l, w],
+    [-l, w],
+    [-l + notch, 0],
+  ];
 }
 
 /**
