@@ -9,12 +9,13 @@ Read `.scratch/book-of-near-mvp/spec.md` for the product, `GLOSSARY.md` for term
 - **No secrets in the repo.** Keys live in Worker secrets and `.dev.vars` (ignored). Ship `.env.example` only.
 - **Ink style, 2D and 3D.** Black outlines on paper-white, one accent colour per stage. Almost every lesson has both a 2D SVG view and a 3D view (`views: ["2d", "3d"]`) the learner switches between; both draw ONE shared lesson state, so switching keeps progress. 2D-only is fine for steps that are mostly text or forms (say why in the manifest). The two showpieces (shards, chain signatures) are 3D-first. Every scene has a text/SVG fallback and honours `prefers-reduced-motion`. The 3D view loads lazily and is a book scene (`<BookScene>`, see `docs/book-scene.md`; scaffold with `npm run new-lesson -- … --book`).
 - **Every lesson ends with an "Honest take"** listing NEAR's strengths and weaknesses.
+- **Both topic and script files required:** Always consider both `docs/lessons/stage-<n>/<order>-topic.md` (the technical source of truth, protocol mechanics, and constraints) and `<order>.md` (the interactive script, scene objects, copy, and gates) when working on a lesson. Code copies from the script; the script only teaches what the topic proves.
 - **Learner copy:** plain English, short sentences, define a term the first time it appears, no hype.
 - **Unverified facts** (see `docs/spikes-seed.md`) must not be coded as truth until issue #4 verifies them.
 
 ## Workflow
 1. Pick an open, unassigned issue labelled `ready-for-agent` with no open blockers (`issue_dependencies_summary.blocked_by` is 0); highest priority first (`P0` before `P1` before `P2`), then lowest number. Claim it with `gh issue edit <n> --add-assignee @me`.
-2. Build with TDD (`/tdd`). Test through the running app in demo mode first, then the Chain interface, the badge contract and the Worker endpoints.
+2. Read both `docs/lessons/stage-<n>/<order>-topic.md` and `<order>.md` before touching code. Build with TDD (`/tdd`). Test through the running app in demo mode first, then the Chain interface, the badge contract and the Worker endpoints.
 3. Tick every acceptance box in the issue body (`gh issue edit <n> --body-file ...`). Run lint, typecheck, tests and e2e.
 4. Append a short entry to `docs/progress.md`, commit with `Closes #<n>` in the message, push, and make sure the issue is closed (`gh issue close <n>` if it isn't).
 

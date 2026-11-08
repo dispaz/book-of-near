@@ -12,6 +12,7 @@ Scaffold a Book of NEAR lesson with arguments: $ARGUMENTS
    book scene (`docs/book-scene.md`). If the script refuses (lesson already ready, wrong stage, unknown stage), report its
    message and stop. Do not delete or edit an existing ready lesson to get past it.
 3. Report the files it created and whether it replaced a planned manifest.
-4. If the lesson script exists at the path printed by the script (`docs/lessons/stage-<n>/...`), say so;
-   the next step is to copy its steps, check and Honest take into `manifest.ts` and `Scene.tsx`, and to turn
-   the `test.fixme` in `e2e/lessons/<id>.spec.ts` into a real, failing assertion before building the scene.
+4. Read BOTH the topic file (`<order>-topic.md`) and the lesson script (`<order>.md`) in `docs/lessons/stage-<n>/`.
+   The topic file gives the protocol truth and technical constraints; the script gives the UI captions, scene objects, user actions, and check questions.
+   Copy the steps, check and Honest take into `manifest.ts` and `Scene.tsx`, and turn the `test.fixme` in
+   `e2e/lessons/<id>.spec.ts` into a real, failing assertion before building the scene.

@@ -19,6 +19,14 @@ with sources, and ends with "What the lesson must show". The script turns that l
 only teach what the topic says. The code copies from the script; it does not invent facts. Scene
 objects come from `docs/scene-objects.md` (one shape per concept), not from lesson-made boxes.
 
+### Always consider both files when working on a lesson
+
+When building or modifying a lesson in code, **always read and reference both files**:
+1. **The Topic file (`<n>.<order>-topic.md`):** Your **technical boundary and truth**. It defines what the protocol actually does, why it does it, common pitfalls to avoid, and exact constants or formulas (such as storage staking rates, gas units, and sharding layouts). It guarantees your code never invents fake protocol behavior.
+2. **The Script file (`<n>.<order>.md`):** Your **interactive UI blueprint**. It defines the learner's journey: step-by-step captions, anchor notes, scene objects and their animated states, user actions, gates, dynamic placeholder variables (`vars`), check quiz questions with explanations, and demo fixtures.
+
+The script translates the topic into an educational story for humans; the code implements that story within the technical bounds proven by the topic.
+
 ## The shape
 
 | Part | Manifest step(s) | What happens |

@@ -231,3 +231,10 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Lesson 1.2 evidence keeps both key transactions: `addKeyTxHash` (the add) and `txHash` (the latest, the delete once done). The add was overwritten before, so a checker could not see "the key added" (#27).
 - Lesson 1.1 script notes why the Honest take step is gated (finishing needs the created account). Old scene-object proposal entry marked superseded.
 - Review notes for later posted on #14, #15, #16 and #27 (label `to-fix`): book scene for 1.1 to 1.3, 2D views of 1.1 and 1.3 not using the scene objects yet, shared `useBoxSize` / `short` / `near` helpers, issue text out of date after the 1.2 reframe.
+
+## 2026-11-08 · Complete curriculum topics and scripts across all stages (0 to 7)
+- Authoritative topic guides (`*-topic.md`) and researched lesson scripts (`*.md`) created for every lesson across stages 0 to 7. All scripts follow the 5-part shape (Hook -> Concept -> Do -> Check -> Honest take) and map directly to the scene objects vocabulary (`Mailbox`, `Parcel`, `Scroll`, `TaggedKey`, `RpcNode`, `Delivery Slip`, `Gas Drops`).
+- Stage 0: `0.1-topic.md`, `0.2-topic.md`, `0.3-topic.md` retrofitted to align with the new topic standard. Stage 1: added `README.md`.
+- Stages 2–7: completed topics and scripts for all remaining lessons (2.1–2.2, 3.1–3.3, 4.1–4.3, 5.1–5.2, 6.1–6.2, 7.1–7.2) plus stage readmes.
+- Rule enshrined in `CLAUDE.md`, `docs/lesson-template.md`, and `.claude/commands/new-lesson.md`: both the topic guide (protocol truth) and lesson script (UI/scene blueprint) must be consulted when developing any lesson.
+
