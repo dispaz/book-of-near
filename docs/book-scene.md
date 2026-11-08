@@ -92,6 +92,11 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
 9. **Reduced motion.** No page turn, no pop-up and no camera easing: the camera jumps from shot to shot.
    The tour still plays when the learner presses play (it is their choice), one still shot after another.
    Nothing extra to do if you use `BookScene`, `Traveller` and the kit primitives.
+10. **Objects grow from the page and remain interactable:** Objects are not passive decorative models.
+    When the book opens or a page turns, objects literally fold up, rise, and "grow" from the paper page.
+    Every object must be interactable throughout the lesson via `Pickable` (with accessible button overlays for
+    keyboards, screen readers, and automated E2E tests). Picking objects should execute or advance the step's
+    action (e.g. picking a key signs, picking a mailbox checks balances, picking a parcel sends, picking a scroll executes code).
 
 ### Tests every book lesson needs
 

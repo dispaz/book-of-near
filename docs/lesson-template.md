@@ -80,14 +80,27 @@ Every lesson ends with one. It lists NEAR's **strengths and weaknesses** for thi
 - When sources disagree (for example block time "about 600 ms" vs "about a second"), say the safer
   version ("about one second or less") and note the conflict in the script.
 
-## The book
+## The book: 3D living pop-up scene on a desk
 
-Every lesson is a page of a book. Opened at its start, a lesson shows a closed cover (stage, lesson
-number, title and the manifest's `summary`, so write a good one); the learner opens it. The 2D page shows
-first; if the learner's view is 3D, the 3D scene then grows out of the page (the scene kit's `InkStage`
-does this by itself, through `IntroContext`). Switching from 2D to 3D grows it the same way. Opening a
-later step by URL skips the cover. `localStorage["bon:cover"] = "off"` turns the cover off (the e2e config
-does this; `e2e/book.spec.ts` tests the cover).
+Every lesson is set in an open book lying on a wooden desk with a felt mat:
+- **The Book Opening:** Opened at its start, a lesson shows a closed cloth cover (stage color, lesson
+  number, title, and manifest summary). The learner clicks "Open the book", and the cover swings open.
+- **Growing from the page:** The 2D page shows first; if the view is 3D, the 3D scene appears flat on
+  the paper, the camera tilts down, and the 3D objects literally **rise and grow out of the right-hand page**
+  like mechanical pop-up paper craft (`PopUp` + `InkStage` through `IntroContext`). Switching from 2D to 3D
+  grows them the same way.
+- **Fully interactable objects:** The 3D models standing on the book are not static dioramas—**they are
+  interactive throughout the lesson**. Every object is pickable (`Pickable`, with focusable button overlays for
+  keyboards and screen readers). Clicking objects triggers step actions (e.g. clicking the mailbox inspects
+  balances, clicking the parcel signs or sends, clicking the scroll executes contract code).
+- **Page turns on step advance:** Changing steps turns the page over the spine (`curlProfile` in `book.ts`):
+  the previous figures fold flat, the page curls over, and the new step's figures pop up with pen-hatching
+  reveal animations.
+- **Printed page on desktop:** On wide screens (≥ 1100 px), the step heading, note, and action controls are
+  physically printed on the left-hand page (`PrintOnPage` via CSS `matrix3d` homography), while the interactive
+  figure stands on the right page.
+- Opening a later step by URL skips the cover. `localStorage["bon:cover"] = "off"` turns the cover off
+  (the e2e config does this; `e2e/book.spec.ts` tests the cover).
 
 ## Two views: 2D and 3D
 
