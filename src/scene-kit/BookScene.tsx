@@ -17,7 +17,7 @@ import { createPortal } from "react-dom";
 import { LessonIdContext, SpreadContext } from "../app/intro";
 import { BarSlot } from "../ui/StageBar";
 import { BookBackdrop } from "./BookBackdrop";
-import type { Spread, TextBlock } from "./book";
+import { bookFootprint, type Spread, type TextBlock } from "./book";
 import {
   activeCursor,
   folios,
@@ -285,6 +285,7 @@ export function BookScene<T>({
         page={page}
         keepView
         viewMemory={lessonId ?? undefined}
+        panBounds={bookFootprint(spread)}
         // The tour drives the camera: starting it (and each shot, and its end) hands the view back.
         viewReset={tour.shot ? `tour:${tour.shots.indexOf(tour.shot)}` : "rest"}
         backdrop={

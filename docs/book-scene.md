@@ -100,11 +100,15 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
     Every object must be interactable throughout the lesson via `Pickable` (with accessible button overlays for
     keyboards, screen readers, and automated E2E tests). Picking objects should execute or advance the step's
     action (e.g. picking a key signs, picking a mailbox checks balances, picking a parcel sends, picking a scroll executes code).
-11. **The learner may move the camera.** Orbit (drag), zoom (wheel, pinch) and a small pan (right drag,
-    shift / ctrl / cmd + drag, two-finger drag). The pan is held within `PAN_SHARE` (15 %) of the camera's
-    distance (less when zoomed in) from where the target was when their press became a camera gesture, so
-    the figure cannot leave the view. The coasting after a drag is frame-rate independent (`dampingFor`; drei and the rig each update
-    the controls once a frame).
+11. **The learner may move the camera.** Orbit (drag), zoom (wheel, pinch) and pan (right drag,
+    shift / ctrl / cmd + drag, two-finger drag). In a book scene the pan slides across the desk and the
+    camera's target is held inside the open book's footprint (`bookFootprint(spread)`: both pages plus a
+    margin of 5 % of the spread, at least 0.5), each axis on its own, at the height it had. So the learner
+    can bring the right page, or any figure on it, to the middle of the free area (the view offset keeps
+    the target there), at any zoom, but never slide off the book. `BookScene` passes it as
+    `InkStage panBounds`; other 3D scenes keep a small pan, within `PAN_SHARE` (15 %) of the camera's
+    distance (less when zoomed in) from where the press became a camera gesture. The coasting after a drag
+    is frame-rate independent (`dampingFor`; drei and the rig each update the controls once a frame).
     **Their view stays.** A press becomes the learner's own view only as a camera gesture
     (`isCameraGesture`): the pointer went at least `CLICK_PX` from where the press began (the pick
     threshold; `Pickable` measures the same furthest travel, so a press that goes out 7 px and back is a
@@ -126,7 +130,7 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
     zoom / slide for mouse and touch (the learner's own pointer first) and the keyboard (pick objects with
     Tab + Enter). It never opens by itself. Keyboard camera keys are not wired: the canvas is not a focus
     stop and arrow keys belong to the page.
-    Tests read `data-camera-user` (`on` / `off`) and `data-camera-pose` (`x,y,z@x,y,z`, camera and target,
+    Tests read `data-camera-user` (`on` / `off`), `data-pan-bounds` (`minX,maxX,minZ,maxZ`) and `data-camera-pose` (`x,y,z@x,y,z`, camera and target,
     2 decimals) on `.sk-stage`; see `e2e/book-camera.spec.ts`. `data-camera` turns `moving` in the same
     tick a glide, a reset or a press is requested, so waiting for `still` never reads the old pose.
 

@@ -7,6 +7,7 @@ import { recallView } from "./viewMemory";
 import { PopClock, PopContext, PopGroup, usePopDriver } from "./PopUp";
 import { StageContext } from "./context";
 import { Overlay, OverlayContext, OverlayStore, OverlaySync } from "./overlay";
+import type { DeskBox } from "./book";
 import type { CameraView } from "./motion";
 import { GROUND } from "./theme";
 import "./scene-kit.css";
@@ -44,6 +45,8 @@ export interface InkStageProps {
   viewReset?: string | number;
   /** Key (the lesson id) under which the learner's own view is kept while the 3D view is closed. */
   viewMemory?: string;
+  /** The open book's footprint (`bookFootprint`): the pan may take the camera anywhere over it. */
+  panBounds?: DeskBox;
   children: ReactNode;
 }
 
@@ -66,6 +69,7 @@ export function InkStage({
   keepView = false,
   viewReset,
   viewMemory,
+  panBounds,
   children,
 }: InkStageProps) {
   const store = useMemo(() => new OverlayStore(), []);
@@ -97,6 +101,13 @@ export function InkStage({
       data-view={flat ? "flat" : "3d"}
       data-camera="moving"
       data-camera-user={userView ? "on" : "off"}
+      data-pan-bounds={
+        panBounds
+          ? [panBounds.minX, panBounds.maxX, panBounds.minZ, panBounds.maxZ]
+              .map((n) => n.toFixed(2))
+              .join(",")
+          : undefined
+      }
     >
       <p className="visually-hidden">{description}</p>
       <StageContext.Provider value={settings}>
@@ -126,6 +137,7 @@ export function InkStage({
                 maxDistance={maxDistance}
                 keep={keepView}
                 memory={viewMemory}
+                panBounds={panBounds}
                 reset={reset}
                 onMotion={(m) => wrap.current?.setAttribute("data-camera", m)}
                 onUserView={setUserView}

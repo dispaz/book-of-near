@@ -146,18 +146,37 @@ test("the learner's view stays across a step, and Reset view brings the step's p
   await fresh.close();
 });
 
-test("sliding the camera is held close to the figure", async ({ page }) => {
+test("sliding goes anywhere over the open book, the right page to the middle, but never off the book", async ({
+  page,
+}) => {
   await open(page);
   const start = await pose(page);
-  const d = dist(start.pos, start.target);
-  await drag(page, 1200, 700, "right");
-  await drag(page, 1200, 700, "right");
-  const slid = await pose(page);
+  // The book's footprint on the desk (bookFootprint): minX, maxX, minZ, maxZ.
+  const [minX, maxX, minZ, maxZ] = ((await stage(page).getAttribute("data-pan-bounds")) ?? "")
+    .split(",")
+    .map(Number) as [number, number, number, number];
+  const spine = (minX + maxX) / 2;
+  const inside = (t: number[]) => {
+    expect(t[0]!).toBeGreaterThanOrEqual(minX - 0.01);
+    expect(t[0]!).toBeLessThanOrEqual(maxX + 0.01);
+    expect(t[2]!).toBeGreaterThanOrEqual(minZ - 0.01);
+    expect(t[2]!).toBeLessThanOrEqual(maxZ + 0.01);
+    // The pan slides across the desk: the target keeps its height.
+    expect(t[1]!).toBeCloseTo(start.target[1]!, 1);
+  };
+
+  // Drag the book to the left, again and again: the view moves right until the book's right edge.
+  for (let i = 0; i < 4; i++) await drag(page, -600, 0, "right");
   await expect(stage(page)).toHaveAttribute("data-camera-user", "on");
-  const moved = dist(slid.target, start.target);
-  expect(moved).toBeGreaterThan(0.2);
-  // PAN_SHARE (15 %) of the camera's distance, with rounding slack.
-  expect(moved).toBeLessThanOrEqual(d * 0.15 + 0.05);
+  const right = await pose(page);
+  inside(right.target);
+  expect(right.target[0]!).toBeCloseTo(maxX, 1);
+  // So the middle of the right page (half way from the spine to the edge) was within reach.
+  expect(right.target[0]!).toBeGreaterThan(spine + (maxX - spine) / 2);
+
+  // The other way and down as well: held on both axes, each on its own.
+  for (let i = 0; i < 4; i++) await drag(page, 900, 500, "right");
+  inside((await pose(page)).target);
 });
 
 test("Controls opens a card on how to move the camera; Esc and a press outside close it", async ({

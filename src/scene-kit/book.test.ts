@@ -1,5 +1,37 @@
 import { describe, expect, it } from "vitest";
-import { BOOK, curlProfile, pageHeight, spreadBeside, spreadFor, textBlock } from "./book";
+import {
+  BOOK,
+  bookFootprint,
+  clampToBox,
+  curlProfile,
+  pageHeight,
+  spreadBeside,
+  spreadFor,
+  textBlock,
+} from "./book";
+
+describe("bookFootprint", () => {
+  const s = spreadBeside({ minX: -4.4, maxX: 4.4, minZ: -3, maxZ: 3 });
+  it("covers both pages plus a small margin (5 % of the spread, at least 0.5)", () => {
+    const b = bookFootprint(s);
+    const m = Math.max(0.5, 0.1 * s.pageWidth);
+    expect(b.minX).toBeCloseTo(s.center[0] - s.pageWidth - m);
+    expect(b.maxX).toBeCloseTo(s.center[0] + s.pageWidth + m);
+    expect(b.maxZ - b.minZ).toBeCloseTo(s.pageDepth + 2 * m);
+    expect(bookFootprint(s, 0).maxX).toBeCloseTo(s.center[0] + s.pageWidth);
+  });
+  it("reaches the middle of the right page, where the figure stands", () => {
+    const b = bookFootprint(s);
+    const rightMiddle = s.center[0] + s.pageWidth / 2;
+    expect(clampToBox(rightMiddle, s.center[2], b)).toEqual([rightMiddle, s.center[2]]);
+  });
+  it("holds each axis on its own: far right stays at the right edge whatever the depth", () => {
+    const b = bookFootprint(s);
+    expect(clampToBox(99, 0, b)).toEqual([b.maxX, 0]);
+    expect(clampToBox(99, 99, b)).toEqual([b.maxX, b.maxZ]);
+    expect(clampToBox(-99, -99, b)).toEqual([b.minX, b.minZ]);
+  });
+});
 
 describe("pageHeight", () => {
   it("is flat (y = 0) across the middle of a page, where objects stand", () => {

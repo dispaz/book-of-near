@@ -16,6 +16,7 @@ import {
   toFlat,
   type CameraView,
 } from "./motion";
+import { clampToBox, type DeskBox } from "./book";
 import { forgetView, recallView, rememberView } from "./viewMemory";
 
 /**
@@ -34,9 +35,11 @@ const v3 = (v: Vector3): V3 => [v.x, v.y, v.z];
 /**
  * Moves the camera to the current preset `view`, gliding on a critically damped spring (`smoothDamp`,
  * frame-rate independent; at once under reduced motion). In flat mode it looks straight down at the same
- * target. The learner can orbit, zoom and pan a little (right drag, shift / ctrl / cmd + drag, two-finger
- * drag): the pan is held within `PAN_SHARE` of the camera's distance from where they took over (less when
- * zoomed in), so the figure cannot leave the view.
+ * target. The learner can orbit, zoom and pan (right drag, shift / ctrl / cmd + drag, two-finger drag).
+ * With `panBounds` (the open book's footprint) the pan slides across the desk and the target stays inside
+ * that box, so any part of either page can come to the middle but the view cannot leave the book.
+ * Without it the pan is held within `PAN_SHARE` of the camera's distance from where they took over (less
+ * when zoomed in), so the figure cannot leave the view.
  *
  * A press becomes the learner's own view only as a camera gesture (`isCameraGesture`: the pointer moved
  * at least `CLICK_PX`, the pick threshold, or they zoomed or used two fingers), so a tap on an object picks
@@ -59,6 +62,7 @@ export function CameraRig({
   maxDistance = 40,
   keep = false,
   memory,
+  panBounds,
   reset,
   onMotion,
   onUserView,
@@ -72,6 +76,8 @@ export function CameraRig({
   keep?: boolean;
   /** Key of the learner's kept view (the lesson id). Read once, when the rig mounts. */
   memory?: string;
+  /** Where the pan may take the target on the desk (the open book): a box instead of the radius. */
+  panBounds?: DeskBox;
   /** Change it to drop the learner's own view and glide back to `view`. */
   reset?: string | number;
   onMotion?: (state: "moving" | "still") => void;
@@ -270,15 +276,23 @@ export function CameraRig({
     c.update();
     takeOver();
     if (userMoved.current) {
-      // Hold the pan within reach of where the learner started (the camera moves with the target). The
-      // reach shrinks as they zoom in, so the spot they started from stays on screen.
-      const reach = Math.min(
-        camera.position.distanceTo(c.target),
-        goalPos.current.distanceTo(goalTarget.current),
-      );
-      const off = c.target.clone().sub(panHome.current);
-      const held = clampLength([off.x, off.y, off.z], reach * PAN_SHARE);
-      const fix = new Vector3(held[0] - off.x, held[1] - off.y, held[2] - off.z);
+      // Hold the pan (the camera moves with the target, so the view slides without turning).
+      let fix: Vector3;
+      if (panBounds) {
+        // Over the open book: anywhere on either page, each axis on its own, at the height it had.
+        const [x, z] = clampToBox(c.target.x, c.target.z, panBounds);
+        fix = new Vector3(x - c.target.x, panHome.current.y - c.target.y, z - c.target.z);
+      } else {
+        // Elsewhere: within reach of where the learner took over, less as they zoom in, so that spot
+        // stays on screen.
+        const reach = Math.min(
+          camera.position.distanceTo(c.target),
+          goalPos.current.distanceTo(goalTarget.current),
+        );
+        const off = c.target.clone().sub(panHome.current);
+        const held = clampLength([off.x, off.y, off.z], reach * PAN_SHARE);
+        fix = new Vector3(held[0] - off.x, held[1] - off.y, held[2] - off.z);
+      }
       if (fix.lengthSq() > 0) {
         c.target.add(fix);
         camera.position.add(fix);
@@ -316,7 +330,9 @@ export function CameraRig({
       ref={controls}
       makeDefault
       enablePan
-      screenSpacePanning
+      // Over a book the pan slides across the desk (so the target never lifts off the page); elsewhere
+      // it follows the screen.
+      screenSpacePanning={!panBounds}
       enableRotate={!flat}
       enableDamping={!reducedMotion}
       dampingFactor={DAMPING}
