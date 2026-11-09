@@ -92,11 +92,19 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
 9. **Reduced motion.** No page turn, no pop-up and no camera easing: the camera jumps from shot to shot.
    The tour still plays when the learner presses play (it is their choice), one still shot after another.
    Nothing extra to do if you use `BookScene`, `Traveller` and the kit primitives.
+   The camera glides on a critically damped spring (`smoothDamp`, `EASE_SECONDS` in `scene-kit/motion.ts`),
+   frame-rate independent, and the picture's view offset rides the same spring, so a step change, a tour
+   shot or a resizing panel bends the glide instead of jerking it.
 10. **Objects grow from the page and remain interactable:** Objects are not passive decorative models.
     When the book opens or a page turns, objects literally fold up, rise, and "grow" from the paper page.
     Every object must be interactable throughout the lesson via `Pickable` (with accessible button overlays for
     keyboards, screen readers, and automated E2E tests). Picking objects should execute or advance the step's
     action (e.g. picking a key signs, picking a mailbox checks balances, picking a parcel sends, picking a scroll executes code).
+11. **The learner may move the camera.** Orbit (drag), zoom (wheel, pinch) and a small pan (right drag,
+    shift / ctrl / cmd + drag, two-finger drag). The pan is held within `PAN_SHARE` (15 %) of the camera's
+    distance from where the learner took over, so the figure cannot leave the view. Small view changes (a
+    panel gaining a line, fonts loading) keep the learner's view; a new step or tour shot glides back.
+    Keyboard panning is not wired: the canvas is not a focus stop, and arrow keys belong to the page.
 
 ### Tests every book lesson needs
 

@@ -83,11 +83,13 @@ export function Traveller({
       }
     }
     // Each trail dot chases the one before it; dots that have caught up are hidden.
+    // The chase rates are per 60 Hz frame, scaled by the frame time so fast screens do not shorten the trail.
     const dots = trail.current;
-    dots[0]?.position.lerp(g.position, reducedMotion ? 1 : 0.5);
+    const per = (k: number) => (reducedMotion ? 1 : 1 - Math.pow(1 - k, Math.min(delta, MAX_STEP) * 60));
+    dots[0]?.position.lerp(g.position, per(0.5));
     for (let i = 1; i < dots.length; i++) {
       const prev = dots[i - 1];
-      if (prev) dots[i]?.position.lerp(prev.position, reducedMotion ? 1 : 0.35);
+      if (prev) dots[i]?.position.lerp(prev.position, per(0.35));
     }
     for (const d of dots) if (d) d.visible = d.position.distanceToSquared(g.position) > 0.01;
     // The glow pulses while travelling and dims at rest.

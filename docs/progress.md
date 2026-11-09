@@ -249,3 +249,11 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Review fixes (two-axis review): every object is a pick at every step (chunk cells belong to their ribbon's pick, the signer's mailbox goes back to the start, any slip at step 5 opens the breakdown); block time per the topic (1–1.5 s), Doomslug named; learners who skipped 0.3 are not asked to "remember" a wait; demo mode says when it replayed the 0.3 transfer after a reload; opening a later step by link loads the default transaction. Shared `steps.ts` and a pure `page.ts` (page model both views draw from).
 - 3D: from the grid step on, the facts panel keeps one height on wide screens, so the camera frame and the printed page stay still (a growing panel made the camera ease for a long time and the printed button "unstable" for e2e). Narrow books use short labels (shard number, last two block digits).
 - Not tested: opening a learner's own 0.3 transaction on real testnet (demo and recorded paths are).
+
+## 2026-11-09 · Book scene: limited camera pan and gentler transitions (Refs #17)
+
+- Learner feedback on 2.1: the camera could only orbit and zoom, and every view change felt twitchy.
+- `CameraRig`: pan on (right drag, shift/ctrl/cmd + drag, two-finger drag), held within 15 % of the camera's distance (`PAN_SHARE`) around where the learner took over. Softer controls (rotate 0.6, zoom 0.7, pan 0.6, damping 0.06). Small view changes (under 4 % of the distance: a panel line, fonts) no longer take back the learner's orbit or pan.
+- Camera and view offset now glide on one critically damped spring (`smoothDamp`, `EASE_SECONDS` 0.45 s, frame-rate independent) instead of fixed per-frame lerps (0.06 camera, 0.1 offset), which started with a jolt and ran twice as fast on 120 Hz screens. A goal change mid-glide bends the path instead of restarting it. `data-camera="still"` now also waits for the view offset.
+- `Traveller` trail chase rates scale with frame time. Reduced motion unchanged: end states only.
+- Not done: keyboard panning (the canvas is not a focus stop; arrow keys belong to the page).
