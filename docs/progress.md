@@ -238,3 +238,13 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Stages 2–7: completed topics and scripts for all remaining lessons (2.1–2.2, 3.1–3.3, 4.1–4.3, 5.1–5.2, 6.1–6.2, 7.1–7.2) plus stage readmes.
 - Rule enshrined in `CLAUDE.md`, `docs/lesson-template.md`, and `.claude/commands/new-lesson.md`: both the topic guide (protocol truth) and lesson script (UI/scene blueprint) must be consulted when developing any lesson.
 
+## 2026-11-09 · Book scene camera: gentle glides, a small pan, the learner's view kept, Controls card (Refs #17)
+
+- Learner feedback while trying lesson 2.1: the camera could only orbit and zoom, every view change felt twitchy, and moving the camera was undone by the next step. On its own branch so main gets it before 2.1.
+- `CameraRig`: pan on (right drag, shift/ctrl/cmd + drag, two-finger drag), held within 15 % of the camera's distance (`PAN_SHARE`) around where the learner took over. Softer controls (rotate 0.6, zoom 0.7, pan 0.6, damping 0.06).
+- Camera and the picture's view offset glide on one critically damped spring (`smoothDamp`, `EASE_SECONDS` 0.45 s, frame-rate independent) instead of per-frame lerps (0.06 camera, 0.1 offset) that started with a jolt and ran twice as fast on 120 Hz screens. A goal change mid-glide bends the path. `data-camera="still"` waits for the view offset too. `Traveller` trail rates scale with frame time.
+- Book scenes keep the learner's view (`InkStage keepView`): once the camera moves under their hand (a plain click does not count), steps no longer reframe it; Reset view, Flat view or the tour hand it back. It survives a 2D/3D switch, in memory only.
+- Camera cluster (`CameraControls`) top right of the free area: Reset view (while their view is on) and Controls, a disclosure card for mouse, touch (own pointer first) and keyboard. It does not open by itself on a first visit, so it never covers the page or a lesson's first action.
+- Tests: `smoothDamp` / `clampLength` / `helpFor` unit tests; `e2e/book-camera.spec.ts` on lesson 0.1 (a click is not a move, view kept across a step, Reset view, pan clamp, Controls open / Esc / outside, phone fit). Test hooks on `.sk-stage`: `data-camera-user`, `data-camera-pose`.
+- Not done: keyboard camera keys (the canvas is not a focus stop; arrow keys belong to the page).
+

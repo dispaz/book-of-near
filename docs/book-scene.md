@@ -102,9 +102,20 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
     action (e.g. picking a key signs, picking a mailbox checks balances, picking a parcel sends, picking a scroll executes code).
 11. **The learner may move the camera.** Orbit (drag), zoom (wheel, pinch) and a small pan (right drag,
     shift / ctrl / cmd + drag, two-finger drag). The pan is held within `PAN_SHARE` (15 %) of the camera's
-    distance from where the learner took over, so the figure cannot leave the view. Small view changes (a
-    panel gaining a line, fonts loading) keep the learner's view; a new step or tour shot glides back.
-    Keyboard panning is not wired: the canvas is not a focus stop, and arrow keys belong to the page.
+    distance from where the learner took over, so the figure cannot leave the view.
+    **Their view stays.** Once the camera actually moves under their hand (a plain click on an object does
+    not count), later steps and focus changes leave it where it is: pages still turn and figures still grow,
+    only the camera stays put. It comes back to the step's framing on **Reset view**, the **Flat view** pill
+    or the **tour** (play). Switching to 2D and back within the lesson keeps it (in memory only; a reload or
+    another lesson starts on the framing). `BookScene` turns this on (`InkStage keepView`); other 3D scenes
+    keep the old rule (a new view glides back unless it is a small nudge).
+    **The camera cluster** (`CameraControls`), top right of the free area: **Reset view** (only while the
+    learner's view is on) and **Controls**, a disclosure card (`aria-expanded`; Esc or a press outside
+    closes it, Esc returns focus) listing turn / zoom / slide for mouse and touch (the learner's own pointer
+    first) and the keyboard (pick objects with Tab + Enter). It never opens by itself. Keyboard camera keys
+    are not wired: the canvas is not a focus stop and arrow keys belong to the page.
+    Tests read `data-camera-user` (`on` / `off`) and `data-camera-pose` (`x,y,z@x,y,z`, camera and target,
+    2 decimals) on `.sk-stage`; see `e2e/book-camera.spec.ts`.
 
 ### Tests every book lesson needs
 
@@ -130,6 +141,7 @@ From `src/scene-kit` (3D half, lazy only):
 | --- | --- |
 | `<BookScene>` | `InkStage` + `BookBackdrop` + `PrintOnPage` + `ViewOffset` + tour, wired together. Props above. |
 | `useFreeFrame(root, panel, { summary, printMinWidth? })` | Measures the free part of the canvas between the lesson chrome; returns `{ frame, size, wide, print }`; sets `--book-t/l/r/b/sh` on `root`. |
+| `InkStage keepView viewReset` | `keepView` keeps the learner's own camera across steps and shows the camera cluster (`CameraControls`: Reset view, Controls); a new `viewReset` value hands the camera back. `BookScene` sets both (the tour resets). |
 | `useTour(shots, page)`, `<TourControls tour idle>` | The tour on its own, if a scene needs it without `BookScene`. |
 | `readingShot(focus, text, elevation?)`, `folios(sheet, first?)`, `freeFrame(chrome, opts)` | Pure helpers (`bookLayout.ts`, unit tested). |
 | `PRINT_MIN_WIDTH` (1100), `WIDE_MIN_WIDTH` (900), `READING_ELEVATION` (52), `SHOT_SECONDS` (3.4) | Shared constants. Widths are of the scene area, not the screen. Below `WIDE_MIN_WIDTH` the scene sits above the dock instead of beside it. |

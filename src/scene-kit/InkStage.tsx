@@ -1,6 +1,7 @@
 import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Canvas } from "@react-three/fiber";
 import { IntroContext } from "../app/intro";
+import { CameraControls } from "./CameraControls";
 import { CameraRig } from "./CameraRig";
 import { PopClock, PopContext, PopGroup, usePopDriver } from "./PopUp";
 import { StageContext } from "./context";
@@ -33,6 +34,13 @@ export interface InkStageProps {
    * and the figure folds flat and pops up again as a drawing that fills in (not under reduced motion).
    */
   page?: number | string;
+  /**
+   * Keep the learner's own camera across steps (the book scene): once they turn, zoom or slide it, new
+   * views leave it be until Reset view. Also shows the camera cluster (Controls, Reset view).
+   */
+  keepView?: boolean;
+  /** Change it to drop the learner's own view (for example when a camera tour starts). */
+  viewReset?: string | number;
   children: ReactNode;
 }
 
@@ -52,6 +60,8 @@ export function InkStage({
   maxDistance,
   backdrop,
   page,
+  keepView = false,
+  viewReset,
   children,
 }: InkStageProps) {
   const store = useMemo(() => new OverlayStore(), []);
@@ -69,6 +79,10 @@ export function InkStage({
   const settings = useMemo(() => ({ reducedMotion, flat }), [reducedMotion, flat]);
   const wrap = useRef<HTMLDivElement>(null);
   const pop = usePopDriver({ page, grow: growing, reducedMotion, wrap });
+  const [userView, setUserView] = useState(false);
+  const [resets, setResets] = useState(0);
+  // Reset view, the Flat view pill and the lesson's own reset (a tour) all hand the camera back.
+  const reset = `${viewReset ?? ""}|${resets}|${flat ? "flat" : "3d"}`;
   return (
     <div
       ref={wrap}
@@ -76,6 +90,7 @@ export function InkStage({
       data-scene-state={state}
       data-view={flat ? "flat" : "3d"}
       data-camera="moving"
+      data-camera-user={userView ? "on" : "off"}
     >
       <p className="visually-hidden">{description}</p>
       <StageContext.Provider value={settings}>
@@ -103,7 +118,11 @@ export function InkStage({
                 reducedMotion={reducedMotion}
                 minDistance={minDistance}
                 maxDistance={maxDistance}
+                keep={keepView}
+                reset={reset}
                 onMotion={(m) => wrap.current?.setAttribute("data-camera", m)}
+                onUserView={setUserView}
+                onPose={(p) => wrap.current?.setAttribute("data-camera-pose", p)}
               />
               <OverlaySync />
               <PopGroup>{children}</PopGroup>
@@ -115,6 +134,7 @@ export function InkStage({
       <p className="sk-status" data-testid="scene-status" aria-live="polite">
         {status ?? ""}
       </p>
+      {keepView ? <CameraControls userView={userView} onReset={() => setResets((n) => n + 1)} /> : null}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type ComponentRef } from "react";
+import { useEffect, useLayoutEffect, useRef, type ComponentRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { PerspectiveCamera, Vector3 } from "three";
@@ -7,8 +7,8 @@ import { clampLength, EASE_SECONDS, fitView, PAN_SHARE, smoothDamp, toFlat, type
 /** Longest frame time the glide advances by in one frame: a slow device still glides, a stall cannot jump. */
 const MAX_STEP = 0.1;
 /**
- * A new view that moves the camera less than this share of its distance (the panel grew a line, the
- * fonts loaded) does not take back the learner's own orbit, zoom or pan.
+ * Without `keep`: a new view that moves the camera less than this share of its distance (the panel grew
+ * a line, the fonts loaded) does not take back the learner's own orbit, zoom or pan.
  */
 const NUDGE_SHARE = 0.04;
 
@@ -19,16 +19,26 @@ const far = (a: CameraView, b: CameraView, d: number) =>
     d * NUDGE_SHARE ||
   Math.hypot(a.target[0] - b.target[0], a.target[1] - b.target[1], a.target[2] - b.target[2]) >
     d * NUDGE_SHARE;
+const v3 = (v: Vector3): V3 => [v.x, v.y, v.z];
+
+/**
+ * The learner's own view, kept in memory (not stored) while the 3D view is closed, so switching to 2D
+ * and back within a lesson keeps it. Keyed by the page's path: another lesson starts on its framing.
+ */
+let savedView: { path: string; position: V3; target: V3; home: V3 } | null = null;
+const here = () => (typeof location === "undefined" ? "" : location.pathname);
 
 /**
  * Moves the camera to the current preset `view`, gliding on a critically damped spring (`smoothDamp`,
  * frame-rate independent; at once under reduced motion). In flat mode it looks straight down at the same
  * target. The learner can orbit, zoom and pan a little (right drag, shift / ctrl / cmd + drag, two-finger
- * drag): the pan is held within `PAN_SHARE` of the camera's distance from the step's target, so the
- * figure cannot leave the view. Once the learner moves the camera the rig lets go until the view changes
- * by more than a nudge, so the two never fight; then it glides back.
- * Reports "moving" or "still" through `onMotion` (the camera and the picture's view offset), for tests
- * and for anything that waits for the camera.
+ * drag): the pan is held within `PAN_SHARE` of the camera's distance from where they took over, so the
+ * figure cannot leave the view. Once the learner moves the camera the rig lets go, so the two never fight:
+ * - with `keep` (the book scene) their view stays through every later step until `reset` changes
+ *   (the Reset view button, the Flat view pill, the tour); it also survives a 2D / 3D switch;
+ * - without it, until the view changes by more than a nudge; then it glides back.
+ * Reports "moving" or "still" through `onMotion` (the camera and the picture's view offset), whether the
+ * learner's own view is on through `onUserView`, and the rounded camera position and target ("x,y,z@x,y,z") through `onPose` (tests).
  */
 export function CameraRig({
   view,
@@ -36,14 +46,23 @@ export function CameraRig({
   reducedMotion,
   minDistance = 6,
   maxDistance = 40,
+  keep = false,
+  reset,
   onMotion,
+  onUserView,
+  onPose,
 }: {
   view: CameraView;
   flat: boolean;
   reducedMotion: boolean;
   minDistance?: number;
   maxDistance?: number;
+  keep?: boolean;
+  /** Change it to drop the learner's own view and glide back to `view`. */
+  reset?: string | number;
   onMotion?: (state: "moving" | "still") => void;
+  onUserView?: (on: boolean) => void;
+  onPose?: (pose: string) => void;
 }) {
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
@@ -61,6 +80,28 @@ export function CameraRig({
   const lastOffset = useRef({ x: 0, y: 0 });
   const stillFrames = useRef(0);
   const motion = useRef<"moving" | "still" | null>(null);
+  const pose = useRef("");
+  const report = useRef(onUserView);
+  useLayoutEffect(() => {
+    report.current = onUserView;
+  });
+  const setUser = (on: boolean) => {
+    if (userMoved.current === on) return;
+    userMoved.current = on;
+    report.current?.(on);
+  };
+  /** The camera as it was when the learner pressed the controls, while they hold them. */
+  const touch = useRef<{ position: Vector3; target: Vector3 } | null>(null);
+  /** While pressed: once the camera has moved, the view is the learner's (pan held around the start). */
+  const takeOver = () => {
+    const t = touch.current;
+    const c = controls.current;
+    if (!t || !c || userMoved.current) return;
+    if (camera.position.distanceToSquared(t.position) < 1e-6 && c.target.distanceToSquared(t.target) < 1e-6)
+      return;
+    panHome.current.copy(t.target);
+    setUser(true);
+  };
 
   const aspect = size.width / Math.max(1, size.height);
   const narrow = aspect < 1;
@@ -80,24 +121,62 @@ export function CameraRig({
     goal.current = next;
     goalPos.current.set(...next.position);
     goalTarget.current.set(...next.target);
-    const d = goalPos.current.distanceTo(goalTarget.current);
-    // A nudge keeps the learner's own view; a real change (a new step, a tour shot) glides back.
-    if (!prev || far(prev, next, d)) userMoved.current = false;
-    if (first.current || reducedMotion) {
+    if (first.current) {
       first.current = false;
-      userMoved.current = false;
+      const saved = keep && savedView?.path === here() ? savedView : null;
+      camera.position.set(...(saved?.position ?? next.position));
+      controls.current?.target.set(...(saved?.target ?? next.target));
+      controls.current?.update();
+      if (saved) {
+        panHome.current.set(...saved.home);
+        setUser(true);
+      }
+      return;
+    }
+    // With `keep` the learner's view outlives every new view; without it, only a nudge.
+    if (userMoved.current && (keep || !far(prev!, next, goalPos.current.distanceTo(goalTarget.current))))
+      return;
+    setUser(false);
+    if (reducedMotion) {
       velPos.current = [0, 0, 0];
       velTarget.current = [0, 0, 0];
       camera.position.copy(goalPos.current);
       controls.current?.target.copy(goalTarget.current);
       controls.current?.update();
     }
-  }, [key, reducedMotion, camera]);
+  }, [key, reducedMotion, camera, keep]);
+
+  // Reset: drop the learner's view and glide back (at once under reduced motion: the frame loop copies).
+  const seenReset = useRef(reset);
+  useLayoutEffect(() => {
+    if (Object.is(seenReset.current, reset)) return;
+    seenReset.current = reset;
+    if (keep) savedView = null;
+    velPos.current = [0, 0, 0];
+    velTarget.current = [0, 0, 0];
+    setUser(false);
+  }, [reset, keep]);
+
+  // Closing the 3D view keeps the learner's own view for when it opens again.
+  useEffect(() => {
+    if (!keep) return;
+    const c = controls.current;
+    const home = panHome.current;
+    return () => {
+      if (!userMoved.current || !c) return;
+      savedView = {
+        path: here(),
+        position: v3(camera.position),
+        target: v3(c.target),
+        home: v3(home),
+      };
+    };
+  }, [keep, camera]);
 
   useFrame((_, delta) => {
     const c = controls.current;
     if (!c) return;
-    if (!userMoved.current) {
+    if (!userMoved.current && !touch.current) {
       const dt = reducedMotion ? 1 : Math.min(delta, MAX_STEP);
       const glide = (from: Vector3, to: Vector3, vel: V3) => {
         if (reducedMotion) {
@@ -122,6 +201,7 @@ export function CameraRig({
       glide(c.target, goalTarget.current, velTarget.current);
     }
     c.update();
+    takeOver();
     if (userMoved.current) {
       // Hold the pan within reach of where the learner started (the camera moves with the target).
       const limit = goalPos.current.distanceTo(goalTarget.current) * PAN_SHARE;
@@ -149,6 +229,15 @@ export function CameraRig({
       motion.current = now;
       onMotion?.(now);
     }
+    if (onPose) {
+      const p = camera.position;
+      const t = c.target;
+      const s = `${p.x.toFixed(2)},${p.y.toFixed(2)},${p.z.toFixed(2)}@${t.x.toFixed(2)},${t.y.toFixed(2)},${t.z.toFixed(2)}`;
+      if (s !== pose.current) {
+        pose.current = s;
+        onPose(s);
+      }
+    }
   });
 
   return (
@@ -169,11 +258,16 @@ export function CameraRig({
       maxPolarAngle={flat ? 0.05 : 1.38}
       onStart={() => {
         const c = controls.current;
-        // The first touch since the view changed: the pan is held around here, and the glide stops.
-        if (!userMoved.current && c) panHome.current.copy(c.target);
-        userMoved.current = true;
+        if (!c) return;
+        // A press pauses the glide. It becomes the learner's own view only if the camera then moves:
+        // a plain click on an object (which also presses the controls) changes nothing.
+        touch.current = { position: camera.position.clone(), target: c.target.clone() };
         velPos.current = [0, 0, 0];
         velTarget.current = [0, 0, 0];
+      }}
+      onEnd={() => {
+        takeOver();
+        touch.current = null;
       }}
     />
   );

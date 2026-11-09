@@ -282,6 +282,9 @@ export function BookScene<T>({
         view={view}
         reducedMotion={reducedMotion}
         page={page}
+        keepView
+        // The tour drives the camera: starting it (and each shot, and its end) hands the view back.
+        viewReset={tour.shot ? `tour:${tour.shots.indexOf(tour.shot)}` : "rest"}
         backdrop={
           <>
             <BookBackdrop spread={spread} heads={heads} folios={folios(sheet)} caption={caption} />
