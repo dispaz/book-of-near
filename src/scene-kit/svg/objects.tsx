@@ -5,7 +5,15 @@
  */
 import type { ReactNode } from "react";
 import { COLORS, INK, PAPER } from "../theme";
-import { itemSlots, lookOf, ribbonOutline, slipDims, type ObjectLook, type ObjectState } from "../objects";
+import {
+  itemSlots,
+  lookOf,
+  ribbonNotch,
+  ribbonOutline,
+  slipDims,
+  type ObjectLook,
+  type ObjectState,
+} from "../objects";
 import { SvgCoin, SvgLabel, SvgPickable, SvgShadow, type SvgPickProps } from "./index";
 
 type Fate = "idle" | "done" | "undone" | "failed" | "skipped";
@@ -547,16 +555,27 @@ export function SvgShardRibbon({
   width,
   name,
   color = COLORS.slab,
+  children,
   ...p
-}: SvgPickProps & { x: number; y: number; length: number; width: number; name: string; color?: string }) {
+}: SvgPickProps & {
+  x: number;
+  y: number;
+  length: number;
+  width: number;
+  name: string;
+  color?: string;
+  /** What lies on the ribbon (a row of chunks), in the same coordinates: part of the ribbon's pick. */
+  children?: ReactNode;
+}) {
   const pts = ribbonOutline(length, width).map(([px, pz]) => `${x + px},${y + pz}`);
-  const notch = Math.min(width * 0.6, length * 0.1);
+  const notch = ribbonNotch(length, width);
   const node = (
     <g>
       <polygon points={pts.join(" ")} fill={color} stroke={INK} strokeWidth={1.5} strokeLinejoin="round" />
       <SvgLabel x={x - length / 2 + notch + 4} y={y + 4} variant="small" anchor="start">
         {name}
       </SvgLabel>
+      {children}
     </g>
   );
   return pick(p, name, [x - length / 2 - 2, y - width / 2 - 2, length + 4, width + 4], node);

@@ -76,6 +76,13 @@
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+/* One height from the grid step on, where the step is printed on the page (PRINT_MIN_WIDTH): the
+   camera's free frame, and so the printed page, stays put. Narrow screens keep the panel snug. */
+@media (min-width: 1100px) {
+  .shs-panel .shs-facts.compact.steady {
+    height: min(34vh, 300px);
+  }
+}
 
 /* ---------- facts ---------- */
 .shs-facts {

@@ -28,9 +28,12 @@ export const hopLabel = (h: Hop) =>
 
 export function Facts({ st, compact = false }: { st: ShardTrace; compact?: boolean }) {
   const { trace, step, hop } = st;
+  // In 3D the panel's height sets the camera's free frame. From the grid on it keeps one height, so the
+  // book does not shift (and the printed page does not swim) when the step or its facts change.
+  const cls = `shs-facts${compact ? " compact" : ""}${compact && step > PICK ? " steady" : ""}`;
   if (step === PICK) {
     return (
-      <div className={`shs-facts${compact ? " compact" : ""}`}>
+      <div className={cls}>
         {st.loading ? <p aria-live="polite">Looking up your transaction…</p> : null}
         {st.problem ? (
           <p className="shs-warn" role="alert">
@@ -38,13 +41,13 @@ export function Facts({ st, compact = false }: { st: ShardTrace; compact?: boole
           </p>
         ) : null}
         {st.ownProblem && !trace ? <p className="shs-note">{st.ownProblem}</p> : null}
-        {trace ? <Opened trace={trace} /> : <Chosen st={st} />}
+        {trace ? <Opened trace={trace} replayed={st.replayed} /> : <Chosen st={st} />}
       </div>
     );
   }
   if (!trace)
     return st.loading || st.problem ? (
-      <div className={`shs-facts${compact ? " compact" : ""}`}>
+      <div className={cls}>
         {st.loading ? <p aria-live="polite">Looking up your transaction…</p> : null}
         {st.problem ? (
           <p className="shs-warn" role="alert">
@@ -54,7 +57,7 @@ export function Facts({ st, compact = false }: { st: ShardTrace; compact?: boole
       </div>
     ) : null;
   return (
-    <div className={`shs-facts${compact ? " compact" : ""}`}>
+    <div className={cls}>
       {step === GRID ? <Layout st={st} trace={trace} /> : null}
       {step >= START && step <= FOLLOW && hop ? (
         <section className="shs-hop" aria-label="The hop you are on" data-testid="hop-box">
@@ -83,6 +86,7 @@ export function Facts({ st, compact = false }: { st: ShardTrace; compact?: boole
       ) : null}
       {step === TIME ? <Timeline st={st} trace={trace} /> : null}
       {step === FOLLOW ? <PathSoFar trace={trace} upTo={st.reached} /> : null}
+      {step > GRID && st.shard !== null ? <ShardPick picked={st.shard} trace={trace} /> : null}
     </div>
   );
 }
@@ -96,7 +100,7 @@ function Chosen({ st }: { st: ShardTrace }) {
   );
 }
 
-function Opened({ trace }: { trace: Trace }) {
+function Opened({ trace, replayed }: { trace: Trace; replayed: boolean }) {
   const shards = touchedShards(trace);
   return (
     <div className="shs-opened" data-testid="opened">
@@ -107,6 +111,12 @@ function Opened({ trace }: { trace: Trace }) {
             ? "Your transaction from 0.3, read from testnet."
             : "Your demo transaction from 0.3."}
       </p>
+      {replayed ? (
+        <p className="shs-note" data-testid="replayed">
+          Demo mode keeps its chain in memory, and a reload cleared it. The app replayed the same demo
+          transfer, with no network, so this ID differs from the one you saw in 0.3.
+        </p>
+      ) : null}
       <p className="shs-line">
         Transaction ID <code data-testid="trace-tx">{trace.txHash}</code>
       </p>
@@ -120,11 +130,6 @@ function Opened({ trace }: { trace: Trace }) {
 }
 
 function Layout({ st, trace }: { st: ShardTrace; trace: Trace }) {
-  const picked = st.shard;
-  const used =
-    picked === null
-      ? 0
-      : touchedBlocks({ ...trace, hops: trace.hops.filter((h) => h.shardId === picked) }).length;
   return (
     <>
       <p className="shs-line" data-testid="layout-line">
@@ -134,12 +139,25 @@ function Layout({ st, trace }: { st: ShardTrace; trace: Trace }) {
       {trace.source === "demo" ? (
         <p className="shs-note">Demo mode uses a made-up layout of six shards. Testnet has more.</p>
       ) : null}
-      <p className="shs-note" data-testid="shard-pick" aria-live="polite">
-        {picked === null
-          ? "Pick a ribbon to look at one shard."
-          : `Shard ${picked} made a chunk in each of these blocks. Your transaction used ${used === 0 ? "none of them" : used === 1 ? "one of them" : `${used} of them`}.`}
-      </p>
+      {st.shard === null ? (
+        <p className="shs-note" data-testid="shard-pick" aria-live="polite">
+          Pick a ribbon to look at one shard.
+        </p>
+      ) : (
+        <ShardPick picked={st.shard} trace={trace} />
+      )}
     </>
+  );
+}
+
+/** What a picked ribbon says: its chunks, and how many of them this transaction used. */
+function ShardPick({ picked, trace }: { picked: number; trace: Trace }) {
+  const used = touchedBlocks({ ...trace, hops: trace.hops.filter((h) => h.shardId === picked) }).length;
+  const n = used === 0 ? "none of them" : used === 1 ? "one of them" : `${used} of them`;
+  return (
+    <p className="shs-note" data-testid="shard-pick" aria-live="polite">
+      Shard {picked} made a chunk in each of these blocks. Your transaction used {n}.
+    </p>
   );
 }
 

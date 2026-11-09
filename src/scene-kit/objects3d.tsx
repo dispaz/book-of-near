@@ -28,6 +28,7 @@ import {
   lookOf,
   mailboxDims,
   parcelDims,
+  ribbonNotch,
   ribbonOutline,
   screenDims,
   scrollDims,
@@ -709,8 +710,17 @@ export function ShardRibbon({
   width,
   name,
   color = COLORS.slab,
+  children,
   ...pick
-}: PickProps & { position?: Vec3; length: number; width: number; name: string; color?: string }) {
+}: PickProps & {
+  position?: Vec3;
+  length: number;
+  width: number;
+  name: string;
+  color?: string;
+  /** What lies on the ribbon (a row of chunks), local to its middle: part of the ribbon's pick. */
+  children?: ReactNode;
+}) {
   const shape = useMemo(() => {
     const s = new Shape();
     ribbonOutline(length, width).forEach(([x, z], i) => (i ? s.lineTo(x, -z) : s.moveTo(x, -z)));
@@ -719,7 +729,7 @@ export function ShardRibbon({
   }, [length, width]);
   const ink = useInk(color);
   const lift = pick.selected ? 0.05 : 0;
-  const notch = Math.min(width * 0.6, length * 0.1);
+  const notch = ribbonNotch(length, width);
   const body = (
     <group position={[0, lift, 0]}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} material={ink}>
@@ -730,6 +740,7 @@ export function ShardRibbon({
       <Label position={[-length / 2 + notch + 0.5, 0.06, 0]} variant="small">
         {name}
       </Label>
+      {children}
     </group>
   );
   return <group position={position}>{maybePickable(pick, name, 0.1, body)}</group>;

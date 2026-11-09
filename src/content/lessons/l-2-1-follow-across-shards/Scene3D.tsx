@@ -32,11 +32,12 @@ import {
 } from "../../../scene-kit";
 import type { SceneProps } from "../../../app/types";
 import { cellAt, FIGURE, gridOf, hopAt, MAILBOX_HOME, mailboxAt, PARCEL_HOME, slots } from "./layout3d";
+import { ACCENT, cellKey, describe, pageModel, shortName } from "./page";
 import { Facts, hopLabel } from "./parts";
-import { ACCENT, describe, TOUCHED } from "./Scene2D";
+import { CHECK, PICK, START, TIME } from "./steps";
 import { tourFor, type Target } from "./tour";
 import type { Trace } from "./trace";
-import { CHECK, FOLLOW, GRID, PICK, START, TIME, type ShardTrace } from "./useShardTrace";
+import type { ShardTrace } from "./useShardTrace";
 
 const SPREAD = { print: spreadBeside(FIGURE), docked: spreadFor(FIGURE) };
 /** Where the step's words are printed on the left page. */
@@ -157,7 +158,7 @@ export default function Scene3D({
         {summary && !wide ? null : step === PICK || !trace ? (
           <Desk st={st} />
         ) : (
-          <Page st={st} trace={trace} />
+          <Page st={st} trace={trace} compact={!print} />
         )}
       </BookScene>
       {/* The facts both views show (HTML), over the right page. */}
@@ -170,13 +171,12 @@ export default function Scene3D({
 
 /** Step 1: the learner's mailbox and the parcel (the transaction) that already arrived. */
 function Desk({ st }: { st: ShardTrace }) {
-  const signer = st.trace?.signerId ?? "your account";
   return (
     <group>
       <Mailbox
         position={MAILBOX_HOME}
         size={1.8}
-        name={signer.length > 24 ? `${signer.slice(0, 21)}…` : signer}
+        name={shortName(st.trace?.signerId ?? "your account")}
         color={ACCENT}
         flag={!!st.trace}
         onPick={() => st.choose("mine")}
@@ -208,54 +208,59 @@ function Cell({ position, size, lit }: { position: Vec3; size: [number, number];
   );
 }
 
-/** Steps 2 to 5: ribbons, chunk cells, the signer's mailbox and the receipt slips. */
-function Page({ st, trace }: { st: ShardTrace; trace: Trace }) {
+/** Steps 2 to 5: ribbons carrying their chunk cells, the signer's mailbox and the receipt slips. */
+function Page({ st, trace, compact }: { st: ShardTrace; trace: Trace; compact: boolean }) {
   const { step, drawn } = st;
+  // The labels are HTML at a fixed size: on a small book (phones, tablets) they keep to short forms.
+  const shardName = (s: number) => (compact ? String(s) : `shard ${s}`);
+  const blockName = (h: number) => (compact ? `…${String(h).slice(-2)}` : `#…${String(h).slice(-4)}`);
   const g = gridOf(trace);
-  const sl = slots(trace);
-  const pos = trace.hops.map((h, i) => hopAt(trace, h, sl[i]!));
-  const shown = trace.hops.slice(0, Math.max(0, drawn + 1));
-  const touched = new Set(shown.map((h) => h.shardId));
-  const lit = new Set(shown.map((h) => `${h.shardId}:${h.blockHeight}`));
+  const model = pageModel(trace, st);
+  const { pos } = model;
+  const shown = trace.hops.slice(0, model.count);
   const ribbonX = (g.minX + g.maxX) / 2;
   const m = mailboxAt(trace);
+  const firstShard = trace.hops[0]!.shardId;
   const slip = Math.min(1, g.col * 0.78);
   const cur = pos[Math.min(Math.max(st.at, 0), pos.length - 1)]!;
-  const fateOf = (i: number) =>
-    step === FOLLOW && i === st.reached && st.reached < st.last ? ("idle" as const) : ("done" as const);
+  const fateOf = (i: number) => (model.isNewest(i) ? ("idle" as const) : ("done" as const));
   return (
     <group>
       <Anchor name="grid" position={[g.minX + 0.4, 0.3, g.minZ + 0.3]} />
       {trace.shardIds.map((s) => {
         const z = cellAt(trace, s, trace.firstBlock)[2];
         return (
-          <group key={s}>
-            <ShardRibbon
-              position={[ribbonX, 0.01, z]}
-              length={g.maxX - g.minX}
-              width={g.row * 0.86}
-              name={`shard ${s}`}
-              color={st.shard === s ? ACCENT : touched.has(s) ? TOUCHED : COLORS.slab}
-              onPick={step === GRID ? () => st.pickShard(s) : undefined}
-              pickLabel={`Shard ${s}`}
-              selected={st.shard === s}
-            />
-            {Array.from({ length: g.n }, (_, c) => (
-              <Cell
-                key={c}
-                position={cellAt(trace, s, trace.firstBlock + c)}
-                size={g.cell}
-                lit={lit.has(`${s}:${trace.firstBlock + c}`)}
-              />
-            ))}
-          </group>
+          <ShardRibbon
+            key={s}
+            position={[ribbonX, 0.01, z]}
+            length={g.maxX - g.minX}
+            width={g.row * 0.86}
+            name={shardName(s)}
+            color={model.ribbonColor(s)}
+            onPick={() => st.pickShard(s)}
+            pickLabel={`Shard ${s}`}
+            selected={st.shard === s}
+          >
+            {/* The row's chunks lie on the ribbon (local to its middle), so picking one picks the shard. */}
+            {Array.from({ length: g.n }, (_, c) => {
+              const [x] = cellAt(trace, s, trace.firstBlock + c);
+              return (
+                <Cell
+                  key={c}
+                  position={[x - ribbonX, 0, 0]}
+                  size={g.cell}
+                  lit={model.lit.has(cellKey(s, trace.firstBlock + c))}
+                />
+              );
+            })}
+          </ShardRibbon>
         );
       })}
       {Array.from({ length: g.n }, (_, c) => {
         const [x] = cellAt(trace, trace.shardIds[0]!, trace.firstBlock + c);
         return (
           <Label key={c} position={[x, 0.05, g.maxZ - 0.2]} variant="small">
-            {`#…${String(trace.firstBlock + c).slice(-4)}`}
+            {blockName(trace.firstBlock + c)}
           </Label>
         );
       })}
@@ -265,6 +270,8 @@ function Page({ st, trace }: { st: ShardTrace; trace: Trace }) {
         name="signer"
         color={step >= START ? ACCENT : COLORS.slab}
         flag={step >= START}
+        onPick={() => (step >= START ? st.pick(0) : st.pickShard(firstShard))}
+        pickLabel={`Signer's mailbox: ${trace.signerId}, on shard ${firstShard}`}
       />
 
       {/* The path: an arc from each slip to the next, as far as the learner has come. */}

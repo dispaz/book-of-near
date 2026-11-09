@@ -1,7 +1,9 @@
 /**
  * The ONE state of lesson 2.1, shared by the 2D and the 3D view: which transaction is open, its path,
  * how far the learner has followed it and what they picked. Everything on chain goes through useChain().
- * No three.js here. The lesson never sends or times a new transaction: it reads one that already finished.
+ * No three.js here. The lesson never times a new transaction: it reads one that already finished. The one
+ * exception is demo mode after a reload (its chain lives in memory): it replays the same demo transfer,
+ * instantly and with no network, and says so (`replayed`).
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { SceneProps } from "../../../app/types";
@@ -13,14 +15,9 @@ import { progress } from "../../../progress";
 import { RECORDED } from "./recorded";
 import { loadTrace, readSeenEvidence, touchedShards, varsFor, type SeenEvidence, type Trace } from "./trace";
 
-// Step numbers (0-based) from manifest.ts.
-export const PICK = 0;
-export const GRID = 1;
-export const START = 2;
-export const FOLLOW = 3;
-export const TIME = 4;
-export const CHECK = 5;
-export const HONEST = 6;
+import { FOLLOW, GRID, PICK, START, TIME } from "./steps";
+
+export * from "./steps";
 
 const LESSON_03 = "l-0-3-send-a-transaction";
 
@@ -57,9 +54,11 @@ export function useShardTrace({
   const [problem, setProblem] = useState<string | null>(null);
   /** How far the path is followed (0-based hop): it never goes back. */
   const [reached, setReached] = useState(0);
-  /** The hop the learner is looking at (picked or just followed); at most `reached`. */
-  const [at, setAt] = useState(0);
-  /** A shard row the learner picked at the grid step. */
+  /** The hop the learner picked or just followed (clamped to what is drawn, it becomes `at`). */
+  const [looking, setLooking] = useState(0);
+  /** Demo mode replayed the 0.3 transfer (its in-memory chain was reset by a reload). */
+  const [replayed, setReplayed] = useState(false);
+  /** A shard ribbon the learner picked. */
   const [shard, setShard] = useState<number | null>(null);
   /** Step 5's breakdown bar has been opened. */
   const [inspected, setInspected] = useState(false);
@@ -75,8 +74,9 @@ export function useShardTrace({
   const load = async () => {
     setProblem(null);
     setReached(0);
-    setAt(0);
+    setLooking(0);
     setShard(null);
+    setReplayed(false);
     if (choice === "example") {
       setTrace(RECORDED);
       return;
@@ -97,6 +97,7 @@ export function useShardTrace({
           pace: "instant",
         });
         t = await loadTrace(chain, out.transaction.hash, me.accountId, source);
+        setReplayed(true);
       }
       setTrace(t);
     } catch {
@@ -139,30 +140,35 @@ export function useShardTrace({
   /** How many hops the picture draws: none at the grid, one at the start, then as followed, all after. */
   const drawn = !trace || step <= GRID ? -1 : step === START ? 0 : step === FOLLOW ? reached : last;
   /** The hop the text and the markers talk about: the first one until the follow step. */
-  const cur = step <= START ? 0 : step === FOLLOW ? Math.min(at, reached) : Math.min(at, last);
+  const at = step <= START ? 0 : step === FOLLOW ? Math.min(looking, reached) : Math.min(looking, last);
 
   // Picks read the latest state, not the render they were made in: while the book turns a page, the
   // previous page's figure (made at the previous step) is still on screen and can still be picked.
-  const now = useRef({ step, reached, at, drawn, last });
+  const now = useRef({ step, reached, looking, drawn, last });
   useLayoutEffect(() => {
-    now.current = { step, reached, at, drawn, last };
+    now.current = { step, reached, looking, drawn, last };
   });
 
   const follow = () => {
     const n = now.current;
     const next = Math.min(n.last, n.reached + 1);
     setReached(next);
-    setAt(next);
+    setLooking(next);
   };
-  /** Picking a drawn slip looks at it. At the follow step, picking the newest one follows on. */
+  /**
+   * Picking a drawn slip looks at it. At the follow step, picking the newest one follows on; at the time
+   * step, any slip opens the breakdown too.
+   */
   const pick = (index: number) => {
     const n = now.current;
     if (index < 0 || index > Math.max(n.drawn, 0)) return;
-    if (n.step === FOLLOW && index === n.reached && n.reached < n.last && n.at === n.reached) return follow();
-    setAt(index);
+    if (n.step === FOLLOW && index === n.reached && n.reached < n.last && n.looking === n.reached)
+      return follow();
+    if (n.step === TIME) setInspected(true);
+    setLooking(index);
   };
 
-  const state = `${trace ? `source:${trace.source}` : "source:none"};hop:${trace ? cur + 1 : 0}/${
+  const state = `${trace ? `source:${trace.source}` : "source:none"};hop:${trace ? at + 1 : 0}/${
     trace ? trace.hops.length : 0
   }`;
   return {
@@ -174,7 +180,8 @@ export function useShardTrace({
     trace,
     loading,
     problem,
-    at: cur,
+    at,
+    replayed,
     reached,
     last,
     drawn,
@@ -189,6 +196,6 @@ export function useShardTrace({
     pick,
     pickShard: (id: number) => setShard((s) => (s === id ? null : id)),
     inspect: () => setInspected(true),
-    hop: trace ? trace.hops[cur]! : null,
+    hop: trace ? trace.hops[at]! : null,
   };
 }

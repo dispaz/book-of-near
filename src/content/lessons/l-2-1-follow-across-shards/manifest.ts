@@ -21,14 +21,14 @@ export default {
     shardsTouched: "some shards",
     blocksCount: "a few blocks",
     workTime: "a few seconds",
-    finalSeen: "the wait for Final in 0.3",
+    finalSeen: "the few seconds a transaction takes to become final",
   },
   steps: [
     {
       caption:
         "Where did your transaction go after you pressed Send? Watch it travel across parallel shards.",
       explain:
-        "In lesson 0.3 you sent a transaction and saw Final after a few seconds. The app asks an RPC node for the full record of what happened. Nothing new is sent. If you skipped 0.3, open the recorded example: a real testnet transaction with several hops.",
+        "In lesson 0.3 you sent a transaction and saw Final after a few seconds. The app asks an RPC node for the full record of what happened. Nothing new is sent to the network. If you skipped 0.3, open the recorded example: a real testnet transaction with several hops.",
       explainAt: "mailbox",
       action: { label: "load the transaction path", gate: true },
     },
@@ -56,7 +56,7 @@ export default {
       caption:
         "Remember {finalSeen}? Here is where it went: {workTime} of block-to-block hops, plus finality.",
       explain:
-        "A new block comes about every second or less, and each receipt waited for the next one. The rest of the time was handing the transaction to the RPC node and waiting for finality: the point where validators agree a block can no longer change. The hop times come from block timestamps.",
+        "A new block comes roughly every one to one and a half seconds, and each receipt waited for the next one. The rest was the hand-over to the RPC node and finality: the point where validators agree a block can no longer change. NEAR's way of agreeing is called Doomslug. Hop times come from block timestamps.",
       explainAt: "time",
     },
     {

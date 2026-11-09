@@ -5,12 +5,9 @@
 import type { Shot } from "../../../scene-kit/bookLayout";
 import type { Trace } from "./trace";
 
-// Step numbers (0-based) from manifest.ts. Keep them in sync with useShardTrace.ts.
-const PICK = 0;
-const GRID = 1;
-const START = 2;
-const FOLLOW = 3;
-export const CHECK = 5;
+import { CHECK, FOLLOW, GRID, PICK, START } from "./steps";
+
+export { CHECK };
 
 /** What a tour shot looks at. */
 export type Target =

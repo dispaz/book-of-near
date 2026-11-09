@@ -79,7 +79,8 @@ describe("time breakdown (step 5)", () => {
 
   it("shows only the shard hops for the recorded example (it has no stopwatch)", () => {
     expect(breakdown(RECORDED, null).map((p) => [p.key, p.ms])).toEqual([["hops", 2369]]);
-    expect(varsFor(RECORDED).finalSeen).toBe("the wait for Final in 0.3");
+    // A learner who skipped 0.3 never saw a wait: the caption talks about any transaction instead.
+    expect(varsFor(RECORDED).finalSeen).toBe("the few seconds a transaction takes to become final");
   });
 
   it("every part has a plain label", () => {

@@ -105,6 +105,9 @@ export function slipDims(size: number) {
   return { width, height, depth: size * 0.03, fold: height * 0.32 };
 }
 
+/** How deep the swallowtail notch at a ribbon's left end is cut. */
+export const ribbonNotch = (length: number, width: number) => Math.min(width * 0.6, length * 0.1);
+
 /**
  * A shard ribbon lying flat, as (x, z) points of its outline: a strip of `length` along x centred on
  * 0, `width` across, with a swallowtail notch cut into its left end (where its name goes).
@@ -112,7 +115,7 @@ export function slipDims(size: number) {
 export function ribbonOutline(length: number, width: number): [number, number][] {
   const l = length / 2;
   const w = width / 2;
-  const notch = Math.min(width * 0.6, length * 0.1);
+  const notch = ribbonNotch(length, width);
   return [
     [-l, -w],
     [l, -w],

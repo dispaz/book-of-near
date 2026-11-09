@@ -181,6 +181,20 @@ for (const view of ["2d", "3d"] as const)
       await expect(page.getByTestId("hop-detail")).toContainText(
         "2nq8jS6q1hnzNupWeUUbNmCrg3BXy7msqkd34rHUu7ga",
       );
+      // Ribbons stay picks after the grid step; the signer's mailbox goes back to where it started.
+      await page.getByRole("button", { name: "Shard 5" }).press("Enter");
+      await expect(page.getByTestId("shard-pick")).toContainText("Shard 5 made a chunk");
+      await page.getByRole("button", { name: /^Chunk 2:/ }).press("Enter");
+      await expect(page.getByTestId("hop-index")).toHaveText("2");
+      await page.getByRole("button", { name: /^Signer's mailbox/ }).press("Enter");
+      await expect(page.getByTestId("hop-index")).toHaveText("1");
+      // At the time step, picking a slip opens the breakdown, like the button.
+      const follow = dock(page).getByRole("button", { name: "Follow next receipt" });
+      for (let i = 2; i < 7; i++) await follow.click();
+      await nextStep(page);
+      await expect(dock(page).getByRole("button", { name: "Inspect breakdown" })).toBeVisible();
+      await page.getByRole("button", { name: /^Chunk 1:/ }).press("Enter");
+      await expect(page.getByTestId("breakdown")).toBeVisible();
     });
   });
 
@@ -221,6 +235,8 @@ test.describe(`lesson ${ID}: choices and views`, () => {
     await seed03(page);
     await page.goto(`/lesson/${ID}?view=2d`);
     await load(page, "mine");
+    // The seeded hash is not in this fresh in-memory demo chain, so the app replays the transfer and says so.
+    await expect(page.getByTestId("replayed")).toBeVisible();
     for (let i = 0; i < 3; i++) await nextStep(page);
     const follow = dock(page).getByRole("button", { name: "Follow next receipt" });
     const total = Number(await page.getByTestId("hop-total").textContent());

@@ -159,7 +159,9 @@ export function varsFor(trace: Trace, seen?: SeenEvidence | null): Record<string
     shardsTouched: plural(touchedShards(trace).length, "shard"),
     blocksCount: plural(touchedBlocks(trace).length, "block"),
     workTime: seconds(trace.workMs),
-    finalSeen: own ? `the ${seconds(seen!.finalMs!)} until Final in 0.3` : "the wait for Final in 0.3",
+    finalSeen: own
+      ? `the ${seconds(seen!.finalMs!)} until Final in 0.3`
+      : "the few seconds a transaction takes to become final",
   };
 }
 
