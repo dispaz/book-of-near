@@ -238,3 +238,9 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Stages 2–7: completed topics and scripts for all remaining lessons (2.1–2.2, 3.1–3.3, 4.1–4.3, 5.1–5.2, 6.1–6.2, 7.1–7.2) plus stage readmes.
 - Rule enshrined in `CLAUDE.md`, `docs/lesson-template.md`, and `.claude/commands/new-lesson.md`: both the topic guide (protocol truth) and lesson script (UI/scene blueprint) must be consulted when developing any lesson.
 
+## 2026-11-09 · Book scene setting: table, cosy room, NEAR palette, NEAR coins
+- The book now lies on a real table (ash top with an ink edge, apron, four legs) instead of an endless wood plane. Round it stands a cosy flat, out of focus: glass balcony doors onto a garden behind the book (railing, planters, trees), linen curtains, a bookcase, a floor lamp and an armchair; a garden window and a green sofa on the right wall; a sideboard with a lamp on the left; oak floor with a NEAR-green rug. The surfaces are painted on canvases and blurred by scaling down and up (`roomPaint.ts`), so there is no post-processing and it works in every browser. Sizes come from the pure `roomFor` (`roomLayout.ts`, unit tested: the table holds the mat, the walls stay outside the orbiting camera, the room is inside the far plane, now 400).
+- NEAR palette: `NEAR` in `theme.ts` and `--near-*` in `ink.css` (brand green `#00ec97`, black, off-white, plus deeper greens and a mint for the setting). Setting defaults: deep green cloth cover, NEAR green ribbon, mint felt mat.
+- Coins are NEAR coins: `Coin` (3D) carries the NEAR mark on both faces (it fades in with the ink fill), as do `SvgCoin` and the coin `ObjectIcon`; the default colour is NEAR green. The mark is one shared path (`nearMark.ts`, unit tested).
+- Checked by screenshot: lesson 0.1 at 1440×900 (default, low orbit, side orbit, tour close-ups) and 390×844; the scene-objects gallery coin in 2D and 3D.
+

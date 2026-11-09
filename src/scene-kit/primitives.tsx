@@ -1,8 +1,17 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useThree, type ThreeEvent } from "@react-three/fiber";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { Edges, Html, RoundedBox } from "@react-three/drei";
-import { AdditiveBlending, DoubleSide, type Mesh, type Object3D } from "three";
-import { glowTexture, hullMaterial, inkMaterial, shadowTexture } from "./materials";
+import {
+  AdditiveBlending,
+  CanvasTexture,
+  DoubleSide,
+  MeshBasicMaterial,
+  SRGBColorSpace,
+  type Mesh,
+  type Object3D,
+} from "three";
+import { glowTexture, hullMaterial, inkMaterial, REVEAL, shadowTexture } from "./materials";
+import { NEAR_MARK } from "./nearMark";
 import { useOverlayItem } from "./overlay";
 import { isClick, type Vec3 } from "./motion";
 import { COLORS, INK } from "./theme";
@@ -365,14 +374,66 @@ export function ChainBlock({
   );
 }
 
-/** A coin, lying flat. */
-export function Coin({ position = [0, 0, 0], color = COLORS.gold }: { position?: Vec3; color?: string }) {
+let markMaterial: MeshBasicMaterial | null = null;
+
+/** The NEAR mark and a thin rim in ink, on a transparent disc: the face of every coin. Shared. */
+function coinFace(): MeshBasicMaterial {
+  if (markMaterial) return markMaterial;
+  const n = 256;
+  const c = document.createElement("canvas");
+  c.width = c.height = n;
+  const g = c.getContext("2d")!;
+  g.strokeStyle = INK;
+  g.lineWidth = n * 0.035;
+  g.beginPath();
+  g.arc(n / 2, n / 2, n * 0.43, 0, Math.PI * 2);
+  g.stroke();
+  const [x, y, w, h] = NEAR_MARK.box;
+  const k = (n * 0.5) / Math.max(w, h);
+  g.translate(n / 2, n / 2);
+  g.scale(k, k);
+  g.translate(-(x + w / 2), -(y + h / 2));
+  g.fillStyle = INK;
+  g.fill(new Path2D(NEAR_MARK.path));
+  const map = new CanvasTexture(c);
+  map.colorSpace = SRGBColorSpace;
+  map.anisotropy = 4;
+  markMaterial = new MeshBasicMaterial({
+    map,
+    transparent: true,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+  });
+  return markMaterial;
+}
+
+/**
+ * A NEAR coin, lying flat: NEAR green (or `color`) with the NEAR mark on both faces, so it reads the
+ * same whichever way up it lands. The mark fills in with the ink as the figure pops up.
+ */
+export function Coin({ position = [0, 0, 0], color = COLORS.near }: { position?: Vec3; color?: string }) {
   const ink = useInk(color);
+  const face = useMemo(coinFace, []);
+  useFrame(() => {
+    face.opacity = REVEAL.value;
+  });
   return (
     <mesh position={position} material={ink}>
       <cylinderGeometry args={[0.42, 0.42, 0.13, 32]} />
       <Outline mode="hull" thickness={0.03} />
       <Outline />
+      {[1, -1].map((side) => (
+        <mesh
+          key={side}
+          position={[0, side * 0.066, 0]}
+          rotation={[-side * (Math.PI / 2), 0, 0]}
+          material={face}
+          raycast={noRaycast}
+        >
+          <circleGeometry args={[0.4, 32]} />
+        </mesh>
+      ))}
     </mesh>
   );
 }

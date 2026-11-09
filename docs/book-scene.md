@@ -11,7 +11,8 @@ Start a new lesson as a book scene with `npm run new-lesson -- <id> --stage N --
 | Part | Where | Who draws it |
 | --- | --- | --- |
 | Cover → open book → 2D page → 3D grows out of the page | Lesson start and 2D → 3D switch | App (`LessonPage`, `IntroContext`), automatic |
-| Desk, open book, cloth cover, ribbon, page edges | Under the scene | `BookBackdrop` (via `BookScene`) |
+| Table, felt mat, open book, cloth cover, ribbon, page edges | Under the scene | `BookBackdrop` (via `BookScene`) |
+| The room round the table: a cosy flat, out of focus, with balcony doors onto a garden | Behind and round the table, seen at low angles and in tour close-ups | `Room` (`Room.tsx`, `roomLayout.ts`, `roomPaint.ts`; via `BookBackdrop`) |
 | The step's figure, standing on the **right page** | Pages at y = 0 | The lesson (children of `BookScene`) |
 | The step's heading, note and action, **printed on the left page** | Scene area ≥ 1100 px wide (`PRINT_MIN_WIDTH`), not at the quiz / honest take | `PrintOnPage` + `SpreadContext` (via `BookScene`); the lesson page lays its `.book-page` out as print |
 | Page numbers at the foot, "Fig. n  …" caption under the figure | Right page foot | `BookBackdrop` (`folios(sheet)`, `caption`) |
@@ -88,7 +89,10 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
    printed only on a 3D object (a balance on a page, a hash on a block) is also in visually hidden text or
    a labelled HTML tag.
 8. **Colours.** Figures follow the ink rule (paper white, black outlines, the stage accent for meaning).
-   The desk and book colours are the setting and stay the same on every stage.
+   The setting (table, room, book) is the same on every stage and uses NEAR's palette (`NEAR` in
+   `theme.ts`, `--near-*` in `ink.css`): a deep green cloth cover, a NEAR green ribbon, a mint felt mat,
+   green plants, sofa and rug. Coins are NEAR coins: `Coin` and `SvgCoin` default to NEAR green with the
+   NEAR mark (`nearMark.ts`) on their faces. Pass `color` only when a coin must mean something else.
 9. **Reduced motion.** No page turn, no pop-up and no camera easing: the camera jumps from shot to shot.
    The tour still plays when the learner presses play (it is their choice), one still shot after another.
    Nothing extra to do if you use `BookScene`, `Traveller` and the kit primitives.

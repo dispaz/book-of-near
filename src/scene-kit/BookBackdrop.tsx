@@ -11,7 +11,6 @@ import {
   ExtrudeGeometry,
   Object3D,
   PCFShadowMap,
-  RepeatWrapping,
   Shape,
   ShaderMaterial,
   ShadowMaterial,
@@ -21,7 +20,9 @@ import {
   type Mesh,
 } from "three";
 import { inkMaterial, REVEAL } from "./materials";
-import { INK } from "./theme";
+import { INK, NEAR } from "./theme";
+import { roomFor } from "./roomLayout";
+import { Room, Table } from "./Room";
 import { BOOK, curlProfile, pageHeight, type Spread } from "./book";
 import { usePop } from "./PopUp";
 
@@ -58,9 +59,9 @@ const SUN = new Vector3(0.35, 0.8, 0.45).normalize();
  */
 export function BookBackdrop({
   spread,
-  cover = "#d9a63a",
-  ribbon = "#26304d",
-  desk = "#c4ccc1",
+  cover = NEAR.forest,
+  ribbon = NEAR.green,
+  desk = "#c6dccf",
   heads,
   folios,
   caption,
@@ -200,8 +201,9 @@ function inkShadowMaterial(dpr: number, opacity = 0.26): ShadowMaterial {
 const WOOD_TILE = 14;
 
 /**
- * A pale ash table, a felt desk mat under the book and soft window light falling across them.
- * The mat is `size` (x, z) and centred on `at`.
+ * A pale ash table in a cosy, out-of-focus room (Room.tsx), a felt desk mat under the book and soft
+ * window light falling across them. The mat is `size` (x, z) and centred on `at`; the table and the
+ * room are sized round it (room.ts).
  */
 function Desk({
   y,
@@ -217,11 +219,14 @@ function Desk({
   const wood = useMemo(() => {
     const t = new CanvasTexture(woodCanvas());
     t.colorSpace = SRGBColorSpace;
-    t.wrapS = t.wrapT = RepeatWrapping;
-    t.repeat.set(400 / WOOD_TILE, 400 / WOOD_TILE);
     t.anisotropy = 8;
     return t;
   }, []);
+  const room = useMemo(
+    () => roomFor({ x: at[0], z: at[1], width: size[0], depth: size[1] }, y - 0.06),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the numbers, not the arrays, which are new each render
+    [at[0], at[1], size[0], size[1], y],
+  );
   const felt = useMemo(() => {
     const t = new CanvasTexture(feltCanvas(color, size));
     t.colorSpace = SRGBColorSpace;
@@ -244,37 +249,37 @@ function Desk({
   const dpr = useThree((s) => s.viewport.dpr);
   const flat: [number, number, number] = [-Math.PI / 2, 0, 0];
   return (
-    <group position={[0, y, 0]}>
-      {/* The layers sit well apart (the mat is a thick pad), so they do not flicker at low angles. */}
-      <mesh rotation={flat} position={[0, -0.06, 0]} raycast={noRaycast} userData={BOOK_PART}>
-        <planeGeometry args={[400, 400]} />
-        <meshBasicMaterial map={wood} />
-      </mesh>
-      <mesh rotation={flat} position={[at[0], 0, at[1]]} raycast={noRaycast} userData={BOOK_PART}>
-        <planeGeometry args={size} />
-        <meshBasicMaterial map={felt} />
-      </mesh>
-      {/* Window light: a warm glow with the soft shadows of the frame and a plant, on the desk only. */}
-      <mesh
-        rotation={flat}
-        position={[at[0] - size[0] * 0.08, 0.012, at[1] + size[1] * 0.12]}
-        raycast={noRaycast}
-        userData={BOOK_PART}
-      >
-        <planeGeometry args={[size[0] * 1.5, size[0] * 1.5]} />
-        <meshBasicMaterial map={light} transparent depthWrite={false} />
-      </mesh>
-      <mesh
-        rotation={flat}
-        position={[0, 0.024, 0]}
-        raycast={noRaycast}
-        receiveShadow
-        userData={BOOK_PART}
-        material={inkShadowMaterial(dpr, 0.3)}
-      >
-        <planeGeometry args={[120, 120]} />
-      </mesh>
-    </group>
+    <>
+      <Room layout={room} />
+      <Table layout={room} wood={wood} tile={WOOD_TILE} />
+      <group position={[0, y, 0]}>
+        {/* The layers sit well apart (the mat is a thick pad), so they do not flicker at low angles. */}
+        <mesh rotation={flat} position={[at[0], 0, at[1]]} raycast={noRaycast} userData={BOOK_PART}>
+          <planeGeometry args={size} />
+          <meshBasicMaterial map={felt} />
+        </mesh>
+        {/* Window light: a warm glow with the soft shadows of the frame and a plant, on the desk only. */}
+        <mesh
+          rotation={flat}
+          position={[at[0] - size[0] * 0.08, 0.012, at[1] + size[1] * 0.12]}
+          raycast={noRaycast}
+          userData={BOOK_PART}
+        >
+          <planeGeometry args={[size[0] * 1.5, size[0] * 1.5]} />
+          <meshBasicMaterial map={light} transparent depthWrite={false} />
+        </mesh>
+        <mesh
+          rotation={flat}
+          position={[(room.table.minX + room.table.maxX) / 2, 0.024, (room.table.minZ + room.table.maxZ) / 2]}
+          raycast={noRaycast}
+          receiveShadow
+          userData={BOOK_PART}
+          material={inkShadowMaterial(dpr, 0.3)}
+        >
+          <planeGeometry args={[room.table.maxX - room.table.minX, room.table.maxZ - room.table.minZ]} />
+        </mesh>
+      </group>
+    </>
   );
 }
 

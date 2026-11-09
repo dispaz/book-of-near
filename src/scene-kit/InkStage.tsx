@@ -6,6 +6,7 @@ import { PopClock, PopContext, PopGroup, usePopDriver } from "./PopUp";
 import { StageContext } from "./context";
 import { Overlay, OverlayContext, OverlayStore, OverlaySync } from "./overlay";
 import type { CameraView } from "./motion";
+import { ROOM } from "./roomLayout";
 import { GROUND } from "./theme";
 import "./scene-kit.css";
 
@@ -83,7 +84,7 @@ export function InkStage({
           <Canvas
             dpr={[1, 2]}
             flat
-            camera={{ fov: 34, near: 0.1, far: 200, position: [...view.position] }}
+            camera={{ fov: 34, near: 0.1, far: ROOM.far, position: [...view.position] }}
             gl={{ antialias: true, alpha: true }}
             onPointerMissed={(e) => {
               if (e.type === "click") onMiss?.();

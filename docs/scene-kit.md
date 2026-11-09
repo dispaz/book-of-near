@@ -20,13 +20,13 @@ Never import `src/scene-kit` (the 3D half) from a manifest, the app shell or the
 | --- | --- |
 | `<InkStage view flat reducedMotion state description status? onMiss? backdrop? page?>` | Canvas wrapper: paper ground (or `backdrop`, e.g. a `BookBackdrop`), camera rig, orbit, overlay. Exposes `data-scene-state={state}`, `data-view`, `data-camera="moving"\|"still"` and, during the pop-up, `data-pop="turn"\|"rise"\|"fill"` on `.sk-stage`. `status` is a handwritten, `aria-live` note top right. A new `page` (e.g. the step) turns the page and pops the figure up again. |
 | `<BookScene …>`, `useFreeFrame`, `useTour`, `<TourControls>` | **The standard 3D lesson view** (`docs/book-scene.md`): `InkStage` on an open book with the step printed on the left page, a page turn per step and a camera tour. Build new 3D views with this, not bare `InkStage`. |
-| `<BookBackdrop spread heads? folios? caption?>` | An open pop-up book on a desk for the scene to stand on (pages at y = 0). Size it with `spreadFor` (spine at x = 0) or `spreadBeside` (figure on the right page, left page free for print). Objects cast hatched ink shadows; a page curls over when `InkStage`'s `page` changes. |
+| `<BookBackdrop spread heads? folios? caption?>` | An open pop-up book on a table, in a blurred cosy room (`Room.tsx`: painted, pre-blurred walls, floor and ceiling sized by the pure `roomFor` in `roomLayout.ts`), for the scene to stand on (pages at y = 0). Size it with `spreadFor` (spine at x = 0) or `spreadBeside` (figure on the right page, left page free for print). Objects cast hatched ink shadows; a page curls over when `InkStage`'s `page` changes. |
 | `<PrintOnPage block el place onInView>` | Prints an HTML element on the left page (`textBlock(spread)`), following it in perspective; reports when the block leaves the screen so the caller can lay the words out normally again. Used with the app's `SpreadContext`. |
 | `<AccountBlock name color? size? coins? note?>` | Rounded ink block with soft shadow and a name label. |
 | `<ContractBlock name …>` | Block with a lid and a `{ code }` plate. |
 | `<ShardSlab name length? depth?>` | Long slab; label at its left end. |
 | `<ChainBlock name …>` | Three linked blocks: another blockchain. |
-| `<Key name? rotation?>`, `<Coin>` | Gold objects with ink outlines. |
+| `<Key name? rotation?>`, `<Coin color?>` | Ink-outlined objects: a gold key; a NEAR coin (NEAR green, NEAR mark on both faces, `nearMark.ts`). |
 | `<Traveller to arc? duration? color? onArrive?>{children}</Traveller>` | Sits at `to`; when `to` changes it hops along an arc with a glow and trail, then calls `onArrive`. Instant under reduced motion. `onArrive` also fires on first placement, so a scene can open a gate from it safely. |
 | `<Label position variant?>` | HTML label (Caveat; `small` caps; `hint` pill) that follows a 3D point. |
 | `<Outline mode? threshold? width?>` | Child of a mesh: `edges` (hard edges) or `hull` (silhouette for curved shapes). |
