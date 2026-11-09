@@ -1,8 +1,9 @@
 /**
- * Paintings of the room round the table (Room.tsx): a cosy flat with a balcony onto a garden.
+ * Paintings of the setting round the book (Room.tsx, BookBackdrop.tsx): a desk under a wide window at
+ * sunset, a garden and mountains outside, a bookshelf with a trailing pothos, a plant on the desk.
  * Each surface is painted on a canvas in world units, then blurred by scaling it down and up again
- * (works in every browser, unlike `ctx.filter`), so the room reads as out of focus behind the sharp book.
- * Colours are warm and pale, with NEAR greens in the plants, the sofa and the rug.
+ * (works in every browser, unlike `ctx.filter`), so the setting reads as out of focus behind the book.
+ * The light is a warm sunset; the greens are NEAR's (theme.ts NEAR), and so are the book's cover and ribbon.
  */
 import { NEAR } from "./theme";
 
@@ -20,6 +21,7 @@ const MAX_PX = 2048;
 /**
  * A canvas `w` x `h` world units, painted by `paint` with 1 unit = 1 (y runs down from the top), then
  * blurred: `blur` is how many times smaller the picture is shrunk before it is blown up again.
+ * Transparent where nothing is painted (window panes, round the plant).
  */
 export function paintSurface(w: number, h: number, blur: number, paint: (g: G) => void): HTMLCanvasElement {
   const k = MAX_PX / Math.max(w, h);
@@ -65,21 +67,21 @@ function soften(src: HTMLCanvasElement, factor: number): HTMLCanvasElement {
 /** One of `items`, at random. */
 const pick = <T>(items: readonly T[], rnd: Rnd): T => items[Math.floor(rnd() * items.length)]!;
 
-const WALL = "#eee4d3";
-const TRIM = "#f8f4ea";
-const WALNUT = "#7d5a3f";
-const LEAF = [NEAR.forest, "#2f7d55", "#4f9a63", "#6fae6f", NEAR.deep];
-const BOOKS = [
-  "#c9563f",
-  "#3e6b8a",
-  "#e2b04a",
-  NEAR.deep,
-  "#d9cfc0",
-  "#6b4f7a",
-  "#2f3a3a",
-  "#e48a5c",
-  "#9cc7b4",
-];
+/** Sunset light. */
+const SUN = {
+  gold: "#ffd27a",
+  orange: "#f39a4f",
+  pink: "#ec8aa8",
+  violet: "#6d63b5",
+  dusk: "#4f4c9a",
+};
+/** The room's wood, in the shade and where the sunset catches it. */
+const ROOMWOOD = { dark: "#3d2216", mid: "#5c3420", lit: "#c9773f" };
+/** Leaves: NEAR's greens in the shade, warm yellow-greens where the sun catches them. */
+const LEAF = [NEAR.forest, NEAR.deep, "#2f7d55", "#5e9a3e"];
+const LIT_LEAF = ["#b8c24a", "#d6cf5a", "#9db446"];
+const BOOKS = ["#e9e1d3", "#d9cfc0", "#c9bca8", "#7a5a48", "#3f3a44", NEAR.forest, "#b8735a", "#f0ead9"];
+const BLOSSOM = ["#f27ca8", "#e86b9a", "#f9a8c4", "#fbd0de"];
 
 function rect(g: G, x: number, y: number, w: number, h: number, fill: string) {
   g.fillStyle = fill;
@@ -100,367 +102,478 @@ function blob(g: G, x: number, y: number, rx: number, ry: number, fill: string, 
   g.fill();
 }
 
-/** A plain wall: warm plaster, darker towards the ceiling, with a skirting board along the floor. */
-function plaster(g: G, w: number, h: number) {
-  const grad = g.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0, "#e2d7c4");
-  grad.addColorStop(0.35, WALL);
-  grad.addColorStop(1, "#ece2d0");
-  g.fillStyle = grad;
-  g.fillRect(0, 0, w, h);
-  rect(g, 0, h - 4.5, w, 4.5, TRIM);
-  rect(g, 0, h - 4.8, w, 0.4, "rgba(80,60,40,0.18)");
-}
-
-/** Soft shadow in the corners and under the ceiling, so the walls meet like a real room's. */
-function cornerShade(g: G, w: number, h: number) {
-  for (const [x0, x1] of [
-    [0, 10],
-    [w, w - 10],
-  ] as const) {
-    const s = g.createLinearGradient(x0, 0, x1, 0);
-    s.addColorStop(0, "rgba(70,55,40,0.18)");
-    s.addColorStop(1, "rgba(70,55,40,0)");
-    g.fillStyle = s;
-    g.fillRect(Math.min(x0, x1), 0, 10, h);
-  }
-  const top = g.createLinearGradient(0, 0, 0, 14);
-  top.addColorStop(0, "rgba(70,55,40,0.16)");
-  top.addColorStop(1, "rgba(70,55,40,0)");
-  g.fillStyle = top;
-  g.fillRect(0, 0, w, 14);
-}
-
-/** The garden seen through glass: sky, trees, lawn and flower beds, clipped to the pane's rectangle. */
-function garden(g: G, x: number, y: number, w: number, h: number, horizon: number, rnd: Rnd) {
+/** A pointed leaf (like a pothos or a peace lily) from (x, y), pointing along angle `a`. */
+function leaf(g: G, x: number, y: number, len: number, a: number, fill: string) {
   g.save();
+  g.translate(x, y);
+  g.rotate(a);
+  g.fillStyle = fill;
   g.beginPath();
-  g.rect(x, y, w, h);
-  g.clip();
-  const sky = g.createLinearGradient(0, y, 0, horizon);
-  sky.addColorStop(0, "#bcdcea");
-  sky.addColorStop(1, "#eef6ee");
-  g.fillStyle = sky;
-  g.fillRect(x, y, w, horizon - y);
-  // Far trees, then nearer ones: rows of round crowns in NEAR-ish greens.
-  const rows: [number, number, string[]][] = [
-    [horizon - 2, 7, ["#9cc9a2", "#8dbf98", "#a9d1a6"]],
-    [horizon + 2, 9, ["#5e9f6f", "#4c8f63", "#6aa978"]],
-  ];
-  for (const [base, size, cols] of rows) {
-    for (let tx = x - size; tx < x + w + size; tx += size * (0.8 + rnd() * 0.5)) {
-      const r = size * (0.7 + rnd() * 0.6);
-      blob(g, tx, base - r * 0.6, r, r * 1.1, pick(cols, rnd));
-    }
-  }
-  const lawn = g.createLinearGradient(0, horizon, 0, y + h);
-  lawn.addColorStop(0, "#8fc47c");
-  lawn.addColorStop(1, "#6fae64");
-  g.fillStyle = lawn;
-  g.fillRect(x, horizon + 2, w, y + h - horizon);
-  // Flower beds along the lawn.
-  for (let i = 0; i < w / 1.6; i++) {
-    const fx = x + rnd() * w;
-    const fy = horizon + 4 + rnd() * 6;
-    blob(g, fx, fy, 0.9, 0.7, pick(["#f5f0f2", "#f2a5b6", "#f6d36b", "#e66f5c"], rnd));
-  }
-  // Sunlight from the top right.
-  const sun = g.createRadialGradient(x + w * 0.9, y, 1, x + w * 0.9, y, w);
-  sun.addColorStop(0, "rgba(255,244,214,0.55)");
-  sun.addColorStop(1, "rgba(255,244,214,0)");
-  g.fillStyle = sun;
-  g.fillRect(x, y, w, h);
+  g.moveTo(0, 0);
+  g.quadraticCurveTo(len * 0.45, -len * 0.42, len, 0);
+  g.quadraticCurveTo(len * 0.45, len * 0.42, 0, 0);
+  g.fill();
+  g.strokeStyle = "rgba(30,50,20,0.35)";
+  g.lineWidth = len * 0.04;
+  g.beginPath();
+  g.moveTo(0, 0);
+  g.lineTo(len * 0.9, 0);
+  g.stroke();
   g.restore();
 }
 
-/** A potted plant standing on the floor (or a sill) at (x, base): terracotta pot, a crown of leaves. */
-function pottedPlant(g: G, x: number, base: number, size: number, rnd: Rnd, pot = "#c46f4b") {
-  const pw = size * 0.55;
-  const ph = size * 0.45;
-  g.fillStyle = pot;
-  g.beginPath();
-  g.moveTo(x - pw / 2, base - ph);
-  g.lineTo(x + pw / 2, base - ph);
-  g.lineTo(x + pw * 0.38, base);
-  g.lineTo(x - pw * 0.38, base);
-  g.closePath();
-  g.fill();
-  rect(g, x - pw * 0.55, base - ph - size * 0.06, pw * 1.1, size * 0.08, "#b0603f");
-  for (let i = 0; i < 16; i++) {
-    const a = -Math.PI / 2 + (rnd() - 0.5) * 2.6;
-    const len = size * (0.5 + rnd() * 0.7);
-    const lx = x + Math.cos(a) * len * 0.75;
-    const ly = base - ph + Math.sin(a) * len;
-    blob(g, lx, ly, size * 0.24, size * 0.13, pick(LEAF, rnd), a);
+/** A trailing vine hanging from (x, y), `n` leaves long, swaying a little. */
+function vine(g: G, x: number, y: number, n: number, size: number, rnd: Rnd) {
+  let vx = x;
+  let vy = y;
+  g.strokeStyle = "#4d6b2a";
+  g.lineWidth = size * 0.08;
+  for (let i = 0; i < n; i++) {
+    const nx = vx + (rnd() - 0.5) * size * 0.8;
+    const ny = vy + size * 0.9;
+    g.beginPath();
+    g.moveTo(vx, vy);
+    g.lineTo(nx, ny);
+    g.stroke();
+    const side = i % 2 ? 1 : -1;
+    const fill = rnd() < 0.45 ? pick(LIT_LEAF, rnd) : pick(LEAF, rnd);
+    leaf(g, nx, ny, size * (0.8 + rnd() * 0.4), Math.PI / 2 + side * 0.9, fill);
+    vx = nx;
+    vy = ny;
   }
 }
 
-/** A bookcase against the wall: walnut shelves full of books, a trailing plant on top. */
-function bookcase(g: G, x: number, w: number, floor: number, height: number, rnd: Rnd) {
-  const top = floor - height;
-  rect(g, x, top, w, height, WALNUT);
-  rect(g, x + 0.8, top + 0.8, w - 1.6, height - 1.6, "#5e432f");
-  const shelf = height / 5;
-  for (let s = 0; s < 5; s++) {
-    const sy = top + s * shelf;
-    let bx = x + 1.2;
-    while (bx < x + w - 2.5) {
-      const bw = 0.9 + rnd() * 1.5;
-      const bh = shelf * (0.55 + rnd() * 0.35);
-      if (rnd() < 0.12) {
-        bx += bw;
-        continue;
-      }
-      rect(g, bx, sy + shelf - bh - 0.6, bw - 0.15, bh, pick(BOOKS, rnd));
-      bx += bw;
-    }
-    rect(g, x + 0.8, sy + shelf - 0.7, w - 1.6, 0.7, WALNUT);
-  }
-  pottedPlant(g, x + w * 0.7, top, 7, rnd, "#e8e1d4");
-  // Leaves trailing down the side.
-  for (let i = 0; i < 18; i++)
-    blob(g, x + w * 0.85 + rnd() * 2, top + i * 1.8, 1.1, 0.7, LEAF[i % LEAF.length]!);
-}
-
-/** A floor lamp with a warm glow round its shade. */
-function floorLamp(g: G, x: number, floor: number, height: number) {
-  const glow = g.createRadialGradient(x, floor - height, 1, x, floor - height, 26);
-  glow.addColorStop(0, "rgba(255,214,150,0.75)");
-  glow.addColorStop(1, "rgba(255,214,150,0)");
-  g.fillStyle = glow;
-  g.fillRect(x - 26, floor - height - 26, 52, 52);
-  rect(g, x - 0.4, floor - height, 0.8, height, "#3a3530");
-  blob(g, x, floor - 0.4, 4, 0.8, "#3a3530");
-  g.fillStyle = "#f4e3c3";
-  g.beginPath();
-  g.moveTo(x - 3.5, floor - height - 6);
-  g.lineTo(x + 3.5, floor - height - 6);
-  g.lineTo(x + 5.5, floor - height + 1);
-  g.lineTo(x - 5.5, floor - height + 1);
-  g.closePath();
-  g.fill();
-}
-
-/** A deep green sofa with cushions, its back against the wall. */
-function sofa(g: G, x: number, w: number, floor: number) {
-  const seat = floor - 18;
-  roundRect(g, x, seat - 14, w, 16, 3, NEAR.forest);
-  roundRect(g, x - 2, seat - 2, w + 4, 12, 2.5, "#1b6a4e");
-  roundRect(g, x - 4, seat - 8, 6, 18, 2.5, "#12513b");
-  roundRect(g, x + w - 2, seat - 8, 6, 18, 2.5, "#12513b");
-  const cushions = [NEAR.mint, NEAR.green, "#f2d7a8"];
-  cushions.forEach((c, i) => roundRect(g, x + 4 + i * (w / 3.4), seat - 10, w / 4.2, 9, 2.5, c));
-  for (const lx of [x + 1, x + w - 2]) rect(g, lx, seat + 10, 1, floor - seat - 10, "#3a2b20");
-}
-
-/** A framed picture: a little landscape in greens. */
-function frame(g: G, x: number, y: number, w: number, h: number, rnd: Rnd) {
-  rect(g, x, y, w, h, "#2d2a26");
-  rect(g, x + 0.6, y + 0.6, w - 1.2, h - 1.2, TRIM);
-  const ix = x + 1.8;
-  const iy = y + 1.8;
-  const iw = w - 3.6;
-  const ih = h - 3.6;
-  rect(g, ix, iy, iw, ih, "#dfeee4");
-  g.save();
-  g.beginPath();
-  g.rect(ix, iy, iw, ih);
-  g.clip();
-  for (let i = 0; i < 3; i++)
-    blob(g, ix + rnd() * iw, iy + ih, iw * 0.4, ih * (0.3 + rnd() * 0.3), LEAF[i + 1]!);
-  blob(g, ix + iw * 0.75, iy + ih * 0.3, ih * 0.12, ih * 0.12, "#f6d36b");
-  g.restore();
-}
-
-// ---------- surfaces ----------
+// ---------- outside ----------
 
 /**
- * The wall behind the table (facing the reader): glass balcony doors onto a garden, linen curtains,
- * a bookcase and a big plant on the left, an armchair and a floor lamp on the right.
+ * The view out of the window at sunset, on a plane `w` x `h` far behind the window. `horizon` is the
+ * eye-level line, in units from the top. A low sun over purple mountains with a snowy peak, green hills,
+ * a garden with stepping stones, a tree leaning in on the left and a pink blossom tree on the right.
  */
-export function backWall(w: number, h: number): (g: G) => void {
+export function landscape(w: number, h: number, horizon: number): (g: G) => void {
   return (g) => {
-    const rnd = seeded(7);
-    plaster(g, w, h);
-    // The balcony doors fill the middle, where the reader looks past the book.
-    const dw = Math.min(96, w * 0.55);
-    const dx = w / 2 - dw / 2;
-    const dTop = h - 88;
-    rect(g, dx - 2.2, dTop - 2.2, dw + 4.4, 88 + 2.2, TRIM);
-    const pane = { x: dx, y: dTop, w: dw, h: 88 };
-    const horizon = h - 44;
-    garden(g, pane.x, pane.y, pane.w, pane.h, horizon, rnd);
-    // The balcony: deck boards, planters and a railing.
-    g.save();
-    g.beginPath();
-    g.rect(pane.x, pane.y, pane.w, pane.h);
-    g.clip();
-    rect(g, pane.x, h - 10, pane.w, 10, "#cdb592");
-    for (let i = 0; i < 4; i++) rect(g, pane.x, h - 10 + i * 2.5, pane.w, 0.25, "rgba(90,70,50,0.3)");
-    pottedPlant(g, pane.x + pane.w * 0.14, h - 8, 12, rnd);
-    pottedPlant(g, pane.x + pane.w * 0.86, h - 8, 14, rnd);
-    rect(g, pane.x + pane.w * 0.32, h - 19, pane.w * 0.36, 9, "#a8704e");
-    for (let i = 0; i < 14; i++)
-      blob(
-        g,
-        pane.x + pane.w * (0.33 + rnd() * 0.34),
-        h - 20 - rnd() * 3,
-        1.6,
-        1.2,
-        ["#f2a5b6", "#f6d36b", "#f5f0f2", NEAR.green][i % 4]!,
-      );
-    rect(g, pane.x, h - 40, pane.w, 1.4, "#3b3f3a");
-    for (let bx = pane.x + 1.5; bx < pane.x + pane.w; bx += 3.2) rect(g, bx, h - 40, 0.45, 30, "#3b3f3a");
-    // Reflections on the glass.
-    g.fillStyle = "rgba(255,255,255,0.14)";
-    for (const off of [0.15, 0.6]) {
+    const rnd = seeded(101);
+    const cx = w / 2;
+    const sky = g.createLinearGradient(0, 0, 0, horizon);
+    sky.addColorStop(0, SUN.dusk);
+    sky.addColorStop(0.35, SUN.violet);
+    sky.addColorStop(0.62, SUN.pink);
+    sky.addColorStop(0.84, SUN.orange);
+    sky.addColorStop(1, SUN.gold);
+    g.fillStyle = sky;
+    g.fillRect(0, 0, w, horizon + 10);
+    // The sun, low over the mountains a little left of the middle, with a wide glow.
+    const sx = cx - 18;
+    const sy = horizon - 14;
+    const glow = g.createRadialGradient(sx, sy, 2, sx, sy, 110);
+    glow.addColorStop(0, "rgba(255,240,190,0.95)");
+    glow.addColorStop(0.15, "rgba(255,210,140,0.55)");
+    glow.addColorStop(1, "rgba(255,180,120,0)");
+    g.fillStyle = glow;
+    g.fillRect(sx - 110, sy - 110, 220, 220);
+    blob(g, sx, sy, 8, 8, "#fff6d8");
+    // Pink and orange clouds in long streaks: orange near the sun, pink higher up.
+    for (let i = 0; i < 26; i++) {
+      const y = horizon - 40 - rnd() * 90;
+      const x = rnd() * w;
+      const len = 18 + rnd() * 50;
+      const col = horizon - y < 60 ? "rgba(255,170,120,0.75)" : "rgba(240,130,170,0.7)";
+      for (let k = 0; k < 4; k++)
+        blob(g, x + k * len * 0.22, y - rnd() * 2.5, len * 0.32, 2 + rnd() * 2.5, col);
+    }
+    const ridge = (base: number, peaks: [number, number][], fill: string) => {
+      g.fillStyle = fill;
       g.beginPath();
-      g.moveTo(pane.x + pane.w * off, pane.y);
-      g.lineTo(pane.x + pane.w * (off + 0.12), pane.y);
-      g.lineTo(pane.x + pane.w * (off - 0.05), pane.y + pane.h);
-      g.lineTo(pane.x + pane.w * (off - 0.17), pane.y + pane.h);
+      g.moveTo(0, base);
+      for (const [px, py] of peaks) g.lineTo(px, py);
+      g.lineTo(w, base);
+      g.lineTo(w, base + 60);
+      g.lineTo(0, base + 60);
       g.closePath();
       g.fill();
+    };
+    // Far mountains: lilac ridges.
+    const far: [number, number][] = [];
+    for (let x = 0; x <= w; x += 22) far.push([x, horizon - 10 - rnd() * 16]);
+    ridge(horizon, far, "#a585bf");
+    // The big snowy peak right of the middle.
+    const px = cx + 50;
+    const top = horizon - 58;
+    g.fillStyle = "#8f73b3";
+    g.beginPath();
+    g.moveTo(px - 95, horizon);
+    g.lineTo(px - 30, top + 22);
+    g.lineTo(px, top);
+    g.lineTo(px + 22, top + 14);
+    g.lineTo(px + 34, top + 8);
+    g.lineTo(px + 110, horizon);
+    g.closePath();
+    g.fill();
+    g.fillStyle = "#f1e6f2";
+    g.beginPath();
+    g.moveTo(px - 18, top + 12);
+    g.lineTo(px, top);
+    g.lineTo(px + 22, top + 14);
+    g.lineTo(px + 34, top + 8);
+    g.lineTo(px + 46, top + 18);
+    g.lineTo(px + 26, top + 20);
+    g.lineTo(px + 12, top + 15);
+    g.lineTo(px - 4, top + 20);
+    g.closePath();
+    g.fill();
+    // Nearer ridges, purple fading into the green of the hills.
+    const mid: [number, number][] = [];
+    for (let x = 0; x <= w; x += 16) mid.push([x, horizon - 2 - Math.sin(x / 40) * 6 - rnd() * 5]);
+    ridge(horizon + 4, mid, "#7a6198");
+    const hills: [number, number][] = [];
+    for (let x = 0; x <= w; x += 12) hills.push([x, horizon + 8 - Math.sin(x / 55 + 1) * 5 - rnd() * 3]);
+    ridge(horizon + 14, hills, "#4f6e5a");
+    // Forest along the hills: round dark crowns in NEAR greens, some lit gold on top.
+    for (let x = 0; x < w; x += 3 + rnd() * 3) {
+      const y = horizon + 14 + rnd() * 6;
+      const r = 3 + rnd() * 4;
+      blob(g, x, y, r, r * 1.1, pick([NEAR.forest, "#2f5e43", "#3c6d4a"], rnd));
+      if (rnd() < 0.5) blob(g, x - r * 0.3, y - r * 0.5, r * 0.5, r * 0.35, "rgba(214,207,90,0.55)");
     }
-    g.restore();
-    // Frames: the two doors and the transom.
-    rect(g, dx + dw / 2 - 1.2, dTop, 2.4, 88, TRIM);
-    rect(g, dx, dTop + 16, dw, 1.8, TRIM);
-    rect(g, dx - 2.2, h - 1.5, dw + 4.4, 1.5, "#d9cfbf");
-    // Curtains on a rod, gathered either side.
-    rect(g, dx - 14, dTop - 6, dw + 28, 0.8, "#3a3530");
-    for (const side of [-1, 1]) {
-      const cx = side < 0 ? dx - 12 : dx + dw + 1;
-      g.fillStyle = "rgba(246,240,228,0.92)";
-      g.fillRect(cx, dTop - 6, 11, h - dTop + 5);
-      for (let f = 0; f < 6; f++)
-        rect(g, cx + 0.8 + f * 1.8, dTop - 6, 0.6, h - dTop + 5, "rgba(150,130,100,0.18)");
+    // The garden: warm lawn, stepping stones leading away, flowering bushes.
+    const lawn = g.createLinearGradient(0, horizon + 20, 0, h);
+    lawn.addColorStop(0, "#8fae4e");
+    lawn.addColorStop(0.4, "#6f9a42");
+    lawn.addColorStop(1, "#4d7a35");
+    g.fillStyle = lawn;
+    g.fillRect(0, horizon + 20, w, h - horizon - 20);
+    for (let i = 0; i < 9; i++) {
+      const t = i / 8;
+      const y = horizon + 26 + t * t * 120;
+      const x = cx + Math.sin(i * 0.9) * (8 + t * 30) - 10;
+      const s = 3 + t * 12;
+      blob(g, x, y + s * 0.15, s * 1.25, s * 0.42, "rgba(40,50,30,0.35)");
+      blob(g, x, y, s * 1.2, s * 0.38, pick(["#c9b8c4", "#bfaebb", "#d6c6cd"], rnd));
     }
-    // Light falling in from the balcony across the floor.
-    const pool = g.createLinearGradient(0, h - 10, 0, h);
-    pool.addColorStop(0, "rgba(255,240,205,0)");
-    pool.addColorStop(1, "rgba(255,240,205,0.5)");
-    g.fillStyle = pool;
-    g.fillRect(dx, h - 10, dw, 10);
-    // Left: a bookcase and a big plant. Right: an armchair, a floor lamp and a picture.
-    bookcase(g, dx - 44, 24, h, 74, rnd);
-    pottedPlant(g, dx - 15, h, 15, rnd);
-    floorLamp(g, dx + dw + 30, h, 52);
-    roundRect(g, dx + dw + 14, h - 30, 20, 22, 4, NEAR.forest);
-    roundRect(g, dx + dw + 12, h - 16, 24, 9, 3, "#1b6a4e");
-    roundRect(g, dx + dw + 17, h - 24, 12, 7, 2.5, NEAR.mint);
-    frame(g, dx + dw + 38, h - 76, 16, 20, rnd);
-    pottedPlant(g, dx + dw + 52, h, 12, rnd);
-    cornerShade(g, w, h);
+    for (let i = 0; i < 70; i++) {
+      const x = rnd() * w;
+      const y = horizon + 22 + rnd() * 90;
+      const s = 2 + ((y - horizon) / 90) * 9;
+      blob(g, x, y, s * 1.4, s, pick([NEAR.forest, "#3f7a40", "#5e9a3e"], rnd));
+      if (rnd() < 0.6)
+        for (let k = 0; k < 5; k++)
+          blob(
+            g,
+            x + (rnd() - 0.5) * s * 2,
+            y - rnd() * s,
+            s * 0.22,
+            s * 0.22,
+            pick([...BLOSSOM, "#fff2f4"], rnd),
+          );
+    }
+    blob(g, cx + 70, horizon + 40, 16, 7, "#a99aa8");
+    blob(g, cx + 68, horizon + 37, 13, 5, "#c2b3c0");
+    // A tree leaning in from the left, its leaves lit gold by the sun.
+    g.strokeStyle = "#4a3326";
+    g.lineWidth = 9;
+    g.beginPath();
+    g.moveTo(cx - 150, h);
+    g.quadraticCurveTo(cx - 160, horizon, cx - 120, horizon - 70);
+    g.stroke();
+    g.lineWidth = 4;
+    g.beginPath();
+    g.moveTo(cx - 140, horizon - 40);
+    g.quadraticCurveTo(cx - 100, horizon - 85, cx - 60, horizon - 95);
+    g.stroke();
+    for (let i = 0; i < 140; i++) {
+      const x = cx - 220 + rnd() * 190;
+      const y = horizon - 130 + rnd() * 90;
+      const fill = rnd() < 0.5 ? pick(LIT_LEAF, rnd) : pick(LEAF, rnd);
+      blob(g, x, y, 4 + rnd() * 6, 3 + rnd() * 4, fill, rnd() * 3);
+    }
+    // A pink blossom tree on the right.
+    g.lineWidth = 6;
+    g.beginPath();
+    g.moveTo(cx + 175, h);
+    g.quadraticCurveTo(cx + 168, horizon + 10, cx + 150, horizon - 40);
+    g.stroke();
+    for (let i = 0; i < 120; i++) {
+      const x = cx + 110 + rnd() * 120;
+      const y = horizon - 80 + rnd() * 70;
+      blob(g, x, y, 3 + rnd() * 5, 2.5 + rnd() * 4, pick(BLOSSOM, rnd));
+    }
+    // Warm haze along the horizon.
+    const haze = g.createLinearGradient(0, horizon - 30, 0, horizon + 40);
+    haze.addColorStop(0, "rgba(255,200,140,0)");
+    haze.addColorStop(0.5, "rgba(255,200,140,0.22)");
+    haze.addColorStop(1, "rgba(255,200,140,0)");
+    g.fillStyle = haze;
+    g.fillRect(0, horizon - 30, w, 70);
   };
 }
 
-/** The wall on the reader's right: a tall garden window near the back, a sofa and pictures. */
-export function rightWall(w: number, h: number): (g: G) => void {
+// ---------- inside ----------
+
+/** A wall of the room in the evening: warm and dim, lit orange from the window's side. */
+function dimWall(g: G, w: number, h: number, litFrom: "left" | "right" | "none") {
+  rect(g, 0, 0, w, h, "#6e432d");
+  if (litFrom !== "none") {
+    const x0 = litFrom === "left" ? 0 : w;
+    const lit = g.createLinearGradient(x0, 0, w - x0, 0);
+    lit.addColorStop(0, "rgba(240,140,70,0.55)");
+    lit.addColorStop(0.6, "rgba(240,140,70,0.08)");
+    lit.addColorStop(1, "rgba(240,140,70,0)");
+    g.fillStyle = lit;
+    g.fillRect(0, 0, w, h);
+  }
+  const top = g.createLinearGradient(0, 0, 0, h * 0.3);
+  top.addColorStop(0, "rgba(30,15,10,0.35)");
+  top.addColorStop(1, "rgba(30,15,10,0)");
+  g.fillStyle = top;
+  g.fillRect(0, 0, w, h * 0.3);
+  rect(g, 0, h - 4, w, 4, ROOMWOOD.dark);
+}
+
+/** A tall bookshelf in warm wood, its shelves full of pale books, a pot on top and a vine trailing down. */
+function bookshelf(g: G, x: number, w: number, floor: number, height: number, rnd: Rnd) {
+  const top = floor - height;
+  rect(g, x, top, w, height, ROOMWOOD.mid);
+  rect(g, x + 1, top + 1, w - 2, height - 2, ROOMWOOD.dark);
+  const shelf = height / 6;
+  for (let s = 0; s < 6; s++) {
+    const sy = top + s * shelf;
+    let bx = x + 1.4;
+    while (bx < x + w - 2.5) {
+      const bw = 1 + rnd() * 1.4;
+      const bh = shelf * (0.6 + rnd() * 0.3);
+      if (rnd() < 0.1) {
+        bx += bw * 2;
+        continue;
+      }
+      rect(g, bx, sy + shelf - bh - 0.8, bw - 0.15, bh, pick(BOOKS, rnd));
+      bx += bw;
+    }
+    // The shelf board, its front edge catching the sunset.
+    rect(g, x + 1, sy + shelf - 0.9, w - 2, 0.9, ROOMWOOD.lit);
+  }
+  roundRect(g, x + w * 0.55, top - 5, 6, 5, 1, "#e8e1d4");
+  vine(g, x + w * 0.62, top - 3, 22, 2.6, rnd);
+  vine(g, x + w * 0.8, top - 3, 14, 2.4, rnd);
+}
+
+/**
+ * The window wall behind the desk (facing the reader), `w` x `h` with y down from the ceiling. The
+ * window's panes (`win`: x0, y0, x1, y1 in the same units) are left transparent, so the landscape far
+ * behind shows through. Dark wood frames: a narrow pane on the left, a wide one in the middle, and a
+ * pane with a transom on the right. A bookshelf with a trailing pothos stands left of the window.
+ * Returns the x of the mullions too, for the shadows on the desk (see `mullions`).
+ */
+export function windowWall(w: number, h: number, win: [number, number, number, number]): (g: G) => void {
   return (g) => {
-    const rnd = seeded(23);
-    plaster(g, w, h);
-    // Canvas left is the back of the room.
-    const wx = 14;
-    const ww = 34;
-    const wy = h - 86;
-    rect(g, wx - 2, wy - 2, ww + 4, 64 + 4, TRIM);
-    garden(g, wx, wy, ww, 64, h - 40, rnd);
-    rect(g, wx + ww / 2 - 0.8, wy, 1.6, 64, TRIM);
-    rect(g, wx - 4, wy + 64, ww + 8, 2, TRIM);
-    pottedPlant(g, wx + 7, wy + 64, 9, rnd, "#e8e1d4");
-    pottedPlant(g, wx + ww - 8, wy + 64, 8, rnd);
-    sofa(g, w * 0.48, 46, h);
-    frame(g, w * 0.5, h - 70, 14, 18, rnd);
-    frame(g, w * 0.5 + 17, h - 66, 20, 14, rnd);
-    pottedPlant(g, w * 0.86, h, 14, rnd);
-    cornerShade(g, w, h);
+    const rnd = seeded(7);
+    dimWall(g, w, h, "none");
+    const [x0, y0, x1, y1] = win;
+    const ww = x1 - x0;
+    const wh = y1 - y0;
+    // Sunset spilling round the window onto the wall.
+    const mx = (x0 + x1) / 2;
+    const my = (y0 + y1) / 2;
+    const spill = g.createRadialGradient(mx, my, wh * 0.3, mx, my, ww * 0.8);
+    spill.addColorStop(0, "rgba(255,160,80,0.55)");
+    spill.addColorStop(1, "rgba(255,160,80,0)");
+    g.fillStyle = spill;
+    g.fillRect(0, 0, w, h);
+    g.clearRect(x0, y0, ww, wh);
+    const t = 2.4;
+    const [left, right] = mullions(x0, x1);
+    const transom = y0 + wh * 0.2;
+    rect(g, x0 - t, y0 - t, ww + 2 * t, t, ROOMWOOD.dark);
+    rect(g, x0 - t, y1, ww + 2 * t, t * 0.6, ROOMWOOD.dark);
+    rect(g, x0 - t, y0 - t, t, wh + 2 * t, ROOMWOOD.dark);
+    rect(g, x1, y0 - t, t, wh + 2 * t, ROOMWOOD.dark);
+    rect(g, left - t / 2, y0, t, wh, ROOMWOOD.dark);
+    rect(g, right - t / 2, y0, t, wh, ROOMWOOD.dark);
+    rect(g, right, transom - t / 2, x1 - right, t, ROOMWOOD.dark);
+    // A latch on the middle pane, and the sun catching the frames' edges.
+    rect(g, left + t / 2 + 0.6, y0 + wh * 0.42, 0.8, 4, "#8a6a4a");
+    g.fillStyle = "rgba(255,170,90,0.6)";
+    for (const x of [left + t / 2, right + t / 2, x0]) g.fillRect(x - 0.35, y0, 0.35, wh);
+    g.fillRect(x0, y1 - 0.35, ww, 0.35);
+    // Bookshelf on the left of the window, a pothos trailing over the window's top left corner.
+    const sw = Math.min(30, x0 - 6);
+    if (sw > 10) bookshelf(g, x0 - t - sw - 1, sw, h, h - 6, rnd);
+    vine(g, x0 + 2, y0 - 1, 9, 2.6, rnd);
+    vine(g, x0 + 6, y0 - 1, 6, 2.4, rnd);
   };
 }
 
-/** The wall on the reader's left: a sideboard with a lamp, pictures and plants. */
+/** The x of the window's two mullions, for a window from x0 to x1: a narrow left pane, a wide middle one. */
+export function mullions(x0: number, x1: number): [number, number] {
+  const ww = x1 - x0;
+  return [x0 + ww * 0.17, x0 + ww * 0.72];
+}
+
+/** The wall on the reader's left (canvas right is the back): a bookshelf by the window and a picture. */
 export function leftWall(w: number, h: number): (g: G) => void {
   return (g) => {
     const rnd = seeded(41);
-    plaster(g, w, h);
-    // Canvas right is the back of the room.
-    const sx = w * 0.42;
-    rect(g, sx, h - 26, 44, 22, WALNUT);
-    for (let i = 1; i < 4; i++) rect(g, sx + i * 11, h - 24, 0.4, 18, "rgba(40,28,20,0.4)");
-    for (const lx of [sx + 2, sx + 41]) rect(g, lx, h - 4, 1, 4, "#3a2b20");
-    // A table lamp with a warm glow, books and a plant on the sideboard.
-    const glow = g.createRadialGradient(sx + 8, h - 38, 1, sx + 8, h - 38, 18);
-    glow.addColorStop(0, "rgba(255,214,150,0.7)");
-    glow.addColorStop(1, "rgba(255,214,150,0)");
-    g.fillStyle = glow;
-    g.fillRect(sx - 10, h - 56, 36, 36);
-    rect(g, sx + 7.5, h - 34, 1, 8, "#3a3530");
-    roundRect(g, sx + 3, h - 41, 10, 7, 1.5, "#f4e3c3");
-    for (let i = 0; i < 5; i++)
-      rect(g, sx + 18 + i * 1.6, h - 26 - 6 - rnd() * 2, 1.4, 6 + rnd() * 2, BOOKS[i]!);
-    pottedPlant(g, sx + 36, h - 26, 9, rnd, "#e8e1d4");
-    frame(g, sx + 4, h - 76, 18, 24, rnd);
-    frame(g, sx + 26, h - 70, 14, 14, rnd);
-    pottedPlant(g, w * 0.88, h, 16, rnd);
-    pottedPlant(g, w * 0.14, h, 13, rnd);
-    cornerShade(g, w, h);
+    dimWall(g, w, h, "right");
+    bookshelf(g, w - 34, 30, h, h - 6, rnd);
+    rect(g, w * 0.4, h - 70, 18, 22, ROOMWOOD.dark);
+    rect(g, w * 0.4 + 1.5, h - 68.5, 15, 19, "#d9a26c");
   };
 }
 
-/** The wall behind the reader: the room's door and a coat stand. Rarely seen. */
-export function frontWall(w: number, h: number): (g: G) => void {
+/** The wall on the reader's right (canvas left is the back): lit near the window, a picture and a floor plant. */
+export function rightWall(w: number, h: number): (g: G) => void {
   return (g) => {
-    const rnd = seeded(59);
-    plaster(g, w, h);
-    rect(g, w * 0.3 - 2, h - 74, 34, 74, TRIM);
-    rect(g, w * 0.3, h - 72, 30, 72, "#d8c7aa");
-    blob(g, w * 0.3 + 26, h - 36, 1, 1, "#8a7356");
-    frame(g, w * 0.62, h - 70, 22, 16, rnd);
-    pottedPlant(g, w * 0.82, h, 14, rnd);
-    cornerShade(g, w, h);
+    const rnd = seeded(23);
+    dimWall(g, w, h, "left");
+    rect(g, w * 0.45, h - 72, 22, 16, ROOMWOOD.dark);
+    rect(g, w * 0.45 + 1.5, h - 70.5, 19, 13, "#e8b07a");
+    for (let i = 0; i < 18; i++)
+      leaf(g, w * 0.75, h - 12, 8 + rnd() * 6, -Math.PI / 2 + (rnd() - 0.5) * 2.4, pick(LEAF, rnd));
+    roundRect(g, w * 0.75 - 4, h - 14, 8, 10, 1.5, "#e8e1d4");
   };
 }
 
-/** The ceiling: warm white, a little darker at the edges. */
+/** The wall behind the reader: dim, rarely seen. */
+export function frontWall(w: number, h: number): (g: G) => void {
+  return (g) => dimWall(g, w, h, "none");
+}
+
+/** The ceiling: dim warm wood, catching a little sunset near the window. */
 export function ceiling(w: number, h: number): (g: G) => void {
   return (g) => {
-    const grad = g.createRadialGradient(w / 2, h / 2, 4, w / 2, h / 2, Math.max(w, h) * 0.7);
-    grad.addColorStop(0, "#f6f1e7");
-    grad.addColorStop(1, "#ddd2bf");
-    g.fillStyle = grad;
+    rect(g, 0, 0, w, h, "#4e2e1f");
+    const lit = g.createLinearGradient(0, h, 0, 0);
+    lit.addColorStop(0, "rgba(240,140,70,0.25)");
+    lit.addColorStop(1, "rgba(240,140,70,0)");
+    g.fillStyle = lit;
     g.fillRect(0, 0, w, h);
   };
 }
 
-/**
- * The floor: warm oak boards running along x, and a rug under the table (`rug` is its x, y, w, h on the
- * floor, with y towards the front of the room). Light from the balcony falls in from the back.
- */
-export function floor(w: number, h: number, rug: [number, number, number, number]): (g: G) => void {
+/** The floor: dark warm boards. */
+export function floor(w: number, h: number): (g: G) => void {
   return (g) => {
     const rnd = seeded(83);
-    rect(g, 0, 0, w, h, "#c39a6b");
+    rect(g, 0, 0, w, h, "#6b3e26");
     for (let y = 0; y < h; y += 5) {
-      rect(g, 0, y, w, 5, `rgba(${110 + rnd() * 40},${70 + rnd() * 30},40,${0.08 + rnd() * 0.1})`);
-      rect(g, 0, y, w, 0.25, "rgba(70,45,25,0.35)");
-      for (let x = rnd() * 30; x < w; x += 24 + rnd() * 20) rect(g, x, y, 0.25, 5, "rgba(70,45,25,0.3)");
+      rect(g, 0, y, w, 5, `rgba(${90 + rnd() * 40},${45 + rnd() * 20},25,${0.1 + rnd() * 0.12})`);
+      rect(g, 0, y, w, 0.25, "rgba(30,15,8,0.45)");
     }
-    const [rx, ry, rw, rh] = rug;
-    roundRect(g, rx, ry, rw, rh, 2, NEAR.sage);
-    g.strokeStyle = NEAR.forest;
-    g.lineWidth = 2.4;
-    g.strokeRect(rx + 4, ry + 4, rw - 8, rh - 8);
-    g.strokeStyle = NEAR.offWhite;
-    g.lineWidth = 0.8;
-    g.strokeRect(rx + 7, ry + 7, rw - 14, rh - 14);
-    for (let x = rx + 2; x < rx + rw; x += 1.6) {
-      rect(g, x, ry - 1.4, 0.4, 1.4, NEAR.offWhite);
-      rect(g, x, ry + rh, 0.4, 1.4, NEAR.offWhite);
+  };
+}
+
+/** The wood of the desk top: warm planks along x with fine grain. Tiles. */
+export function deskWood(): HTMLCanvasElement {
+  const n = 1024;
+  const c = document.createElement("canvas");
+  c.width = c.height = n;
+  const g = c.getContext("2d")!;
+  const rnd = seeded(29);
+  g.fillStyle = "#c98c5c";
+  g.fillRect(0, 0, n, n);
+  const planks = 4;
+  const ph = n / planks;
+  for (let p = 0; p < planks; p++) {
+    const top = p * ph;
+    g.fillStyle = `rgba(${140 + rnd() * 30},${70 + rnd() * 20},35,${0.08 + rnd() * 0.08})`;
+    g.fillRect(0, top, n, ph);
+    for (let k = 0; k < 70; k++) {
+      const y0 = top + rnd() * ph;
+      const amp = 2 + rnd() * 7;
+      const freq = (1 + Math.floor(rnd() * 3)) * ((2 * Math.PI) / n);
+      const phase = rnd() * 6;
+      g.strokeStyle = `rgba(100,50,22,${0.05 + rnd() * 0.12})`;
+      g.lineWidth = 0.6 + rnd() * 1.6;
+      g.beginPath();
+      for (let x = 0; x <= n; x += 16) {
+        const yy = y0 + Math.sin(x * freq + phase) * amp;
+        if (x === 0) g.moveTo(x, yy);
+        else g.lineTo(x, yy);
+      }
+      g.stroke();
     }
-    const sun = g.createLinearGradient(0, 0, 0, h * 0.5);
-    sun.addColorStop(0, "rgba(255,238,200,0.45)");
-    sun.addColorStop(1, "rgba(255,238,200,0)");
-    g.fillStyle = sun;
-    g.fillRect(w * 0.3, 0, w * 0.4, h * 0.5);
+    g.fillStyle = "rgba(70,32,15,0.4)";
+    g.fillRect(0, top, n, 2);
+  }
+  return c;
+}
+
+/**
+ * Low sun through the window, on the desk (`w` x `d`, canvas top is the back, against the window): an
+ * orange glow strongest by the window, crossed by the long shadows of the window's mullions (`bars`,
+ * x positions in the same units) stretching towards the reader.
+ */
+export function deskLight(w: number, d: number, bars: number[]): (g: G) => void {
+  return (g) => {
+    const glow = g.createLinearGradient(0, 0, 0, d);
+    glow.addColorStop(0, "rgba(255,140,60,0.6)");
+    glow.addColorStop(0.55, "rgba(255,140,60,0.3)");
+    glow.addColorStop(1, "rgba(255,140,60,0.08)");
+    g.fillStyle = glow;
+    g.fillRect(0, 0, w, d);
+    // Bright patches of sun through the panes, long and leaning like the shadows.
+    const edges = [0, ...bars, w];
+    for (let i = 0; i < edges.length - 1; i++) {
+      const a = edges[i]! + 3;
+      const b = edges[i + 1]! - 3;
+      if (b - a < 4) continue;
+      const sun = g.createLinearGradient(0, 0, 0, d);
+      sun.addColorStop(0, "rgba(255,214,150,0.45)");
+      sun.addColorStop(1, "rgba(255,214,150,0)");
+      g.fillStyle = sun;
+      g.beginPath();
+      g.moveTo(a, 0);
+      g.lineTo(b, 0);
+      g.lineTo(b + d * 0.3, d);
+      g.lineTo(a + d * 0.3, d);
+      g.closePath();
+      g.fill();
+    }
+    // The sun is a little left of the middle, so the shadows lean right as they come forward.
+    g.fillStyle = "rgba(70,25,10,0.42)";
+    for (const x of bars) {
+      g.beginPath();
+      g.moveTo(x - 1.4, 0);
+      g.lineTo(x + 1.4, 0);
+      g.lineTo(x + 1.4 + d * 0.3 + 3, d);
+      g.lineTo(x - 1.4 + d * 0.3 - 3, d);
+      g.closePath();
+      g.fill();
+    }
+  };
+}
+
+/** A plant in a white pot for the desk, `w` x `h`, the pot standing on the bottom edge. Transparent round it. */
+export function deskPlant(w: number, h: number): (g: G) => void {
+  return (g) => {
+    const rnd = seeded(61);
+    const cx = w / 2;
+    const potH = h * 0.28;
+    const potW = w * 0.4;
+    for (let i = 0; i < 14; i++) {
+      const a = -Math.PI / 2 + (rnd() - 0.5) * 2.2;
+      const len = h * (0.35 + rnd() * 0.3);
+      const bx = cx + (rnd() - 0.5) * potW * 0.4;
+      const by = h - potH;
+      g.strokeStyle = "#4d6b2a";
+      g.lineWidth = 0.35;
+      g.beginPath();
+      g.moveTo(bx, by);
+      g.lineTo(bx + Math.cos(a) * len * 0.5, by + Math.sin(a) * len * 0.5);
+      g.stroke();
+      const lit = Math.cos(a) < -0.1 && rnd() < 0.7;
+      const fill = lit ? pick(LIT_LEAF, rnd) : pick(LEAF, rnd);
+      leaf(g, bx + Math.cos(a) * len * 0.45, by + Math.sin(a) * len * 0.45, len * 0.6, a, fill);
+    }
+    g.fillStyle = "#ece6dc";
+    g.beginPath();
+    g.moveTo(cx - potW / 2, h - potH);
+    g.lineTo(cx + potW / 2, h - potH);
+    g.lineTo(cx + potW * 0.4, h);
+    g.lineTo(cx - potW * 0.4, h);
+    g.closePath();
+    g.fill();
+    g.fillStyle = "rgba(255,170,90,0.35)";
+    g.fillRect(cx - potW / 2, h - potH, potW * 0.25, potH);
+    rect(g, cx - potW * 0.52, h - potH - 0.6, potW * 1.04, 0.9, "#f4efe7");
   };
 }
