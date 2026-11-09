@@ -18,6 +18,7 @@ import {
   type CameraView,
 } from "./motion";
 import { clampToBox, type DeskBox } from "./book";
+import { growBox, isInside, keepInside, WALL_GAP, type CameraBox } from "./roomLayout";
 import { forgetView, recallView, rememberView } from "./viewMemory";
 
 /**
@@ -54,7 +55,7 @@ const v3 = (v: Vector3): V3 => [v.x, v.y, v.z];
  * Turn and zoom limits (`orbitLimits`, `ORBIT`): 45° either side of a view and 1.3× its distance at most,
  * never all the way round. The view they are centred on is the step's view while the rig follows the
  * steps. When the learner takes over it becomes the view they took it from: the step's view if the camera
- * had arrived, or where it was when they grabbed it mid-glide (no jump into the step's wedge). That centre
+ * had arrived, or where it is at that moment if they caught it mid-glide (no snap into any wedge). That centre
  * stays with their kept view through later steps (a new step never yanks the camera into its own wedge)
  * until the camera is handed back (Reset view, Flat view, the tour). The limits are relaxed while the rig
  * glides, so its path never fights them.
@@ -72,6 +73,7 @@ export function CameraRig({
   keep = false,
   memory,
   panBounds,
+  room,
   reset,
   onMotion,
   onUserView,
@@ -87,11 +89,13 @@ export function CameraRig({
   memory?: string;
   /** Where the pan may take the target on the desk (the open book): a box instead of the radius. */
   panBounds?: DeskBox;
+  /** The room the camera must stay inside (`cameraRoom`): it comes nearer along its line of sight. */
+  room?: CameraBox;
   /** Change it to drop the learner's own view and glide back to `view`. */
   reset?: string | number;
   onMotion?: (state: "moving" | "still") => void;
   onUserView?: (on: boolean) => void;
-  onPose?: (pose: string) => void;
+  onPose?: (pose: string, inside: boolean | null) => void;
 }) {
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
@@ -137,8 +141,6 @@ export function CameraRig({
 
   /** The press in progress: the controls are held; how far the pointer went; a zoom or second finger. */
   const press = useRef({ held: false, travel: 0, zoomOrMulti: false });
-  /** The camera when the press began, or null if it had arrived at the step's view by then. */
-  const grabbedAt = useRef<CameraView | null>(null);
   /** Once the learner has taken over: the view their turn and zoom range is centred on. */
   const from = useRef<CameraView | null>(null);
   const downs = useRef(new Map<number, { x: number; y: number }>());
@@ -153,8 +155,10 @@ export function CameraRig({
     velTarget.current = [0, 0, 0];
     // The pan is held around the target as it is now: the glide may have moved it since the press began.
     panHome.current.copy(c.target);
-    // Their turn range: round the step's view, or round where they grabbed the camera mid-glide.
-    from.current = grabbedAt.current ?? goal.current;
+    // Their turn range: round the step's view if the camera is there, else round where it is now (the
+    // glide may have carried it on while the press was held), so the limits never snap it.
+    from.current =
+      arrived() && goal.current ? goal.current : { position: v3(camera.position), target: v3(c.target) };
     setUser(true);
   };
   /** The camera is handed back to the steps: the range follows the step's view again. */
@@ -337,6 +341,14 @@ export function CameraRig({
         camera.position.add(fix);
       }
     }
+    // Never through a wall: a pan to the book's edge plus a turn and a zoom-out could take the camera out
+    // of the room. It comes nearer along its line of sight instead (no turning, no sliding, no jitter).
+    if (room) {
+      const p = camera.position;
+      const t = c.target;
+      const [x, y, z] = keepInside([p.x, p.y, p.z], [t.x, t.y, t.z], room);
+      if (x !== p.x || y !== p.y || z !== p.z) p.set(x, y, z);
+    }
     // "still" after a few frames without movement of the camera or the picture's view offset.
     const o = (camera as { view?: { offsetX: number; offsetY: number } | null }).view;
     const ox = o?.offsetX ?? 0;
@@ -359,7 +371,8 @@ export function CameraRig({
       const s = `${p.x.toFixed(2)},${p.y.toFixed(2)},${p.z.toFixed(2)}@${t.x.toFixed(2)},${t.y.toFixed(2)},${t.z.toFixed(2)}`;
       if (s !== pose.current) {
         pose.current = s;
-        onPose(s);
+        // Inside the room itself (the walls, not the kept gap): what a test checks.
+        onPose(s, room ? isInside([p.x, p.y, p.z], growBox(room, WALL_GAP)) : null);
       }
     }
   });
@@ -386,11 +399,6 @@ export function CameraRig({
         // press turns into a camera gesture (takeOver).
         // The camera may move from here on: no stale "still" while the drag starts.
         markMoving();
-        // Grabbed before the camera arrived: if this becomes their view, centre its range on this spot.
-        const c = controls.current;
-        if (!press.current.held && !userMoved.current)
-          grabbedAt.current =
-            c && !arrived() ? { position: v3(camera.position), target: v3(c.target) } : null;
         press.current.held = true;
       }}
       onEnd={() => {

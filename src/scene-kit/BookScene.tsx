@@ -34,6 +34,7 @@ import {
 import { frameCamera, type Focus, type Frame } from "./framing";
 import { InkStage, type InkStageProps } from "./InkStage";
 import { PrintOnPage } from "./PrintOnPage";
+import { cameraRoom, roomForSpread } from "./roomLayout";
 import { ViewOffset } from "./ViewOffset";
 
 // ---------- the camera tour ----------
@@ -286,6 +287,7 @@ export function BookScene<T>({
         keepView
         viewMemory={lessonId ?? undefined}
         panBounds={bookFootprint(spread)}
+        cameraBounds={cameraRoom(roomForSpread(spread))}
         // The tour drives the camera: starting it (and each shot, and its end) hands the view back.
         viewReset={tour.shot ? `tour:${tour.shots.indexOf(tour.shot)}` : "rest"}
         backdrop={

@@ -9,7 +9,7 @@ import { StageContext } from "./context";
 import { Overlay, OverlayContext, OverlayStore, OverlaySync } from "./overlay";
 import type { DeskBox } from "./book";
 import type { CameraView } from "./motion";
-import { ROOM } from "./roomLayout";
+import { ROOM, type CameraBox } from "./roomLayout";
 import { GROUND } from "./theme";
 import "./scene-kit.css";
 
@@ -48,6 +48,8 @@ export interface InkStageProps {
   viewMemory?: string;
   /** The open book's footprint (`bookFootprint`): the pan may take the camera anywhere over it. */
   panBounds?: DeskBox;
+  /** The room the camera must stay inside (`cameraRoom(roomForSpread(spread))`). */
+  cameraBounds?: CameraBox;
   children: ReactNode;
 }
 
@@ -71,6 +73,7 @@ export function InkStage({
   viewReset,
   viewMemory,
   panBounds,
+  cameraBounds,
   children,
 }: InkStageProps) {
   const store = useMemo(() => new OverlayStore(), []);
@@ -139,10 +142,15 @@ export function InkStage({
                 keep={keepView}
                 memory={viewMemory}
                 panBounds={panBounds}
+                room={cameraBounds}
                 reset={reset}
                 onMotion={(m) => wrap.current?.setAttribute("data-camera", m)}
                 onUserView={setUserView}
-                onPose={(p) => wrap.current?.setAttribute("data-camera-pose", p)}
+                onPose={(p, inside) => {
+                  wrap.current?.setAttribute("data-camera-pose", p);
+                  if (inside !== null)
+                    wrap.current?.setAttribute("data-camera-inside", inside ? "yes" : "no");
+                }}
               />
               <OverlaySync />
               <PopGroup>{children}</PopGroup>

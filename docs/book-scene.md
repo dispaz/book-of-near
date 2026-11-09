@@ -116,10 +116,16 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
     **Turn and zoom limits** (`ORBIT`, `orbitLimits`): 45° either side of a view and 1.3× its distance at
     most, relaxed while the rig glides. Before the learner takes over, the range is centred on the step's
     view. When they take over it is centred on the view they took it from (the step's view if the camera
-    had arrived, or where they grabbed it mid-glide) and that centre stays with their kept view through
+    had arrived, or where it is at that moment if they caught it mid-glide) and that centre stays with their kept view through
     later steps, so a new step never pulls the camera into its own range. Reset view, Flat view or the tour
     hand the camera back and the range follows the step's view again. The kept view in memory carries its
     centre (`SavedView.from`).
+    **Never through a wall.** A pan to the book's edge plus a turn and a zoom-out could take the camera
+    out of the room (`roomFor` places the walls round the book's centre, for #39's look). So the rig keeps
+    the camera inside the same room the backdrop draws (`roomForSpread(spread)`, via `deskFor`), 2 units
+    clear of the walls, the ceiling and the desk (`cameraRoom`, `WALL_GAP`): if it would leave, it comes
+    nearer along its line of sight (`keepInside`; no turning, no sliding, no jitter). `BookScene` passes it
+    as `InkStage cameraBounds`; tests read `data-camera-inside` (`yes` / `no`).
     **Their view stays.** A press becomes the learner's own view only as a camera gesture
     (`isCameraGesture`): the pointer went at least `CLICK_PX` from where the press began (the pick
     threshold; `Pickable` measures the same furthest travel, so a press that goes out 7 px and back is a

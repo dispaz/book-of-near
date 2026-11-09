@@ -179,6 +179,34 @@ test("sliding goes anywhere over the open book, the right page to the middle, bu
   inside((await pose(page)).target);
 });
 
+test("a pan to the book's edge, a turn and a zoom-out never take the camera through the room's wall", async ({
+  page,
+}) => {
+  await open(page);
+  await pose(page);
+  await expect(stage(page)).toHaveAttribute("data-camera-inside", "yes");
+  const wheel = async () => {
+    const box = (await page.locator(".sk-stage canvas").boundingBox())!;
+    await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.45);
+    for (let i = 0; i < 25; i++) await page.mouse.wheel(0, 400);
+  };
+  // The review's sequence: pan right to the limit, turn towards the right wall, tilt down, zoom right out
+  // (before the fix this left the camera at x 30.98, past the wall at 24.98); then turning the other way.
+  for (let i = 0; i < 4; i++) await drag(page, -600, 0, "right");
+  for (const turn of [-600, 1200]) {
+    await drag(page, turn, 0);
+    await drag(page, 0, -500);
+    await wheel();
+    await pose(page);
+    await expect(stage(page)).toHaveAttribute("data-camera-inside", "yes");
+  }
+  // And at the other edge of the book.
+  for (let i = 0; i < 6; i++) await drag(page, 600, 0, "right");
+  await wheel();
+  await pose(page);
+  await expect(stage(page)).toHaveAttribute("data-camera-inside", "yes");
+});
+
 test("Controls opens a card on how to move the camera; Esc and a press outside close it", async ({
   page,
 }) => {
