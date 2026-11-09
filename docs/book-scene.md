@@ -102,12 +102,13 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
     action (e.g. picking a key signs, picking a mailbox checks balances, picking a parcel sends, picking a scroll executes code).
 11. **The learner may move the camera.** Orbit (drag), zoom (wheel, pinch) and a small pan (right drag,
     shift / ctrl / cmd + drag, two-finger drag). The pan is held within `PAN_SHARE` (15 %) of the camera's
-    distance (less when zoomed in) from where the learner's press began, so the figure cannot leave the
-    view. The coasting after a drag is frame-rate independent (`dampingFor`; drei and the rig each update
+    distance (less when zoomed in) from where the target was when their press became a camera gesture, so
+    the figure cannot leave the view. The coasting after a drag is frame-rate independent (`dampingFor`; drei and the rig each update
     the controls once a frame).
     **Their view stays.** A press becomes the learner's own view only as a camera gesture
-    (`isCameraGesture`): the pointer travelled at least `CLICK_PX` (the pick threshold, so a press is a pick
-    or a move, never both), or they zoomed or used two fingers. A tap that drifts a few pixels picks the
+    (`isCameraGesture`): the pointer went at least `CLICK_PX` from where the press began (the pick
+    threshold; `Pickable` measures the same furthest travel, so a press that goes out 7 px and back is a
+    move and never also a pick), or they zoomed or used two fingers. A tap that drifts a few pixels picks the
     object and leaves the camera to the steps, and a glide in progress carries on until the gesture counts.
     From then on later steps and focus changes leave the camera where it is: pages still turn and figures
     still grow, only the camera stays put. It comes back to the step's framing on **Reset view**, the
@@ -126,7 +127,8 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
     Tab + Enter). It never opens by itself. Keyboard camera keys are not wired: the canvas is not a focus
     stop and arrow keys belong to the page.
     Tests read `data-camera-user` (`on` / `off`) and `data-camera-pose` (`x,y,z@x,y,z`, camera and target,
-    2 decimals) on `.sk-stage`; see `e2e/book-camera.spec.ts`.
+    2 decimals) on `.sk-stage`; see `e2e/book-camera.spec.ts`. `data-camera` turns `moving` in the same
+    tick a glide, a reset or a press is requested, so waiting for `still` never reads the old pose.
 
 ### Tests every book lesson needs
 

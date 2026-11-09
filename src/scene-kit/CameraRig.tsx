@@ -99,19 +99,29 @@ export function CameraRig({
   const motion = useRef<"moving" | "still" | null>(null);
   const pose = useRef("");
   const report = useRef(onUserView);
+  const reportMotion = useRef(onMotion);
   useLayoutEffect(() => {
     report.current = onUserView;
+    reportMotion.current = onMotion;
   });
   const setUser = (on: boolean) => {
     if (userMoved.current === on) return;
     userMoved.current = on;
     report.current?.(on);
   };
+  /**
+   * The camera is about to move (a new goal, a reset, a press): say "moving" now, in the same tick, so
+   * nothing that waits for "still" reads the old pose before the first frame of the glide.
+   */
+  const markMoving = () => {
+    stillFrames.current = 0;
+    if (motion.current === "moving") return;
+    motion.current = "moving";
+    reportMotion.current?.("moving");
+  };
 
   /** The press in progress: the controls are held; how far the pointer went; a zoom or second finger. */
   const press = useRef({ held: false, travel: 0, zoomOrMulti: false });
-  /** The target when the press began: the pan is held around it (the drag may pan before it counts). */
-  const pressHome = useRef(new Vector3());
   const downs = useRef(new Map<number, { x: number; y: number }>());
   /** The press became a camera gesture: the view is now the learner's, the glide hands over to them. */
   const takeOver = () => {
@@ -120,7 +130,8 @@ export function CameraRig({
     if (!p.held || !c || userMoved.current || !isCameraGesture(p.travel, p.zoomOrMulti)) return;
     velPos.current = [0, 0, 0];
     velTarget.current = [0, 0, 0];
-    panHome.current.copy(pressHome.current);
+    // The pan is held around the target as it is now: the glide may have moved it since the press began.
+    panHome.current.copy(c.target);
     setUser(true);
   };
 
@@ -190,6 +201,7 @@ export function CameraRig({
     if (userMoved.current && (keep || !far(prev!, next, goalPos.current.distanceTo(goalTarget.current))))
       return;
     setUser(false);
+    markMoving();
     if (reducedMotion) {
       velPos.current = [0, 0, 0];
       velTarget.current = [0, 0, 0];
@@ -208,6 +220,7 @@ export function CameraRig({
     velPos.current = [0, 0, 0];
     velTarget.current = [0, 0, 0];
     setUser(false);
+    markMoving();
   }, [reset, memoryKey]);
 
   // Closing the 3D view keeps the learner's own view, under the key captured at mount.
@@ -227,8 +240,9 @@ export function CameraRig({
     const c = controls.current;
     if (!c) return;
     const dt = Math.min(delta, MAX_FRAME_STEP);
-    // drei updates the controls once a frame (priority -1) and the rig once more below: per update,
-    // this factor keeps the coasting after a drag the same at any frame rate (see dampingFor).
+    // drei updates the controls once a frame (its own useFrame at priority -1, drei 10.7
+    // core/OrbitControls.js) and the rig once more below: per update, this factor keeps the coasting
+    // after a drag the same at any frame rate (see dampingFor).
     c.dampingFactor = dampingFor(dt);
     if (!userMoved.current) {
       const glide = (from: Vector3, to: Vector3, vel: V3) => {
@@ -316,8 +330,8 @@ export function CameraRig({
       onStart={() => {
         // A press alone changes nothing (a tap picks an object); a running glide carries on until the
         // press turns into a camera gesture (takeOver).
-        const c = controls.current;
-        if (!press.current.held && c) pressHome.current.copy(c.target);
+        // The camera may move from here on: no stale "still" while the drag starts.
+        markMoving();
         press.current.held = true;
       }}
       onEnd={() => {

@@ -34,6 +34,11 @@ async function drag(page: Page, dx: number, dy: number, button: "left" | "right"
   const y = box.y + box.height * 0.45;
   await page.mouse.move(x, y);
   await page.mouse.down({ button });
+  // Like a hand: a short first move (past the pick threshold, so the camera is the learner's), a beat,
+  // then the rest of the drag.
+  const first = 8 / Math.max(1, Math.hypot(dx, dy));
+  await page.mouse.move(x + dx * first, y + dy * first);
+  await page.waitForTimeout(150);
   for (let i = 1; i <= 12; i++) await page.mouse.move(x + (dx * i) / 12, y + (dy * i) / 12);
   await page.mouse.up({ button });
 }
@@ -67,6 +72,28 @@ test("a tap on an object that drifts a few pixels picks it and leaves the camera
   await expect(page.getByRole("button", { name: "Next step" })).toBeEnabled();
   await expect(stage(page)).toHaveAttribute("data-camera-user", "off");
   await expect(page.getByTestId("reset-view")).toHaveCount(0);
+});
+
+test("a press that goes past the pick threshold and comes back is a camera move, not a pick", async ({
+  page,
+}) => {
+  await open(page);
+  await pose(page);
+  const target = (await page
+    .getByRole("button", { name: "Open Ben's notebook", exact: true })
+    .boundingBox())!;
+  const x = target.x + target.width / 2;
+  const y = target.y + target.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 4, y);
+  await page.mouse.move(x + 8, y);
+  await page.waitForTimeout(150);
+  await page.mouse.move(x + 2, y);
+  await page.mouse.up();
+  await expect(stage(page)).toHaveAttribute("data-camera-user", "on");
+  // Nothing was picked: step 1's gate stays shut.
+  await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
 });
 
 test("switching to 2D and back keeps the learner's view", async ({ page }) => {
