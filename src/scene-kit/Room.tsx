@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Edges } from "@react-three/drei";
-import { CanvasTexture, RepeatWrapping, SRGBColorSpace, type Texture } from "three";
+import { CanvasTexture, DoubleSide, RepeatWrapping, SRGBColorSpace, type Texture } from "three";
 import { ROOM, type RoomLayout } from "./roomLayout";
 import {
   backWall,
@@ -17,8 +17,10 @@ import {
 import { INK } from "./theme";
 import sunsetWindow from "./assets/sunset-window.jpg";
 
-const noRaycast = () => undefined;
-const BOOK_PART = { book: true };
+/** Raycast that never hits: the setting is never pickable. */
+export const noRaycast = () => undefined;
+/** userData marking the book and its setting (not the lesson's figure). */
+export const BOOK_PART = { book: true };
 
 /** How much the painted surfaces are softened (see paintSurface): the room sits a little out of focus. */
 const BLUR = { wall: 4, light: 4 };
@@ -161,6 +163,7 @@ export function Room({ layout }: { layout: RoomLayout }) {
       walls.front,
       walls.left,
       walls.right,
+      walls.ceiling,
     ],
   );
   return (
@@ -168,7 +171,8 @@ export function Room({ layout }: { layout: RoomLayout }) {
       {planes.map((p, i) => (
         <mesh key={i} position={p.position} rotation={p.rotation} raycast={noRaycast} userData={BOOK_PART}>
           <planeGeometry args={p.size} />
-          <meshBasicMaterial map={p.map} />
+          {/* Two-sided: should the camera ever pass a wall, it still sees the room, not empty space. */}
+          <meshBasicMaterial map={p.map} side={DoubleSide} />
         </mesh>
       ))}
     </group>
@@ -194,6 +198,7 @@ export function Table({ layout, wood, tile }: { layout: RoomLayout; wood: Textur
     m.needsUpdate = true;
     return m;
   }, [wood, w, d, tile]);
+  useEffect(() => () => map.dispose(), [map]);
   const offset = walls.left - table.minX;
   const span = walls.right - walls.left;
   const light = useMemo(() => {

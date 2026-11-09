@@ -4,6 +4,8 @@
  * three-pane window onto mountains and a garden, a plant on the sill), carried on upwards to the ceiling.
  * The rest (side walls, floor, ceiling, desk) is painted here in its colours: warm wood in sunset light.
  */
+import { PICTURE as PICTURE_SIZE } from "./roomLayout";
+
 type G = CanvasRenderingContext2D;
 
 /** A seeded random generator, so the paintings are the same on every load. */
@@ -12,10 +14,9 @@ function seededRandom(seed: number): () => number {
   return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
 }
 
-/** Where things are in the painting, in its own pixels (1672 x 604, cut at the window's bottom frame). */
-export const PICTURE = {
-  width: 1672,
-  height: 604,
+/** Where things are in the painting, in its own pixels (cut at the window's bottom frame). */
+const PICTURE = {
+  ...PICTURE_SIZE,
   /** The bookshelf on the left: one bay (a row of books and its board), to repeat up the wall. */
   shelf: { x: 0, y: 100, w: 226, h: 260 },
   /** The window's frame verticals: the outer frame and the two mullions (left edge, width). */
@@ -47,7 +48,7 @@ export function paintSurface(w: number, h: number, blur: number, paint: (g: G) =
 }
 
 /** Blurs a canvas by halving it down to 1/`factor` of its size and doubling it back up. */
-export function soften(src: HTMLCanvasElement, factor: number): HTMLCanvasElement {
+function soften(src: HTMLCanvasElement, factor: number): HTMLCanvasElement {
   const steps: HTMLCanvasElement[] = [src];
   let cur = src;
   for (let f = 2; f <= factor; f *= 2) {

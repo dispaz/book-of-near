@@ -42,7 +42,9 @@ export function CameraRig({
   const narrow = aspect < 1;
   const v = fitView(flat ? toFlat(view) : view, aspect);
   const key = JSON.stringify(v);
-  const limits = orbitLimits(v, minDistance, maxDistance);
+  const stepLimits = orbitLimits(v, minDistance, maxDistance);
+  // The limits in force: the step's, or (after a grab mid-glide) ones round where the camera was grabbed.
+  const grabbed = useRef<ReturnType<typeof orbitLimits> | null>(null);
 
   useLayoutEffect(() => {
     if (camera instanceof PerspectiveCamera) {
@@ -56,6 +58,7 @@ export function CameraRig({
     goalPos.current.set(...goal.position);
     goalTarget.current.set(...goal.target);
     userMoved.current = false;
+    grabbed.current = null;
     if (first.current || reducedMotion) {
       first.current = false;
       camera.position.copy(goalPos.current);
@@ -75,6 +78,7 @@ export function CameraRig({
       c.target.lerp(goalTarget.current, k);
       settled = k === 1;
     }
+    const limits = grabbed.current ?? stepLimits;
     c.minAzimuthAngle = settled ? limits.minAzimuth : -Infinity;
     c.maxAzimuthAngle = settled ? limits.maxAzimuth : Infinity;
     c.maxDistance = settled ? limits.maxDistance : Infinity;
@@ -102,6 +106,18 @@ export function CameraRig({
       minPolarAngle={flat ? 0 : 0.2}
       maxPolarAngle={flat ? 0.05 : 1.38}
       onStart={() => {
+        const c = controls.current;
+        // Grabbed before the camera arrived: keep it where it is (no jump into the step's wedge) and
+        // let it turn 45° either side of that view instead.
+        if (!userMoved.current && c && camera.position.distanceToSquared(goalPos.current) >= 1e-4) {
+          const p = camera.position;
+          const t = c.target;
+          grabbed.current = orbitLimits(
+            { position: [p.x, p.y, p.z], target: [t.x, t.y, t.z] },
+            minDistance,
+            maxDistance,
+          );
+        }
         userMoved.current = true;
       }}
     />

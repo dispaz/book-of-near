@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ROOM, roomFor } from "./roomLayout";
+import { ORBIT } from "./motion";
+import { PICTURE, ROOM, roomFor } from "./roomLayout";
 
 /** The desk area lesson 0.1's spread asks for: x, z of its centre and its size. */
 const MAT = { x: 2, z: 9, width: 30, depth: 36 };
@@ -43,14 +44,12 @@ describe("roomFor", () => {
   it("stands the painting on the desk across the whole back wall, in the picture's proportions", () => {
     const b = r.backdrop;
     expect(b.y0).toBe(TOP);
-    expect(b.x0).toBe(r.walls.left);
-    expect(b.x1).toBe(r.walls.right);
-    expect((b.x1 - b.x0) / (b.y1 - b.y0)).toBeCloseTo(ROOM.backdropAspect);
+    expect((r.walls.right - r.walls.left) / (b.y1 - b.y0)).toBeCloseTo(PICTURE.width / PICTURE.height);
     expect(b.y1).toBeLessThan(r.walls.ceiling);
   });
 
   it("keeps the side walls clear of the camera wherever it may turn, and the front wall out of reach", () => {
-    const side = ROOM.cameraReach * Math.sin(ROOM.maxTurn);
+    const side = ROOM.cameraReach * Math.sin(ORBIT.azimuth);
     expect(r.walls.left).toBeLessThan(MAT.x - side);
     expect(r.walls.right).toBeGreaterThan(MAT.x + side);
     expect(r.walls.front).toBeGreaterThan(MAT.z + ROOM.cameraReach);

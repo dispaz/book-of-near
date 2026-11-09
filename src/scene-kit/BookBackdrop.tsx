@@ -23,7 +23,7 @@ import { inkMaterial, REVEAL } from "./materials";
 import { INK, NEAR } from "./theme";
 import { roomFor } from "./roomLayout";
 import { deskWood } from "./roomPaint";
-import { Room, Table } from "./Room";
+import { BOOK_PART, noRaycast, Room, Table } from "./Room";
 import { BOOK, curlProfile, pageHeight, type Spread } from "./book";
 import { usePop } from "./PopUp";
 
@@ -46,8 +46,6 @@ export interface BookBackdropProps extends BookPrint {
 }
 
 const PAGE = "#fbf8f1";
-const noRaycast = () => undefined;
-const BOOK_PART = { book: true };
 /** Light for the cast shadows: the same side as the ink shading in materials.ts. */
 const SUN = new Vector3(0.35, 0.8, 0.45).normalize();
 
@@ -212,11 +210,9 @@ function Desk({ y, at, size }: { y: number; at: [number, number]; size: [number,
     return t;
   }, []);
   useEffect(() => () => wood.dispose(), [wood]);
-  const room = useMemo(
-    () => roomFor({ x: at[0], z: at[1], width: size[0], depth: size[1] }, y - 0.06),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- the numbers, not the arrays, which are new each render
-    [at[0], at[1], size[0], size[1], y],
-  );
+  const [x, z] = at;
+  const [width, depth] = size;
+  const room = useMemo(() => roomFor({ x, z, width, depth }, y - 0.06), [x, z, width, depth, y]);
   const dpr = useThree((s) => s.viewport.dpr);
   const { table } = room;
   return (

@@ -4,6 +4,11 @@
  * Pure numbers, no three.js, so it can be unit tested. One world unit is about 2.2 cm (a page is about
  * ten units wide), so a 75 cm desk is 33 units tall.
  */
+import { ORBIT } from "./motion";
+
+/** The painting on the back wall (assets/sunset-window.jpg), in its own pixels. */
+export const PICTURE = { width: 1672, height: 604 } as const;
+
 export const ROOM = {
   /** Height of the desk top above the floor. */
   tableHeight: 33,
@@ -20,20 +25,19 @@ export const ROOM = {
   nook: 2,
   /** Space between the desk and the wall behind the reader. */
   front: 44,
-  /** Furthest the camera orbits from what it looks at (CameraRig `maxDistance`). */
+  /**
+   * How far from the book the room keeps clear for the camera. Book scenes frame the figure from about
+   * 15 to 30 units away and the learner may zoom out 1.3 times that (ORBIT in motion.ts).
+   */
   cameraReach: 40,
-  /** Furthest the camera can turn to either side (CameraRig keeps it within 45° of the step's view). */
-  maxTurn: Math.PI / 4,
   /** The camera's far plane (InkStage uses it): the whole room must be nearer than this. */
   far: 400,
   /** Height of the ceiling above the desk top. */
   ceiling: 70,
-  /** The painting on the back wall: width / height of the picture (assets/sunset-window.jpg). */
-  backdropAspect: 1672 / 604,
 } as const;
 
-/** The desk area the book needs: its centre (x, z) and size. */
-export interface Mat {
+/** The part of the desk the book and its figure need: its centre (x, z) and size. */
+export interface DeskArea {
   x: number;
   z: number;
   width: number;
@@ -51,12 +55,12 @@ export interface RoomLayout {
   floor: number;
   /** Where the walls stand (x for left and right, z for back and front) and the ceiling's y. */
   walls: { back: number; front: number; left: number; right: number; ceiling: number };
-  /** The painting on the back wall: it spans the wall from left to right, from the desk top up to y1. */
-  backdrop: { x0: number; x1: number; y0: number; y1: number };
+  /** The painting on the back wall: it spans the wall from side to side, from the desk top (y0) up to y1. */
+  backdrop: { y0: number; y1: number };
 }
 
 /** The desk that holds `mat` (top surface at y = `top`), in a window nook, and the room round it. */
-export function roomFor(mat: Mat, top: number): RoomLayout {
+export function roomFor(mat: DeskArea, top: number): RoomLayout {
   const m = ROOM.tableMargin;
   const width = Math.max(mat.width + 2 * m.side, ROOM.minTable[0]);
   const back = mat.z - mat.depth / 2 - m.back;
@@ -78,7 +82,7 @@ export function roomFor(mat: Mat, top: number): RoomLayout {
   ];
   // The camera never goes behind the book, so the back wall can touch the desk; the side walls and
   // the wall behind the reader stay clear of it wherever it may turn.
-  const side = ROOM.cameraReach * Math.sin(ROOM.maxTurn) + 4;
+  const side = ROOM.cameraReach * Math.sin(ORBIT.azimuth) + 4;
   const wallBack = table.minZ - 0.4;
   const left = Math.min(table.minX - ROOM.nook, mat.x - side);
   const right = Math.max(table.maxX + ROOM.nook, mat.x + side);
@@ -94,6 +98,6 @@ export function roomFor(mat: Mat, top: number): RoomLayout {
       right,
       ceiling: top + ROOM.ceiling,
     },
-    backdrop: { x0: left, x1: right, y0: top, y1: top + (right - left) / ROOM.backdropAspect },
+    backdrop: { y0: top, y1: top + ((right - left) * PICTURE.height) / PICTURE.width },
   };
 }

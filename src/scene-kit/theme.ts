@@ -4,19 +4,16 @@ export const GROUND = "#f3efe4";
 export const PAPER = "#fffdf7";
 
 /**
- * NEAR's brand colours (matches the --near-* tokens in src/ui/ink.css). `green` is the brand green;
- * the deeper greens and the mint are tints and shades of it for the book's setting (cloth cover,
- * felt mat, rug, cushions), where the full brand green would shout over the lesson's figure.
+ * NEAR's brand colours (matches the --near-* tokens in src/ui/ink.css): green, black and off-white.
+ * `forest` is a deep shade of the green for the book's cloth cover, where the full brand green would
+ * shout over the lesson's figure.
  */
 export const NEAR = {
   green: "#00ec97",
   black: "#000000",
   offWhite: "#f2f1ea",
-  /** Shades and tints of the brand green, for the setting. */
-  deep: "#0a7d55",
+  /** A deep shade of the brand green: the book's cloth cover. */
   forest: "#145c43",
-  mint: "#cfeedd",
-  sage: "#b9dccb",
 } as const;
 
 export const COLORS = {

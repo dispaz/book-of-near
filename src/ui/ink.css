@@ -4,7 +4,7 @@
   --paper: #efeadd;
   --paper-2: #f6f2e8;
   --page: #f3efe4;
-  --desk: #c6dccf;
+  --desk: #d8dfd6;
   --wood: #e9e1cf;
   --orange: #ff8a3d;
   --blue: #4d6bff;
@@ -15,13 +15,11 @@
   --mute: #5d5a68;
   --accent: var(--orange);
   /* NEAR's brand colours (NEAR in src/scene-kit/theme.ts): the green marks NEAR things such as coins;
-     the deeper greens and the mint are the book's setting (cover, ribbon, felt mat, rug). */
+     the forest shade is the book's cloth cover. */
   --near-green: #00ec97;
   --near-black: #000000;
   --near-off-white: #f2f1ea;
-  --near-deep: #0a7d55;
   --near-forest: #145c43;
-  --near-mint: #cfeedd;
   --serif: "Newsreader", Georgia, serif;
   --hand: "Caveat", cursive;
   --ui: "DM Sans", system-ui, sans-serif;
