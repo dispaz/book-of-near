@@ -14,6 +14,12 @@
   --glass: #ffffffcc;
   --mute: #5d5a68;
   --accent: var(--orange);
+  /* NEAR's brand colours (NEAR in src/scene-kit/theme.ts): the green marks NEAR things such as coins;
+     the forest shade is the book's cloth cover. */
+  --near-green: #00ec97;
+  --near-black: #000000;
+  --near-off-white: #f2f1ea;
+  --near-forest: #145c43;
   --serif: "Newsreader", Georgia, serif;
   --hand: "Caveat", cursive;
   --ui: "DM Sans", system-ui, sans-serif;

@@ -238,3 +238,7 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Stages 2–7: completed topics and scripts for all remaining lessons (2.1–2.2, 3.1–3.3, 4.1–4.3, 5.1–5.2, 6.1–6.2, 7.1–7.2) plus stage readmes.
 - Rule enshrined in `CLAUDE.md`, `docs/lesson-template.md`, and `.claude/commands/new-lesson.md`: both the topic guide (protocol truth) and lesson script (UI/scene blueprint) must be consulted when developing any lesson.
 
+## 2026-11-09 · Book scene setting: window nook at sunset, NEAR palette, NEAR coins, camera limits
+- The book lies on a warm wooden desk (ink-outlined top, legs, sun streaks along the window frames) in a window nook. The back wall is the owner's reference painting, `src/scene-kit/assets/sunset-window.jpg` (cut at the window's bottom frame), carried up to the ceiling by `backWall` in `roomPaint.ts`; the left wall is lined with its shelves. Sizes come from the pure `roomFor` (`roomLayout.ts`, unit tested). Until the picture loads, or if it cannot, the wall is plain dark wood. Crop pictures with a canvas, not `sips` (its `--cropOffset` is ignored on macOS and it crops from the centre).
+- NEAR palette: `NEAR` in `theme.ts`, `--near-*` in `ink.css`. Cover NEAR forest green, ribbon NEAR green. Every coin (3D `Coin`, `SvgCoin`, the coin icon, lesson 0.1's 2D flying coin) is NEAR green with the NEAR mark (`nearMark.ts`).
+- Camera: 45° either side of the step's view and 1.3× its distance at most (`orbitLimits`, `motion.ts`), relaxed while the rig glides; a grab mid-glide centres the range on where it was grabbed.

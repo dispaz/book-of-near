@@ -1,6 +1,5 @@
 import { lazy, Suspense } from "react";
 import type { SceneProps } from "../../../app/types";
-import { COLORS } from "../../../scene-kit/theme";
 import { SvgCoin, SvgKey, SvgLabel, SvgStage } from "../../../scene-kit/svg";
 import { SvgAppScreen, SvgMailbox, SvgParcel, SvgScroll, SvgTaggedKey } from "../../../scene-kit/svg/objects";
 import { ACCOUNTS, DESCRIPTION, ITEMS, PARCELS, SCROLLS } from "./gallery";
@@ -72,7 +71,7 @@ export default function Scene({ step, view, flat, reducedMotion }: SceneProps) {
           <SvgKey x={120} y={220} name="full access" />
           <SvgTaggedKey x={330} y={200} tag="counter.ana" share={0.5} name="function call" />
           <SvgTaggedKey x={540} y={200} tag="counter.ana" share={0.2} state="gone" name="revoked" />
-          <SvgCoin x={700} y={220} color={COLORS.gold} />
+          <SvgCoin x={700} y={220} />
         </>
       ) : null}
       {step === 4 ? (
