@@ -697,6 +697,43 @@ export function ReceiptSlip({
   );
 }
 
+// ---------- gas refund: a coin coming back ----------
+
+/**
+ * A gas refund: a coin, tilted up so its face shows, with a return mark (↩) on its tag. Unused gas money
+ * going back to the signer. The network delivers it as a receipt, but the scene draws money as a coin,
+ * not as another slip, so a refund never reads as more work. `label` is a short tag above it.
+ */
+export function RefundCoin({
+  position = [0, 0, 0],
+  size = 0.8,
+  color = COLORS.gold,
+  label,
+  ...pick
+}: PickProps & { position?: Vec3; size?: number; color?: string; label?: string }) {
+  // Coin is 0.84 across; scale it to `size`.
+  const s = size / 0.84;
+  const y = 0.35 * s;
+  const tag = [label, "\u21a9"].filter(Boolean).join(" ");
+  const name = pick.pickLabel ?? "Gas refund";
+  const body = (
+    <SelectRing selected={!!pick.selected} radius={size * 0.55} color={color}>
+      <group position={[0, y, 0]} rotation={[Math.PI / 2 - 0.5, 0, 0]} scale={s}>
+        <Coin color={color} />
+      </group>
+      <Label position={[0, 2 * y + 0.22, 0]} variant="small">
+        {tag}
+      </Label>
+    </SelectRing>
+  );
+  return (
+    <group position={position}>
+      <SoftShadow position={[0, 0, 0.08]} size={[size * 1.1, size * 0.45]} />
+      {maybePickable(pick, name, y, body)}
+    </group>
+  );
+}
+
 // ---------- shard: a ribbon ----------
 
 /**

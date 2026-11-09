@@ -1,11 +1,17 @@
 /**
  * Lesson 2.1, flat view: the same page as the 3D book scene, drawn from above in SVG with the same
  * layout (layout3d.ts), the same page model (page.ts) and the same scene objects: the signer's mailbox,
- * a ribbon per shard carrying its chunk cells, and a receipt slip per hop. Every object is a pick, as in
+ * a ribbon per shard carrying its chunk cells, and a receipt slip per hop (a coin for the gas refund). Every object is a pick, as in
  * 3D. Only draws the shared state from useShardTrace.
  */
 import type { SceneProps } from "../../../app/types";
-import { SvgMailbox, SvgParcel, SvgReceiptSlip, SvgShardRibbon } from "../../../scene-kit/svg/objects";
+import {
+  SvgMailbox,
+  SvgParcel,
+  SvgReceiptSlip,
+  SvgRefundCoin,
+  SvgShardRibbon,
+} from "../../../scene-kit/svg/objects";
 import { cellAt, FIGURE, gridOf, MAILBOX_HOME, mailboxAt, PARCEL_HOME } from "./layout3d";
 import { ACCENT, cellKey, describe, pageModel, shortName } from "./page";
 import { Facts, hopLabel } from "./parts";
@@ -168,18 +174,30 @@ function Page({ st, trace }: { st: ShardTrace; trace: Trace }) {
               : undefined;
         return (
           <g key={h.id} data-explain={note}>
-            <SvgReceiptSlip
-              x={px(m.pos[i]![0])}
-              y={pz(m.pos[i]![2]) + 8}
-              size={Math.min(52, g.col * SCALE * 0.7)}
-              color={ACCENT}
-              refund={h.kind === "refund"}
-              fate={m.isNewest(i) ? "idle" : "done"}
-              label={String(i + 1)}
-              selected={i === st.at}
-              onPick={() => st.pick(i)}
-              pickLabel={hopLabel(h)}
-            />
+            {h.kind === "refund" ? (
+              // A gas refund is money coming back: a coin, not another receipt slip.
+              <SvgRefundCoin
+                x={px(m.pos[i]![0])}
+                y={pz(m.pos[i]![2]) + 8}
+                size={Math.min(40, g.col * SCALE * 0.55)}
+                label={String(i + 1)}
+                selected={i === st.at}
+                onPick={() => st.pick(i)}
+                pickLabel={hopLabel(h)}
+              />
+            ) : (
+              <SvgReceiptSlip
+                x={px(m.pos[i]![0])}
+                y={pz(m.pos[i]![2]) + 8}
+                size={Math.min(52, g.col * SCALE * 0.7)}
+                color={ACCENT}
+                fate={m.isNewest(i) ? "idle" : "done"}
+                label={String(i + 1)}
+                selected={i === st.at}
+                onPick={() => st.pick(i)}
+                pickLabel={hopLabel(h)}
+              />
+            )}
           </g>
         );
       })}

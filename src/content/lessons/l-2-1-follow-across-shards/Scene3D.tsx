@@ -20,6 +20,7 @@ import {
   Outline,
   Parcel,
   ReceiptSlip,
+  RefundCoin,
   ShardRibbon,
   spreadBeside,
   spreadFor,
@@ -36,7 +37,7 @@ import { ACCENT, cellKey, describe, pageModel, shortName } from "./page";
 import { Facts, hopLabel } from "./parts";
 import { CHECK, PICK, START, TIME } from "./steps";
 import { tourFor, type Target } from "./tour";
-import type { Trace } from "./trace";
+import type { Hop, Trace } from "./trace";
 import type { ShardTrace } from "./useShardTrace";
 
 const SPREAD = { print: spreadBeside(FIGURE), docked: spreadFor(FIGURE) };
@@ -208,6 +209,32 @@ function Cell({ position, size, lit }: { position: Vec3; size: [number, number];
   );
 }
 
+/** One hop: a receipt slip, or a coin when it is a gas refund (money coming back, not more work). */
+function HopObject({
+  hop,
+  index,
+  size,
+  fate,
+  selected,
+  onPick,
+  position,
+}: {
+  hop: Hop;
+  index: number;
+  size: number;
+  fate: "idle" | "done";
+  selected: boolean;
+  onPick: () => void;
+  position?: Vec3;
+}) {
+  const common = { position, label: String(index + 1), selected, onPick, pickLabel: hopLabel(hop) };
+  return hop.kind === "refund" ? (
+    <RefundCoin {...common} size={size * 0.55} />
+  ) : (
+    <ReceiptSlip {...common} size={size} color={ACCENT} fate={fate} />
+  );
+}
+
 /** Steps 2 to 5: ribbons carrying their chunk cells, the signer's mailbox and the receipt slips. */
 function Page({ st, trace, compact }: { st: ShardTrace; trace: Trace; compact: boolean }) {
   const { step, drawn } = st;
@@ -294,37 +321,35 @@ function Page({ st, trace, compact }: { st: ShardTrace; trace: Trace; compact: b
         );
       })}
 
-      {/* Every drawn slip but the one being looked at stands still; that one travels. */}
+      {/* Every drawn hop but the newest stands still. The newest rides the traveller, which only moves
+          forward, on a follow: looking back at a hop highlights it where it stands (no backward flight). */}
       {shown.map((h, i) =>
-        i === st.at ? null : (
-          <ReceiptSlip
+        i === model.travelling ? null : (
+          <HopObject
             key={h.id}
             position={pos[i]!}
             size={slip}
-            color={ACCENT}
-            refund={h.kind === "refund"}
+            hop={h}
+            index={i}
             fate={fateOf(i)}
-            label={String(i + 1)}
+            selected={i === st.at}
             onPick={() => st.pick(i)}
-            pickLabel={hopLabel(h)}
           />
         ),
       )}
-      {drawn >= 0 ? (
-        <Traveller to={cur} arc={1.2} duration={0.8} color={ACCENT}>
-          <ReceiptSlip
+      {model.travelling >= 0 ? (
+        <Traveller to={pos[model.travelling]!} arc={1.2} duration={0.8} color={ACCENT}>
+          <HopObject
             size={slip * 1.1}
-            color={ACCENT}
-            refund={trace.hops[st.at]!.kind === "refund"}
-            fate={fateOf(st.at)}
-            label={String(st.at + 1)}
-            selected
-            onPick={() => st.pick(st.at)}
-            pickLabel={hopLabel(trace.hops[st.at]!)}
+            hop={trace.hops[model.travelling]!}
+            index={model.travelling}
+            fate={fateOf(model.travelling)}
+            selected={st.at === model.travelling}
+            onPick={() => st.pick(model.travelling)}
           />
-          <Anchor name="hop" position={[0, 0.6, 0]} />
         </Traveller>
       ) : null}
+      {drawn >= 0 ? <Anchor name="hop" position={[cur[0], 0.6, cur[2]]} /> : null}
       {step === TIME ? <Anchor name="time" position={[pos[st.last]![0], 0.6, pos[st.last]![2]]} /> : null}
     </group>
   );

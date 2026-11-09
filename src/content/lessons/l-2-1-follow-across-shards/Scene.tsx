@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import type { SceneProps } from "../../../app/types";
-import { SceneAction } from "../../../ui/SceneAction";
+import { SceneAction, SceneActionGroup } from "../../../ui/SceneAction";
 import { Check, HonestTake, type CheckQuestion } from "../../../lesson-kit";
 import Scene2D from "./Scene2D";
 import { CHECK, FOLLOW, HONEST, PICK, TIME, useShardTrace, type ShardTrace } from "./useShardTrace";
@@ -70,12 +70,12 @@ export default function Scene(props: SceneProps) {
 
       {step === PICK ? <Picker st={st} /> : null}
       {step === FOLLOW && st.trace ? (
-        <SceneAction onClick={st.follow} disabled={st.reached >= st.last}>
+        <SceneAction onClick={st.follow} done={st.reached >= st.last}>
           {st.reached >= st.last ? "Followed ✓" : "Follow next receipt"}
         </SceneAction>
       ) : null}
       {step === TIME && st.trace ? (
-        <SceneAction onClick={st.inspect} disabled={st.inspected}>
+        <SceneAction onClick={st.inspect} done={st.inspected}>
           {st.inspected ? "Breakdown open ✓" : "Inspect breakdown"}
         </SceneAction>
       ) : null}
@@ -119,13 +119,26 @@ function Picker({ st }: { st: ShardTrace }) {
   const loaded = !!st.trace;
   return (
     <>
-      <SceneAction onClick={() => st.choose("mine")} disabled={!!st.ownProblem || st.loading}>
-        {st.choice === "mine" ? "My 0.3 transaction ✓" : "My 0.3 transaction"}
-      </SceneAction>
-      <SceneAction onClick={() => st.choose("example")} disabled={st.loading}>
-        {st.choice === "example" ? "Recorded example ✓" : "Recorded example"}
-      </SceneAction>
-      <SceneAction onClick={() => void st.load()} disabled={st.loading || loaded}>
+      <SceneActionGroup label="Which transaction">
+        <SceneAction
+          onClick={() => st.choose("mine")}
+          disabled={!!st.ownProblem || st.loading}
+          pressed={st.choice === "mine"}
+          quiet
+          hint={st.ownProblem ?? undefined}
+        >
+          {st.choice === "mine" ? "My 0.3 transaction ✓" : "My 0.3 transaction"}
+        </SceneAction>
+        <SceneAction
+          onClick={() => st.choose("example")}
+          disabled={st.loading}
+          pressed={st.choice === "example"}
+          quiet
+        >
+          {st.choice === "example" ? "Recorded example ✓" : "Recorded example"}
+        </SceneAction>
+      </SceneActionGroup>
+      <SceneAction onClick={() => void st.load()} disabled={st.loading} done={loaded}>
         {loaded ? "Path loaded ✓" : st.loading ? "Loading…" : "Load transaction path"}
       </SceneAction>
     </>

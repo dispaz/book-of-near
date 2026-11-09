@@ -545,6 +545,46 @@ export function SvgReceiptSlip({
   return pick(p, name, [left - 4, top - 18, w + 8, h + 22], node);
 }
 
+// ---------- gas refund: a coin coming back ----------
+
+/** A gas refund (2D twin of `RefundCoin`): a coin with a return mark (↩) on its face. (x, y) is its base. */
+export function SvgRefundCoin({
+  x,
+  y,
+  size = 40,
+  color = COLORS.gold,
+  label,
+  ...p
+}: SvgPickProps & { x: number; y: number; size?: number; color?: string; label?: string }) {
+  const rx = size / 2;
+  const ry = size * 0.3;
+  const cy = y - ry - 3;
+  const node = (
+    <g>
+      <ellipse cx={x} cy={cy + 4} rx={rx} ry={ry} fill={color} stroke={INK} strokeWidth={2} />
+      <ellipse cx={x} cy={cy} rx={rx} ry={ry} fill={color} stroke={INK} strokeWidth={2} />
+      <text
+        x={x}
+        y={cy}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={ry * 1.3}
+        fontWeight={700}
+        fill={INK}
+        aria-hidden="true"
+      >
+        {"\u21a9"}
+      </text>
+      {label ? (
+        <SvgLabel x={x} y={cy - ry - 6} variant="small">
+          {label}
+        </SvgLabel>
+      ) : null}
+    </g>
+  );
+  return pick(p, p.pickLabel ?? "Gas refund", [x - rx - 4, cy - ry - 22, 2 * rx + 8, 2 * ry + 30], node);
+}
+
 // ---------- shard: a ribbon ----------
 
 /** A shard (2D twin of `ShardRibbon`): a ribbon along x with a swallowtail notch, its name at that end. */

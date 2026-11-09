@@ -29,6 +29,13 @@ group("pageModel", () => {
     expect(m.ribbonColor(9)).toBe(TOUCHED);
   });
 
+  it("the traveller carries the newest hop, whatever the learner looks at", () => {
+    // Looking back at hop 2 must not move the traveller back: receipts never travel backward.
+    const m = pageModel(RECORDED, { ...base, step: FOLLOW, drawn: 4, reached: 4 });
+    expect(m.travelling).toBe(4);
+    expect(pageModel(RECORDED, { ...base, step: GRID, drawn: -1 }).travelling).toBe(-1);
+  });
+
   it("draws nothing at the grid step", () => {
     expect(pageModel(RECORDED, { ...base, step: GRID, drawn: -1 }).count).toBe(0);
   });
@@ -37,7 +44,7 @@ group("pageModel", () => {
 group("describe", () => {
   it("says which step the learner is looking at", () => {
     expect(describe({ step: FOLLOW, trace: RECORDED, drawn: 2, at: 2 })).toContain(
-      "3 of 7 receipt slips drawn. Looking at step 3: shard 5",
+      "3 of 7 hops drawn. Looking at step 3: shard 5",
     );
     expect(describe({ step: 0, trace: null, drawn: -1, at: 0 })).toContain("No path is loaded yet");
   });

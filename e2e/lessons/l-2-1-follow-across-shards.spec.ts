@@ -159,6 +159,42 @@ for (const view of ["2d", "3d"] as const)
       await context.close();
     });
 
+    test("step 4 steps back and forward through the hops; a gas refund is a coin", async ({ page }) => {
+      await page.goto(`/lesson/${ID}?view=${view}`);
+      await expectView(page, view);
+      await load(page, "example");
+      for (let i = 0; i < 3; i++) await nextStep(page);
+      const bar = page.getByTestId("hop-nav");
+      const back = bar.getByRole("button", { name: "Previous hop" });
+      const fwd = bar.getByRole("button", { name: "Next hop" });
+      const at = page.getByTestId("hop-index");
+      await expect(back).toBeDisabled();
+      // Forward from the newest hop follows on; back only looks, it never unfollows.
+      await fwd.click();
+      await fwd.click();
+      await fwd.click();
+      await expect(at).toHaveText("4");
+      await expect(page.getByTestId("refund-note")).toContainText("carries money, not work");
+      await back.click();
+      await back.click();
+      await expect(at).toHaveText("2");
+      await expect(page.getByTestId("refund-note")).toHaveCount(0);
+      await fwd.click();
+      await fwd.click();
+      await expect(at).toHaveText("4");
+      // Looking back did not lose the path: the gate is still where it was (hop 4 of 7, not done).
+      await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
+      await fwd.click();
+      await fwd.click();
+      await fwd.click();
+      await expect(at).toHaveText("7");
+      await expect(fwd).toBeDisabled();
+      await expect(page.getByRole("button", { name: "Next step" })).toBeEnabled();
+      // The refunds are picks with their own name; picking one looks at it.
+      await page.getByRole("button", { name: /^Chunk 4: gas refund on shard/ }).press("Enter");
+      await expect(at).toHaveText("4");
+    });
+
     test("the scene's objects are buttons: the parcel loads, the slips name their chunk", async ({
       page,
     }) => {
@@ -203,9 +239,26 @@ test.describe(`lesson ${ID}: choices and views`, () => {
     page,
   }) => {
     await page.goto(`/lesson/${ID}?view=2d`);
-    await expect(dock(page).getByRole("button", { name: /^My 0\.3 transaction/ })).toBeDisabled();
-    await expect(dock(page).getByRole("button", { name: "Recorded example ✓" })).toBeEnabled();
+    const choices = dock(page).getByRole("group", { name: "Which transaction" });
+    const mine = choices.getByRole("button", { name: /^My 0\.3 transaction/ });
+    await expect(mine).toBeDisabled();
+    // The reason sits right under the button, and is read with it.
+    await expect(mine).toHaveAccessibleDescription(
+      "No 0.3 transaction yet. Send one in lesson 0.3, or use the recorded example.",
+    );
+    await expect(mine).toHaveAttribute("aria-pressed", "false");
+    const example = choices.getByRole("button", { name: "Recorded example ✓" });
+    await expect(example).toBeEnabled();
+    await expect(example).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByTestId("chosen")).toContainText("the recorded example");
+    // Only the next thing to do is solid; once done it reads as finished, not as unavailable.
+    const loadPath = dock(page).getByRole("button", { name: "Load transaction path" });
+    await expect(loadPath).toHaveClass(/primary/);
+    await expect(example).not.toHaveClass(/primary/);
+    await loadPath.click();
+    const loaded = dock(page).getByRole("button", { name: "Path loaded ✓" });
+    await expect(loaded).toHaveAttribute("aria-disabled", "true");
+    await expect(loaded).toHaveClass(/done/);
   });
 
   test("the learner's choice shows in later text, and 2D to 3D keeps the followed hop", async ({ page }) => {

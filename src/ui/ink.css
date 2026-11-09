@@ -128,6 +128,56 @@ h3 {
   background: var(--ink);
   color: #fff;
 }
+/* A chosen option (SceneAction `pressed`): paper with an accent ring, pressed into the page. */
+.btn.chosen {
+  background: color-mix(in srgb, var(--accent) 16%, #fff);
+  box-shadow:
+    0 0 0 2.5px var(--accent),
+    0 1px 0 var(--ink);
+  transform: translateY(2px);
+}
+.btn.chosen:hover {
+  transform: translateY(1px);
+}
+/* Finished (SceneAction `done`): calm and flat, still readable; not the grey of unavailable. */
+.btn.done,
+.btn.done:hover,
+.btn.done:active {
+  background: transparent;
+  border-style: dashed;
+  box-shadow: none;
+  transform: none;
+  cursor: default;
+}
+/* A button with a line under it saying why it is off (SceneAction `hint`). */
+.action-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: 100%;
+}
+.action-hint {
+  max-width: 30ch;
+  padding-left: 6px;
+  font: 500 12px/1.35 var(--ui);
+  color: var(--mute);
+}
+.action-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+}
+/* In a group the choices share a row; a hint takes the full row under them. */
+.action-group .action-item {
+  display: contents;
+}
+.action-group .action-hint {
+  order: 1;
+  flex-basis: 100%;
+  max-width: none;
+}
 
 /* ---------- Stage cards (contents) ---------- */
 .stage-card {
@@ -825,6 +875,14 @@ body:has(.lesson) {
 }
 .lesson[data-spread] .lesson-dock .action-slot:empty {
   display: none;
+}
+/* Printed buttons shrink with the words (--print-k), so a step with several actions still fits the page. */
+.lesson[data-spread] .lesson-dock .action-slot .btn {
+  padding: calc(9px * var(--k)) calc(18px * var(--k));
+  font-size: calc(14px * var(--k));
+}
+.lesson[data-spread] .lesson-dock .action-hint {
+  font-size: calc(12px * var(--k));
 }
 
 @media (max-width: 560px) {

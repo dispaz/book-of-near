@@ -257,3 +257,11 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Camera and view offset now glide on one critically damped spring (`smoothDamp`, `EASE_SECONDS` 0.45 s, frame-rate independent) instead of fixed per-frame lerps (0.06 camera, 0.1 offset), which started with a jolt and ran twice as fast on 120 Hz screens. A goal change mid-glide bends the path instead of restarting it. `data-camera="still"` now also waits for the view offset.
 - `Traveller` trail chase rates scale with frame time. Reduced motion unchanged: end states only.
 - Not done: keyboard panning (the canvas is not a focus stop; arrow keys belong to the page).
+
+## 2026-11-09 · Lesson 2.1: step through hops, no backward flight, refund drawn as a coin (Refs #17)
+
+- Step 4 has its own back/forward bar (the step bar's look: back, one dot per hop, forward) in both views. Back only looks; forward looks on through reached hops and follows on from the newest. Logic in `nav.ts` (unit tested). Not on the arrow keys: `LessonPage` already binds bare ArrowLeft/ArrowRight on `window` to lesson steps.
+- 3D: picking an earlier hop used to fly the traveller backward. Now only the newest hop rides the `Traveller` (`pageModel().travelling`), which moves only on a follow; an earlier hop is highlighted where it stands.
+- The gas refund is a coin with ↩ (`RefundCoin` / `SvgRefundCoin`), not a slip. The hop detail says it is still delivered as a receipt, but carries money, not work.
+- `SceneAction` states (shared, backward compatible): `pressed` (chosen option, aria-pressed, accent ring), `done` (finished: flat, dashed, aria-disabled, not greyed), `quiet` (not the next action), `hint` (the reason under a disabled button, aria-describedby); `SceneActionGroup` names a set of choices. In 2.1 only the next action is solid; "My 0.3 transaction" says why it is off right under it. Printed buttons shrink with `--print-k`, and the two choices share a row, so step 1's "Try it" box fits at 1280 px (it was clipped).
+- e2e: back/forward and the refund coin in 2D and 3D; aria-pressed, the hint and the done state at step 1. Under load (load average ~60) the 3D tests time out when run in parallel; they pass serially and at 2 workers.

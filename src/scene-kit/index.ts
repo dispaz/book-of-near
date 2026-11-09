@@ -63,6 +63,7 @@ export {
   Mailbox,
   Parcel,
   ReceiptSlip,
+  RefundCoin,
   Scroll,
   ShardRibbon,
   Stamp,

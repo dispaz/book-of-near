@@ -48,7 +48,7 @@ export default {
     {
       caption: "Follow each receipt: {hops} steps across {shardsTouched} and {blocksCount}.",
       explain:
-        "A receipt travels to the receiver's shard and runs there in a later block. A refund of unused gas is a receipt too, going back to the signer's shard. Every step waits for the next block, even on the same shard.",
+        "A receipt travels to the receiver's shard and runs there in a later block. A refund of unused gas is a receipt too, going back to the signer's shard, but it carries money, not work, so it is drawn as a coin. Every step waits for the next block, even on the same shard.",
       explainAt: "hop",
       action: { label: "follow every receipt", gate: true },
     },

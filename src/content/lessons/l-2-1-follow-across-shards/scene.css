@@ -84,6 +84,76 @@
   }
 }
 
+/* ---------- step 4's hop bar: the lesson step bar's look (src/ui/ink.css .stage-bar), smaller ---------- */
+.shs-hopnav {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 4px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper, #fffdf7);
+  font-family: var(--ui);
+}
+.shs-hopnav button {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.shs-hopnav button:hover {
+  background: #16141f14;
+}
+.shs-hopnav button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.shs-hopnav button:focus-visible {
+  outline: 2.5px solid var(--ink);
+  outline-offset: 2px;
+}
+.shs-hopnav svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.shs-hopnav .dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  padding: 0 4px;
+  list-style: none;
+}
+.shs-hopnav .dots li {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+}
+.shs-hopnav .dots li.done {
+  background: var(--ink);
+}
+.shs-hopnav .dots li.now {
+  width: 20px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
 /* ---------- facts ---------- */
 .shs-facts {
   display: flex;

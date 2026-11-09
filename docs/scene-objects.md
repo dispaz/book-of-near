@@ -3,8 +3,10 @@
 Status: **decided; stage 1 built** (7 Nov 2026). Owner decisions: account = mailbox, transaction =
 parcel, signature = stamp, contract = scroll that shows it runs code. Built and used by lessons 1.1–1.3:
 mailbox, parcel (+ action cards), stamp, scroll, tagged key, app screen, plus the existing key and coin.
-Built for lesson 2.1 (8 Nov 2026): receipt (`ReceiptSlip` / `SvgReceiptSlip`, a refund shows ↩) and shard
-(`ShardRibbon` / `SvgShardRibbon`, a flat ribbon with a swallowtail end). Not built yet: block, blockchain,
+Built for lesson 2.1 (8 Nov 2026): receipt (`ReceiptSlip` / `SvgReceiptSlip`), shard (`ShardRibbon` /
+`SvgShardRibbon`, a flat ribbon with a swallowtail end) and gas refund (`RefundCoin` / `SvgRefundCoin`, a
+coin with ↩: the network delivers a refund as a receipt, but it carries money, not work, so it is never
+drawn as a slip). Not built yet: block, blockchain,
 wallet (key ring), gas, RPC node, validator. Stage 0 still draws the old blocks.
 
 ## Why
@@ -43,7 +45,8 @@ both views.
 | **Wallet** | A key ring holding one or more keys | A wallet is where your keys live, not your money | locked / unlocked | 0.2's wallet box |
 | **Contract** | A scroll standing up, lines of rules on it, a gear on its seal | A contract is written rules (the scroll) that run as code (the gear) | idle, running (the gear turns), failed (red cross), not deployed (dashed) | `ContractBlock` |
 | **App** | A screen on a small stand, a title bar in the accent colour | A program that can hold a key and sign with it (a game, a website, a bot) | ok, hacked (red cross) | 1.2's agent block |
-| **Receipt** | A delivery slip that comes with the parcel | What an action becomes when it moves on (Stage 2) | pending, done, failed | — |
+| **Receipt** | A delivery slip that comes with the parcel | What an action becomes when it moves on (Stage 2) | pending, done, failed | `ReceiptSlip` |
+| **Gas refund** | A coin with a return mark (↩) going back to the signer | Unused gas money coming home; delivered as a receipt, but money, not work | — | `RefundCoin` |
 | **Gas / fee** | Small ink drops / a meter | Work costs a little, spent as you go | full / used | — |
 | **RPC node** | A post-office counter window | The door you hand your envelope to | busy, down | 0.3's `RpcNode` |
 | **Shard** | A section of the book (a group of pages with its own coloured ribbon) | NEAR splits the chain into parallel parts | — | `ShardSlab` |

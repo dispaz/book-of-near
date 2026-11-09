@@ -35,6 +35,11 @@ export interface PageModel {
   touched: Set<number>;
   /** Chunks the drawn path passes through (`cellKey`). */
   lit: Set<string>;
+  /**
+   * The hop the 3D traveller carries: the newest drawn one (-1 when none). It only ever moves forward,
+   * on a follow; looking back at an earlier hop highlights that hop where it stands.
+   */
+  travelling: number;
   /** The newest slip at the follow step, still waiting to be followed on. */
   isNewest: (i: number) => boolean;
   /** A shard ribbon's colour: picked, touched or plain. */
@@ -49,6 +54,7 @@ export function pageModel(trace: Trace, s: PageState): PageModel {
   return {
     pos: trace.hops.map((h, i) => hopAt(trace, h, sl[i]!)),
     count,
+    travelling: count - 1,
     touched,
     lit: new Set(shown.map((h) => cellKey(h.shardId, h.blockHeight))),
     isNewest: (i) => s.step === FOLLOW && i === s.reached && s.reached < s.last,
@@ -69,5 +75,5 @@ export function describe(s: { step: number; trace: Trace | null; drawn: number; 
   const base = `${trace.shardIds.length} shard ribbons by ${trace.lastBlock - trace.firstBlock + 1} blocks, one chunk per shard per block.`;
   if (drawn < 0) return `${base} No path is drawn yet.`;
   const hop = trace.hops[s.at]!;
-  return `${base} ${drawn + 1} of ${trace.hops.length} receipt slips drawn. Looking at step ${s.at + 1}: shard ${hop.shardId}, block ${hop.blockHeight}.`;
+  return `${base} ${drawn + 1} of ${trace.hops.length} hops drawn. Looking at step ${s.at + 1}: shard ${hop.shardId}, block ${hop.blockHeight}.`;
 }

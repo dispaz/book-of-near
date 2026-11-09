@@ -12,6 +12,7 @@ import { isChainError } from "../../../chain/errors";
 import { transfer } from "../../../chain/ops";
 import { parseNear } from "../../../chain/units";
 import { progress } from "../../../progress";
+import { hopNav } from "./nav";
 import { RECORDED } from "./recorded";
 import { loadTrace, readSeenEvidence, touchedShards, varsFor, type SeenEvidence, type Trace } from "./trace";
 
@@ -42,7 +43,7 @@ export function useShardTrace({
   const seen = useMemo(evidenceFrom03, []);
   // A 0.3 transaction can only be read on the network it was made on.
   const ownProblem = !seen
-    ? "You have not sent a transaction in 0.3 yet, so the recorded example is chosen."
+    ? "No 0.3 transaction yet. Send one in lesson 0.3, or use the recorded example."
     : seen.mode !== network
       ? `Your 0.3 transaction was made in ${seen.mode} mode. Switch to ${seen.mode} mode to open it.`
       : null;
@@ -140,7 +141,8 @@ export function useShardTrace({
   /** How many hops the picture draws: none at the grid, one at the start, then as followed, all after. */
   const drawn = !trace || step <= GRID ? -1 : step === START ? 0 : step === FOLLOW ? reached : last;
   /** The hop the text and the markers talk about: the first one until the follow step. */
-  const at = step <= START ? 0 : step === FOLLOW ? Math.min(looking, reached) : Math.min(looking, last);
+  const at =
+    step <= START ? 0 : step === FOLLOW ? hopNav({ reached, looking, last }).at : Math.min(looking, last);
 
   // Picks read the latest state, not the render they were made in: while the book turns a page, the
   // previous page's figure (made at the previous step) is still on screen and can still be picked.
@@ -154,6 +156,15 @@ export function useShardTrace({
     const next = Math.min(n.last, n.reached + 1);
     setReached(next);
     setLooking(next);
+  };
+  /** Step 4's back and forward (nav.ts): back looks at the hop before; forward looks on or follows on. */
+  const prev = () => setLooking((l) => Math.max(0, Math.min(l, now.current.reached) - 1));
+  const next = () => {
+    const n = now.current;
+    const nav = hopNav(n);
+    if (!nav.canNext) return;
+    if (nav.nextFollows) return follow();
+    setLooking(nav.at + 1);
   };
   /**
    * Picking a drawn slip looks at it. At the follow step, picking the newest one follows on; at the time
@@ -193,6 +204,9 @@ export function useShardTrace({
     choose,
     load,
     follow,
+    prev,
+    next,
+    nav: hopNav({ reached, looking, last }),
     pick,
     pickShard: (id: number) => setShard((s) => (s === id ? null : id)),
     inspect: () => setInspected(true),

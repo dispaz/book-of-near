@@ -3,6 +3,7 @@
  * transaction, the layout, the hop being looked at and where the time went. Same words, same test ids.
  */
 import { breakdown, seconds, touchedBlocks, touchedShards, type Hop, type Trace } from "./trace";
+import { Icon, Svg } from "../../../ui/icons";
 import { FOLLOW, GRID, PICK, START, TIME, type ShardTrace } from "./useShardTrace";
 
 export const KIND: Record<Hop["kind"], string> = {
@@ -40,7 +41,6 @@ export function Facts({ st, compact = false }: { st: ShardTrace; compact?: boole
             {st.problem}
           </p>
         ) : null}
-        {st.ownProblem && !trace ? <p className="shs-note">{st.ownProblem}</p> : null}
         {trace ? <Opened trace={trace} replayed={st.replayed} /> : <Chosen st={st} />}
       </div>
     );
@@ -59,6 +59,7 @@ export function Facts({ st, compact = false }: { st: ShardTrace; compact?: boole
   return (
     <div className={cls}>
       {step === GRID ? <Layout st={st} trace={trace} /> : null}
+      {step === FOLLOW ? <HopNav st={st} total={trace.hops.length} /> : null}
       {step >= START && step <= FOLLOW && hop ? (
         <section className="shs-hop" aria-label="The hop you are on" data-testid="hop-box">
           <p className="shs-line">
@@ -171,12 +172,41 @@ function PathSoFar({ trace, upTo }: { trace: Trace; upTo: number }) {
   );
 }
 
+/**
+ * Step 4's back and forward, in the look of the lesson's step bar: back, one dot per hop, forward.
+ * Forward from the newest hop follows the path on. Not on the arrow keys: the lesson's step bar owns them.
+ */
+function HopNav({ st, total }: { st: ShardTrace; total: number }) {
+  const { nav } = st;
+  return (
+    <nav className="shs-hopnav" aria-label="Hops" data-testid="hop-nav">
+      <button type="button" aria-label="Previous hop" disabled={!nav.canPrev} onClick={st.prev}>
+        <Svg>{Icon.back}</Svg>
+      </button>
+      <ol className="dots" aria-label={`Hop ${nav.at + 1} of ${total}`}>
+        {Array.from({ length: total }, (_, i) => (
+          <li key={i} className={i === nav.at ? "now" : i <= st.reached ? "done" : ""} aria-hidden="true" />
+        ))}
+      </ol>
+      <button type="button" aria-label="Next hop" disabled={!nav.canNext} onClick={st.next}>
+        <Svg>{Icon.next}</Svg>
+      </button>
+    </nav>
+  );
+}
+
 export function HopDetail({ hop }: { hop: Hop }) {
   return (
     <div className="shs-detail" data-testid="hop-detail">
       <p className="shs-kind">
         {KIND[hop.kind]} on <strong>{hop.accountId}</strong>
       </p>
+      {hop.kind === "refund" ? (
+        <p className="shs-note" data-testid="refund-note">
+          Unused gas money comes back to the signer. The network delivers it as a receipt too, but it carries
+          money, not work. That is why it is drawn as a coin.
+        </p>
+      ) : null}
       <dl>
         <div>
           <dt>Shard</dt>
