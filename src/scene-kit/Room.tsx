@@ -1,49 +1,61 @@
-import { useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
-import { Billboard, Edges } from "@react-three/drei";
-import { CanvasTexture, RepeatWrapping, SRGBColorSpace, type Mesh, type Texture } from "three";
+import { useEffect, useMemo, useState } from "react";
+import { Edges } from "@react-three/drei";
+import { CanvasTexture, RepeatWrapping, SRGBColorSpace, type Texture } from "three";
 import { ROOM, type RoomLayout } from "./roomLayout";
 import {
+  backWall,
   ceiling,
   deskLight,
-  deskPlant,
   floor,
+  frameXs,
   frontWall,
-  landscape,
   leftWall,
-  mullions,
   paintSurface,
   rightWall,
-  windowWall,
+  underWall,
 } from "./roomPaint";
 import { INK } from "./theme";
+import sunsetWindow from "./assets/sunset-window.jpg";
 
 const noRaycast = () => undefined;
 const BOOK_PART = { book: true };
 
+/** How much the painted surfaces are softened (see paintSurface): the room sits a little out of focus. */
+const BLUR = { wall: 4, light: 4 };
+
+let picture: HTMLImageElement | null = null;
+let loading: Promise<HTMLImageElement | null> | null = null;
+
 /**
- * How much each surface is blurred (see paintSurface): the landscape far outside most, the walls a
- * little, the window frame and the plant on the desk least, as a camera focused on the book would.
+ * The window painting for the back wall, loaded once for every lesson. Null until it has loaded (or if it
+ * cannot load): the wall is then plain dark wood, and the lesson works the same.
  */
-const BLUR = { landscape: 4, wall: 8, window: 4, plant: 2, light: 4 };
+function usePicture(): HTMLImageElement | null {
+  const [img, setImg] = useState(picture);
+  useEffect(() => {
+    if (img) return;
+    loading ??= new Promise((resolve) => {
+      const i = new Image();
+      i.onload = () => resolve((picture = i));
+      i.onerror = () => resolve(null);
+      i.src = sunsetWindow;
+    });
+    let live = true;
+    void loading.then((i) => live && setImg(i));
+    return () => {
+      live = false;
+    };
+  }, [img]);
+  return img;
+}
 
 const textures = new Map<string, Texture>();
 
-/**
- * A painted surface as a texture, cached by what it shows and its size, so page turns and remounts do
- * not repaint it. The paintings are the setting: the same on every lesson.
- */
-function surface(
-  id: string,
-  w: number,
-  h: number,
-  blur: number,
-  paint: (g: CanvasRenderingContext2D) => void,
-) {
-  const key = `${id}:${w.toFixed(1)}x${h.toFixed(1)}`;
+/** A texture from a canvas, cached by `key`, so page turns and remounts do not paint it again. */
+function cached(key: string, make: () => HTMLCanvasElement): Texture {
   let t = textures.get(key);
   if (!t) {
-    t = new CanvasTexture(paintSurface(w, h, blur, paint));
+    t = new CanvasTexture(make());
     t.colorSpace = SRGBColorSpace;
     t.anisotropy = 8;
     textures.set(key, t);
@@ -51,59 +63,56 @@ function surface(
   return t;
 }
 
+/** A surface painted in world units (see paintSurface), cached by name and size. */
+function surface(
+  id: string,
+  w: number,
+  h: number,
+  blur: number,
+  paint: (g: CanvasRenderingContext2D) => void,
+) {
+  return cached(`${id}:${w.toFixed(1)}x${h.toFixed(1)}`, () => paintSurface(w, h, blur, paint));
+}
+
 type Plane = {
   map: Texture;
   size: [number, number];
   position: [number, number, number];
   rotation: [number, number, number];
-  cutout?: boolean;
-  /** The landscape: it rides up and down with the camera so its horizon stays at eye level. */
-  horizon?: boolean;
 };
 
 /**
- * The room round the desk at sunset, out of focus: a wide window behind the book with the landscape far
- * outside (a real distance away, so it shifts as the camera turns), a bookshelf with a trailing pothos,
- * warm dim walls. Painted, blurred planes: a few textures and no lighting. Decorative, never pickable.
+ * The window nook round the desk at sunset. The back wall is a painting (a bookshelf with a trailing
+ * pothos, a three-pane window onto mountains and a garden, a plant on the sill) standing on the back of
+ * the desk; the side walls are warm wood, the left one lined with the same shelves. Painted planes: a
+ * few textures and no lighting. Decorative and never pickable.
  */
 export function Room({ layout }: { layout: RoomLayout }) {
-  const { walls, floor: fy, top, window: win, landscape: land } = layout;
+  const img = usePicture();
+  const { walls, floor: fy, top, backdrop } = layout;
   const width = walls.right - walls.left;
   const depth = walls.front - walls.back;
   const height = walls.ceiling - fy;
+  const above = walls.ceiling - top;
   const cx = (walls.left + walls.right) / 2;
   const cz = (walls.back + walls.front) / 2;
   const cy = (fy + walls.ceiling) / 2;
-  const lw = land.x1 - land.x0;
-  const lh = land.y1 - land.y0;
-  const planes = useMemo<Plane[]>(() => {
-    // The window in the wall's own units: x from the left wall, y down from the ceiling.
-    const hole: [number, number, number, number] = [
-      win.x0 - walls.left,
-      walls.ceiling - win.y1,
-      win.x1 - walls.left,
-      walls.ceiling - win.y0,
-    ];
-    return [
+  const share = (backdrop.y1 - backdrop.y0) / above;
+  const planes = useMemo<Plane[]>(
+    () => [
       {
-        map: surface(
-          `window${hole.map((n) => n.toFixed(1))}`,
-          width,
-          height,
-          BLUR.window,
-          windowWall(width, height, hole),
-        ),
-        size: [width, height],
-        position: [cx, cy, walls.back],
+        map: img
+          ? cached(`back:${share.toFixed(3)}`, () => backWall(img, share))
+          : surface("back-plain", width, above, 1, underWall(width, above)),
+        size: [width, above],
+        position: [cx, top + above / 2, walls.back],
         rotation: [0, 0, 0],
-        cutout: true,
       },
       {
-        map: surface("land", lw, lh, BLUR.landscape, landscape(lw, lh, ROOM.landscape.above)),
-        size: [lw, lh],
-        position: [(land.x0 + land.x1) / 2, (land.y0 + land.y1) / 2, land.z],
+        map: surface("under", width, top - fy, 1, underWall(width, top - fy)),
+        size: [width, top - fy],
+        position: [cx, (fy + top) / 2, walls.back],
         rotation: [0, 0, 0],
-        horizon: true,
       },
       {
         map: surface("front", width, height, BLUR.wall, frontWall(width, height)),
@@ -112,7 +121,7 @@ export function Room({ layout }: { layout: RoomLayout }) {
         rotation: [0, Math.PI, 0],
       },
       {
-        map: surface("left", depth, height, BLUR.wall, leftWall(depth, height)),
+        map: surface(img ? "left" : "left-plain", depth, height, BLUR.wall, leftWall(img, depth, height)),
         size: [depth, height],
         position: [walls.left, cy, cz],
         rotation: [0, Math.PI / 2, 0],
@@ -135,65 +144,46 @@ export function Room({ layout }: { layout: RoomLayout }) {
         position: [cx, walls.ceiling, cz],
         rotation: [Math.PI / 2, 0, 0],
       },
-    ];
-  }, [width, depth, height, cx, cy, cz, walls, win, land, lw, lh, fy]);
-  const plant = useMemo(() => surface("plant", 8, 12, BLUR.plant, deskPlant(8, 12)), []);
-  // A far landscape's horizon is always at eye level: keep the painted one there as the camera moves.
-  const land3d = useRef<Mesh>(null);
-  const toCentre = ROOM.landscape.above - lh / 2;
-  useFrame(({ camera }) => {
-    if (land3d.current) land3d.current.position.y = camera.position.y + toCentre;
-  });
-  const sillDepth = 3.4;
+    ],
+    [
+      img,
+      share,
+      width,
+      depth,
+      height,
+      above,
+      cx,
+      cy,
+      cz,
+      top,
+      fy,
+      walls.back,
+      walls.front,
+      walls.left,
+      walls.right,
+    ],
+  );
   return (
     <group>
       {planes.map((p, i) => (
-        <mesh
-          key={i}
-          ref={p.horizon ? land3d : undefined}
-          position={p.position}
-          rotation={p.rotation}
-          raycast={noRaycast}
-          userData={BOOK_PART}
-        >
+        <mesh key={i} position={p.position} rotation={p.rotation} raycast={noRaycast} userData={BOOK_PART}>
           <planeGeometry args={p.size} />
-          <meshBasicMaterial map={p.map} transparent={p.cutout} alphaTest={p.cutout ? 0.5 : 0} />
+          <meshBasicMaterial map={p.map} />
         </mesh>
       ))}
-      {/* The window sill: a dark wooden ledge along the back of the desk, its front edge lit. */}
-      <mesh
-        position={[(win.x0 + win.x1) / 2, top + ROOM.sill / 2, walls.back + sillDepth / 2]}
-        raycast={noRaycast}
-        userData={BOOK_PART}
-      >
-        <boxGeometry args={[win.x1 - win.x0 + 6, ROOM.sill, sillDepth]} />
-        <meshBasicMaterial attach="material-0" color="#5c3420" />
-        <meshBasicMaterial attach="material-1" color="#5c3420" />
-        <meshBasicMaterial attach="material-2" color="#8a4f2c" />
-        <meshBasicMaterial attach="material-3" color="#3d2216" />
-        <meshBasicMaterial attach="material-4" color="#c9773f" />
-        <meshBasicMaterial attach="material-5" color="#3d2216" />
-      </mesh>
-      {/* A plant on the desk, in the back corner on the right: always faces the camera, turning about y. */}
-      <Billboard position={[layout.plant[0], top + 6, layout.plant[1]]} lockX lockZ>
-        <mesh raycast={noRaycast} userData={BOOK_PART}>
-          <planeGeometry args={[8, 12]} />
-          <meshBasicMaterial map={plant} transparent alphaTest={0.4} />
-        </mesh>
-      </Billboard>
     </group>
   );
 }
 
 /** Edge, leg and apron colours of the desk. */
-const TABLE = { edge: "#9c5e36", underside: "#5c3420", leg: "#6e3f24" };
+const TABLE = { edge: "#8e4a28", underside: "#4a2a1a", leg: "#5a3322" };
 
 /**
  * The desk the book lies on: a warm wooden top (the `wood` texture, repeating every `tile` units) with an
- * ink outline round its edge and low sun falling across it through the window, an apron and four legs.
+ * ink outline round its edge and low sun falling across it through the painted window, an apron and legs.
  */
 export function Table({ layout, wood, tile }: { layout: RoomLayout; wood: Texture; tile: number }) {
-  const { table, top, legs, floor: fy, window: win } = layout;
+  const { table, top, legs, floor: fy, walls } = layout;
   const w = table.maxX - table.minX;
   const d = table.maxZ - table.minZ;
   const t = ROOM.tableThick;
@@ -204,10 +194,12 @@ export function Table({ layout, wood, tile }: { layout: RoomLayout; wood: Textur
     m.needsUpdate = true;
     return m;
   }, [wood, w, d, tile]);
+  const offset = walls.left - table.minX;
+  const span = walls.right - walls.left;
   const light = useMemo(() => {
-    const bars = mullions(win.x0, win.x1).map((x) => x - table.minX);
+    const bars = frameXs(span).map((x) => x + offset);
     return surface(`light${bars.map((b) => b.toFixed(1))}`, w, d, BLUR.light, deskLight(w, d, bars));
-  }, [w, d, win.x0, win.x1, table.minX]);
+  }, [w, d, span, offset]);
   const cx = (table.minX + table.maxX) / 2;
   const cz = (table.minZ + table.maxZ) / 2;
   const legH = top - t - fy;
@@ -225,7 +217,7 @@ export function Table({ layout, wood, tile }: { layout: RoomLayout; wood: Textur
         <meshBasicMaterial attach="material-5" color={TABLE.edge} />
         <Edges threshold={30} lineWidth={1.4} color={INK} />
       </mesh>
-      {/* Sunlight and the window's shadows on the desk, just above the wood. */}
+      {/* Sunlight and the window frames' shadows on the desk, just above the wood. */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[cx, top + 0.006, cz]}
