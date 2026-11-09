@@ -102,18 +102,29 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
     action (e.g. picking a key signs, picking a mailbox checks balances, picking a parcel sends, picking a scroll executes code).
 11. **The learner may move the camera.** Orbit (drag), zoom (wheel, pinch) and a small pan (right drag,
     shift / ctrl / cmd + drag, two-finger drag). The pan is held within `PAN_SHARE` (15 %) of the camera's
-    distance from where the learner took over, so the figure cannot leave the view.
-    **Their view stays.** Once the camera actually moves under their hand (a plain click on an object does
-    not count), later steps and focus changes leave it where it is: pages still turn and figures still grow,
-    only the camera stays put. It comes back to the step's framing on **Reset view**, the **Flat view** pill
-    or the **tour** (play). Switching to 2D and back within the lesson keeps it (in memory only; a reload or
-    another lesson starts on the framing). `BookScene` turns this on (`InkStage keepView`); other 3D scenes
-    keep the old rule (a new view glides back unless it is a small nudge).
+    distance (less when zoomed in) from where the learner's press began, so the figure cannot leave the
+    view. The coasting after a drag is frame-rate independent (`dampingFor`; drei and the rig each update
+    the controls once a frame).
+    **Their view stays.** A press becomes the learner's own view only as a camera gesture
+    (`isCameraGesture`): the pointer travelled at least `CLICK_PX` (the pick threshold, so a press is a pick
+    or a move, never both), or they zoomed or used two fingers. A tap that drifts a few pixels picks the
+    object and leaves the camera to the steps, and a glide in progress carries on until the gesture counts.
+    From then on later steps and focus changes leave the camera where it is: pages still turn and figures
+    still grow, only the camera stays put. It comes back to the step's framing on **Reset view**, the
+    **Flat view** pill or the **tour** (play). `BookScene` turns this on (`InkStage keepView`); other 3D
+    scenes keep the old rule (a new view glides back unless it is a small nudge).
+    **Kept per lesson.** `BookScene` passes the lesson id (`LessonIdContext`, provided by the lesson page)
+    as `viewMemory`; the rig captures it at mount and keeps the learner's view under it while the 3D view is
+    closed (`scene-kit/viewMemory.ts`, in memory only). Switching to 2D and back, or leaving the lesson and
+    coming back in the same visit, finds the camera where they left it; another lesson never gets it; a
+    reload starts on the framing. Never key it by the URL: the router changes the path before the scene
+    unmounts, and hash routing never changes it.
     **The camera cluster** (`CameraControls`), top right of the free area: **Reset view** (only while the
-    learner's view is on) and **Controls**, a disclosure card (`aria-expanded`; Esc or a press outside
-    closes it, Esc returns focus) listing turn / zoom / slide for mouse and touch (the learner's own pointer
-    first) and the keyboard (pick objects with Tab + Enter). It never opens by itself. Keyboard camera keys
-    are not wired: the canvas is not a focus stop and arrow keys belong to the page.
+    learner's view is on; pressing it moves focus to Controls, since it goes away) and **Controls**, a
+    disclosure card (`aria-expanded`; Esc or a press outside closes it, Esc returns focus) listing turn /
+    zoom / slide for mouse and touch (the learner's own pointer first) and the keyboard (pick objects with
+    Tab + Enter). It never opens by itself. Keyboard camera keys are not wired: the canvas is not a focus
+    stop and arrow keys belong to the page.
     Tests read `data-camera-user` (`on` / `off`) and `data-camera-pose` (`x,y,z@x,y,z`, camera and target,
     2 decimals) on `.sk-stage`; see `e2e/book-camera.spec.ts`.
 

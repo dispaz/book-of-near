@@ -14,7 +14,7 @@ import {
   type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
-import { SpreadContext } from "../app/intro";
+import { LessonIdContext, SpreadContext } from "../app/intro";
 import { BarSlot } from "../ui/StageBar";
 import { BookBackdrop } from "./BookBackdrop";
 import type { Spread, TextBlock } from "./book";
@@ -266,6 +266,7 @@ export function BookScene<T>({
 }: BookSceneProps<T>) {
   const tour = useTour(shots, page);
   const { page: words, setPrinted } = useContext(SpreadContext);
+  const lessonId = useContext(LessonIdContext);
   const [pageInView, setPageInView] = useState(true);
   const printed = !!text && !tour.shot && pageInView;
   useEffect(() => {
@@ -283,6 +284,7 @@ export function BookScene<T>({
         reducedMotion={reducedMotion}
         page={page}
         keepView
+        viewMemory={lessonId ?? undefined}
         // The tour drives the camera: starting it (and each shot, and its end) hands the view back.
         viewReset={tour.shot ? `tour:${tour.shots.indexOf(tour.shot)}` : "rest"}
         backdrop={

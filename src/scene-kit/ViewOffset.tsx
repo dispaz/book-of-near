@@ -1,10 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { viewOffset, type Frame } from "./framing";
-import { EASE_SECONDS, smoothDamp } from "./motion";
-
-/** Longest frame time one step of the glide may take (as in CameraRig). */
-const MAX_STEP = 0.1;
+import { EASE_SECONDS, MAX_FRAME_STEP, smoothDamp } from "./motion";
 
 /**
  * Shifts the picture so the camera's target sits in the middle of `frame`, the free part of the canvas
@@ -24,7 +21,7 @@ export function ViewOffset({ frame, reducedMotion }: { frame: Frame; reducedMoti
     let vx = 0;
     let vy = 0;
     if (c && !reducedMotion) {
-      const dt = Math.min(delta, MAX_STEP);
+      const dt = Math.min(delta, MAX_FRAME_STEP);
       [x, vx] = smoothDamp(c.x, goal.x, c.vx, EASE_SECONDS, dt);
       [y, vy] = smoothDamp(c.y, goal.y, c.vy, EASE_SECONDS, dt);
       // Land once within a quarter pixel and barely moving.

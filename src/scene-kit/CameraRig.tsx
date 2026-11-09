@@ -1,11 +1,23 @@
-import { useEffect, useLayoutEffect, useRef, type ComponentRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { PerspectiveCamera, Vector3 } from "three";
-import { clampLength, EASE_SECONDS, fitView, PAN_SHARE, smoothDamp, toFlat, type CameraView } from "./motion";
+import {
+  clampLength,
+  DAMPING,
+  dampingFor,
+  distance,
+  EASE_SECONDS,
+  fitView,
+  isCameraGesture,
+  MAX_FRAME_STEP,
+  PAN_SHARE,
+  smoothDamp,
+  toFlat,
+  type CameraView,
+} from "./motion";
+import { forgetView, recallView, rememberView } from "./viewMemory";
 
-/** Longest frame time the glide advances by in one frame: a slow device still glides, a stall cannot jump. */
-const MAX_STEP = 0.1;
 /**
  * Without `keep`: a new view that moves the camera less than this share of its distance (the panel grew
  * a line, the fonts loaded) does not take back the learner's own orbit, zoom or pan.
@@ -14,31 +26,30 @@ const NUDGE_SHARE = 0.04;
 
 type V3 = [number, number, number];
 const goalOf = (key: string) => JSON.parse(key) as CameraView;
+/** Whether the new view moves the camera or its target by more than a nudge. */
 const far = (a: CameraView, b: CameraView, d: number) =>
-  Math.hypot(a.position[0] - b.position[0], a.position[1] - b.position[1], a.position[2] - b.position[2]) >
-    d * NUDGE_SHARE ||
-  Math.hypot(a.target[0] - b.target[0], a.target[1] - b.target[1], a.target[2] - b.target[2]) >
-    d * NUDGE_SHARE;
+  distance(a.position, b.position) > d * NUDGE_SHARE || distance(a.target, b.target) > d * NUDGE_SHARE;
 const v3 = (v: Vector3): V3 => [v.x, v.y, v.z];
-
-/**
- * The learner's own view, kept in memory (not stored) while the 3D view is closed, so switching to 2D
- * and back within a lesson keeps it. Keyed by the page's path: another lesson starts on its framing.
- */
-let savedView: { path: string; position: V3; target: V3; home: V3 } | null = null;
-const here = () => (typeof location === "undefined" ? "" : location.pathname);
 
 /**
  * Moves the camera to the current preset `view`, gliding on a critically damped spring (`smoothDamp`,
  * frame-rate independent; at once under reduced motion). In flat mode it looks straight down at the same
  * target. The learner can orbit, zoom and pan a little (right drag, shift / ctrl / cmd + drag, two-finger
- * drag): the pan is held within `PAN_SHARE` of the camera's distance from where they took over, so the
- * figure cannot leave the view. Once the learner moves the camera the rig lets go, so the two never fight:
+ * drag): the pan is held within `PAN_SHARE` of the camera's distance from where they took over (less when
+ * zoomed in), so the figure cannot leave the view.
+ *
+ * A press becomes the learner's own view only as a camera gesture (`isCameraGesture`: the pointer moved
+ * at least `CLICK_PX`, the pick threshold, or they zoomed or used two fingers), so a tap on an object picks
+ * it and leaves the camera alone. Until then a running glide carries on; from then on the rig lets go:
  * - with `keep` (the book scene) their view stays through every later step until `reset` changes
- *   (the Reset view button, the Flat view pill, the tour); it also survives a 2D / 3D switch;
+ *   (the Reset view button, the Flat view pill, the tour);
  * - without it, until the view changes by more than a nudge; then it glides back.
+ * With `memory` (a lesson id, captured at mount) their view is kept while the 3D view is closed and given
+ * back when it opens again in that lesson (`viewMemory`).
+ *
  * Reports "moving" or "still" through `onMotion` (the camera and the picture's view offset), whether the
- * learner's own view is on through `onUserView`, and the rounded camera position and target ("x,y,z@x,y,z") through `onPose` (tests).
+ * learner's own view is on through `onUserView`, and the rounded camera position and target
+ * ("x,y,z@x,y,z") through `onPose` (tests).
  */
 export function CameraRig({
   view,
@@ -47,6 +58,7 @@ export function CameraRig({
   minDistance = 6,
   maxDistance = 40,
   keep = false,
+  memory,
   reset,
   onMotion,
   onUserView,
@@ -58,6 +70,8 @@ export function CameraRig({
   minDistance?: number;
   maxDistance?: number;
   keep?: boolean;
+  /** Key of the learner's kept view (the lesson id). Read once, when the rig mounts. */
+  memory?: string;
   /** Change it to drop the learner's own view and glide back to `view`. */
   reset?: string | number;
   onMotion?: (state: "moving" | "still") => void;
@@ -66,7 +80,10 @@ export function CameraRig({
 }) {
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
+  // OrbitControls listens on R3F's event target (or the canvas): watch the same element for gestures.
+  const surface = useThree((s) => (s.events.connected as HTMLElement | undefined) ?? s.gl.domElement);
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
+  const [memoryKey] = useState(memory);
   const goalPos = useRef(new Vector3());
   const goalTarget = useRef(new Vector3());
   const goal = useRef<CameraView | null>(null);
@@ -90,18 +107,54 @@ export function CameraRig({
     userMoved.current = on;
     report.current?.(on);
   };
-  /** The camera as it was when the learner pressed the controls, while they hold them. */
-  const touch = useRef<{ position: Vector3; target: Vector3 } | null>(null);
-  /** While pressed: once the camera has moved, the view is the learner's (pan held around the start). */
+
+  /** The press in progress: the controls are held; how far the pointer went; a zoom or second finger. */
+  const press = useRef({ held: false, travel: 0, zoomOrMulti: false });
+  /** The target when the press began: the pan is held around it (the drag may pan before it counts). */
+  const pressHome = useRef(new Vector3());
+  const downs = useRef(new Map<number, { x: number; y: number }>());
+  /** The press became a camera gesture: the view is now the learner's, the glide hands over to them. */
   const takeOver = () => {
-    const t = touch.current;
+    const p = press.current;
     const c = controls.current;
-    if (!t || !c || userMoved.current) return;
-    if (camera.position.distanceToSquared(t.position) < 1e-6 && c.target.distanceToSquared(t.target) < 1e-6)
-      return;
-    panHome.current.copy(t.target);
+    if (!p.held || !c || userMoved.current || !isCameraGesture(p.travel, p.zoomOrMulti)) return;
+    velPos.current = [0, 0, 0];
+    velTarget.current = [0, 0, 0];
+    panHome.current.copy(pressHome.current);
     setUser(true);
   };
+
+  // Capture phase, so these run before OrbitControls' own handlers on the same element.
+  useEffect(() => {
+    const el = surface;
+    const opts = { capture: true } as const;
+    const onDown = (e: PointerEvent) => {
+      if (downs.current.size === 0) press.current = { ...press.current, travel: 0, zoomOrMulti: false };
+      downs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (downs.current.size > 1) press.current.zoomOrMulti = true;
+    };
+    const onMove = (e: PointerEvent) => {
+      const d = downs.current.get(e.pointerId);
+      if (!d) return;
+      press.current.travel = Math.max(press.current.travel, Math.hypot(e.clientX - d.x, e.clientY - d.y));
+    };
+    const onUp = (e: PointerEvent) => void downs.current.delete(e.pointerId);
+    const onWheel = () => {
+      press.current.zoomOrMulti = true;
+    };
+    el.addEventListener("pointerdown", onDown, opts);
+    el.addEventListener("pointermove", onMove, opts);
+    el.addEventListener("pointerup", onUp, opts);
+    el.addEventListener("pointercancel", onUp, opts);
+    el.addEventListener("wheel", onWheel, opts);
+    return () => {
+      el.removeEventListener("pointerdown", onDown, opts);
+      el.removeEventListener("pointermove", onMove, opts);
+      el.removeEventListener("pointerup", onUp, opts);
+      el.removeEventListener("pointercancel", onUp, opts);
+      el.removeEventListener("wheel", onWheel, opts);
+    };
+  }, [surface]);
 
   const aspect = size.width / Math.max(1, size.height);
   const narrow = aspect < 1;
@@ -123,7 +176,7 @@ export function CameraRig({
     goalTarget.current.set(...next.target);
     if (first.current) {
       first.current = false;
-      const saved = keep && savedView?.path === here() ? savedView : null;
+      const saved = memoryKey ? recallView(memoryKey) : null;
       camera.position.set(...(saved?.position ?? next.position));
       controls.current?.target.set(...(saved?.target ?? next.target));
       controls.current?.update();
@@ -144,40 +197,40 @@ export function CameraRig({
       controls.current?.target.copy(goalTarget.current);
       controls.current?.update();
     }
-  }, [key, reducedMotion, camera, keep]);
+  }, [key, reducedMotion, camera, keep, memoryKey]);
 
   // Reset: drop the learner's view and glide back (at once under reduced motion: the frame loop copies).
   const seenReset = useRef(reset);
   useLayoutEffect(() => {
     if (Object.is(seenReset.current, reset)) return;
     seenReset.current = reset;
-    if (keep) savedView = null;
+    if (memoryKey) forgetView(memoryKey);
     velPos.current = [0, 0, 0];
     velTarget.current = [0, 0, 0];
     setUser(false);
-  }, [reset, keep]);
+  }, [reset, memoryKey]);
 
-  // Closing the 3D view keeps the learner's own view for when it opens again.
+  // Closing the 3D view keeps the learner's own view, under the key captured at mount.
   useEffect(() => {
-    if (!keep) return;
+    if (!memoryKey) return;
     const c = controls.current;
     const home = panHome.current;
     return () => {
-      if (!userMoved.current || !c) return;
-      savedView = {
-        path: here(),
-        position: v3(camera.position),
-        target: v3(c.target),
-        home: v3(home),
-      };
+      if (!c) return;
+      if (userMoved.current)
+        rememberView(memoryKey, { position: v3(camera.position), target: v3(c.target), home: v3(home) });
+      else forgetView(memoryKey);
     };
-  }, [keep, camera]);
+  }, [memoryKey, camera]);
 
   useFrame((_, delta) => {
     const c = controls.current;
     if (!c) return;
-    if (!userMoved.current && !touch.current) {
-      const dt = reducedMotion ? 1 : Math.min(delta, MAX_STEP);
+    const dt = Math.min(delta, MAX_FRAME_STEP);
+    // drei updates the controls once a frame (priority -1) and the rig once more below: per update,
+    // this factor keeps the coasting after a drag the same at any frame rate (see dampingFor).
+    c.dampingFactor = dampingFor(dt);
+    if (!userMoved.current) {
       const glide = (from: Vector3, to: Vector3, vel: V3) => {
         if (reducedMotion) {
           from.copy(to);
@@ -203,10 +256,14 @@ export function CameraRig({
     c.update();
     takeOver();
     if (userMoved.current) {
-      // Hold the pan within reach of where the learner started (the camera moves with the target).
-      const limit = goalPos.current.distanceTo(goalTarget.current) * PAN_SHARE;
+      // Hold the pan within reach of where the learner started (the camera moves with the target). The
+      // reach shrinks as they zoom in, so the spot they started from stays on screen.
+      const reach = Math.min(
+        camera.position.distanceTo(c.target),
+        goalPos.current.distanceTo(goalTarget.current),
+      );
       const off = c.target.clone().sub(panHome.current);
-      const held = clampLength([off.x, off.y, off.z], limit);
+      const held = clampLength([off.x, off.y, off.z], reach * PAN_SHARE);
       const fix = new Vector3(held[0] - off.x, held[1] - off.y, held[2] - off.z);
       if (fix.lengthSq() > 0) {
         c.target.add(fix);
@@ -248,7 +305,7 @@ export function CameraRig({
       screenSpacePanning
       enableRotate={!flat}
       enableDamping={!reducedMotion}
-      dampingFactor={0.06}
+      dampingFactor={DAMPING}
       rotateSpeed={0.6}
       zoomSpeed={0.7}
       panSpeed={0.6}
@@ -257,17 +314,15 @@ export function CameraRig({
       minPolarAngle={flat ? 0 : 0.2}
       maxPolarAngle={flat ? 0.05 : 1.38}
       onStart={() => {
+        // A press alone changes nothing (a tap picks an object); a running glide carries on until the
+        // press turns into a camera gesture (takeOver).
         const c = controls.current;
-        if (!c) return;
-        // A press pauses the glide. It becomes the learner's own view only if the camera then moves:
-        // a plain click on an object (which also presses the controls) changes nothing.
-        touch.current = { position: camera.position.clone(), target: c.target.clone() };
-        velPos.current = [0, 0, 0];
-        velTarget.current = [0, 0, 0];
+        if (!press.current.held && c) pressHome.current.copy(c.target);
+        press.current.held = true;
       }}
       onEnd={() => {
         takeOver();
-        touch.current = null;
+        press.current.held = false;
       }}
     />
   );

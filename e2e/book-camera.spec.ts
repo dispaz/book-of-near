@@ -48,6 +48,43 @@ test("a plain click on the canvas leaves the camera to the steps", async ({ page
   await expect(page.getByTestId("reset-view")).toHaveCount(0);
 });
 
+test("a tap on an object that drifts a few pixels picks it and leaves the camera to the steps", async ({
+  page,
+}) => {
+  await open(page);
+  await pose(page);
+  // The object's pick button sits under the canvas at the object's place on screen: press the canvas there.
+  const target = (await page
+    .getByRole("button", { name: "Open Ben's notebook", exact: true })
+    .boundingBox())!;
+  const x = target.x + target.width / 2;
+  const y = target.y + target.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 2, y + 2);
+  await page.mouse.move(x + 3, y);
+  await page.mouse.up();
+  await expect(page.getByRole("button", { name: "Next step" })).toBeEnabled();
+  await expect(stage(page)).toHaveAttribute("data-camera-user", "off");
+  await expect(page.getByTestId("reset-view")).toHaveCount(0);
+});
+
+test("switching to 2D and back keeps the learner's view", async ({ page }) => {
+  await open(page);
+  await pose(page);
+  await drag(page, 140, 30);
+  await expect(stage(page)).toHaveAttribute("data-camera-user", "on");
+  const mine = await pose(page);
+  const views = page.getByRole("group", { name: "Scene view" });
+  await views.getByRole("button", { name: "2D" }).click();
+  await expect(page.locator(".sk-stage canvas")).toHaveCount(0);
+  await views.getByRole("button", { name: "3D" }).click();
+  await expect(stage(page)).toHaveAttribute("data-view", "3d", { timeout: LOAD_3D });
+  await expect(stage(page)).toHaveAttribute("data-camera-user", "on");
+  expect(dist((await pose(page)).pos, mine.pos)).toBeLessThan(0.05);
+  await expect(page.getByTestId("reset-view")).toBeVisible();
+});
+
 test("the learner's view stays across a step, and Reset view brings the step's picture back", async ({
   page,
   browser,
@@ -71,6 +108,8 @@ test("the learner's view stays across a step, and Reset view brings the step's p
   await page.getByTestId("reset-view").click();
   await expect(stage(page)).toHaveAttribute("data-camera-user", "off");
   await expect(page.getByTestId("reset-view")).toHaveCount(0);
+  // The button went away with the learner's view: focus stays in the cluster, on Controls.
+  await expect(page.getByRole("button", { name: "Controls" })).toBeFocused();
   const reset = await pose(page);
   expect(dist(reset.pos, mine.pos)).toBeGreaterThan(1);
   const fresh = await browser.newPage();

@@ -48,7 +48,16 @@ export function CameraControls({ userView, onReset }: { userView: boolean; onRes
     <div className="sk-cam" ref={root}>
       <div className="sk-cam-buttons">
         {userView ? (
-          <button type="button" className="pill" onClick={onReset} data-testid="reset-view">
+          <button
+            type="button"
+            className="pill"
+            data-testid="reset-view"
+            onClick={() => {
+              onReset();
+              // Reset view goes away once the camera is handed back: keep focus in the cluster.
+              button.current?.focus();
+            }}
+          >
             Reset view
           </button>
         ) : null}

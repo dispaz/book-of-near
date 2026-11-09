@@ -29,13 +29,14 @@ export function arcPoint(from: Vec3, to: Vec3, height: number, u: number): [numb
   return [lerp(from[0], to[0]), lerp(from[1], to[1]) + Math.sin(t * Math.PI) * height, lerp(from[2], to[2])];
 }
 
-const dist = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+/** Straight-line distance between two points. */
+export const distance = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
 /** The top-down version of a view: straight above the same target, a little further away. */
 export function toFlat(view: CameraView): CameraView {
   const [x, y, z] = view.target;
   // A tiny z offset keeps OrbitControls' up vector stable when looking straight down.
-  return { target: view.target, position: [x, y + dist(view.position, view.target) * 1.15, z + 0.001] };
+  return { target: view.target, position: [x, y + distance(view.position, view.target) * 1.15, z + 0.001] };
 }
 
 /** Pull the camera back along its line of sight on narrow screens so the scene still fits. */
@@ -53,6 +54,26 @@ export function fitView(view: CameraView, aspect: number): CameraView {
  * never overshoots and bends smoothly when the goal changes mid-flight.
  */
 export const EASE_SECONDS = 0.45;
+
+/**
+ * Longest frame time (seconds) any kit animation advances by in one frame (camera glide, view offset,
+ * a Traveller's hop, the orbit damping): a slow device still animates, a stalled frame cannot jump.
+ */
+export const MAX_FRAME_STEP = 0.1;
+
+/**
+ * OrbitControls' damping per update at 60 Hz. `dampingFor(dt)` scales it to the frame time so the
+ * learner's drag coasts the same at any frame rate.
+ */
+export const DAMPING = 0.06;
+export const dampingFor = (dt: number) => 1 - Math.pow(1 - DAMPING, Math.min(dt, MAX_FRAME_STEP) * 60);
+
+/**
+ * Whether a press has become a camera gesture: the pointer travelled at least `CLICK_PX` (the same
+ * threshold a pick uses, so a press is either a pick or a move, never both), or the learner zoomed
+ * (wheel, pinch) or used two fingers.
+ */
+export const isCameraGesture = (travelPx: number, zoomOrMulti: boolean) => zoomOrMulti || !isClick(travelPx);
 
 /**
  * One step of a critically damped spring from `current` towards `goal` (Game Programming Gems 4,

@@ -1,14 +1,12 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import { AdditiveBlending, type Group, type Sprite, type SpriteMaterial } from "three";
-import { arcPoint, easeInOut, type Vec3 } from "./motion";
+import { arcPoint, easeInOut, MAX_FRAME_STEP as MAX_STEP, type Vec3 } from "./motion";
 import { glowTexture } from "./materials";
 import { useStage } from "./context";
 import { COLORS } from "./theme";
 
 const TRAIL = 14;
-/** Longest time step one frame may advance a hop, in seconds. */
-const MAX_STEP = 1 / 20;
 
 /**
  * Something that travels: a coin, a transaction, a receipt. It sits at `to`. When `to` changes it

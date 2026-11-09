@@ -3,6 +3,7 @@ import { Canvas } from "@react-three/fiber";
 import { IntroContext } from "../app/intro";
 import { CameraControls } from "./CameraControls";
 import { CameraRig } from "./CameraRig";
+import { recallView } from "./viewMemory";
 import { PopClock, PopContext, PopGroup, usePopDriver } from "./PopUp";
 import { StageContext } from "./context";
 import { Overlay, OverlayContext, OverlayStore, OverlaySync } from "./overlay";
@@ -41,6 +42,8 @@ export interface InkStageProps {
   keepView?: boolean;
   /** Change it to drop the learner's own view (for example when a camera tour starts). */
   viewReset?: string | number;
+  /** Key (the lesson id) under which the learner's own view is kept while the 3D view is closed. */
+  viewMemory?: string;
   children: ReactNode;
 }
 
@@ -62,6 +65,7 @@ export function InkStage({
   page,
   keepView = false,
   viewReset,
+  viewMemory,
   children,
 }: InkStageProps) {
   const store = useMemo(() => new OverlayStore(), []);
@@ -69,7 +73,9 @@ export function InkStage({
   // let the objects rise. Decided once, when the stage mounts.
   const intro = useContext(IntroContext);
   const [growing] = useState(() => intro.grow && !reducedMotion);
-  const [pressed, setPressed] = useState(growing);
+  // The learner's own camera kept from before (2D and back): the objects still rise, but the camera
+  // starts where they left it instead of top-down (a top-down start would flatten their view).
+  const [pressed, setPressed] = useState(() => growing && !(viewMemory && recallView(viewMemory)));
   useEffect(() => {
     if (!pressed) return;
     const id = setTimeout(() => setPressed(false), 450);
@@ -119,6 +125,7 @@ export function InkStage({
                 minDistance={minDistance}
                 maxDistance={maxDistance}
                 keep={keepView}
+                memory={viewMemory}
                 reset={reset}
                 onMotion={(m) => wrap.current?.setAttribute("data-camera", m)}
                 onUserView={setUserView}

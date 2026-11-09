@@ -247,4 +247,9 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Camera cluster (`CameraControls`) top right of the free area: Reset view (while their view is on) and Controls, a disclosure card for mouse, touch (own pointer first) and keyboard. It does not open by itself on a first visit, so it never covers the page or a lesson's first action.
 - Tests: `smoothDamp` / `clampLength` / `helpFor` unit tests; `e2e/book-camera.spec.ts` on lesson 0.1 (a click is not a move, view kept across a step, Reset view, pan clamp, Controls open / Esc / outside, phone fit). Test hooks on `.sk-stage`: `data-camera-user`, `data-camera-pose`.
 - Not done: keyboard camera keys (the canvas is not a focus stop; arrow keys belong to the page).
+- Review fixes (PR #38):
+  - The kept view is keyed by the lesson id (`LessonIdContext` → `BookScene viewMemory`, captured at mount, `viewMemory.ts`), not the URL. Before, it leaked into the next lesson under the data router and was shared by every lesson under hash routing.
+  - A press counts as the learner's view only past `CLICK_PX` or on a zoom / two fingers (`isCameraGesture`), so a drifting tap picks without freezing the camera. A press no longer stops a running glide dead.
+  - Returning to 3D with a kept view skips the top-down intro press, which was flattening the view; the objects still grow.
+  - Reset view moves focus to Controls. Orbit damping is frame-rate independent (`dampingFor`). One `MAX_FRAME_STEP` (0.1 s) for the camera, view offset and Traveller (the Traveller was 1/20). `far()` uses the shared `distance`. The pan reach shrinks when zoomed in and is anchored where the press began.
 

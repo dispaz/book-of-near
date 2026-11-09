@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { arcPoint, clampLength, easeInOut, fitView, isClick, smoothDamp, toFlat } from "./motion";
+import {
+  arcPoint,
+  clampLength,
+  CLICK_PX,
+  DAMPING,
+  dampingFor,
+  distance,
+  easeInOut,
+  fitView,
+  isCameraGesture,
+  isClick,
+  smoothDamp,
+  toFlat,
+} from "./motion";
 
 describe("easeInOut", () => {
   it("starts at 0, ends at 1 and is symmetric", () => {
@@ -100,5 +113,23 @@ describe("clampLength", () => {
     const [x, y, z] = clampLength([3, 0, 4], 2.5);
     expect(Math.hypot(x, y, z)).toBeCloseTo(2.5);
     expect(x / z).toBeCloseTo(3 / 4);
+  });
+});
+
+describe("camera gestures and damping", () => {
+  it("a press is a camera gesture only past the pick threshold, or on a zoom or two fingers", () => {
+    expect(isCameraGesture(3, false)).toBe(false);
+    expect(isCameraGesture(CLICK_PX - 0.5, false)).toBe(false);
+    expect(isCameraGesture(CLICK_PX, false)).toBe(true);
+    expect(isCameraGesture(0, true)).toBe(true);
+  });
+  it("damping is the 60 Hz rate at 60 Hz and coasts the same at 120 Hz", () => {
+    expect(dampingFor(1 / 60)).toBeCloseTo(DAMPING);
+    const keep60 = 1 - dampingFor(1 / 60);
+    const keep120 = (1 - dampingFor(1 / 120)) ** 2;
+    expect(keep120).toBeCloseTo(keep60, 6);
+  });
+  it("distance is the straight line between two points", () => {
+    expect(distance([0, 0, 0], [3, 0, 4])).toBe(5);
   });
 });
