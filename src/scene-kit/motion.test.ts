@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arcPoint, easeInOut, fitView, isClick, toFlat } from "./motion";
+import { arcPoint, easeInOut, fitView, isClick, ORBIT, orbitLimits, toFlat } from "./motion";
 
 describe("easeInOut", () => {
   it("starts at 0, ends at 1 and is symmetric", () => {
@@ -58,5 +58,41 @@ describe("isClick", () => {
     expect(isClick(5.9)).toBe(true);
     expect(isClick(6)).toBe(false);
     expect(isClick(40)).toBe(false);
+  });
+});
+
+describe("orbitLimits", () => {
+  const deg = (r: number) => (r * 180) / Math.PI;
+  const front = { target: [0, 0, 0], position: [0, 12, 16] } as const; // 20 away, straight in front
+
+  it("lets the learner turn 45° either way of the step's view: a 90° wedge, not all the way round", () => {
+    const l = orbitLimits(front, 3, 140);
+    expect(deg(l.minAzimuth)).toBeCloseTo(-45);
+    expect(deg(l.maxAzimuth)).toBeCloseTo(45);
+  });
+
+  it("centres the wedge on a view seen from the side", () => {
+    const a = (-18 * Math.PI) / 180;
+    const side = { target: [0, 0, 0], position: [Math.sin(a) * 10, 5, Math.cos(a) * 10] } as const;
+    const l = orbitLimits(side, 3, 140);
+    expect(deg(l.minAzimuth)).toBeCloseTo(-18 - 45);
+    expect(deg(l.maxAzimuth)).toBeCloseTo(-18 + 45);
+  });
+
+  it("wraps round when the view looks from behind", () => {
+    const behind = { target: [0, 0, 0], position: [0.001, 5, -10] } as const;
+    const l = orbitLimits(behind, 3, 140);
+    expect(l.minAzimuth).toBeGreaterThan(l.maxAzimuth); // OrbitControls reads min > max as a wrapped range
+    expect(Math.abs(l.minAzimuth)).toBeLessThanOrEqual(Math.PI);
+    expect(Math.abs(l.maxAzimuth)).toBeLessThanOrEqual(Math.PI);
+  });
+
+  it("lets the learner zoom out only a little past the step's view", () => {
+    expect(orbitLimits(front, 3, 140).maxDistance).toBeCloseTo(20 * ORBIT.zoomOut);
+  });
+
+  it("keeps the lesson's own ceiling, but never below the step's view", () => {
+    expect(orbitLimits(front, 3, 22).maxDistance).toBe(22);
+    expect(orbitLimits(front, 3, 15).maxDistance).toBeCloseTo(20);
   });
 });
