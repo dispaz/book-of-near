@@ -12,21 +12,21 @@ Live demo: `/lesson/scene-kit-demo` (hidden from menus). Source: `src/content/le
 
 Never import `src/scene-kit` (the 3D half) from a manifest, the app shell or the SVG kit. The e2e test
 "no 3D code loads on the contents page" checks that `WebGLRenderer` is not in the JS loaded on `/`.
-`motion.ts` and `theme.ts` hold the pure maths and colours shared by both halves.
+`motion.ts`, `theme.ts` and `nearMark.ts` (the NEAR mark on coins) hold the pure maths, colours and shapes shared by both halves.
 
 ## 3D primitives
 
 | Component | Notes |
 | --- | --- |
-| `<InkStage view flat reducedMotion state description status? onMiss? backdrop? page?>` | Canvas wrapper: paper ground (or `backdrop`, e.g. a `BookBackdrop`), camera rig, orbit, overlay. Exposes `data-scene-state={state}`, `data-view`, `data-camera="moving"\|"still"` and, during the pop-up, `data-pop="turn"\|"rise"\|"fill"` on `.sk-stage`. `status` is a handwritten, `aria-live` note top right. A new `page` (e.g. the step) turns the page and pops the figure up again. |
+| `<InkStage view flat reducedMotion state description status? onMiss? backdrop? page?>` | Canvas wrapper: paper ground (or `backdrop`, e.g. a `BookBackdrop`), camera rig, orbit, overlay. The learner may orbit 45° either side of the step's view (a 90° wedge, never all the way round) and zoom out to 1.3× its distance (`ORBIT`, `orbitLimits` in `motion.ts`), but no further than `maxDistance` unless the step's own view is already further out. Grabbing the camera before it arrives centres the turn range on where it was grabbed. With `keepView` (book scenes) the learner's view, and the range round where they took over, stay through later steps until Reset view; `panBounds` holds the pan to the open book (otherwise `ORBIT.pan` of the distance). See `docs/book-scene.md`. Exposes `data-scene-state={state}`, `data-view`, `data-camera="moving"\|"still"` and, during the pop-up, `data-pop="turn"\|"rise"\|"fill"` on `.sk-stage`. `status` is a handwritten, `aria-live` note top right. A new `page` (e.g. the step) turns the page and pops the figure up again. |
 | `<BookScene …>`, `useFreeFrame`, `useTour`, `<TourControls>` | **The standard 3D lesson view** (`docs/book-scene.md`): `InkStage` on an open book with the step printed on the left page, a page turn per step and a camera tour. Build new 3D views with this, not bare `InkStage`. |
-| `<BookBackdrop spread heads? folios? caption?>` | An open pop-up book on a desk for the scene to stand on (pages at y = 0). Size it with `spreadFor` (spine at x = 0) or `spreadBeside` (figure on the right page, left page free for print). Objects cast hatched ink shadows; a page curls over when `InkStage`'s `page` changes. |
+| `<BookBackdrop spread heads? folios? caption?>` | An open pop-up book on a desk in a window nook at sunset (`Room.tsx`: the back wall is the painting `assets/sunset-window.jpg`, composed and carried up to the ceiling by `roomPaint.ts`; the nook is sized by the pure `roomFor` in `roomLayout.ts`), for the scene to stand on (pages at y = 0). Size it with `spreadFor` (spine at x = 0) or `spreadBeside` (figure on the right page, left page free for print). Objects cast hatched ink shadows; a page curls over when `InkStage`'s `page` changes. |
 | `<PrintOnPage block el place onInView>` | Prints an HTML element on the left page (`textBlock(spread)`), following it in perspective; reports when the block leaves the screen so the caller can lay the words out normally again. Used with the app's `SpreadContext`. |
 | `<AccountBlock name color? size? coins? note?>` | Rounded ink block with soft shadow and a name label. |
 | `<ContractBlock name …>` | Block with a lid and a `{ code }` plate. |
 | `<ShardSlab name length? depth?>` | Long slab; label at its left end. |
 | `<ChainBlock name …>` | Three linked blocks: another blockchain. |
-| `<Key name? rotation?>`, `<Coin>` | Gold objects with ink outlines. |
+| `<Key name? rotation?>`, `<Coin color?>` | Ink-outlined objects: a gold key; a NEAR coin (NEAR green, NEAR mark on both faces, `nearMark.ts`). |
 | `<Traveller to arc? duration? color? onArrive?>{children}</Traveller>` | Sits at `to`; when `to` changes it hops along an arc with a glow and trail, then calls `onArrive`. Instant under reduced motion. `onArrive` also fires on first placement, so a scene can open a gate from it safely. |
 | `<Label position variant?>` | HTML label (Caveat; `small` caps; `hint` pill) that follows a 3D point. |
 | `<Outline mode? threshold? width?>` | Child of a mesh: `edges` (hard edges) or `hull` (silhouette for curved shapes). |
@@ -48,9 +48,7 @@ every frame before it renders, so stages never see each other's value. No turn o
 motion. A scene can add controls to the stage bar (e.g. lesson 0.1's tour play button) through `BarSlot`.
 
 **Colours.** Objects follow the ink rule: paper white, black outlines, the stage accent for meaning.
-The book backdrop is the exception: its gold cloth cover, navy ribbon, sage felt mat, ash table and warm
-window light are the setting, not part of the drawing, and stay the same on every stage. Print on the
-page uses the stage accent darkened with ink.
+The book backdrop is the exception: its deep green cloth cover, NEAR green ribbon, warm wooden desk and the sunset room round it are the setting, the same on every stage (NEAR palette: `NEAR` in `theme.ts`).
 
 ## Scene objects
 

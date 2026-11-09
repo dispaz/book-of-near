@@ -103,13 +103,47 @@ export function smoothDamp(
   return [out, v];
 }
 
-/** How far (a share of the camera's distance) the learner may pan the view away from the step's target. */
-export const PAN_SHARE = 0.15;
-
 /** `offset` shortened to at most `limit` long (same direction). */
 export function clampLength(offset: Vec3, limit: number): [number, number, number] {
   const len = Math.hypot(offset[0], offset[1], offset[2]);
   if (len <= limit || len === 0) return [offset[0], offset[1], offset[2]];
   const k = Math.max(0, limit) / len;
   return [offset[0] * k, offset[1] * k, offset[2] * k];
+}
+
+/** How far the learner may move the camera away from a step's view (CameraRig): the one source. */
+export const ORBIT = {
+  /** Turn at most this far either side of the step's view (radians): a 90° wedge, not all the way round. */
+  azimuth: Math.PI / 4,
+  /** Zoom out at most this many times the step's distance. */
+  zoomOut: 1.3,
+  /**
+   * Outside a book: slide at most this share of the camera's distance from where the learner took over.
+   * Book scenes hold the slide to the open book instead (`bookFootprint`).
+   */
+  pan: 0.15,
+} as const;
+
+/** An angle in -π..π. */
+const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+
+/**
+ * The orbit limits round a camera preset, for OrbitControls: the azimuth range (min > max means it wraps
+ * through ±π) and the furthest zoom. The zoom stays under the lesson's `maxDistance` but never comes
+ * closer than the preset itself, so the limits never fight the rig.
+ */
+export function orbitLimits(
+  view: CameraView,
+  minDistance: number,
+  maxDistance: number,
+): { minAzimuth: number; maxAzimuth: number; maxDistance: number } {
+  const [px, , pz] = view.position;
+  const [tx, , tz] = view.target;
+  const az = Math.atan2(px - tx, pz - tz);
+  const d = distance(view.position, view.target);
+  return {
+    minAzimuth: wrap(az - ORBIT.azimuth),
+    maxAzimuth: wrap(az + ORBIT.azimuth),
+    maxDistance: Math.max(d, minDistance, Math.min(maxDistance, d * ORBIT.zoomOut)),
+  };
 }

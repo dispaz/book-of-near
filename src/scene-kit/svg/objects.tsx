@@ -5,6 +5,7 @@
  */
 import type { ReactNode } from "react";
 import { COLORS, INK, PAPER } from "../theme";
+import { markTransform, NEAR_MARK } from "../nearMark";
 import { itemSlots, lookOf, type ObjectLook, type ObjectState } from "../objects";
 import { SvgCoin, SvgLabel, SvgPickable, SvgShadow, type SvgPickProps } from "./index";
 
@@ -486,7 +487,15 @@ export type IconKind = "mailbox" | "parcel" | "stamp" | "scroll" | "key" | "tagg
 
 /** A small drawing of a scene object, for the header of an HTML card. Decorative: hidden from readers. */
 export function ObjectIcon({ kind, size = 22, color }: { kind: IconKind; size?: number; color?: string }) {
-  const c = color ?? (kind === "parcel" ? COLORS.kraft : kind === "scroll" ? COLORS.contract : COLORS.gold);
+  const c =
+    color ??
+    (kind === "parcel"
+      ? COLORS.kraft
+      : kind === "scroll"
+        ? COLORS.contract
+        : kind === "coin"
+          ? COLORS.near
+          : COLORS.gold);
   const s = { fill: c, stroke: INK, strokeWidth: 1.6, strokeLinejoin: "round" as const };
   let body: ReactNode;
   switch (kind) {
@@ -583,6 +592,7 @@ export function ObjectIcon({ kind, size = 22, color }: { kind: IconKind; size?: 
         <>
           <ellipse cx="12" cy="14" rx="9" ry="4" {...s} />
           <ellipse cx="12" cy="11.5" rx="9" ry="4" {...s} />
+          <path d={NEAR_MARK.path} fill={INK} transform={markTransform(12, 11.5, 6.4, 0.5)} />
         </>
       );
       break;

@@ -11,7 +11,8 @@ Start a new lesson as a book scene with `npm run new-lesson -- <id> --stage N --
 | Part | Where | Who draws it |
 | --- | --- | --- |
 | Cover → open book → 2D page → 3D grows out of the page | Lesson start and 2D → 3D switch | App (`LessonPage`, `IntroContext`), automatic |
-| Desk, open book, cloth cover, ribbon, page edges | Under the scene | `BookBackdrop` (via `BookScene`) |
+| Desk, open book, cloth cover, ribbon, page edges, sun streaks and window shadows on the desk | Under the scene | `BookBackdrop` (via `BookScene`) |
+| The window nook round the desk at sunset: the back wall is a painting (`assets/sunset-window.jpg`: a bookshelf with a trailing pothos, a three-pane window onto mountains and a garden, a plant on the sill) standing on the desk, carried on up to the ceiling; side walls in warm wood, the left one lined with the same shelves; sun streaks and the window frames' shadows on the desk | Behind and round the desk, seen at low angles and in tour close-ups | `Room` (`Room.tsx`, `roomLayout.ts`, `roomPaint.ts`; via `BookBackdrop`) |
 | The step's figure, standing on the **right page** | Pages at y = 0 | The lesson (children of `BookScene`) |
 | The step's heading, note and action, **printed on the left page** | Scene area ≥ 1100 px wide (`PRINT_MIN_WIDTH`), not at the quiz / honest take | `PrintOnPage` + `SpreadContext` (via `BookScene`); the lesson page lays its `.book-page` out as print |
 | Page numbers at the foot, "Fig. n  …" caption under the figure | Right page foot | `BookBackdrop` (`folios(sheet)`, `caption`) |
@@ -88,7 +89,10 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
    printed only on a 3D object (a balance on a page, a hash on a block) is also in visually hidden text or
    a labelled HTML tag.
 8. **Colours.** Figures follow the ink rule (paper white, black outlines, the stage accent for meaning).
-   The desk and book colours are the setting and stay the same on every stage.
+   The setting (table, room, book) is the same on every stage and uses NEAR's palette (`NEAR` in
+   `theme.ts`, `--near-*` in `ink.css`): a deep green cloth cover, a NEAR green ribbon, NEAR greens in
+   the plants and hills. The light is a warm sunset (orange desk, violet and pink sky). Coins are NEAR coins: `Coin` and `SvgCoin` default to NEAR green with the
+   NEAR mark (`nearMark.ts`) on their faces. Pass `color` only when a coin must mean something else.
 9. **Reduced motion.** No page turn, no pop-up and no camera easing: the camera jumps from shot to shot.
    The tour still plays when the learner presses play (it is their choice), one still shot after another.
    Nothing extra to do if you use `BookScene`, `Traveller` and the kit primitives.
@@ -106,9 +110,16 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
     margin of 5 % of the spread, at least 0.5), each axis on its own, at the height it had. So the learner
     can bring the right page, or any figure on it, to the middle of the free area (the view offset keeps
     the target there), at any zoom, but never slide off the book. `BookScene` passes it as
-    `InkStage panBounds`; other 3D scenes keep a small pan, within `PAN_SHARE` (15 %) of the camera's
+    `InkStage panBounds`; other 3D scenes keep a small pan, within `ORBIT.pan` (15 %) of the camera's
     distance (less when zoomed in) from where the press became a camera gesture. The coasting after a drag
     is frame-rate independent (`dampingFor`; drei and the rig each update the controls once a frame).
+    **Turn and zoom limits** (`ORBIT`, `orbitLimits`): 45° either side of a view and 1.3× its distance at
+    most, relaxed while the rig glides. Before the learner takes over, the range is centred on the step's
+    view. When they take over it is centred on the view they took it from (the step's view if the camera
+    had arrived, or where they grabbed it mid-glide) and that centre stays with their kept view through
+    later steps, so a new step never pulls the camera into its own range. Reset view, Flat view or the tour
+    hand the camera back and the range follows the step's view again. The kept view in memory carries its
+    centre (`SavedView.from`).
     **Their view stays.** A press becomes the learner's own view only as a camera gesture
     (`isCameraGesture`): the pointer went at least `CLICK_PX` from where the press began (the pick
     threshold; `Pickable` measures the same furthest travel, so a press that goes out 7 px and back is a

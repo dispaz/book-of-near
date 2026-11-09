@@ -614,10 +614,17 @@ button.bb-block:hover,
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #f2c230;
+  background: var(--near-green);
   border: 2px solid var(--ink);
-  box-shadow: inset 0 0 0 4px #f7d76a;
+  box-shadow: inset 0 0 0 3px #7ff5c9;
   animation: bb-coin-y 0.9s ease-in-out both;
+}
+/* The NEAR mark on the coin (src/scene-kit/nearMark.ts), as on every coin in 2D and 3D. */
+.bb-coin svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: var(--ink);
 }
 @keyframes bb-coin-x {
   from {

@@ -1,10 +1,12 @@
-import type { Vec3 } from "./motion";
+import type { CameraView, Vec3 } from "./motion";
 
 /** The learner's own camera: where it is, what it looks at, and where their pan is held around. */
 export interface SavedView {
   position: Vec3;
   target: Vec3;
   home: Vec3;
+  /** The view their turn and zoom range is centred on (CameraRig, `orbitLimits`). */
+  from: CameraView;
 }
 
 /**

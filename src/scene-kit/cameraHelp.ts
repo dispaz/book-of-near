@@ -13,7 +13,7 @@ export const MOUSE: HelpGroup = {
   kind: "mouse",
   title: "With a mouse or trackpad",
   lines: [
-    { what: "Turn", how: "Drag." },
+    { what: "Turn", how: "Drag. Up to 45° either way." },
     { what: "Zoom", how: "Scroll, or pinch on a trackpad." },
     { what: "Slide", how: "Right-drag, or hold Shift and drag." },
   ],
@@ -23,7 +23,7 @@ export const TOUCH: HelpGroup = {
   kind: "touch",
   title: "On a touch screen",
   lines: [
-    { what: "Turn", how: "Drag with one finger." },
+    { what: "Turn", how: "Drag with one finger. Up to 45° either way." },
     { what: "Zoom", how: "Pinch." },
     { what: "Slide", how: "Drag with two fingers." },
   ],

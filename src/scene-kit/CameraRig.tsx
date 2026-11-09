@@ -11,7 +11,8 @@ import {
   fitView,
   isCameraGesture,
   MAX_FRAME_STEP,
-  PAN_SHARE,
+  ORBIT,
+  orbitLimits,
   smoothDamp,
   toFlat,
   type CameraView,
@@ -38,7 +39,7 @@ const v3 = (v: Vector3): V3 => [v.x, v.y, v.z];
  * target. The learner can orbit, zoom and pan (right drag, shift / ctrl / cmd + drag, two-finger drag).
  * With `panBounds` (the open book's footprint) the pan slides across the desk and the target stays inside
  * that box, so any part of either page can come to the middle but the view cannot leave the book.
- * Without it the pan is held within `PAN_SHARE` of the camera's distance from where they took over (less
+ * Without it the pan is held within `ORBIT.pan` of the camera's distance from where they took over (less
  * when zoomed in), so the figure cannot leave the view.
  *
  * A press becomes the learner's own view only as a camera gesture (`isCameraGesture`: the pointer moved
@@ -49,6 +50,14 @@ const v3 = (v: Vector3): V3 => [v.x, v.y, v.z];
  * - without it, until the view changes by more than a nudge; then it glides back.
  * With `memory` (a lesson id, captured at mount) their view is kept while the 3D view is closed and given
  * back when it opens again in that lesson (`viewMemory`).
+ *
+ * Turn and zoom limits (`orbitLimits`, `ORBIT`): 45° either side of a view and 1.3× its distance at most,
+ * never all the way round. The view they are centred on is the step's view while the rig follows the
+ * steps. When the learner takes over it becomes the view they took it from: the step's view if the camera
+ * had arrived, or where it was when they grabbed it mid-glide (no jump into the step's wedge). That centre
+ * stays with their kept view through later steps (a new step never yanks the camera into its own wedge)
+ * until the camera is handed back (Reset view, Flat view, the tour). The limits are relaxed while the rig
+ * glides, so its path never fights them.
  *
  * Reports "moving" or "still" through `onMotion` (the camera and the picture's view offset), whether the
  * learner's own view is on through `onUserView`, and the rounded camera position and target
@@ -128,7 +137,13 @@ export function CameraRig({
 
   /** The press in progress: the controls are held; how far the pointer went; a zoom or second finger. */
   const press = useRef({ held: false, travel: 0, zoomOrMulti: false });
+  /** The camera when the press began, or null if it had arrived at the step's view by then. */
+  const grabbedAt = useRef<CameraView | null>(null);
+  /** Once the learner has taken over: the view their turn and zoom range is centred on. */
+  const from = useRef<CameraView | null>(null);
   const downs = useRef(new Map<number, { x: number; y: number }>());
+  /** Whether the glide has landed on the step's view (it lands exactly). */
+  const arrived = () => camera.position.distanceToSquared(goalPos.current) < 1e-6;
   /** The press became a camera gesture: the view is now the learner's, the glide hands over to them. */
   const takeOver = () => {
     const p = press.current;
@@ -138,7 +153,14 @@ export function CameraRig({
     velTarget.current = [0, 0, 0];
     // The pan is held around the target as it is now: the glide may have moved it since the press began.
     panHome.current.copy(c.target);
+    // Their turn range: round the step's view, or round where they grabbed the camera mid-glide.
+    from.current = grabbedAt.current ?? goal.current;
     setUser(true);
+  };
+  /** The camera is handed back to the steps: the range follows the step's view again. */
+  const handBack = () => {
+    from.current = null;
+    setUser(false);
   };
 
   // Capture phase, so these run before OrbitControls' own handlers on the same element.
@@ -199,6 +221,7 @@ export function CameraRig({
       controls.current?.update();
       if (saved) {
         panHome.current.set(...saved.home);
+        from.current = saved.from;
         setUser(true);
       }
       return;
@@ -206,7 +229,7 @@ export function CameraRig({
     // With `keep` the learner's view outlives every new view; without it, only a nudge.
     if (userMoved.current && (keep || !far(prev!, next, goalPos.current.distanceTo(goalTarget.current))))
       return;
-    setUser(false);
+    handBack();
     markMoving();
     if (reducedMotion) {
       velPos.current = [0, 0, 0];
@@ -225,7 +248,7 @@ export function CameraRig({
     if (memoryKey) forgetView(memoryKey);
     velPos.current = [0, 0, 0];
     velTarget.current = [0, 0, 0];
-    setUser(false);
+    handBack();
     markMoving();
   }, [reset, memoryKey]);
 
@@ -236,8 +259,13 @@ export function CameraRig({
     const home = panHome.current;
     return () => {
       if (!c) return;
-      if (userMoved.current)
-        rememberView(memoryKey, { position: v3(camera.position), target: v3(c.target), home: v3(home) });
+      if (userMoved.current && from.current)
+        rememberView(memoryKey, {
+          position: v3(camera.position),
+          target: v3(c.target),
+          home: v3(home),
+          from: from.current,
+        });
       else forgetView(memoryKey);
     };
   }, [memoryKey, camera]);
@@ -273,6 +301,17 @@ export function CameraRig({
       glide(camera.position, goalPos.current, velPos.current);
       glide(c.target, goalTarget.current, velTarget.current);
     }
+    // Turn and zoom limits: round the learner's own centre once they took over, else the step's view;
+    // relaxed while the rig glides (its path may pass outside them).
+    const settled = userMoved.current || arrived();
+    const limits = orbitLimits(
+      (userMoved.current && from.current) || goal.current || v,
+      minDistance,
+      maxDistance,
+    );
+    c.minAzimuthAngle = settled ? limits.minAzimuth : -Infinity;
+    c.maxAzimuthAngle = settled ? limits.maxAzimuth : Infinity;
+    c.maxDistance = settled ? limits.maxDistance : Infinity;
     c.update();
     takeOver();
     if (userMoved.current) {
@@ -290,7 +329,7 @@ export function CameraRig({
           goalPos.current.distanceTo(goalTarget.current),
         );
         const off = c.target.clone().sub(panHome.current);
-        const held = clampLength([off.x, off.y, off.z], reach * PAN_SHARE);
+        const held = clampLength([off.x, off.y, off.z], reach * ORBIT.pan);
         fix = new Vector3(held[0] - off.x, held[1] - off.y, held[2] - off.z);
       }
       if (fix.lengthSq() > 0) {
@@ -340,7 +379,6 @@ export function CameraRig({
       zoomSpeed={0.7}
       panSpeed={0.6}
       minDistance={minDistance}
-      maxDistance={maxDistance}
       minPolarAngle={flat ? 0 : 0.2}
       maxPolarAngle={flat ? 0.05 : 1.38}
       onStart={() => {
@@ -348,6 +386,11 @@ export function CameraRig({
         // press turns into a camera gesture (takeOver).
         // The camera may move from here on: no stale "still" while the drag starts.
         markMoving();
+        // Grabbed before the camera arrived: if this becomes their view, centre its range on this spot.
+        const c = controls.current;
+        if (!press.current.held && !userMoved.current)
+          grabbedAt.current =
+            c && !arrived() ? { position: v3(camera.position), target: v3(c.target) } : null;
         press.current.held = true;
       }}
       onEnd={() => {
