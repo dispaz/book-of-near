@@ -51,6 +51,7 @@ function usePicture(): HTMLImageElement | null {
   return img;
 }
 
+/** Painted textures, kept for the whole visit on purpose: a few per spread size, shared by every lesson. */
 const textures = new Map<string, Texture>();
 
 /** A texture from a canvas, cached by `key`, so page turns and remounts do not paint it again. */

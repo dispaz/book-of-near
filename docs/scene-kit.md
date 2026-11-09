@@ -12,7 +12,7 @@ Live demo: `/lesson/scene-kit-demo` (hidden from menus). Source: `src/content/le
 
 Never import `src/scene-kit` (the 3D half) from a manifest, the app shell or the SVG kit. The e2e test
 "no 3D code loads on the contents page" checks that `WebGLRenderer` is not in the JS loaded on `/`.
-`motion.ts` and `theme.ts` hold the pure maths and colours shared by both halves.
+`motion.ts`, `theme.ts` and `nearMark.ts` (the NEAR mark on coins) hold the pure maths, colours and shapes shared by both halves.
 
 ## 3D primitives
 
