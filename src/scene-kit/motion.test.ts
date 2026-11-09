@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arcPoint, easeInOut, fitView, isClick, toFlat } from "./motion";
+import { arcPoint, clampLength, easeInOut, fitView, isClick, smoothDamp, toFlat } from "./motion";
 
 describe("easeInOut", () => {
   it("starts at 0, ends at 1 and is symmetric", () => {
@@ -58,5 +58,47 @@ describe("isClick", () => {
     expect(isClick(5.9)).toBe(true);
     expect(isClick(6)).toBe(false);
     expect(isClick(40)).toBe(false);
+  });
+});
+
+describe("smoothDamp", () => {
+  const run = (fps: number, seconds: number) => {
+    let x = 0;
+    let v = 0;
+    for (let i = 0; i < fps * seconds; i++) [x, v] = smoothDamp(x, 10, v, 0.5, 1 / fps);
+    return x;
+  };
+  it("starts gently: the first frame moves only a little", () => {
+    const [x] = smoothDamp(0, 10, 0, 0.5, 1 / 60);
+    expect(x).toBeGreaterThan(0);
+    expect(x).toBeLessThan(0.1);
+  });
+  it("gets most of the way in about two smooth times and never overshoots", () => {
+    let x = 0;
+    let v = 0;
+    for (let i = 0; i < 300; i++) {
+      [x, v] = smoothDamp(x, 10, v, 0.5, 1 / 60);
+      expect(x).toBeLessThanOrEqual(10);
+    }
+    expect(run(60, 1)).toBeGreaterThan(9);
+    expect(run(60, 3)).toBeCloseTo(10, 2);
+  });
+  it("moves the same at 30, 60 and 120 frames a second", () => {
+    expect(run(30, 0.5)).toBeCloseTo(run(120, 0.5), 0);
+    expect(Math.abs(run(60, 0.5) - run(120, 0.5))).toBeLessThan(0.15);
+  });
+  it("stands still when no time passes", () => {
+    expect(smoothDamp(3, 10, 2, 0.5, 0)).toEqual([3, 2]);
+  });
+});
+
+describe("clampLength", () => {
+  it("leaves short offsets alone", () => {
+    expect(clampLength([1, 0, 1], 5)).toEqual([1, 0, 1]);
+  });
+  it("shortens long offsets to the limit, same direction", () => {
+    const [x, y, z] = clampLength([3, 0, 4], 2.5);
+    expect(Math.hypot(x, y, z)).toBeCloseTo(2.5);
+    expect(x / z).toBeCloseTo(3 / 4);
   });
 });
