@@ -1,0 +1,185 @@
+/* Lesson 3.1: deploy a contract. One state, a flat page (2D) or the pop-up book (3D). */
+.dpc {
+  position: absolute;
+  top: var(--head-h, 112px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--bar-reserve, 88px) + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .dpc {
+    top: var(--head-h, 104px);
+    left: 448px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    gap: 12px;
+  }
+}
+.dpc p,
+.dpc-panel p {
+  margin: 0;
+}
+.dpc code,
+.dpc-panel code {
+  font:
+    600 13px ui-monospace,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- flat page ---------- */
+.dpc-2d {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #fffdf7;
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 6px;
+}
+.dpc-2d svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 46vh;
+}
+.dpc-link {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.dpc-link.dashed {
+  stroke-dasharray: 7 5;
+}
+.dpc-bar {
+  fill: #fffdf7;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.dpc-bar.dashed {
+  stroke-dasharray: 7 5;
+}
+.dpc-bar-lock {
+  fill: var(--accent);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.dpc-svg-label {
+  font: 600 15px var(--ui);
+  fill: var(--ink);
+}
+
+/* ---------- the facts (both views) ---------- */
+.dpc-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--ink);
+  border-top: 5px solid var(--accent);
+  border-radius: 12px;
+  background: var(--glass);
+  font: 500 15px/1.4 var(--serif);
+  color: var(--ink);
+}
+.dpc-facts:empty {
+  display: none;
+}
+.dpc-soft {
+  color: var(--mute);
+}
+.dpc-warn {
+  font: 600 15px/1.4 var(--ui);
+  color: #8a1f17;
+}
+.dpc-list {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  align-items: baseline;
+}
+.dpc-list dt {
+  font: 700 12px var(--ui);
+  color: var(--mute);
+}
+.dpc-list dd {
+  margin: 0;
+  min-width: 0;
+}
+.dpc-gauge {
+  height: 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: #fffdf7;
+  overflow: hidden;
+}
+.dpc-gauge-lock {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-right: 1.5px solid var(--ink);
+}
+.dpc-storage {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dpc-receipts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dpc-receipts li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  align-items: baseline;
+}
+.dpc-receipts .dpc-mark {
+  font: 700 15px var(--ui);
+}
+.dpc-receipts li.ok .dpc-mark {
+  color: #1d7a4c;
+}
+.dpc-receipts li.failed .dpc-mark {
+  color: #b3261e;
+}
+.dpc-note {
+  font-size: 14px;
+  color: var(--mute);
+}
+
+/* ---------- 3D: the facts in the book scene's panel ---------- */
+.dpc-panel .dpc-facts.compact {
+  max-height: min(30vh, 250px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (min-width: 1100px) {
+  .dpc-panel .dpc-facts.compact {
+    max-height: min(27vh, 236px);
+  }
+}
+
+@media (max-width: 600px) {
+  .dpc-facts {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+}
+
+/* Reduced motion: end states only (the global CSS already cuts transitions). */
+.dpc.still * {
+  animation: none !important;
+  transition: none !important;
+}

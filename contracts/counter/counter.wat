@@ -10,6 +10,7 @@
 ;;                                    calls method_name on account_id, then on_other_done here
 ;;   on_other_done()                  private callback: stores "ok" or "failed", returns true/false
 ;;   last_result()                    view: "ok", "failed" or null
+;;   reset()                          deletes "num" and "last_result" from storage (lesson 3.1)
 ;;
 ;; Only WebAssembly MVP instructions (no bulk memory, no sign extension): NEAR rejects newer ones.
 ;; Host functions: https://github.com/near/nearcore/blob/master/runtime/near-vm-runner/src/logic/logic.rs
@@ -22,6 +23,7 @@
   (import "env" "panic_utf8" (func $panic_utf8 (param i64 i64)))
   (import "env" "storage_write" (func $storage_write (param i64 i64 i64 i64 i64) (result i64)))
   (import "env" "storage_read" (func $storage_read (param i64 i64 i64) (result i64)))
+  (import "env" "storage_remove" (func $storage_remove (param i64 i64 i64) (result i64)))
   (import "env" "current_account_id" (func $current_account_id (param i64)))
   (import "env" "predecessor_account_id" (func $predecessor_account_id (param i64)))
   (import "env" "promise_create"
@@ -57,6 +59,7 @@
   (data (i32.const 328) "\22method_name\22")       ;; 13
   (data (i32.const 344) "increment")               ;; 9
   (data (i32.const 360) "Bad arguments: expected account_id") ;; 34
+  (data (i32.const 432) "State cleared")           ;; 13
   ;; 400..416: a u128 zero (attached deposit for promises), left zeroed.
 
   ;; Buffers.
@@ -218,6 +221,12 @@
         (call $read_register (i64.const 1) (i64.const 2048))
         (call $value_return (call $register_len (i64.const 1)) (i64.const 2048)))
       (else (call $value_return (i64.const 4) (i64.const 48)))))
+
+  ;; Deletes the count and the last result. Freed bytes no longer need storage staking.
+  (func (export "reset")
+    (drop (call $storage_remove (i64.const 3) (i64.const 0) (i64.const 1)))
+    (drop (call $storage_remove (i64.const 11) (i64.const 8) (i64.const 1)))
+    (call $log_utf8 (i64.const 13) (i64.const 432)))
 
   (func (export "call_other")
     (local $end i32) (local $acc i32) (local $acc_len i32) (local $m i32) (local $m_len i32)
