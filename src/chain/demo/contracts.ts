@@ -30,6 +30,11 @@ export interface DemoContractContext {
       gas?: Gas;
       deposit?: Yocto;
       then?: { methodName: string; args?: Record<string, unknown>; gas?: Gas };
+      /**
+       * Extra blocks before the call runs. Models a contract that pauses and resumes later (NEAR's
+       * yield and resume), as the chain-signature signer does while its nodes sign.
+       */
+      delay?: number;
     },
   ): DemoPromise;
   /** Schedule a batch of actions on another account (for example CreateAccount + Transfer + AddKey). */
@@ -41,6 +46,8 @@ export class DemoPromise {
     readonly receiverId: AccountId,
     readonly actions: Action[],
     readonly then?: { methodName: string; args: Record<string, unknown>; gas: Gas },
+    /** Extra blocks before the call runs (see `functionCall`'s `delay`). */
+    readonly delay = 0,
   ) {}
 }
 

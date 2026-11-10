@@ -60,6 +60,8 @@ import {
   type DemoContractContext,
   type PromiseResult,
 } from "./demo/contracts";
+import { mpcSignerContract } from "./demo/mpcSigner";
+import { SIGNER_CONTRACT } from "./chainSignatures";
 import {
   attachedGas,
   deposits,
@@ -224,6 +226,7 @@ export class DemoChain implements Chain {
     this.sleep = options.sleep ?? realSleep;
     this.install(demoContractCode("counter"), counterContract);
     this.install(demoContractCode("registrar"), registrarContract);
+    this.install(demoContractCode("mpc-signer"), mpcSignerContract);
     for (const c of options.contracts ?? []) this.install(c.code, c.contract);
 
     const publicKey = options.practicePublicKey ?? DEMO_PRACTICE_PUBLIC_KEY;
@@ -232,6 +235,8 @@ export class DemoChain implements Chain {
     this.genesisAccount(this.practice.accountId, options.practiceBalance ?? parseNear("5"), publicKey);
     this.genesisAccount("testnet", parseNear("1000000"), undefined, demoContractCode("registrar"));
     this.genesisAccount(DEMO_RETURN_ACCOUNT, parseNear("100"));
+    // The chain-signature signer (lesson 4.1), a demo stand-in for v1.signer-prod.testnet.
+    this.genesisAccount(SIGNER_CONTRACT, parseNear("100"), undefined, demoContractCode("mpc-signer"));
     for (const a of options.accounts ?? []) this.genesisAccount(a.accountId, a.balance, undefined, a.code);
     this.makeBlock(GENESIS_HEIGHT);
   }
@@ -761,6 +766,7 @@ export class DemoChain implements Chain {
                   o.then
                     ? { methodName: o.then.methodName, args: o.then.args ?? {}, gas: o.then.gas ?? tgas(10) }
                     : undefined,
+                  o.delay ?? 0,
                 ),
               batch: (receiverId, list) => new DemoPromise(receiverId, cloneActions(list)),
             };
@@ -797,7 +803,7 @@ export class DemoChain implements Chain {
                 predecessorId: r.receiverId,
                 receiverId: value.receiverId,
                 actions: cloneActions(call),
-                height: r.height + 1,
+                height: r.height + 1 + value.delay,
                 isRefund: false,
               });
               let tail = callId;
@@ -808,7 +814,7 @@ export class DemoChain implements Chain {
                   predecessorId: r.receiverId,
                   receiverId: r.receiverId,
                   actions: thenActions,
-                  height: r.height + 2,
+                  height: r.height + 2 + value.delay,
                   isRefund: false,
                   waitFor: callId,
                 });

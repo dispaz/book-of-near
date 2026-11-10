@@ -1,0 +1,254 @@
+import { expect, test, type Page } from "@playwright/test";
+import { answerCheck, completionOf, nextStep, seedRoute } from "./helpers";
+
+// Walks lesson 4.1 in demo mode (no wallet, no network): derive an Ethereum address from the practice
+// account, pack a Sepolia transfer, ask DemoChain's signer for a signature (the same `sign` call the
+// testnet signer takes, answered a few blocks later), and check who signed. Nothing is broadcast.
+const ID = "l-4-1-one-account-every-chain";
+const TITLE = "One account, every chain";
+const STAGE = 4;
+const BASE58_HASH = /^[1-9A-HJ-NP-Za-km-z]{43,44}$/;
+const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+const LOAD_3D = 20_000;
+
+test.beforeEach(({ page }) => seedRoute(page));
+
+const scene = (page: Page) => page.getByTestId("csg-scene");
+const dock = (page: Page) => page.locator(".action-slot");
+
+async function expectView(page: Page, view: "2d" | "3d") {
+  await expect(scene(page)).toHaveAttribute("data-view", view, { timeout: LOAD_3D });
+}
+
+/** Steps 1 to 7: derive, pack, sign, verify, the check, the honest take, Finish. */
+async function walk(page: Page) {
+  await nextStep(page); // hook → derive
+  await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
+  await dock(page).getByRole("button", { name: "Derive Ethereum address" }).click();
+  await expect(page.getByTestId("eth-address")).toHaveText(ADDRESS);
+  const address = (await page.getByTestId("eth-address").textContent())!;
+  await expect(scene(page)).toHaveAttribute("data-scene-state", /derived:yes/);
+
+  await nextStep(page); // derive → prepare
+  await expect(page.getByTestId("caption")).toContainText("Sepolia");
+  await dock(page).getByRole("button", { name: "Prepare payload" }).click();
+  await expect(page.getByTestId("payload")).toHaveText(/^0x[0-9a-f]{12}…[0-9a-f]{6}$/);
+  await expect(page.getByTestId("eth-balance")).toContainText("0 ETH");
+
+  await nextStep(page); // prepare → sign
+  await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
+  await dock(page).getByRole("button", { name: "Request signature (MPC)" }).click();
+  await expect(page.getByTestId("sign-status")).toContainText("Signed.", { timeout: 15_000 });
+  await expect(page.getByTestId("mpc-tx")).toHaveText(/^[1-9A-HJ-NP-Za-km-z]{10}…/);
+
+  await nextStep(page); // sign → verify
+  await expect(page.getByTestId("caption")).toContainText(address);
+  await dock(page).getByRole("button", { name: "Verify signer" }).click();
+  await expect(page.getByTestId("recovered")).toHaveText(address);
+  await expect(page.getByTestId("match")).toContainText("Match");
+  await expect(page.getByTestId("broadcast-note")).toContainText("0 ETH");
+  await expect(scene(page)).toHaveAttribute("data-scene-state", /match:yes/);
+
+  await nextStep(page); // verify → check
+  await answerCheck(page, [
+    "Nobody holds the whole key. It exists only as shares spread across the signing nodes.",
+    "Nothing. It is math done in your browser, with no transaction.",
+    "No. Ethereum needs ETH for gas, so someone must fund it first, or a relayer must pay.",
+  ]);
+  await nextStep(page); // check → honest take
+  await expect(page.getByRole("region", { name: "Honest take" })).toBeVisible();
+  await page.getByRole("button", { name: "Finish lesson" }).click();
+  await expect(page.getByText("Lesson done")).toBeVisible();
+  return address;
+}
+
+for (const view of ["2d", "3d"] as const)
+  test.describe(`lesson ${ID} (${view})`, () => {
+    if (view === "3d") test.describe.configure({ timeout: 60_000 });
+
+    test("walks to Finish in demo mode, and the completion record carries the evidence", async ({ page }) => {
+      const errors: string[] = [];
+      page.on("pageerror", (e) => errors.push(e.message));
+      await page.addInitScript((v) => localStorage.setItem("bon:view", v), view);
+      await page.goto("/");
+      await page.getByRole("navigation", { name: "Contents" }).getByRole("link", { name: TITLE }).click();
+      await expect(page).toHaveURL(new RegExp(`/lesson/${ID}`));
+      await expect(page.getByTestId("mode-pill")).toHaveText("Demo mode");
+      await expectView(page, view);
+      const address = await walk(page);
+      expect(await completionOf(page, ID)).toMatchObject({
+        stage: STAGE,
+        mode: "demo",
+        evidence: {
+          path: "ethereum-1",
+          derivedEthAddress: address,
+          signerContract: "v1.signer-prod.testnet",
+          txHash: expect.stringMatching(BASE58_HASH),
+          mpcTxHash: expect.stringMatching(BASE58_HASH),
+          signatureReturned: "true",
+          signedTx: expect.stringMatching(/^0x02[0-9a-f]+$/),
+          recoveredAddress: address,
+          recoveredMatches: "true",
+          broadcast: expect.stringContaining("not sent"),
+        },
+      });
+      expect(errors).toEqual([]);
+    });
+
+    test("walks with reduced motion", async ({ browser }) => {
+      const context = await browser.newContext({ reducedMotion: "reduce" });
+      const page = await context.newPage();
+      await seedRoute(page);
+      await page.goto(`/lesson/${ID}?view=${view}`);
+      await expectView(page, view);
+      await walk(page);
+      await context.close();
+    });
+
+    test("walks on a phone-sized screen", async ({ browser }) => {
+      const context = await browser.newContext({ viewport: { width: 390, height: 760 } });
+      const page = await context.newPage();
+      await seedRoute(page);
+      await page.goto(`/lesson/${ID}?view=${view}`);
+      await expectView(page, view);
+      await walk(page);
+      await context.close();
+    });
+
+    test("the request pauses until the signing network answers", async ({ page }) => {
+      await page.goto(`/lesson/${ID}?view=${view}&step=3`);
+      await expectView(page, view);
+      await dock(page).getByRole("button", { name: "Prepare payload" }).click();
+      await nextStep(page);
+      await dock(page).getByRole("button", { name: "Request signature (MPC)" }).click();
+      // While it waits: the state says so, the timer runs, the button is busy, Next stays locked.
+      await expect(scene(page)).toHaveAttribute("data-scene-state", /sign:waiting/);
+      await expect(page.getByTestId("sign-status")).toContainText("Waiting for the signing network");
+      await expect(dock(page).getByRole("button", { name: "Waiting for the nodes…" })).toBeDisabled();
+      await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
+      // Then the answer comes back, a few blocks later.
+      await expect(scene(page)).toHaveAttribute("data-scene-state", /sign:answered/, { timeout: 15_000 });
+      await expect(page.getByTestId("sign-status")).toContainText(/came \d+ blocks after your request/);
+      await expect(page.getByRole("button", { name: "Next step" })).toBeEnabled();
+    });
+
+    test("the scene's objects are buttons that do the step's action", async ({ page }) => {
+      await page.goto(`/lesson/${ID}?view=${view}`);
+      await expectView(page, view);
+      await page.getByRole("button", { name: "Bitcoin" }).press("Enter");
+      await expect(page.getByTestId("picked-note")).toContainText("Bitcoin uses the same kind of key");
+      await nextStep(page);
+      await page.getByRole("button", { name: "Your NEAR account" }).press("Enter");
+      await expect(page.getByTestId("eth-address")).toHaveText(ADDRESS);
+      await nextStep(page);
+      await page.getByRole("button", { name: "The Ethereum transaction" }).press("Enter");
+      await expect(page.getByTestId("payload")).toBeVisible();
+      await nextStep(page);
+      await page.getByRole("button", { name: "Signing node 1", exact: true }).press("Enter");
+      await expect(scene(page)).toHaveAttribute("data-scene-state", /sign:answered/, { timeout: 15_000 });
+      await nextStep(page);
+      await page.getByRole("button", { name: "Your derived Ethereum address" }).press("Enter");
+      await expect(page.getByTestId("match")).toContainText("Match");
+    });
+  });
+
+test.describe(`lesson ${ID}`, () => {
+  test("the learner's own path shows in later text and gives another address", async ({ page }) => {
+    await page.goto(`/lesson/${ID}?view=2d&step=2`);
+    const input = page.getByTestId("path-input");
+    await expect(page.getByTestId("caption")).toContainText('the path "ethereum-1"');
+    await dock(page).getByRole("button", { name: "Derive Ethereum address" }).click();
+    const first = (await page.getByTestId("eth-address").textContent())!;
+    await dock(page).getByRole("button", { name: "Try another path" }).click();
+    await input.fill("eth/defi");
+    await expect(page.getByTestId("caption")).toContainText('the path "eth/defi"');
+    await dock(page).getByRole("button", { name: "Derive Ethereum address" }).click();
+    await expect(page.getByTestId("eth-address")).toHaveText(ADDRESS);
+    const second = (await page.getByTestId("eth-address").textContent())!;
+    expect(second).not.toBe(first);
+    await nextStep(page);
+    await dock(page).getByRole("button", { name: "Prepare payload" }).click();
+    await nextStep(page);
+    await dock(page).getByRole("button", { name: "Request signature (MPC)" }).click();
+    await expect(page.getByTestId("sign-status")).toContainText("Signed.", { timeout: 15_000 });
+    await nextStep(page);
+    await expect(page.getByTestId("caption")).toContainText(second);
+  });
+
+  test("an empty path cannot be derived", async ({ page }) => {
+    await page.goto(`/lesson/${ID}?view=2d&step=2`);
+    await page.getByTestId("path-input").fill("   ");
+    await expect(dock(page).getByRole("button", { name: "Derive Ethereum address" })).toBeDisabled();
+    await expect(page.locator("#csg-path-hint")).toContainText("Type a path");
+  });
+
+  test("demo mode says the signing network is played by the app", async ({ page }) => {
+    await page.goto(`/lesson/${ID}?view=2d&step=2`);
+    await expect(page.getByTestId("demo-note")).toContainText("one demo key");
+  });
+
+  test("opening the verify step by its link derives and packs, but never signs for the learner", async ({
+    page,
+  }) => {
+    await page.goto(`/lesson/${ID}?view=2d&step=5`);
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /derived:yes;packed:yes;sign:idle/);
+    await expect(dock(page).getByRole("button", { name: "Verify signer" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
+  });
+
+  test("without WebGL the lesson runs in 2D with no view switch", async ({ page }) => {
+    await page.goto(`/lesson/${ID}?webgl=0&view=3d`);
+    await expectView(page, "2d");
+    await expect(page.getByRole("group", { name: "Scene view" })).toHaveCount(0);
+  });
+
+  test("2D to 3D keeps the derived address and the signature", async ({ page }) => {
+    await page.goto(`/lesson/${ID}?view=2d&step=3`);
+    await dock(page).getByRole("button", { name: "Prepare payload" }).click();
+    await nextStep(page);
+    await dock(page).getByRole("button", { name: "Request signature (MPC)" }).click();
+    await expect(page.getByTestId("sign-status")).toContainText("Signed.", { timeout: 15_000 });
+    await page.getByRole("group", { name: "Scene view" }).getByRole("button", { name: "3D" }).click();
+    await expectView(page, "3d");
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /derived:yes;packed:yes;sign:answered/);
+    await expect(page.getByRole("button", { name: "Next step" })).toBeEnabled();
+  });
+});
+
+test.describe("3D book scene", () => {
+  test("wide screens print the step on the left page; the tour moves the camera and docks the words", async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    await seedRoute(page);
+    await page.goto(`/lesson/${ID}?view=3d&step=1`);
+    await expect(page.locator(".book-scene .sk-stage")).toBeVisible({ timeout: LOAD_3D });
+    await expect(page.locator("main.lesson")).toHaveAttribute("data-spread", "");
+    await expect(page.locator(".book-page")).toHaveCSS("transform", /matrix3d/);
+
+    const caption = page.getByTestId("tour-caption");
+    await expect(caption).toHaveText(/^Fig\. 1/);
+    await page.getByRole("button", { name: "Play the tour" }).click();
+    await expect(caption).not.toHaveText(/^Fig\. 1/);
+    await expect(page.locator("main.lesson")).not.toHaveAttribute("data-spread", /.*/);
+    await expect(page.getByTestId("caption")).toBeVisible();
+    await nextStep(page);
+    await expect(caption).toHaveText(/^Fig\. 2/);
+    await expect(page.locator("main.lesson")).toHaveAttribute("data-spread", "", { timeout: 10_000 });
+    // The printed action still works.
+    await page.getByRole("button", { name: "Derive Ethereum address" }).click();
+    await expect(page.getByTestId("eth-address")).toHaveText(ADDRESS);
+    await ctx.close();
+  });
+
+  test("phones keep the step's words docked, not printed on the page", async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 760 } });
+    const page = await ctx.newPage();
+    await seedRoute(page);
+    await page.goto(`/lesson/${ID}?view=3d&step=2`);
+    await expect(page.locator(".book-scene .sk-stage")).toBeVisible({ timeout: LOAD_3D });
+    await expect(page.locator("main.lesson")).not.toHaveAttribute("data-spread", /.*/);
+    await expect(page.locator(".book-page")).toHaveCSS("display", "contents");
+  });
+});
