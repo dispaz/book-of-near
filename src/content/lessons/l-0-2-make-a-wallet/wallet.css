@@ -141,7 +141,7 @@
   background: repeating-linear-gradient(
     -45deg,
     #fff 0 10px,
-    color-mix(in srgb, var(--orange) 13%, transparent) 10px 20px
+    color-mix(in srgb, var(--accent) 13%, transparent) 10px 20px
   );
   border: 2.5px solid var(--ink);
   border-left: 10px solid var(--accent);

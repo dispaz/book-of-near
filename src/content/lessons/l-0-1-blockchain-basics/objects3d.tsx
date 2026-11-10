@@ -17,6 +17,7 @@ import {
   useStage,
   type Vec3,
 } from "../../../scene-kit";
+import { STAGE_ACCENTS, withAlpha } from "../../../scene-kit/theme";
 
 // ---------- layout (world units) ----------
 export const CHAIN_Z = 1.4;
@@ -27,7 +28,7 @@ export const BD = 1.1;
 const LID = 0.2;
 export const chainX = (i: number, pitch = PITCH) => (i - 1.5) * pitch;
 
-const PAPER = COLORS.paper;
+const CARD = COLORS.paper;
 const RED_PAPER = "#f7d3cd";
 
 const noRaycast = () => undefined;
@@ -118,13 +119,13 @@ function drawPage(canvas: HTMLCanvasElement, rows: PageRow[] | null) {
   if (!c) return;
   const W = canvas.width;
   const H = canvas.height;
-  c.fillStyle = PAPER;
+  c.fillStyle = CARD;
   c.fillRect(0, 0, W, H);
   const top = 70;
   const rowH = (H - top - 8) / 3;
   c.fillStyle = "rgba(77,107,255,0.28)";
   for (let k = 0; k <= 3; k++) c.fillRect(0, top + k * rowH - 2, W, 3);
-  c.fillStyle = "rgba(255,95,162,0.55)";
+  c.fillStyle = withAlpha(COLORS.pink, 0.55);
   c.fillRect(64, 0, 3, H);
   if (!rows) return;
   c.fillStyle = INK;
@@ -134,7 +135,7 @@ function drawPage(canvas: HTMLCanvasElement, rows: PageRow[] | null) {
   rows.slice(0, 3).forEach((r, k) => {
     const y = top + k * rowH;
     if (r.hot) {
-      c.fillStyle = "rgba(255,138,61,0.45)";
+      c.fillStyle = withAlpha(STAGE_ACCENTS[0], 0.45);
       c.fillRect(68, y + 4, W - 84, rowH - 8);
     }
     c.fillStyle = INK;
@@ -222,7 +223,7 @@ export function Ledger({
   pick?: { label: string; onPick: () => void };
 }) {
   const { flat } = useStage();
-  const pages = useInk(PAPER);
+  const pages = useInk(CARD);
   const cover = useInk(COLORS.orange);
   const spine = useInk(INK);
   const page = usePageTexture(rows);
@@ -323,7 +324,7 @@ export function LedgerBlock({
   /** Tags that hang off the block (its card). */
   children?: ReactNode;
 }) {
-  const body = useInk(bad ? RED_PAPER : PAPER, true);
+  const body = useInk(bad ? RED_PAPER : CARD, true);
   const lidInk = useInk(bad ? COLORS.red : COLORS.orange);
   const lid = useRef<Group>(null);
   const fall = useRef<Group>(null);
@@ -389,7 +390,7 @@ export function LedgerBlock({
 
 /** The edge of a transaction slip sticking out of the front of a closed block, under its lid. */
 function PeekingSlip() {
-  const paper = useInk(PAPER);
+  const paper = useInk(CARD);
   return (
     <group position={[0, BH - LID - 0.02, BD / 2 - 0.05]} rotation={[0.35, 0, 0]}>
       <mesh position={[0, 0, 0.14]} material={paper}>
@@ -421,7 +422,7 @@ export function Slip({
   side?: number;
   children?: ReactNode;
 }) {
-  const paper = useInk(PAPER);
+  const paper = useInk(CARD);
   const ink = useInk(INK);
   const ref = useRef<Group>(null);
   const top = BH + 0.55;

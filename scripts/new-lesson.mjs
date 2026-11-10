@@ -237,20 +237,20 @@ ${doAction}
         data-scene-state={done ? "done" : "idle"}
         data-mode={mode}
       >
-        <rect x="230" y="120" width="340" height="220" rx="16" fill="#fffdf7" stroke="#16141f" strokeWidth="3" />
-        <text x="400" y="180" textAnchor="middle" fontFamily="Newsreader, serif" fontSize="26" fill="#16141f">
+        <rect x="230" y="120" width="340" height="220" rx="16" fill="var(--card)" stroke="var(--ink)" strokeWidth="3" />
+        <text x="400" y="180" textAnchor="middle" fontFamily="Newsreader, serif" fontSize="26" fill="var(--ink)">
           {${q(title)}}
         </text>
         <circle
           cx="400"
           cy="260"
           r="36"
-          stroke="#16141f"
+          stroke="var(--ink)"
           strokeWidth="3"
           fill={done ? "var(--accent)" : "#fff"}
           style={{ transition: reducedMotion ? "none" : "fill 0.4s" }}
         />
-        <text x="400" y="320" textAnchor="middle" fontFamily="Caveat, cursive" fontSize="24" fill="#16141f">
+        <text x="400" y="320" textAnchor="middle" fontFamily="Caveat, cursive" fontSize="24" fill="var(--ink)">
           ${status}
         </text>
       </svg>${close3d}

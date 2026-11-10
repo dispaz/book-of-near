@@ -9,9 +9,11 @@
 /** Ink: outlines and text. */
 export const INK = "#16141f";
 /** The book's page colour (`--page`): the ground figures stand on. */
-export const GROUND = "#f3efe4";
+export const PAGE = "#f3efe4";
 /** Card white (`--card`): slips, notes, cards and screens lying on the page. */
-export const PAPER = "#fffdf7";
+export const CARD = "#fffdf7";
+/** Secondary text (`--mute`): a warm grey, like NEAR's neutrals (5.6:1 on --paper). */
+export const MUTE = "#625f57";
 
 /**
  * NEAR's brand colours (the --near-* tokens): green, black and off-white.
@@ -48,8 +50,15 @@ export const COLORS = {
   /** Light tints for action cards: dark small text stays readable on them; the marks carry the meaning. */
   greenTint: "#bfe6cf",
   redTint: "#f4bdb8",
-  paper: PAPER,
+  /** Paper white for figures in 3D and SVG: the same value as CARD (`--card`). */
+  paper: CARD,
 } as const;
+
+/** A token at partial opacity for canvas and three.js (CSS uses `color-mix()` instead). */
+export function withAlpha(hex: string, alpha: number): string {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 /** One accent per stage (`StageManifest.accent`). Ink text sits on it, so each keeps 4.5:1 with INK. */
 export const STAGE_ACCENTS = {
@@ -68,8 +77,8 @@ export const CSS_TOKENS = {
   "--paper": NEAR.offWhite,
   /** Raised panels and cards in the app's chrome. */
   "--paper-2": "#f7f6f0",
-  "--page": GROUND,
-  "--card": PAPER,
+  "--page": PAGE,
+  "--card": CARD,
   "--desk": "#d8dfd6",
   "--wood": "#e9e1cf",
   "--orange": COLORS.orange,
@@ -78,8 +87,7 @@ export const CSS_TOKENS = {
   "--green": COLORS.green,
   "--red": COLORS.red,
   "--glass": "#ffffffcc",
-  /** Secondary text: a warm grey, like NEAR's neutrals (5.6:1 on --paper). */
-  "--mute": "#625f57",
+  "--mute": MUTE,
   "--near-green": NEAR.green,
   "--near-black": NEAR.black,
   "--near-off-white": NEAR.offWhite,

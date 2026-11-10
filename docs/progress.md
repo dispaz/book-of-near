@@ -296,4 +296,5 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - NEAR off-white `#f2f1e9` (was `#f2f1ea`). App neutrals: `--paper` is NEAR off-white, `--paper-2` `#f7f6f0`, `--mute` a warm grey `#625f57`; the book's page and cards stay cream.
 - Stage 3 accent is cerulean `#1e9bd7` (green `#2fa36b` read as a NEAR coin). Stage 1 blue `#5f7bff` and stage 4 violet `#9a70f7` now pass 4.5:1 for button text (were 4.2:1).
 - `docs/palette.md`: layers, rules, sources (NEAR accents unverified, not used). Fonts unchanged (FK Grotesk is commercial).
-- Not done: `--green` ("pass") is 2.7:1 as text on paper (lessons 1.2, 1.3); fails AA for small text. Separate fix.
+- Review fixes (PR #41): constants named after their tokens (`PAPER` → `CARD`, `GROUND` → `PAGE`, new `MUTE`); `withAlpha()` for canvas shades (three `rgba()` copies of ink, orange, pink); the guard also catches `rgb()`/`rgba()`, a second `:root` and the `new-lesson` scaffolder templates (which wrote `#fffdf7` / `#16141f`); stage-0 highlights use `var(--accent)`.
+- Not done (see `docs/palette.md` Known gaps): `--green` is 7° from NEAR green; `--green` (2.7:1) and `--red` (3.9:1) fail AA as small text on paper.
