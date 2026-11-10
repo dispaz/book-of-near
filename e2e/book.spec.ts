@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { LOAD_3D, slow3d } from "./lessons/helpers";
 
 const LESSON = "/lesson/l-0-1-blockchain-basics";
 
@@ -26,12 +27,12 @@ test.describe("the lesson book", () => {
   });
 
   test("in 3D the page shows in 2D first, then the 3D scene grows out of it", async ({ page }) => {
-    test.slow();
+    slow3d();
     await page.goto(`${LESSON}?view=3d`);
     await page.getByRole("button", { name: "Open the book" }).click();
     const scene = page.getByTestId("ledger-scene");
     await expect(scene).toHaveAttribute("data-view", "2d");
-    await expect(scene).toHaveAttribute("data-view", "3d", { timeout: 20_000 });
+    await expect(scene).toHaveAttribute("data-view", "3d", { timeout: LOAD_3D });
   });
 
   test("opening a later step by URL skips the cover", async ({ page }) => {

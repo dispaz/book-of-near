@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { answerCheck, completionOf, nextStep, seedRoute } from "./helpers";
+import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3d } from "./helpers";
 
 // Walks lesson 1.1 in demo mode (no wallet, no network): a hex address, the idea of a name, pick a name
 // with live availability, create it through the registrar, compare it with a hex account, check, honest take.
@@ -14,8 +14,8 @@ test.beforeEach(({ page }) => seedRoute(page));
 const dock = (page: Page) => page.locator(".action-slot");
 
 async function expectView(page: Page, view: "2d" | "3d") {
-  await expect(page.getByTestId("name-scene")).toHaveAttribute("data-view", view);
-  await expect(page.locator(".stx-3d canvas")).toHaveCount(view === "3d" ? 1 : 0);
+  await expect(page.getByTestId("name-scene")).toHaveAttribute("data-view", view, { timeout: LOAD_3D });
+  await expect(page.locator(".stx-3d canvas")).toHaveCount(view === "3d" ? 1 : 0, { timeout: LOAD_3D });
 }
 
 /** Picks a name, creates it and compares it. Leaves the lesson on the Check step. */
@@ -64,6 +64,7 @@ async function walk(page: Page, label: string) {
 test.describe(`lesson ${ID}`, () => {
   for (const view of ["2d", "3d"] as const) {
     test(`walks to Finish in demo mode (${view}) and the record carries the account id`, async ({ page }) => {
+      slow3d(view === "3d");
       await page.goto("/");
       await page.getByRole("navigation", { name: "Contents" }).getByRole("link", { name: TITLE }).click();
       await expect(page).toHaveURL(new RegExp(`/lesson/${ID}`));
@@ -91,6 +92,7 @@ test.describe(`lesson ${ID}`, () => {
   }
 
   test("the learner's own name appears in later text, and survives a view switch", async ({ page }) => {
+    slow3d();
     await page.goto(`/lesson/${ID}?view=2d`);
     await nextStep(page);
     await nextStep(page);

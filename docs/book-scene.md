@@ -165,6 +165,10 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
 `--book` scaffolds the print, tour and phone e2e tests and the `tourFor` unit test; the author adds the
 rest as the lesson grows.
 
+Every test that draws a 3D scene calls `slow3d()` (`slow3d(view === "3d")` in a loop over both views, `slow3dUnless2d(info)` in a spec-wide `beforeEach`; all in `e2e/lessons/helpers.ts`) and waits for the 3D
+view to appear with `LOAD_3D`; no per-test timeouts. On a Mac the e2e browser draws WebGL on the GPU;
+without one (CI) it is software WebGL, slower, and `playwright.config.ts` runs fewer workers (issue #36).
+
 Lesson 0.1's spec (`e2e/lessons/l-0-1-blockchain-basics.spec.ts`, "wide screens print the step…" and
 "phones keep the step's words docked…") is the reference.
 

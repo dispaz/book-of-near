@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { LOAD_3D, slow3d } from "./lessons/helpers";
 
 const DEMO = "/lesson/scene-kit-demo";
 
@@ -40,6 +41,8 @@ async function recordStates(page: Page) {
 }
 
 test.describe("scene kit demo (3D)", () => {
+  test.beforeEach(() => slow3d());
+
   test("draws the scene with WebGL and loads the 3D code only when the scene opens", async ({ page }) => {
     const scripts: string[] = [];
     page.on("response", async (r) => {
@@ -50,7 +53,7 @@ test.describe("scene kit demo (3D)", () => {
     expect(scripts.some((s) => s.includes("WebGLRenderer"))).toBe(false);
 
     await page.goto(DEMO);
-    await expect(page.locator(".sk-stage canvas")).toBeVisible();
+    await expect(page.locator(".sk-stage canvas")).toBeVisible({ timeout: LOAD_3D });
     await expect(state(page)).toHaveAttribute("data-scene-state", /coin=ana/);
     expect(scripts.some((s) => s.includes("WebGLRenderer"))).toBe(true);
   });
@@ -122,7 +125,7 @@ test.describe("scene kit demo (3D)", () => {
     const ctx = await browser.newContext({ reducedMotion: "reduce" });
     const page = await ctx.newPage();
     await page.goto(`${DEMO}?step=3`);
-    await expect(page.locator(".sk-stage canvas")).toBeVisible();
+    await expect(page.locator(".sk-stage canvas")).toBeVisible({ timeout: LOAD_3D });
     await expect(state(page)).toHaveAttribute("data-scene-state", /coin=ana/);
     const states = await recordStates(page);
     await page.locator(".action-slot").getByRole("button", { name: "Send coin" }).click();
