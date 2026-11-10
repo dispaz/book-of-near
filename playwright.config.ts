@@ -5,11 +5,14 @@ import { defineConfig, devices } from "@playwright/test";
 /**
  * A port for `vite preview`. E2E_PORT wins (each worktree may pin its own, so parallel agents never test
  * each other's build; if it is taken, Playwright stops with "is already used"). Without it: 4173 if free,
- * else any free port. The choice is written back to the environment so the workers agree on it.
+ * else any free port. The probe binds "localhost", as vite preview does. The choice is written back to
+ * the environment so the workers agree on it. Not used with BASE_URL (no server is started).
+ * The port is freed again between the probe and vite's bind, so another process may grab it first: then
+ * the run stops with "is already used"; run it again or pin E2E_PORT.
  */
 function previewPort(): number {
   if (process.env.E2E_PORT) return Number(process.env.E2E_PORT);
-  const probe = `const s=require("net").createServer();s.once("error",()=>s.listen(0));s.listen(4173,()=>{process.stdout.write(String(s.address().port));s.close()})`;
+  const probe = `const s=require("net").createServer();s.once("error",()=>s.listen(0,"localhost"));s.listen(4173,"localhost",()=>{process.stdout.write(String(s.address().port));s.close()})`;
   const port = Number(execFileSync(process.execPath, ["-e", probe]).toString());
   if (port !== 4173) console.log(`e2e: port 4173 is busy, using ${port}`);
   process.env.E2E_PORT = String(port);
@@ -29,7 +32,7 @@ const gpu = process.platform === "darwin" && process.env.E2E_GL !== "swiftshader
 const workers =
   process.env.E2E_WORKERS ?? (gpu ? undefined : Math.max(1, Math.floor(os.availableParallelism() / 4)));
 
-const port = previewPort();
+const port = process.env.BASE_URL ? undefined : previewPort();
 const baseURL = process.env.BASE_URL ?? `http://localhost:${port}`;
 
 export default defineConfig({

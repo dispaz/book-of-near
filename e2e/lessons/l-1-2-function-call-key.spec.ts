@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3d } from "./helpers";
+import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3dUnless2d } from "./helpers";
 
 // Walks lesson 1.2 in demo mode (no wallet, no network), in both views.
 const ID = "l-1-2-function-call-key";
@@ -7,8 +7,7 @@ const TITLE = "A key that can do only one thing";
 const STAGE = 1;
 
 test.beforeEach(({ page }, info) => {
-  // Wide screens open in 3D unless the test asks for 2D: every other test draws a 3D scene.
-  slow3d(!/\b2d\b/i.test(info.titlePath.join(" ")));
+  slow3dUnless2d(info);
   return seedRoute(page);
 });
 
@@ -43,6 +42,7 @@ test.describe(`lesson ${ID}`, () => {
       await expect(page).toHaveURL(new RegExp(`/lesson/${ID}`));
       await expect(page.getByTestId("mode-pill")).toHaveText("Demo mode");
       await page.goto(`/lesson/${ID}?view=${view}`);
+      if (view === "3d") await expect(page.locator("canvas").first()).toBeVisible({ timeout: LOAD_3D });
 
       await nextStep(page); // hook → limited key
       await nextStep(page); // → add the key
@@ -167,6 +167,7 @@ test.describe(`lesson ${ID}: motion, fallback, switching, phones`, () => {
       const page = await ctx.newPage();
       await seedRoute(page);
       await page.goto(`/lesson/${ID}?view=${view}`);
+      if (view === "3d") await expect(page.locator("canvas").first()).toBeVisible({ timeout: LOAD_3D });
       await walkToCheck(page);
       await ctx.close();
     });

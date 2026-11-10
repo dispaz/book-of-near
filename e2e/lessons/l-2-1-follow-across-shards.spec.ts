@@ -261,6 +261,7 @@ test.describe(`lesson ${ID}: choices and views`, () => {
   });
 
   test("the learner's choice shows in later text, and 2D to 3D keeps the followed hop", async ({ page }) => {
+    slow3d();
     await page.goto(`/lesson/${ID}?view=2d`);
     await load(page, "example");
     await nextStep(page);
@@ -316,6 +317,7 @@ test.describe(`lesson ${ID}: choices and views`, () => {
   });
 
   test("2D never downloads three.js; 3D loads it when chosen", async ({ page }) => {
+    slow3d();
     const scripts: string[] = [];
     page.on("response", async (r) => {
       if (r.url().endsWith(".js") && r.status() === 200) scripts.push(await r.text().catch(() => ""));
@@ -331,6 +333,7 @@ test.describe(`lesson ${ID}: choices and views`, () => {
 });
 
 test.describe("3D book scene", () => {
+  test.beforeEach(() => slow3d());
   /** Opens the recorded example at step 1, then goes to step 3. */
   async function atStart(page: Page) {
     await page.goto(`/lesson/${ID}?view=3d`);

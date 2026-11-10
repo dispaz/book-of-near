@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3d } from "./helpers";
+import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3dUnless2d } from "./helpers";
 
 // Walks lesson 1.3 in demo mode (no wallet, no network), in both views.
 const ID = "l-1-3-inside-a-transaction";
@@ -7,9 +7,9 @@ const TITLE = "Inside a NEAR transaction";
 const STAGE = 1;
 const HASH = /^[1-9A-HJ-NP-Za-km-z]{43,44}$/;
 
-// The walks run in real time on software WebGL: give every test of this lesson three times the timeout.
-test.beforeEach(({ page }) => {
-  slow3d(); // most tests open on a wide screen, in 3D
+// Tests that draw the 3D scene get three times the timeout (2D tests name their view).
+test.beforeEach(({ page }, info) => {
+  slow3dUnless2d(info);
   return seedRoute(page);
 });
 

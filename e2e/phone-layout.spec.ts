@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { seedRoute, slow3d } from "./lessons/helpers";
+import { LOAD_3D, seedRoute, slow3d } from "./lessons/helpers";
 
 // On a phone the scene must keep a usable share of the screen at every step, in 2D and 3D: the header
 // (title + step heading) sits on top, the dock (step controls + explanation) and the stage bar at the
@@ -38,7 +38,7 @@ for (const phone of PHONES) {
   for (const id of LESSONS) {
     for (const view of ["2d", "3d"] as const) {
       test(`${id} ${view} keeps the scene in view at ${phone.width}x${phone.height}`, async ({ page }) => {
-        slow3d();
+        slow3d(view === "3d");
         await page.setViewportSize({ width: phone.width, height: phone.height });
         await page.goto(`/lesson/${id}?view=${view}&step=2`);
         const count = Number((await page.locator(".step-label").textContent())!.match(/of (\d+)/)![1]);
@@ -225,7 +225,7 @@ for (const phone of PHONES) {
     test(`l-1-3-inside-a-transaction ${view}: the builder leaves the scene its band at ${phone.width}x${phone.height}`, async ({
       page,
     }) => {
-      slow3d();
+      slow3d(view === "3d");
       await page.setViewportSize({ width: phone.width, height: phone.height });
       await page.goto(`/lesson/l-1-3-inside-a-transaction?view=${view}&step=2`);
       const scene = page.locator("[data-scene-state]").first();
@@ -265,9 +265,10 @@ test.describe("desktop is unchanged", () => {
   test("the margin note's arrow goes around the scene's objects and labels", async ({ page }) => {
     // Lesson 1.1, 3D, step 3: the note points at the new name on the right, past "you" and the
     // registrar and their labels. The arrow must not run through them.
+    slow3d();
     await page.goto("/lesson/l-1-1-claim-your-name?view=3d&step=3");
     const arrow = page.locator(".note-arrow path").nth(1);
-    await expect(arrow).toBeAttached({ timeout: 15_000 });
+    await expect(arrow).toBeAttached({ timeout: LOAD_3D });
     await page.waitForTimeout(1500);
     const crossings = await arrow.evaluate((path: SVGPathElement) => {
       const svg = path.ownerSVGElement!.getBoundingClientRect();

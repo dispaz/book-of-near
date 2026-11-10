@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { answerCheck, completionOf, nextStep, seedRoute, slow3d } from "./helpers";
+import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3d } from "./helpers";
 
 // Walks lesson 0.2 in demo mode (no wallet, no network). Demo mode uses the public example key from
 // docs.near.org, so the values below are public and stable.
@@ -144,7 +144,7 @@ async function expectView(page: Page, view: View) {
   await expect(
     page.getByRole("group", { name: "Scene view" }).getByRole("button", { name: view.toUpperCase() }),
   ).toHaveAttribute("aria-pressed", "true");
-  if (view === "3d") await expect(page.locator(".sk-stage canvas")).toBeVisible();
+  if (view === "3d") await expect(page.locator(".sk-stage canvas")).toBeVisible({ timeout: LOAD_3D });
   else {
     await expect(page.locator(".sk-stage")).toHaveCount(0);
     await expect(page.locator(".wallet-scene")).toHaveClass(/view-2d/);
@@ -176,7 +176,7 @@ test.describe(`lesson ${ID}`, () => {
 
   for (const view of VIEWS) {
     test.describe(`in ${view}`, () => {
-      // Headless Chromium draws WebGL in software (SwiftShader): a full 3D walk needs more time.
+      // A full 3D walk needs more time (software WebGL without a GPU, see playwright.config.ts).
       test.beforeEach(() => slow3d(view === "3d"));
       test("walks to Finish without storing a secret", async ({ page }) => {
         await open(page, view);

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3d } from "./helpers";
+import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3dUnless2d } from "./helpers";
 
 // Lesson 0.1 in demo mode (no wallet, no network). Hashes are the fixtures from docs/lessons/stage-0/0.1.md.
 const ID = "l-0-1-blockchain-basics";
@@ -13,8 +13,7 @@ const RIGHT_ANSWERS = [
 ];
 
 test.beforeEach(async ({ page }, info) => {
-  // The 3D walks, the view switch and the contents walk (wide screens open in 3D) draw a 3D scene.
-  slow3d(/3d|switching|contents/i.test(info.titlePath.join(" ")));
+  slow3dUnless2d(info);
   await seedRoute(page);
 });
 
@@ -374,7 +373,7 @@ test.describe(`lesson ${ID}: switching views`, () => {
     expect(scripts.some((s) => s.includes("WebGLRenderer"))).toBe(false);
 
     await viewButton(page, "3D").click();
-    await expect(page.locator(".sk-stage canvas")).toBeVisible();
+    await expect(page.locator(".sk-stage canvas")).toBeVisible({ timeout: LOAD_3D });
     await expect.poll(() => scripts.some((s) => s.includes("WebGLRenderer"))).toBe(true);
   });
 });

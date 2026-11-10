@@ -73,7 +73,7 @@ test.describe("contents and progress", () => {
 
   test("finishing a lesson emits a completion record", async ({ page }) => {
     await seedRoute(page, "newcomer");
-    await page.goto("/lesson/l-0-1-blockchain-basics?step=9");
+    await page.goto("/lesson/l-0-1-blockchain-basics?view=2d&step=9");
     await page.getByRole("button", { name: "Finish lesson" }).click();
     await expect(page.getByText("Lesson done")).toBeVisible();
     const rs = await records(page);
@@ -93,12 +93,14 @@ test.describe("contents and progress", () => {
 
   test("Finish shows only on the last step", async ({ page }) => {
     await seedRoute(page, "newcomer");
-    await page.goto("/lesson/l-0-1-blockchain-basics?step=1");
+    await page.goto("/lesson/l-0-1-blockchain-basics?view=2d&step=1");
     await expect(page.getByRole("button", { name: "Finish lesson" })).toHaveCount(0);
   });
 
   test("a returning visitor resumes where they stopped", async ({ page }) => {
     await seedRoute(page, "newcomer");
+    // Not about 3D: keep the lesson in 2D (the resume link carries only the step).
+    await page.addInitScript(() => localStorage.setItem("bon:view", "2d"));
     await page.goto("/lesson/l-0-1-blockchain-basics?step=2");
     await expect(page.getByTestId("caption")).toHaveText(/Send 3 coins/);
     await page.goto("/");
