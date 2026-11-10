@@ -55,6 +55,14 @@ function harness() {
         registers.set(r, v);
         return 1n;
       },
+      storage_remove: (kl: bigint, kp: bigint, r: bigint) => {
+        const key = text(kp, kl);
+        const v = storage.get(key);
+        if (!v) return 0n;
+        registers.set(r, v);
+        storage.delete(key);
+        return 1n;
+      },
       current_account_id: (r: bigint) => registers.set(r, new TextEncoder().encode(self)),
       predecessor_account_id: (r: bigint) =>
         registers.set(r, new TextEncoder().encode(c.predecessor ?? "alice.testnet")),
@@ -108,7 +116,15 @@ describe("counter contract (Wasm)", () => {
     const mod = await WebAssembly.compile(code);
     const names = WebAssembly.Module.exports(mod).map((e) => e.name);
     expect(names).toEqual(
-      expect.arrayContaining(["increment", "get_num", "fail", "call_other", "on_other_done", "last_result"]),
+      expect.arrayContaining([
+        "increment",
+        "get_num",
+        "fail",
+        "call_other",
+        "on_other_done",
+        "last_result",
+        "reset",
+      ]),
     );
   });
 
@@ -123,6 +139,21 @@ describe("counter contract (Wasm)", () => {
     expect(b.logs).toEqual(["Count is now 1234568"]);
     expect((await h.run({ method: "increment" })).returned).toBe(1234569);
     expect((await h.run({ method: "get_num" })).returned).toBe(1234569);
+  });
+
+  it("reset deletes the count and the last result from storage", async () => {
+    const h = harness();
+    await h.run({ method: "increment", args: {} });
+    const self = { self: "counter.testnet", predecessor: "counter.testnet" };
+    await h.run({ method: "on_other_done", ...self, promiseResults: [2] });
+    expect([...h.storage.keys()].sort()).toEqual(["last_result", "num"]);
+    const out = await h.run({ method: "reset" });
+    expect(out.logs).toEqual(["State cleared"]);
+    expect(h.storage.size).toBe(0);
+    expect((await h.run({ method: "get_num" })).returned).toBe(0);
+    expect((await h.run({ method: "last_result" })).returned).toBe(null);
+    // Nothing to clear is fine too.
+    expect((await h.run({ method: "reset" })).logs).toEqual(["State cleared"]);
   });
 
   it("fails on purpose", async () => {
