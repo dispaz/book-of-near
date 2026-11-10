@@ -700,14 +700,15 @@ export function ReceiptSlip({
 // ---------- gas refund: a coin coming back ----------
 
 /**
- * A gas refund: a coin, tilted up so its face shows, with a return mark (↩) on its tag. Unused gas money
- * going back to the signer. The network delivers it as a receipt, but the scene draws money as a coin,
- * not as another slip, so a refund never reads as more work. `label` is a short tag above it.
+ * A gas refund: a NEAR coin (NEAR green with the NEAR mark, like every coin), tilted up so its face shows,
+ * with a return mark (↩) on its tag. Unused gas money going back to the signer. The network delivers it
+ * as a receipt, but the scene draws money as a coin, not as another slip, so a refund never reads as more
+ * work. `label` is a short tag above it.
  */
 export function RefundCoin({
   position = [0, 0, 0],
   size = 0.8,
-  color = COLORS.gold,
+  color = COLORS.near,
   label,
   ...pick
 }: PickProps & { position?: Vec3; size?: number; color?: string; label?: string }) {
