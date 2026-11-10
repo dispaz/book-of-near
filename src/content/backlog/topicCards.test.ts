@@ -90,19 +90,34 @@ describe("withTopicCards", () => {
   });
 
   it("adds the cards next to the lesson modules", () => {
-    const merged = withTopicCards({ "a/manifest.ts": { default: card("l-a") } }, [card("topic-0-x")]);
+    const merged = withTopicCards({ "a/manifest.ts": { default: card("l-a") } }, [card("topic-0-x")], [0]);
     expect(Object.values(merged).map((m) => m.default.id)).toEqual(["l-a", "topic-0-x"]);
   });
 
   it("lets a written lesson with the card's id replace the card (the lesson command fills cards in)", () => {
     const lesson = { ...card("topic-0-x"), status: "ready" as const, steps: [{ caption: "x" }] };
-    const merged = withTopicCards({ "x/manifest.ts": { default: lesson } }, [card("topic-0-x")]);
+    const merged = withTopicCards({ "x/manifest.ts": { default: lesson } }, [card("topic-0-x")], [0]);
     expect(Object.values(merged).map((m) => m.default)).toEqual([lesson]);
+  });
+
+  it("skips cards whose stage is not registered instead of failing", () => {
+    const parked = { ...card("topic-5-y"), stage: 5 };
+    const merged = withTopicCards({}, [card("topic-0-x"), parked], [0, 1]);
+    expect(Object.values(merged).map((m) => m.default.id)).toEqual(["topic-0-x"]);
   });
 });
 
 describe("the real curriculum", () => {
   const covered = CURRICULUM.topics.filter((t) => coveredBy(t.name, LESSON_TOPICS));
+  // Stages 5 (Enclave) and 6 (Citizen) are parked (docs/progress.md, #30): their topics get no card.
+  // To restore them, re-add the two stage folders and empty this list.
+  const PARKED_STAGES = [5, 6];
+  const shown = CURRICULUM.topics.filter((t) => !covered.includes(t) && !PARKED_STAGES.includes(t.stage));
+
+  it("has no registered stage for the parked ones", () => {
+    for (const n of PARKED_STAGES) expect(registry.stages.map((s) => s.id)).not.toContain(n);
+    expect(CURRICULUM.topics.filter((t) => PARKED_STAGES.includes(t.stage))).toHaveLength(6);
+  });
 
   it("maps every coverage entry to one real lesson and exactly one topic", () => {
     for (const [lessonId, prefixes] of Object.entries(LESSON_TOPICS)) {
@@ -118,15 +133,14 @@ describe("the real curriculum", () => {
 
   it("registers one locked card per topic without a lesson, so the card count matches the data", () => {
     const cards = [...registry.lessons.values()].filter((l) => l.topic);
-    expect(cards).toHaveLength(CURRICULUM.topics.length - covered.length);
-    expect(cards).toHaveLength(TOPIC_CARDS.length);
+    expect(cards).toHaveLength(shown.length);
+    expect(cards).toHaveLength(TOPIC_CARDS.filter((c) => !PARKED_STAGES.includes(c.stage)).length);
     expect(cards.every((c) => c.status === "planned")).toBe(true);
-    const titles = new Set(cards.map((c) => c.title));
-    for (const t of CURRICULUM.topics) expect(titles.has(t.name) !== covered.includes(t), t.name).toBe(true);
+    expect(cards.map((c) => c.title).sort()).toEqual(shown.map((t) => t.name).sort());
   });
 
   it("puts every card under its own stage", () => {
-    for (const t of CURRICULUM.topics.filter((x) => !covered.includes(x))) {
+    for (const t of shown) {
       const stage = registry.stages.find((s) => s.id === t.stage);
       expect(stage, `stage ${t.stage}`).toBeDefined();
       expect(stage!.lessons.map((l) => l.title)).toContain(t.name);
@@ -134,15 +148,13 @@ describe("the real curriculum", () => {
   });
 
   it("tags every going-deeper topic", () => {
-    const deep = TOPIC_CARDS.filter((c) => c.topic?.goingDeeper).map((c) => c.title);
-    const expected = CURRICULUM.topics
-      .filter((t) => t.goingDeeper && !covered.includes(t))
-      .map((t) => t.name);
+    const deep = [...registry.lessons.values()].filter((c) => c.topic?.goingDeeper).map((c) => c.title);
+    const expected = shown.filter((t) => t.goingDeeper).map((t) => t.name);
     expect(deep).toEqual(expected);
     expect(deep.length).toBeGreaterThan(0);
   });
 
-  it("gives each card a unique id and a summary", () => {
+  it("gives each card a unique id and a summary (parked stages' cards too)", () => {
     expect(new Set(TOPIC_CARDS.map((c) => c.id)).size).toBe(TOPIC_CARDS.length);
     for (const c of TOPIC_CARDS) expect(c.summary, c.id).toBeTruthy();
   });

@@ -11,4 +11,11 @@ const lessonModules = import.meta.glob<{ default: LessonManifest }>("../content/
 });
 
 /** Lessons from their manifests, plus a locked card for every curriculum topic no lesson teaches yet. */
-export const registry = buildRegistry(stageModules, withTopicCards(lessonModules, TOPIC_CARDS));
+export const registry = buildRegistry(
+  stageModules,
+  withTopicCards(
+    lessonModules,
+    TOPIC_CARDS,
+    Object.values(stageModules).map((m) => m.default.id),
+  ),
+);

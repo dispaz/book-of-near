@@ -5,17 +5,22 @@ import { seedRoute } from "./lessons/helpers";
 test.beforeEach(({ page }) => seedRoute(page));
 
 test.describe("backlog topic cards", () => {
-  test("every stage of the curriculum is in the contents, the later ones with only locked cards", async ({
+  test("every registered stage is in the contents; a stage with only locked cards is tagged", async ({
     page,
   }) => {
     await page.goto("/");
-    for (const n of [0, 1, 2, 3, 4, 5, 6, 7]) {
+    for (const n of [0, 1, 2, 3, 4, 7]) {
       await expect(page.getByRole("region", { name: new RegExp(`Stage ${n}\\b`) })).toBeVisible();
     }
-    const stage5 = page.getByRole("region", { name: /Stage 5/ });
-    await expect(stage5).toContainText("Coming later");
-    await expect(stage5.getByRole("button", { name: /Shade Agents/ })).toBeVisible();
-    await expect(stage5.getByRole("link")).toHaveCount(0);
+    // Stages 5 and 6 are parked (docs/progress.md, #30): no section and no cards for them.
+    for (const n of [5, 6]) {
+      await expect(page.getByRole("region", { name: new RegExp(`Stage ${n}\\b`) })).toHaveCount(0);
+    }
+    await expect(page.getByRole("button", { name: /Shade Agents/ })).toHaveCount(0);
+    const stage7 = page.getByRole("region", { name: /Stage 7/ });
+    await expect(stage7).toContainText("Coming later");
+    await expect(stage7.getByRole("button", { name: /Capstone: the honest take/ })).toBeVisible();
+    await expect(stage7.getByRole("link")).toHaveCount(0);
   });
 
   test("opening a card shows its summary and comparison note; it closes again", async ({ page }) => {
@@ -58,10 +63,10 @@ test.describe("backlog topic cards", () => {
   });
 
   test("a card has its own page with the same text", async ({ page }) => {
-    await page.goto("/lesson/topic-5-shade-agents");
-    await expect(page.getByRole("heading", { level: 1, name: /Shade Agents/ })).toBeVisible();
-    await expect(page.getByText("Stage 5 · Enclave")).toBeVisible();
-    await expect(page.getByText(/No person holds their keys/)).toBeVisible();
+    await page.goto("/lesson/topic-2-dynamic-resharding");
+    await expect(page.getByRole("heading", { level: 1, name: /Dynamic resharding/ })).toBeVisible();
+    await expect(page.getByText("Stage 2 · Nightshade")).toBeVisible();
+    await expect(page.getByText(/It lets the network make room as use grows/)).toBeVisible();
     await expect(page.getByText("Comparison note")).toBeVisible();
     await page.getByRole("link", { name: "Back to contents" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Book of NEAR" })).toBeVisible();
