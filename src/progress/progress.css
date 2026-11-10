@@ -159,10 +159,99 @@
   background: transparent;
   border-style: dashed;
   color: #3b3846;
-  cursor: default;
 }
-.lesson-chip.locked:hover {
+
+/* ---------- Locked cards (planned lessons and backlog topics, #30) ---------- */
+/* The chip is a button that opens the card's details below it. */
+button.lesson-chip {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+.lesson-chip.locked:hover,
+.lesson-chip.locked[aria-expanded="true"] {
+  background: #fffaf2;
+}
+.lesson-chip.locked[aria-expanded="true"] {
+  border-style: solid;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.lesson-chip .chip-body .tag {
+  align-self: flex-start;
+}
+.tag.deep {
+  border-style: dashed;
+  color: var(--ink);
   background: transparent;
+}
+.card-panel {
+  border: 1.5px solid var(--ink);
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  background: #fff;
+  padding: 10px 14px 12px;
+  font: 500 14px/1.45 var(--ui);
+}
+.card-details > * {
+  margin: 0 0 8px;
+}
+.card-details > :last-child {
+  margin-bottom: 0;
+}
+.card-summary {
+  font: 500 17px/1.4 var(--serif);
+}
+.card-note {
+  border-left: 4px solid var(--stage-accent, var(--accent));
+  padding-left: 10px;
+}
+.card-note p {
+  margin: 0;
+}
+.card-label {
+  font: 700 11px var(--ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.card-flag {
+  display: inline-block;
+  border: 1.5px dashed var(--ink);
+  border-radius: 8px;
+  padding: 2px 8px;
+  font-weight: 700;
+  font-size: 13px;
+}
+.card-meta {
+  color: var(--mute);
+}
+.card-meta a {
+  color: var(--ink);
+}
+.card-soon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--mute);
+}
+.card-soon .chip-icon {
+  flex: none;
+}
+.topic-page {
+  max-width: 680px;
+}
+.topic-page h1 {
+  margin-bottom: 8px;
+}
+.topic-page .card-panel {
+  margin: 14px 0 18px;
+  border-top: 8px solid var(--stage-accent, var(--accent));
+  border-radius: 18px;
+  background: var(--paper-2);
+  box-shadow: 0 4px 0 var(--ink);
+  padding: 16px 18px;
 }
 .lesson-chip.done .chip-state {
   color: var(--ink);
