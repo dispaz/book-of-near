@@ -47,3 +47,11 @@ describe("palette: one source of truth", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe("palette: NEAR brand", () => {
+  it("uses NEAR's published green, black and off-white", () => {
+    expect(NEAR.green).toBe("#00ec97");
+    expect(NEAR.black).toBe("#000000");
+    expect(NEAR.offWhite).toBe("#f2f1e9");
+  });
+});

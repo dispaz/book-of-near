@@ -21,7 +21,7 @@ export const PAPER = "#fffdf7";
 export const NEAR = {
   green: "#00ec97",
   black: "#000000",
-  offWhite: "#f2f1ea",
+  offWhite: "#f2f1e9",
   /** A deep shade of the brand green: the book's cloth cover. */
   forest: "#145c43",
 } as const;
