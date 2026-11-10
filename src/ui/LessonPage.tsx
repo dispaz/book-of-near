@@ -26,7 +26,7 @@ import { progress } from "../progress";
 import { FinishLesson, useRecordPosition } from "../progress/FinishLesson";
 import { StepNote } from "./StepNote";
 import { BookCover, startsClosed } from "./BookCover";
-import { IntroContext, SpreadContext } from "../app/intro";
+import { IntroContext, LessonIdContext, SpreadContext } from "../app/intro";
 import { Summary } from "./Summary";
 
 const sceneCache = new Map<string, ComponentType<SceneProps>>();
@@ -247,28 +247,32 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
       data-lesson={lesson.id}
       data-spread={spread ? "" : undefined}
     >
-      <IntroContext.Provider value={intro}>
-        <SpreadContext.Provider value={spreadCtx}>
-          <BarSlot.Provider value={barSlot}>
-            <ActionSlot.Provider value={slot}>
-              <div className="scene-area" data-testid="scene-area" inert={closed}>
-                {!Scene ? (
-                  fallback("This lesson has no scene yet. Here are its steps as text.")
-                ) : !webgl ? (
-                  fallback("Your browser can't draw the 3D scene. Here are the steps as text.")
-                ) : (
-                  <SceneBoundary fallback={fallback("The scene could not load. Here are the steps as text.")}>
-                    <Suspense fallback={<p className="visually-hidden">Loading scene…</p>}>
-                      <Scene {...sceneProps} />
-                    </Suspense>
-                  </SceneBoundary>
-                )}
-                {current.page === "summary" ? <Summary title={lesson.title} steps={steps} /> : null}
-              </div>
-            </ActionSlot.Provider>
-          </BarSlot.Provider>
-        </SpreadContext.Provider>
-      </IntroContext.Provider>
+      <LessonIdContext.Provider value={lesson.id}>
+        <IntroContext.Provider value={intro}>
+          <SpreadContext.Provider value={spreadCtx}>
+            <BarSlot.Provider value={barSlot}>
+              <ActionSlot.Provider value={slot}>
+                <div className="scene-area" data-testid="scene-area" inert={closed}>
+                  {!Scene ? (
+                    fallback("This lesson has no scene yet. Here are its steps as text.")
+                  ) : !webgl ? (
+                    fallback("Your browser can't draw the 3D scene. Here are the steps as text.")
+                  ) : (
+                    <SceneBoundary
+                      fallback={fallback("The scene could not load. Here are the steps as text.")}
+                    >
+                      <Suspense fallback={<p className="visually-hidden">Loading scene…</p>}>
+                        <Scene {...sceneProps} />
+                      </Suspense>
+                    </SceneBoundary>
+                  )}
+                  {current.page === "summary" ? <Summary title={lesson.title} steps={steps} /> : null}
+                </div>
+              </ActionSlot.Provider>
+            </BarSlot.Provider>
+          </SpreadContext.Provider>
+        </IntroContext.Provider>
+      </LessonIdContext.Provider>
 
       <header className="lesson-title" inert={closed}>
         <p className="eyebrow">

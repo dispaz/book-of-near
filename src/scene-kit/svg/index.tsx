@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { arcPoint, easeInOut } from "../motion";
+import { markTransform, NEAR_MARK } from "../nearMark";
 import { COLORS, INK, PAPER } from "../theme";
 import "../scene-kit.css";
 
@@ -369,12 +370,13 @@ export function SvgChainBlock({
   return maybePick(p, name, [x - 80, y - 76, 160, 86], body);
 }
 
-/** A coin seen from slightly above. */
-export function SvgCoin({ x = 0, y = 0, color = COLORS.gold }: { x?: number; y?: number; color?: string }) {
+/** A NEAR coin seen from slightly above: NEAR green with the NEAR mark on its face. */
+export function SvgCoin({ x = 0, y = 0, color = COLORS.near }: { x?: number; y?: number; color?: string }) {
   return (
     <g>
       <ellipse cx={x} cy={y + 3} rx="20" ry="8" fill={color} stroke={INK} strokeWidth="2.5" />
       <ellipse cx={x} cy={y} rx="20" ry="8" fill={color} stroke={INK} strokeWidth="2.5" />
+      <path d={NEAR_MARK.path} fill={INK} transform={markTransform(x, y, 14, 0.42)} />
     </g>
   );
 }

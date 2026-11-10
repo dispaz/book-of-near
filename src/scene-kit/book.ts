@@ -40,6 +40,29 @@ export interface Spread {
 }
 
 type Box = { minX: number; maxX: number; minZ: number; maxZ: number };
+/** A box on the desk (x and z), for example where the camera may look. */
+export type DeskBox = Box;
+
+/**
+ * The open book's footprint on the desk: both pages, plus a small margin (`margin`, by default the larger
+ * of 0.5 units and 5 % of the spread's width). The camera's pan is held inside it, so the learner can
+ * bring any part of either page to the middle but cannot slide off the book.
+ */
+export function bookFootprint(s: Spread, margin?: number): DeskBox {
+  const [spine, , cz] = s.center;
+  const m = margin ?? Math.max(0.5, 0.05 * 2 * s.pageWidth);
+  return {
+    minX: spine - s.pageWidth - m,
+    maxX: spine + s.pageWidth + m,
+    minZ: cz - s.pageDepth / 2 - m,
+    maxZ: cz + s.pageDepth / 2 + m,
+  };
+}
+
+/** The point (x, z) held inside `box`, each axis on its own (a box, not a circle). */
+export function clampToBox(x: number, z: number, box: DeskBox): [number, number] {
+  return [Math.min(box.maxX, Math.max(box.minX, x)), Math.min(box.maxZ, Math.max(box.minZ, z))];
+}
 
 /** The smallest open spread, spine at x = 0, that holds a box of scene content with a margin round it. */
 export function spreadFor(box: Box, margin = { side: 1.1, front: 0.9, back: 0.9 }): Spread {

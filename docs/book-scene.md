@@ -11,7 +11,8 @@ Start a new lesson as a book scene with `npm run new-lesson -- <id> --stage N --
 | Part | Where | Who draws it |
 | --- | --- | --- |
 | Cover → open book → 2D page → 3D grows out of the page | Lesson start and 2D → 3D switch | App (`LessonPage`, `IntroContext`), automatic |
-| Desk, open book, cloth cover, ribbon, page edges | Under the scene | `BookBackdrop` (via `BookScene`) |
+| Desk, open book, cloth cover, ribbon, page edges, sun streaks and window shadows on the desk | Under the scene | `BookBackdrop` (via `BookScene`) |
+| The window nook round the desk at sunset: the back wall is a painting (`assets/sunset-window.jpg`: a bookshelf with a trailing pothos, a three-pane window onto mountains and a garden, a plant on the sill) standing on the desk, carried on up to the ceiling; side walls in warm wood, the left one lined with the same shelves; sun streaks and the window frames' shadows on the desk | Behind and round the desk, seen at low angles and in tour close-ups | `Room` (`Room.tsx`, `roomLayout.ts`, `roomPaint.ts`; via `BookBackdrop`) |
 | The step's figure, standing on the **right page** | Pages at y = 0 | The lesson (children of `BookScene`) |
 | The step's heading, note and action, **printed on the left page** | Scene area ≥ 1100 px wide (`PRINT_MIN_WIDTH`), not at the quiz / honest take | `PrintOnPage` + `SpreadContext` (via `BookScene`); the lesson page lays its `.book-page` out as print |
 | Page numbers at the foot, "Fig. n  …" caption under the figure | Right page foot | `BookBackdrop` (`folios(sheet)`, `caption`) |
@@ -88,7 +89,10 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
    printed only on a 3D object (a balance on a page, a hash on a block) is also in visually hidden text or
    a labelled HTML tag.
 8. **Colours.** Figures follow the ink rule (paper white, black outlines, the stage accent for meaning).
-   The desk and book colours are the setting and stay the same on every stage.
+   The setting (table, room, book) is the same on every stage and uses NEAR's palette (`NEAR` in
+   `theme.ts`, `--near-*` in `ink.css`): a deep green cloth cover, a NEAR green ribbon, NEAR greens in
+   the plants and hills. The light is a warm sunset (orange desk, violet and pink sky). Coins are NEAR coins: `Coin` and `SvgCoin` default to NEAR green with the
+   NEAR mark (`nearMark.ts`) on their faces. Pass `color` only when a coin must mean something else.
 9. **Reduced motion.** No page turn, no pop-up and no camera easing: the camera jumps from shot to shot.
    The tour still plays when the learner presses play (it is their choice), one still shot after another.
    Nothing extra to do if you use `BookScene`, `Traveller` and the kit primitives.
@@ -100,11 +104,52 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
     Every object must be interactable throughout the lesson via `Pickable` (with accessible button overlays for
     keyboards, screen readers, and automated E2E tests). Picking objects should execute or advance the step's
     action (e.g. picking a key signs, picking a mailbox checks balances, picking a parcel sends, picking a scroll executes code).
-11. **The learner may move the camera.** Orbit (drag), zoom (wheel, pinch) and a small pan (right drag,
-    shift / ctrl / cmd + drag, two-finger drag). The pan is held within `PAN_SHARE` (15 %) of the camera's
-    distance from where the learner took over, so the figure cannot leave the view. Small view changes (a
-    panel gaining a line, fonts loading) keep the learner's view; a new step or tour shot glides back.
-    Keyboard panning is not wired: the canvas is not a focus stop, and arrow keys belong to the page.
+11. **The learner may move the camera.** Orbit (drag), zoom (wheel, pinch) and pan (right drag,
+    shift / ctrl / cmd + drag, two-finger drag). In a book scene the pan slides across the desk and the
+    camera's target is held inside the open book's footprint (`bookFootprint(spread)`: both pages plus a
+    margin of 5 % of the spread, at least 0.5), each axis on its own, at the height it had. So the learner
+    can bring the right page, or any figure on it, to the middle of the free area (the view offset keeps
+    the target there), at any zoom, but never slide off the book. `BookScene` passes it as
+    `InkStage panBounds`; other 3D scenes keep a small pan, within `ORBIT.pan` (15 %) of the camera's
+    distance (less when zoomed in) from where the press became a camera gesture. The coasting after a drag
+    is frame-rate independent (`dampingFor`; drei and the rig each update the controls once a frame).
+    **Turn and zoom limits** (`ORBIT`, `orbitLimits`): 45° either side of a view and 1.3× its distance at
+    most, relaxed while the rig glides. Before the learner takes over, the range is centred on the step's
+    view. When they take over it is centred on the view they took it from (the step's view if the camera
+    had arrived, or where it is at that moment if they caught it mid-glide) and that centre stays with their kept view through
+    later steps, so a new step never pulls the camera into its own range. Reset view, Flat view or the tour
+    hand the camera back and the range follows the step's view again. The kept view in memory carries its
+    centre (`SavedView.from`).
+    **Never through a wall.** A pan to the book's edge plus a turn and a zoom-out could take the camera
+    out of the room (`roomFor` places the walls round the book's centre, for #39's look). So the rig keeps
+    the camera inside the same room the backdrop draws (`roomForSpread(spread)`, via `deskFor`), 2 units
+    clear of the walls, the ceiling and the desk (`cameraRoom`, `WALL_GAP`): if it would leave, it comes
+    nearer along its line of sight (`keepInside`; no turning, no sliding, no jitter). `BookScene` passes it
+    as `InkStage cameraBounds`; tests read `data-camera-inside` (`yes` / `no`).
+    **Their view stays.** A press becomes the learner's own view only as a camera gesture
+    (`isCameraGesture`): the pointer went at least `CLICK_PX` from where the press began (the pick
+    threshold; `Pickable` measures the same furthest travel, so a press that goes out 7 px and back is a
+    move and never also a pick), or they zoomed or used two fingers. A tap that drifts a few pixels picks the
+    object and leaves the camera to the steps, and a glide in progress carries on until the gesture counts.
+    From then on later steps and focus changes leave the camera where it is: pages still turn and figures
+    still grow, only the camera stays put. It comes back to the step's framing on **Reset view**, the
+    **Flat view** pill or the **tour** (play). `BookScene` turns this on (`InkStage keepView`); other 3D
+    scenes keep the old rule (a new view glides back unless it is a small nudge).
+    **Kept per lesson.** `BookScene` passes the lesson id (`LessonIdContext`, provided by the lesson page)
+    as `viewMemory`; the rig captures it at mount and keeps the learner's view under it while the 3D view is
+    closed (`scene-kit/viewMemory.ts`, in memory only). Switching to 2D and back, or leaving the lesson and
+    coming back in the same visit, finds the camera where they left it; another lesson never gets it; a
+    reload starts on the framing. Never key it by the URL: the router changes the path before the scene
+    unmounts, and hash routing never changes it.
+    **The camera cluster** (`CameraControls`), top right of the free area: **Reset view** (only while the
+    learner's view is on; pressing it moves focus to Controls, since it goes away) and **Controls**, a
+    disclosure card (`aria-expanded`; Esc or a press outside closes it, Esc returns focus) listing turn /
+    zoom / slide for mouse and touch (the learner's own pointer first) and the keyboard (pick objects with
+    Tab + Enter). It never opens by itself. Keyboard camera keys are not wired: the canvas is not a focus
+    stop and arrow keys belong to the page.
+    Tests read `data-camera-user` (`on` / `off`), `data-pan-bounds` (`minX,maxX,minZ,maxZ`) and `data-camera-pose` (`x,y,z@x,y,z`, camera and target,
+    2 decimals) on `.sk-stage`; see `e2e/book-camera.spec.ts`. `data-camera` turns `moving` in the same
+    tick a glide, a reset or a press is requested, so waiting for `still` never reads the old pose.
 
 ### Tests every book lesson needs
 
@@ -130,6 +175,7 @@ From `src/scene-kit` (3D half, lazy only):
 | --- | --- |
 | `<BookScene>` | `InkStage` + `BookBackdrop` + `PrintOnPage` + `ViewOffset` + tour, wired together. Props above. |
 | `useFreeFrame(root, panel, { summary, printMinWidth? })` | Measures the free part of the canvas between the lesson chrome; returns `{ frame, size, wide, print }`; sets `--book-t/l/r/b/sh` on `root`. |
+| `InkStage keepView viewReset` | `keepView` keeps the learner's own camera across steps and shows the camera cluster (`CameraControls`: Reset view, Controls); a new `viewReset` value hands the camera back. `BookScene` sets both (the tour resets). |
 | `useTour(shots, page)`, `<TourControls tour idle>` | The tour on its own, if a scene needs it without `BookScene`. |
 | `readingShot(focus, text, elevation?)`, `folios(sheet, first?)`, `freeFrame(chrome, opts)` | Pure helpers (`bookLayout.ts`, unit tested). |
 | `PRINT_MIN_WIDTH` (1100), `WIDE_MIN_WIDTH` (900), `READING_ELEVATION` (52), `SHOT_SECONDS` (3.4) | Shared constants. Widths are of the scene area, not the screen. Below `WIDE_MIN_WIDTH` the scene sits above the dock instead of beside it. |
@@ -143,4 +189,3 @@ Lower-level pieces (`BookBackdrop`, `PrintOnPage`, `PopUp`, `homography`) are de
 | --- | --- |
 | 0.1 How a blockchain works | Yes (the reference) |
 | 0.2, 0.3, 1.1, 1.2 | Not yet: plain `InkStage` on paper. Move them over one by one. |
-| 2.1 Follow your transaction across shards | Yes: shard ribbons, chunk cells, receipt slips |

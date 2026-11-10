@@ -13,6 +13,7 @@ import {
   TAMPER,
   type LedgerLesson,
 } from "./useLedgerLesson";
+import { markTransform, NEAR_MARK } from "../../../scene-kit/nearMark";
 import "./scene.css";
 
 /** The 2D view: three ledgers of balances and the chain as flat ink cards. Draws the shared lesson state. */
@@ -167,7 +168,11 @@ function Ledgers(
               } as CSSProperties
             }
           >
-            <span />
+            <span>
+              <svg viewBox="0 0 24 24">
+                <path d={NEAR_MARK.path} transform={markTransform(12, 12, 12)} />
+              </svg>
+            </span>
           </span>
         ) : null}
         <ul className="bb-ledgers" aria-label="Three ledgers" data-explain="ledgers">
