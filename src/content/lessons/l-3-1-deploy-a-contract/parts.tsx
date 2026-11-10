@@ -53,7 +53,8 @@ export function picksOf(d: Deploy): Record<"parent" | "sub" | "scroll" | "gauge"
 /** One sentence: what the figure shows at this step (screen readers, the 2D group label). */
 export function describe(d: Deploy): string {
   const c = d.contractId ?? "the contract's sub-account";
-  if (d.step === HOOK) return `Your account's mailbox, a dashed sub-mailbox for ${c} and a dashed contract scroll.`;
+  if (d.step === HOOK)
+    return `Your account's mailbox, a dashed sub-mailbox for ${c} and a dashed contract scroll.`;
   if (d.step === WASM)
     return `The contract scroll, unrolled: ${bytesText(d.facts.size)} of WebAssembly starting ${d.facts.header}.`;
   if (!d.deployed) return `The sub-account ${c} is not created yet. The contract is not deployed.`;
@@ -78,7 +79,7 @@ export function Facts({ d, compact = false }: { d: Deploy; compact?: boolean }) 
         </p>
       ) : null}
       {step === HOOK ? <Names d={d} /> : null}
-      {step === WASM ? <WasmFile d={d} /> : null}
+      {step === WASM ? <WasmFile d={d} compact={compact} /> : null}
       {step >= DEPLOY && step <= CLEAR ? <Storage d={d} /> : null}
       {step >= CALL && step <= CLEAR && d.deployed ? <Count d={d} /> : null}
       {step === FAIL && d.receipts ? <Receipts d={d} /> : null}
@@ -102,7 +103,7 @@ function Names({ d }: { d: Deploy }) {
   );
 }
 
-function WasmFile({ d }: { d: Deploy }) {
+function WasmFile({ d, compact }: { d: Deploy; compact: boolean }) {
   return (
     <section aria-label="The Wasm file" data-testid="contract-facts">
       <dl className="dpc-list">
@@ -119,7 +120,7 @@ function WasmFile({ d }: { d: Deploy }) {
           <code>{d.exportsList.join(", ")}</code>
         </dd>
       </dl>
-      {d.parent?.make ? (
+      {d.parent?.make && !compact ? (
         <p className="dpc-soft">
           Your practice account is a hex id, so the lesson will first make the short name{" "}
           <code>{d.parent.id}</code> for it.
@@ -173,7 +174,6 @@ function Storage({ d }: { d: Deploy }) {
     </section>
   );
 }
-
 
 function Count({ d }: { d: Deploy }) {
   return (

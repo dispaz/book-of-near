@@ -161,14 +161,7 @@ function Figure({ d }: { d: Deploy }) {
         color={ACCENT}
         {...picks.parent}
       />
-      <Line
-        points={link}
-        color={INK}
-        lineWidth={2}
-        dashed={!d.deployed}
-        dashSize={0.12}
-        gapSize={0.08}
-      />
+      <Line points={link} color={INK} lineWidth={2} dashed={!d.deployed} dashSize={0.12} gapSize={0.08} />
       <Mailbox
         position={SUB}
         size={1.3}
@@ -252,7 +245,7 @@ function Slips({ d }: { d: Deploy }) {
               pickLabel={`Receipt ${i + 1}: ${r ? r.method : "not sent yet"}${r ? (r.ok ? " worked" : " failed") : ""}`}
               onPick={() => void (d.receipts ? d.inspect() : d.failWithCallback())}
             />
-            <Label position={[s[0] - 0.95, 0.3, s[2]]} variant="small">
+            <Label position={[s[0], 0.05, s[2] + 0.45]} variant="small">
               {method}
             </Label>
           </group>

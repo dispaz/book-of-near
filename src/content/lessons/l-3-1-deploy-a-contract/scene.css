@@ -74,6 +74,9 @@
   font: 600 15px var(--ui);
   fill: var(--ink);
 }
+.dpc-svg-label.small {
+  font-size: 13px;
+}
 
 /* ---------- the facts (both views) ---------- */
 .dpc-facts {

@@ -69,7 +69,7 @@ function Figure({ d }: { d: Deploy }) {
     <g>
       {/* The post line from your account to the sub-account under it. */}
       <path
-        d={`M${ax + 30},${ay - 40} C${(ax + sx) / 2},${ay - 70} ${(ax + sx) / 2},${sy - 60} ${sx - 22},${sy - 34}`}
+        d={`M${ax},${ay} L${sx},${sy}`}
         className={`dpc-link${d.deployed ? "" : " dashed"}`}
         fill="none"
       />
@@ -79,7 +79,6 @@ function Figure({ d }: { d: Deploy }) {
           y={sy}
           size={96}
           name="counter"
-          note={short(d.contractId ?? "counter", 24)}
           color={ACCENT}
           state={d.deployed ? "ok" : "pending"}
           flag={d.deployed}
@@ -123,17 +122,8 @@ function Gauge({ d }: { d: Deploy }) {
   return (
     <g data-explain="gauge">
       <SvgPickable label={p.pickLabel} onPick={p.onPick} focus={[x - 6, y - 26, w + 12, h + 52]}>
-        <rect
-          x={x}
-          y={y}
-          width={w}
-          height={h}
-          rx={8}
-          className={`dpc-bar${d.deployed ? "" : " dashed"}`}
-        />
-        {lockW > 0 ? (
-          <rect x={x} y={y} width={lockW} height={h} rx={8} className="dpc-bar-lock" />
-        ) : null}
+        <rect x={x} y={y} width={w} height={h} rx={8} className={`dpc-bar${d.deployed ? "" : " dashed"}`} />
+        {lockW > 0 ? <rect x={x} y={y} width={lockW} height={h} rx={8} className="dpc-bar-lock" /> : null}
         <text x={x} y={y - 8} className="dpc-svg-label">
           {d.deployed ? `locked for storage: ${nearText(d.gauge.lock)} NEAR` : "no account yet"}
         </text>
@@ -167,7 +157,7 @@ function Slips({ d }: { d: Deploy }) {
               pickLabel={`Receipt ${i + 1}: ${r ? r.method : "not sent yet"}${r ? (r.ok ? " worked" : " failed") : ""}`}
               onPick={() => void (d.receipts ? d.inspect() : d.failWithCallback())}
             />
-            <text x={px(s[0]) - 38} y={pz(s[2]) + 4} textAnchor="end" className="dpc-svg-label">
+            <text x={px(s[0])} y={pz(s[2]) + 40} textAnchor="middle" className="dpc-svg-label small">
               {r ? r.method : ["call_other", "fail", "on_other_done"][i]}
             </text>
           </g>

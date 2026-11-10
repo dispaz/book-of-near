@@ -36,7 +36,6 @@ describe("layout", () => {
   });
 
   it("draws the receipts only on the failing-callback step", () => {
-    for (let step = 0; step <= HONEST; step++)
-      expect(partsAt(step).includes("slips")).toBe(step === 4);
+    for (let step = 0; step <= HONEST; step++) expect(partsAt(step).includes("slips")).toBe(step === 4);
   });
 });

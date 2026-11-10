@@ -8,14 +8,7 @@ import { describe, expect, it } from "vitest";
 import { recordScenario, runChainContract } from "./contract.test-kit";
 import { COUNTER_WASM_SHA256 } from "./demo/contracts";
 import { DEMO_RETURN_ACCOUNT, DemoChain, demoContractCode, GENESIS_HEIGHT } from "./DemoChain";
-import {
-  actions,
-  callMethod,
-  createNamedAccount,
-  totalGasBurnt,
-  totalTokensBurnt,
-  transfer,
-} from "./ops";
+import { actions, callMethod, createNamedAccount, totalGasBurnt, totalTokensBurnt, transfer } from "./ops";
 import type { PhaseEvent } from "./types";
 import { formatNear, formatTgas, parseNear } from "./units";
 

@@ -198,17 +198,18 @@ test.describe(`lesson ${ID}: motion, fallback, switching, phones`, () => {
     await expect(next(page)).toBeEnabled();
   });
 
+  // Pick buttons follow their 3D object; keyboard picking (Enter) is what screen readers and tests use.
   test("in 3D, picking the objects runs the step's actions", async ({ page }) => {
     await page.goto(`/lesson/${ID}?view=3d`);
     await expect(page.locator(".book-scene .sk-stage")).toBeVisible({ timeout: 20_000 });
     await nextStep(page);
     await nextStep(page);
-    await page.getByRole("button", { name: /^Sub-mailbox: deploy/ }).click();
+    await page.getByRole("button", { name: /^Sub-mailbox: deploy/ }).press("Enter");
     await state(page, /deployed:yes/);
     await nextStep(page);
-    await page.getByRole("button", { name: /^Scroll: increment/ }).click();
+    await page.getByRole("button", { name: /^Scroll: increment/ }).press("Enter");
     await state(page, /count:1;/);
-    await page.getByRole("button", { name: /^Balance gauge: read/ }).click();
+    await page.getByRole("button", { name: /^Balance gauge: read/ }).press("Enter");
     await state(page, /read:1;/);
   });
 });

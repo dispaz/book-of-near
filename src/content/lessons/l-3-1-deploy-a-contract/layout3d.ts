@@ -11,16 +11,16 @@ export const FIGURE = { minX: -3.6, maxX: 3.6, minZ: -2.3, maxZ: 2.5 } as const;
 /** The learner's account (the parent). */
 export const PARENT: Vec3 = [-2.6, 0, 0.1];
 /** The contract's sub-account, beside the parent on the same post line. */
-export const SUB: Vec3 = [-0.8, 0, 0.4];
+export const SUB: Vec3 = [-0.6, 0, 0.4];
 /** The contract: a scroll with a gear. */
-export const SCROLL: Vec3 = [0.9, 0, -0.5];
+export const SCROLL: Vec3 = [0.8, 0, -0.5];
 /** The balance gauge: a flat bar across the front of the page. */
 export const GAUGE = { center: [0, 0, 1.85] as Vec3, length: 5.2, depth: 0.42 };
 /** Step 5's receipts: one slip per receipt, top to bottom, right of the scroll. */
 export const SLIPS: Vec3[] = [
-  [2.7, 0, -1.5],
-  [2.7, 0, -0.45],
-  [2.7, 0, 0.6],
+  [2.8, 0, -1.6],
+  [2.8, 0, -0.5],
+  [2.8, 0, 0.6],
 ];
 
 export type Part = "parent" | "sub" | "scroll" | "gauge" | "slips";
