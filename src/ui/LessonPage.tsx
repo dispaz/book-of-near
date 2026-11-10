@@ -28,6 +28,7 @@ import { StepNote } from "./StepNote";
 import { BookCover, startsClosed } from "./BookCover";
 import { IntroContext, LessonIdContext, SpreadContext } from "../app/intro";
 import { Summary } from "./Summary";
+import { TopicCardPage } from "./TopicCard";
 
 const sceneCache = new Map<string, ComponentType<SceneProps>>();
 
@@ -44,7 +45,10 @@ function sceneFor(lesson: LessonManifest): ComponentType<SceneProps> | null {
 export function LessonPage() {
   const { id = "" } = useParams();
   const lesson = registry.lessons.get(id);
-  if (!lesson || lesson.status === "planned") {
+  // A locked card (planned lesson or backlog topic) opens as the card on its own page.
+  if (lesson?.status === "planned")
+    return <TopicCardPage lesson={lesson} stage={registry.stageOf(lesson.id)!} />;
+  if (!lesson) {
     return (
       <main className="page">
         <div className="page-inner">

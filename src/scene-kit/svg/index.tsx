@@ -12,7 +12,7 @@ import {
 } from "react";
 import { arcPoint, easeInOut } from "../motion";
 import { markTransform, NEAR_MARK } from "../nearMark";
-import { COLORS, INK, PAPER } from "../theme";
+import { CARD, COLORS, INK, MUTE } from "../theme";
 import "../scene-kit.css";
 
 type XY = readonly [number, number];
@@ -163,7 +163,7 @@ export function SvgLabel({
       fontSize="12"
       fontWeight="700"
       letterSpacing="1"
-      fill="#5d5a68"
+      fill={MUTE}
     >
       {children.toUpperCase()}
     </text>
@@ -284,7 +284,7 @@ export function SvgContractBlock({
         width={size + 10}
         height="10"
         rx="3"
-        fill={PAPER}
+        fill={CARD}
         stroke={INK}
         strokeWidth="2.5"
       />
@@ -294,7 +294,7 @@ export function SvgContractBlock({
         width={size * 0.6}
         height={size * 0.32}
         rx="4"
-        fill={PAPER}
+        fill={CARD}
         stroke={INK}
         strokeWidth="2"
       />

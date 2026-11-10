@@ -61,7 +61,7 @@
 .check-q + .check-q {
   margin-top: 12px;
   padding-top: 10px;
-  border-top: 1.5px dashed #16141f33;
+  border-top: 1.5px dashed color-mix(in srgb, var(--ink) 20%, transparent);
 }
 .check-prompt {
   display: flex;
@@ -90,7 +90,7 @@
   cursor: pointer;
 }
 .check-option:hover {
-  background: #16141f0d;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
 }
 .check-option input {
   margin-top: 4px;
@@ -134,13 +134,13 @@
   margin-top: calc((var(--head-h, 110px) - var(--bar-reserve, 88px)) / 2);
   box-shadow:
     0 4px 0 var(--ink),
-    0 24px 60px #16141f40;
+    0 24px 60px color-mix(in srgb, var(--ink) 25%, transparent);
 }
 .check-backdrop {
   position: absolute;
   inset: 0;
   z-index: 19;
-  background: #16141f33;
+  background: color-mix(in srgb, var(--ink) 20%, transparent);
 }
 .check-head {
   display: flex;

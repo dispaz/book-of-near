@@ -10,7 +10,7 @@ import { Overlay, OverlayContext, OverlayStore, OverlaySync } from "./overlay";
 import type { DeskBox } from "./book";
 import type { CameraView } from "./motion";
 import { ROOM, type CameraBox } from "./roomLayout";
-import { GROUND } from "./theme";
+import { PAGE } from "./theme";
 import "./scene-kit.css";
 
 export interface InkStageProps {
@@ -130,7 +130,7 @@ export function InkStage({
               {backdrop ?? (
                 <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.002, 0]}>
                   <planeGeometry args={[80, 80]} />
-                  <meshBasicMaterial color={GROUND} />
+                  <meshBasicMaterial color={PAGE} />
                 </mesh>
               )}
               <CameraRig
