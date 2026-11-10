@@ -73,7 +73,7 @@ export function LockedCard({ lesson, num }: { lesson: LessonManifest; num: strin
         className="lesson-chip locked"
         data-lesson-id={lesson.id}
         aria-expanded={open}
-        aria-controls={id}
+        aria-controls={open ? id : undefined}
         onClick={() => setOpen((o) => !o)}
       >
         <span className="num">{num}</span>

@@ -53,7 +53,7 @@ test.describe("backlog topic cards", () => {
     await expect(details).toContainText(/optional/i);
   });
 
-  test("a planned lesson without a written card shows a coming-soon state", async ({ page }) => {
+  test("a planned lesson with a summary shows its being-written state", async ({ page }) => {
     await page.goto("/");
     const stage4 = page.getByRole("region", { name: /Stage 4/ });
     const card = stage4.getByRole("button", { name: /Swap across chains with an intent/ });
