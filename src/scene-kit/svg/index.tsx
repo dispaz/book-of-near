@@ -163,7 +163,7 @@ export function SvgLabel({
       fontSize="12"
       fontWeight="700"
       letterSpacing="1"
-      fill="#5d5a68"
+      fill="var(--mute)"
     >
       {children.toUpperCase()}
     </text>

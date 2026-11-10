@@ -40,7 +40,7 @@
 .shs-2d {
   border: 2px solid var(--ink);
   border-radius: 12px;
-  background: #fffdf7;
+  background: var(--card);
   box-shadow: 3px 3px 0 var(--ink);
   padding: 6px;
 }
@@ -51,7 +51,7 @@
   max-height: 46vh;
 }
 .shs-cell {
-  fill: #fffdf7;
+  fill: var(--card);
   stroke: var(--ink);
   stroke-width: 1.2;
 }
@@ -99,7 +99,7 @@
   padding: 2px 4px;
   border: 1.5px solid var(--ink);
   border-radius: 999px;
-  background: var(--paper, #fffdf7);
+  background: var(--paper);
   font-family: var(--ui);
 }
 .shs-hopnav button {
@@ -115,7 +115,7 @@
   place-items: center;
 }
 .shs-hopnav button:hover {
-  background: #16141f14;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
 }
 .shs-hopnav button:disabled {
   opacity: 0.3;
@@ -238,7 +238,7 @@
   vertical-align: -1px;
 }
 .handover {
-  background: #fffdf7;
+  background: var(--card);
 }
 .hops {
   background: var(--accent);

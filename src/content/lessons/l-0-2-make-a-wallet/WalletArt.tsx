@@ -1,7 +1,6 @@
 /** Ink drawing of the wallet chain: words → private key → public key → address. Wide screens only. */
+import { INK, PAPER } from "../../../scene-kit/theme";
 import type { ArtFocus } from "./useWallet";
-
-const INK = "#16141f";
 
 const BOXES = [
   { id: "words", y: 16, label: "12 words", sub: "seed phrase" },
@@ -80,7 +79,7 @@ export function WalletArt({
             width="210"
             height="74"
             rx="14"
-            fill={lit.includes(b.id) ? "var(--accent)" : "#fffdf7"}
+            fill={lit.includes(b.id) ? "var(--accent)" : PAPER}
             stroke={INK}
             strokeWidth="2.5"
             strokeDasharray={empty ? "8 6" : undefined}
@@ -195,7 +194,7 @@ export function WalletArt({
       ) : null}
       {focus === "gone" ? (
         <g transform="rotate(-8 145 222)" data-explain="custody">
-          <rect x="35" y="196" width="220" height="44" rx="8" fill="#fffdf7" stroke={INK} strokeWidth="2.5" />
+          <rect x="35" y="196" width="220" height="44" rx="8" fill={PAPER} stroke={INK} strokeWidth="2.5" />
           <text x="145" y="229" textAnchor="middle" fontFamily="Caveat, cursive" fontSize="32" fill={INK}>
             keys thrown away
           </text>
