@@ -14,10 +14,10 @@ import {
   type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
-import { SpreadContext } from "../app/intro";
+import { LessonIdContext, SpreadContext } from "../app/intro";
 import { BarSlot } from "../ui/StageBar";
 import { BookBackdrop } from "./BookBackdrop";
-import type { Spread, TextBlock } from "./book";
+import { bookFootprint, type Spread, type TextBlock } from "./book";
 import {
   activeCursor,
   folios,
@@ -34,6 +34,7 @@ import {
 import { frameCamera, type Focus, type Frame } from "./framing";
 import { InkStage, type InkStageProps } from "./InkStage";
 import { PrintOnPage } from "./PrintOnPage";
+import { cameraRoom, roomForSpread } from "./roomLayout";
 import { ViewOffset } from "./ViewOffset";
 
 // ---------- the camera tour ----------
@@ -266,6 +267,7 @@ export function BookScene<T>({
 }: BookSceneProps<T>) {
   const tour = useTour(shots, page);
   const { page: words, setPrinted } = useContext(SpreadContext);
+  const lessonId = useContext(LessonIdContext);
   const [pageInView, setPageInView] = useState(true);
   const printed = !!text && !tour.shot && pageInView;
   useEffect(() => {
@@ -282,6 +284,12 @@ export function BookScene<T>({
         view={view}
         reducedMotion={reducedMotion}
         page={page}
+        keepView
+        viewMemory={lessonId ?? undefined}
+        panBounds={bookFootprint(spread)}
+        cameraBounds={cameraRoom(roomForSpread(spread))}
+        // The tour drives the camera: starting it (and each shot, and its end) hands the view back.
+        viewReset={tour.shot ? `tour:${tour.shots.indexOf(tour.shot)}` : "rest"}
         backdrop={
           <>
             <BookBackdrop spread={spread} heads={heads} folios={folios(sheet)} caption={caption} />

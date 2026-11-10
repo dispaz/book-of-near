@@ -21,7 +21,7 @@ import {
 } from "three";
 import { inkMaterial, REVEAL } from "./materials";
 import { INK, NEAR } from "./theme";
-import { roomFor } from "./roomLayout";
+import { deskFor, roomFor } from "./roomLayout";
 import { deskWood } from "./roomPaint";
 import { BOOK_PART, noRaycast, Room, Table } from "./Room";
 import { BOOK, curlProfile, pageHeight, type Spread } from "./book";
@@ -65,18 +65,15 @@ export function BookBackdrop({
 }: BookBackdropProps) {
   const { pageWidth: W, pageDepth: D, center } = spread;
   const [cx, , cz] = center;
+  // The desk and the room round it come from the spread (deskFor, roomLayout.ts): the camera rig keeps
+  // inside the very same room (BookScene → roomForSpread).
+  const desk = useMemo(() => deskFor(spread), [spread]);
   const deskY = -BOOK.stack - BOOK.cover;
-  // The desk area: a little past the book at the sides and the back (the window is just behind it),
-  // and well past it towards the reader, so low camera shots see desk in front of the book.
-  const area = useMemo<[number, number]>(
-    () => [2 * (W + BOOK.overhang) + 9, D + 2 * BOOK.overhang + 26],
-    [W, D],
-  );
   return (
     <group>
       <Shadows spread={spread} />
       <CastShadows />
-      <Desk y={deskY - 0.001} at={[cx, cz + 10]} size={area} />
+      <Desk y={desk.y} at={desk.at} size={desk.size} />
       <group position={[cx, 0, cz]}>
         <Cover W={W} D={D} color={cover} />
         {([-1, 1] as const).map((side) => (

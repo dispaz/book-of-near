@@ -110,8 +110,9 @@ export interface PickProps {
 }
 
 /**
- * Wraps a pickable object. A click is a pointer that moved less than 6 px; a longer move is an
- * orbit drag and picks nothing. `anchor` is where the pick button sits, local to the object.
+ * Wraps a pickable object. A click is a press whose pointer never went `CLICK_PX` (6 px) from where it
+ * began; anything further, even if it comes back, is a camera drag (CameraRig counts the same way) and
+ * picks nothing. `anchor` is where the pick button sits, local to the object.
  */
 export function Pickable({
   label,
@@ -128,6 +129,8 @@ export function Pickable({
 }) {
   const ref = useRef<Object3D>(null);
   const [hover, setHover] = useState(false);
+  /** The furthest the pointer went from where this press began (px): the camera rig counts the same. */
+  const travel = useRef(0);
   useOverlayItem({ kind: "pick", label, pressed: selected, onPick }, ref);
   useLayoutEffect(() => {
     if (!hover) return;
@@ -138,8 +141,27 @@ export function Pickable({
   }, [hover]);
   return (
     <group
+      onPointerDown={(e: ThreeEvent<PointerEvent>) => {
+        // Follow the whole press, not just where it ends: out 7 px and back is a drag (the camera rig
+        // takes it as a camera move), never also a pick.
+        const { clientX: x0, clientY: y0, pointerId: id } = e.nativeEvent;
+        travel.current = 0;
+        const move = (ev: PointerEvent) => {
+          if (ev.pointerId === id)
+            travel.current = Math.max(travel.current, Math.hypot(ev.clientX - x0, ev.clientY - y0));
+        };
+        const up = (ev: PointerEvent) => {
+          if (ev.pointerId !== id) return;
+          window.removeEventListener("pointermove", move, true);
+          window.removeEventListener("pointerup", up, true);
+          window.removeEventListener("pointercancel", up, true);
+        };
+        window.addEventListener("pointermove", move, true);
+        window.addEventListener("pointerup", up, true);
+        window.addEventListener("pointercancel", up, true);
+      }}
       onClick={(e: ThreeEvent<MouseEvent>) => {
-        if (!isClick(e.delta)) return;
+        if (!isClick(Math.max(e.delta, travel.current))) return;
         e.stopPropagation();
         onPick();
       }}

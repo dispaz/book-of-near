@@ -8,6 +8,13 @@ import { createContext } from "react";
 export const IntroContext = createContext<{ grow: boolean }>({ grow: false });
 
 /**
+ * The lesson a scene belongs to (its id), or null outside a lesson page. Scenes key what they keep in
+ * memory across mounts by it (the learner's own camera, scene-kit/viewMemory.ts): unlike the URL, it is
+ * known when the scene mounts and is the same under every router.
+ */
+export const LessonIdContext = createContext<string | null>(null);
+
+/**
  * A 3D view that stands on an open book can print the step on the book's left page (wide screens).
  * `page` is the lesson page's `.book-page` element (the step heading and note); while the view calls
  * `setPrinted(true)` the lesson page lays it out as print (no boxes, no arrows) and the view places

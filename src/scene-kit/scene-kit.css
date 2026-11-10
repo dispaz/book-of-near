@@ -205,3 +205,75 @@
   vertical-align: -0.3em;
   flex: none;
 }
+
+/* The camera cluster (CameraControls.tsx): Reset view and Controls, top right of the book's free area,
+   clear of the docked step card (bottom left), the stage bar and the panel (bottom). */
+.sk-cam {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--book-t, 16px) + 8px);
+  right: var(--book-r, 16px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: calc(100% - 32px);
+  pointer-events: none;
+}
+.sk-cam > * {
+  pointer-events: auto;
+}
+.sk-cam-buttons {
+  display: flex;
+  gap: 6px;
+}
+.sk-cam .pill {
+  min-height: 34px;
+  background: var(--paper);
+}
+.sk-cam .pill:focus-visible {
+  outline: 3px solid var(--accent, var(--ink));
+  outline-offset: 2px;
+}
+.sk-cam-card {
+  width: min(300px, calc(100vw - 32px));
+  max-height: min(60vh, 440px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 10px 14px 12px;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: 3px 3px 0 var(--ink);
+  font: 500 14px/1.4 var(--serif);
+  color: var(--ink);
+}
+.sk-cam-card[hidden] {
+  display: none;
+}
+.sk-cam-card h3 {
+  margin: 0 0 2px;
+  font: 700 12px var(--ui);
+  color: var(--mute);
+}
+.sk-cam-group + .sk-cam-group {
+  margin-top: 8px;
+}
+.sk-cam-card dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+}
+.sk-cam-card dl > div {
+  display: contents;
+}
+.sk-cam-card dt {
+  font: 700 13px/1.4 var(--ui);
+}
+.sk-cam-card dd {
+  margin: 0;
+}
+.sk-cam-note {
+  margin: 8px 0;
+}

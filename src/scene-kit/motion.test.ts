@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { arcPoint, easeInOut, fitView, isClick, ORBIT, orbitLimits, toFlat } from "./motion";
+import {
+  arcPoint,
+  clampLength,
+  CLICK_PX,
+  DAMPING,
+  dampingFor,
+  distance,
+  easeInOut,
+  fitView,
+  isCameraGesture,
+  isClick,
+  ORBIT,
+  orbitLimits,
+  smoothDamp,
+  toFlat,
+} from "./motion";
 
 describe("easeInOut", () => {
   it("starts at 0, ends at 1 and is symmetric", () => {
@@ -58,6 +73,66 @@ describe("isClick", () => {
     expect(isClick(5.9)).toBe(true);
     expect(isClick(6)).toBe(false);
     expect(isClick(40)).toBe(false);
+  });
+});
+
+describe("smoothDamp", () => {
+  const run = (fps: number, seconds: number) => {
+    let x = 0;
+    let v = 0;
+    for (let i = 0; i < fps * seconds; i++) [x, v] = smoothDamp(x, 10, v, 0.5, 1 / fps);
+    return x;
+  };
+  it("starts gently: the first frame moves only a little", () => {
+    const [x] = smoothDamp(0, 10, 0, 0.5, 1 / 60);
+    expect(x).toBeGreaterThan(0);
+    expect(x).toBeLessThan(0.1);
+  });
+  it("gets most of the way in about two smooth times and never overshoots", () => {
+    let x = 0;
+    let v = 0;
+    for (let i = 0; i < 300; i++) {
+      [x, v] = smoothDamp(x, 10, v, 0.5, 1 / 60);
+      expect(x).toBeLessThanOrEqual(10);
+    }
+    expect(run(60, 1)).toBeGreaterThan(9);
+    expect(run(60, 3)).toBeCloseTo(10, 2);
+  });
+  it("moves the same at 30, 60 and 120 frames a second", () => {
+    expect(run(30, 0.5)).toBeCloseTo(run(120, 0.5), 0);
+    expect(Math.abs(run(60, 0.5) - run(120, 0.5))).toBeLessThan(0.15);
+  });
+  it("stands still when no time passes", () => {
+    expect(smoothDamp(3, 10, 2, 0.5, 0)).toEqual([3, 2]);
+  });
+});
+
+describe("clampLength", () => {
+  it("leaves short offsets alone", () => {
+    expect(clampLength([1, 0, 1], 5)).toEqual([1, 0, 1]);
+  });
+  it("shortens long offsets to the limit, same direction", () => {
+    const [x, y, z] = clampLength([3, 0, 4], 2.5);
+    expect(Math.hypot(x, y, z)).toBeCloseTo(2.5);
+    expect(x / z).toBeCloseTo(3 / 4);
+  });
+});
+
+describe("camera gestures and damping", () => {
+  it("a press is a camera gesture only past the pick threshold, or on a zoom or two fingers", () => {
+    expect(isCameraGesture(3, false)).toBe(false);
+    expect(isCameraGesture(CLICK_PX - 0.5, false)).toBe(false);
+    expect(isCameraGesture(CLICK_PX, false)).toBe(true);
+    expect(isCameraGesture(0, true)).toBe(true);
+  });
+  it("damping is the 60 Hz rate at 60 Hz and coasts the same at 120 Hz", () => {
+    expect(dampingFor(1 / 60)).toBeCloseTo(DAMPING);
+    const keep60 = 1 - dampingFor(1 / 60);
+    const keep120 = (1 - dampingFor(1 / 120)) ** 2;
+    expect(keep120).toBeCloseTo(keep60, 6);
+  });
+  it("distance is the straight line between two points", () => {
+    expect(distance([0, 0, 0], [3, 0, 4])).toBe(5);
   });
 });
 
