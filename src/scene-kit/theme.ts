@@ -64,10 +64,10 @@ export const STAGE_ACCENTS = {
 /** Every colour custom property on ink.css's `:root`, with its value. */
 export const CSS_TOKENS = {
   "--ink": INK,
-  /** The app background. */
-  "--paper": "#efeadd",
+  /** The app background: NEAR off-white. */
+  "--paper": NEAR.offWhite,
   /** Raised panels and cards in the app's chrome. */
-  "--paper-2": "#f6f2e8",
+  "--paper-2": "#f7f6f0",
   "--page": GROUND,
   "--card": PAPER,
   "--desk": "#d8dfd6",
@@ -78,8 +78,8 @@ export const CSS_TOKENS = {
   "--green": COLORS.green,
   "--red": COLORS.red,
   "--glass": "#ffffffcc",
-  /** Secondary text. */
-  "--mute": "#5d5a68",
+  /** Secondary text: a warm grey, like NEAR's neutrals (5.6:1 on --paper). */
+  "--mute": "#625f57",
   "--near-green": NEAR.green,
   "--near-black": NEAR.black,
   "--near-off-white": NEAR.offWhite,

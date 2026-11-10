@@ -3,8 +3,8 @@
    :root block equal to it. Use var(--…) everywhere else; see docs/palette.md. */
 :root {
   --ink: #16141f;
-  --paper: #efeadd;
-  --paper-2: #f6f2e8;
+  --paper: #f2f1e9;
+  --paper-2: #f7f6f0;
   --page: #f3efe4;
   --card: #fffdf7;
   --desk: #d8dfd6;
@@ -15,7 +15,7 @@
   --green: #2fa36b;
   --red: #d8433b;
   --glass: #ffffffcc;
-  --mute: #5d5a68;
+  --mute: #625f57;
   --accent: var(--orange);
   /* NEAR's brand colours (NEAR in src/scene-kit/theme.ts): the green marks NEAR things such as coins;
      the forest shade is the book's cloth cover. */
