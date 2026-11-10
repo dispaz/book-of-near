@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { answerCheck, completionOf, nextStep, seedRoute } from "./helpers";
+import { answerCheck, completionOf, nextStep, seedRoute, slow3d } from "./helpers";
 
 // Walks lesson 0.2 in demo mode (no wallet, no network). Demo mode uses the public example key from
 // docs.near.org, so the values below are public and stable.
@@ -162,7 +162,7 @@ function collectScripts(page: Page) {
 
 test.describe(`lesson ${ID}`, () => {
   test("is in the contents and walks to Finish in demo mode", async ({ page }) => {
-    test.slow(); // wide screens open in 3D by default
+    slow3d(); // wide screens open in 3D by default
     await page.goto("/");
     await page.getByRole("navigation", { name: "Contents" }).getByRole("link", { name: TITLE }).click();
     await expect(page).toHaveURL(new RegExp(`/lesson/${ID}`));
@@ -177,7 +177,7 @@ test.describe(`lesson ${ID}`, () => {
   for (const view of VIEWS) {
     test.describe(`in ${view}`, () => {
       // Headless Chromium draws WebGL in software (SwiftShader): a full 3D walk needs more time.
-      test.beforeEach(() => test.slow(view === "3d", "software WebGL"));
+      test.beforeEach(() => slow3d(view === "3d"));
       test("walks to Finish without storing a secret", async ({ page }) => {
         await open(page, view);
         await walk(page);
@@ -269,7 +269,7 @@ test.describe(`lesson ${ID}`, () => {
   });
 
   test("switching 2D → 3D → 2D mid-lesson keeps keys, values and open gates", async ({ page }) => {
-    test.slow();
+    slow3d();
     await open(page, "2d");
     const next = page.getByRole("button", { name: "Next step" });
     await page.getByRole("checkbox", { name: /these keys are for practice only/ }).check();
@@ -325,7 +325,7 @@ test.describe(`lesson ${ID}`, () => {
   });
 
   test("3D objects are pickable and drive the same lesson state", async ({ page }) => {
-    test.slow();
+    slow3d();
     await open(page, "3d");
     const overlay = page.locator(".sk-overlay");
     const pick = (name: string) => overlay.getByRole("button", { name, exact: true });

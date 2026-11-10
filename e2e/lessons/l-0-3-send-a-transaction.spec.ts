@@ -2,7 +2,7 @@ import { generateKeyPairSync } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { base58 } from "@scure/base";
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { answerCheck, completionOf, nextStep, seedRoute } from "./helpers";
+import { answerCheck, completionOf, nextStep, seedRoute, slow3d } from "./helpers";
 
 // Walks lesson 0.3 in demo mode (no wallet, no network): build, fee, sign, send, watch the pipeline,
 // open the explorer, check, honest take. The demo practice account is the fixed key from the script.
@@ -12,7 +12,11 @@ const STAGE = 0;
 const DEMO_ACCOUNT = "cf4342372b583606057805490c97d4778bc4ac444a76f32154634558ab57c3c5";
 const BASE58_HASH = /^[1-9A-HJ-NP-Za-km-z]{43,44}$/;
 
-test.beforeEach(({ page }) => seedRoute(page));
+test.beforeEach(({ page }, info) => {
+  // Wide screens open in 3D unless the test asks for 2D: every other test draws a 3D scene.
+  slow3d(!/\b2d\b/i.test(info.titlePath.join(" ")));
+  return seedRoute(page);
+});
 
 /** The lesson draws the view it was asked for: the 3D scene has a WebGL canvas, 2D has none. */
 async function expectView(page: Page, view: "2d" | "3d") {

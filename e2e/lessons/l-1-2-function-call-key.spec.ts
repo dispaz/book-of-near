@@ -1,12 +1,16 @@
 import { expect, test, type Page } from "@playwright/test";
-import { answerCheck, completionOf, nextStep, seedRoute } from "./helpers";
+import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3d } from "./helpers";
 
 // Walks lesson 1.2 in demo mode (no wallet, no network), in both views.
 const ID = "l-1-2-function-call-key";
 const TITLE = "A key that can do only one thing";
 const STAGE = 1;
 
-test.beforeEach(({ page }) => seedRoute(page));
+test.beforeEach(({ page }, info) => {
+  // Wide screens open in 3D unless the test asks for 2D: every other test draws a 3D scene.
+  slow3d(!/\b2d\b/i.test(info.titlePath.join(" ")));
+  return seedRoute(page);
+});
 
 const scene = (page: Page) => page.locator("[data-scene-state]").first();
 
@@ -172,7 +176,7 @@ test.describe(`lesson ${ID}: motion, fallback, switching, phones`, () => {
       const page = await ctx.newPage();
       await seedRoute(page);
       await page.goto(`/lesson/${ID}?view=${view}`);
-      if (view === "3d") await expect(page.locator("canvas").first()).toBeVisible({ timeout: 20_000 });
+      if (view === "3d") await expect(page.locator("canvas").first()).toBeVisible({ timeout: LOAD_3D });
       await walkToCheck(page);
       await ctx.close();
     });
@@ -201,7 +205,7 @@ test.describe(`lesson ${ID}: motion, fallback, switching, phones`, () => {
     await expect(scene(page)).toHaveAttribute("data-scene-state", /counter:1/, { timeout: 15_000 });
     const views = page.getByRole("group", { name: "Scene view" });
     await views.getByRole("button", { name: "3D" }).click();
-    await expect(scene(page)).toHaveAttribute("data-view", "3d", { timeout: 20_000 });
+    await expect(scene(page)).toHaveAttribute("data-view", "3d", { timeout: LOAD_3D });
     await expect(scene(page)).toHaveAttribute("data-scene-state", /key:active;counter:1/);
     await expect(page.getByRole("button", { name: "Next step" })).toBeEnabled();
     await nextStep(page);

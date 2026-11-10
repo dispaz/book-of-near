@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { seedRoute } from "./lessons/helpers";
+import { seedRoute, slow3d } from "./lessons/helpers";
 
 // On a phone the scene must keep a usable share of the screen at every step, in 2D and 3D: the header
 // (title + step heading) sits on top, the dock (step controls + explanation) and the stage bar at the
@@ -38,7 +38,7 @@ for (const phone of PHONES) {
   for (const id of LESSONS) {
     for (const view of ["2d", "3d"] as const) {
       test(`${id} ${view} keeps the scene in view at ${phone.width}x${phone.height}`, async ({ page }) => {
-        test.slow();
+        slow3d();
         await page.setViewportSize({ width: phone.width, height: phone.height });
         await page.goto(`/lesson/${id}?view=${view}&step=2`);
         const count = Number((await page.locator(".step-label").textContent())!.match(/of (\d+)/)![1]);
@@ -225,7 +225,7 @@ for (const phone of PHONES) {
     test(`l-1-3-inside-a-transaction ${view}: the builder leaves the scene its band at ${phone.width}x${phone.height}`, async ({
       page,
     }) => {
-      test.slow();
+      slow3d();
       await page.setViewportSize({ width: phone.width, height: phone.height });
       await page.goto(`/lesson/l-1-3-inside-a-transaction?view=${view}&step=2`);
       const scene = page.locator("[data-scene-state]").first();

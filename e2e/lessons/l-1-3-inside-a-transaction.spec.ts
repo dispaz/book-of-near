@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { answerCheck, completionOf, nextStep, seedRoute } from "./helpers";
+import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3d } from "./helpers";
 
 // Walks lesson 1.3 in demo mode (no wallet, no network), in both views.
 const ID = "l-1-3-inside-a-transaction";
@@ -9,7 +9,7 @@ const HASH = /^[1-9A-HJ-NP-Za-km-z]{43,44}$/;
 
 // The walks run in real time on software WebGL: give every test of this lesson three times the timeout.
 test.beforeEach(({ page }) => {
-  test.slow();
+  slow3d(); // most tests open on a wide screen, in 3D
   return seedRoute(page);
 });
 
@@ -77,7 +77,7 @@ test.describe(`lesson ${ID}`, () => {
       await expect(page).toHaveURL(new RegExp(`/lesson/${ID}`));
       await expect(page.getByTestId("mode-pill")).toHaveText("Demo mode");
       await page.goto(`/lesson/${ID}?view=${view}`);
-      if (view === "3d") await expect(page.locator("canvas").first()).toBeVisible({ timeout: 20_000 });
+      if (view === "3d") await expect(page.locator("canvas").first()).toBeVisible({ timeout: LOAD_3D });
 
       await walkToCheck(page);
       await answerCheck(page, ANSWERS);
@@ -320,7 +320,7 @@ test.describe(`lesson ${ID}: motion, fallback, switching, phones, own values`, (
       const page = await ctx.newPage();
       await seedRoute(page);
       await page.goto(`/lesson/${ID}?view=${view}`);
-      if (view === "3d") await expect(page.locator("canvas").first()).toBeVisible({ timeout: 20_000 });
+      if (view === "3d") await expect(page.locator("canvas").first()).toBeVisible({ timeout: LOAD_3D });
       await walkToCheck(page);
       await ctx.close();
     });
@@ -349,7 +349,7 @@ test.describe(`lesson ${ID}: motion, fallback, switching, phones, own values`, (
     await buildBatch(page);
     const views = page.getByRole("group", { name: "Scene view" });
     await views.getByRole("button", { name: "3D" }).click();
-    await expect(scene(page)).toHaveAttribute("data-view", "3d", { timeout: 20_000 });
+    await expect(scene(page)).toHaveAttribute("data-view", "3d", { timeout: LOAD_3D });
     await expect(scene(page)).toHaveAttribute("data-scene-state", /parent:yes;batch:ok/);
     await expect(next(page)).toBeEnabled();
     await nextStep(page);

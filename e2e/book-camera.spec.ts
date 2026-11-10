@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { nextStep, seedRoute } from "./lessons/helpers";
+import { LOAD_3D, nextStep, seedRoute, slow3d } from "./lessons/helpers";
 
 /**
  * The book scene's camera (scene-kit CameraRig + CameraControls), on lesson 0.1: the learner may turn,
@@ -7,8 +7,7 @@ import { nextStep, seedRoute } from "./lessons/helpers";
  * explains how. The stage exposes the rounded camera as data-camera-pose ("x,y,z@x,y,z").
  */
 const ID = "l-0-1-blockchain-basics";
-const LOAD_3D = 20_000;
-test.describe.configure({ timeout: 60_000 });
+test.beforeEach(() => slow3d());
 
 const stage = (page: Page) => page.locator(".sk-stage");
 type Pose = { pos: number[]; target: number[] };

@@ -446,7 +446,7 @@ describe("tourFor", () => {
 function bookSpecTests() {
   return `
   test.describe("3D book scene", () => {
-    const LOAD_3D = 20_000;
+    test.beforeEach(() => slow3d());
 
     test("wide screens print the step on the left page; the tour moves the camera and docks the words", async ({
       browser,
@@ -492,7 +492,7 @@ export function renderSpec({ id, stage, title, chain, book }) {
     ? `, evidence: { txHash: expect.stringMatching(/^[1-9A-HJ-NP-Za-km-z]{43,44}$/) }`
     : "";
   return `import { expect, test } from "@playwright/test";
-import { answerCheck, completionOf, nextStep, seedRoute } from "./helpers";
+import { answerCheck, completionOf, ${book ? "LOAD_3D, " : ""}nextStep, seedRoute${book ? ", slow3d" : ""} } from "./helpers";
 
 // Scaffolded by \`npm run new-lesson\`. Walks the lesson in demo mode (no wallet, no network).
 const ID = ${q(id)};

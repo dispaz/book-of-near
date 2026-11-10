@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { answerCheck, completionOf, nextStep, seedRoute } from "./helpers";
+import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3d } from "./helpers";
 
 // Walks lesson 2.1 in demo mode (no wallet, no network). It opens an earlier transaction (the learner's
 // own from 0.3, or a recorded example) and follows its receipts across shards. It never sends a new one.
@@ -8,7 +8,6 @@ const TITLE = "Follow your transaction across shards";
 const STAGE = 2;
 const EXAMPLE = "HhRTH4KQ9n8WtsGv1VZ7S7UytSZHQxEdTCmyTCa38ULp";
 const BASE58_HASH = /^[1-9A-HJ-NP-Za-km-z]{43,44}$/;
-const LOAD_3D = 20_000;
 
 test.beforeEach(({ page }) => seedRoute(page));
 
@@ -108,7 +107,7 @@ async function walk(page: Page, pick: "mine" | "example") {
 for (const view of ["2d", "3d"] as const)
   test.describe(`lesson ${ID} (${view})`, () => {
     // The 3D walks load WebGL and turn a page per step: give them more time than a flat walk.
-    if (view === "3d") test.describe.configure({ timeout: 60_000 });
+    test.beforeEach(() => slow3d(view === "3d"));
 
     test("walks the recorded example to Finish in demo mode", async ({ page }) => {
       const errors: string[] = [];
