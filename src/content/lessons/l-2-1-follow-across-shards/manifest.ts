@@ -56,7 +56,7 @@ export default {
       caption:
         "Remember {finalSeen}? Here is where it went: {workTime} of block-to-block hops, plus finality.",
       explain:
-        "A new block comes roughly every one to one and a half seconds, and each receipt waited for the next one. The rest was the hand-over to the RPC node and finality: the point where validators agree a block can no longer change. NEAR's way of agreeing is called Doomslug. Hop times come from block timestamps.",
+        "A new block comes every one to one and a half seconds, and each receipt waited for the next one. The rest was the hand-over to the RPC node and finality: validators agree a block can no longer change. NEAR's way of agreeing is called Doomslug.",
       explainAt: "time",
     },
     {

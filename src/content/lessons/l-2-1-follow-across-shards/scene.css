@@ -71,16 +71,21 @@
 }
 
 /* ---------- 3D: the facts in the book scene's panel ---------- */
+/* Sized to a hop's facts (step 4); longer content (step 5's timeline) scrolls inside. A taller panel
+   covered the right page's lower corner with empty space and, on phones, squeezed the book. */
 .shs-panel .shs-facts.compact {
-  max-height: min(34vh, 300px);
+  max-height: min(30vh, 250px);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 /* One height from the grid step on, where the step is printed on the page (PRINT_MIN_WIDTH): the
    camera's free frame, and so the printed page, stays put. Narrow screens keep the panel snug. */
 @media (min-width: 1100px) {
+  .shs-panel .shs-facts.compact {
+    max-height: min(27vh, 236px);
+  }
   .shs-panel .shs-facts.compact.steady {
-    height: min(34vh, 300px);
+    height: min(27vh, 236px);
   }
 }
 

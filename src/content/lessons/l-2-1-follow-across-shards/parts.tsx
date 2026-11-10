@@ -247,7 +247,7 @@ function Timeline({ st, trace }: { st: ShardTrace; trace: Trace }) {
       </ol>
       <p className="shs-line">
         All steps ran within <strong data-testid="work-time">{seconds(trace.workMs)}</strong> of the first
-        block.
+        block. The times come from each block's timestamp.
       </p>
       {st.inspected ? (
         <div data-testid="breakdown">
