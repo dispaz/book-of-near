@@ -28,9 +28,11 @@ export const NEAR = {
 
 export const COLORS = {
   orange: "#ff8a3d",
-  blue: "#4d6bff",
+  blue: "#5f7bff",
   pink: "#ff5fa2",
-  violet: "#8a5cf6",
+  violet: "#9a70f7",
+  /** Stage 3. A sky blue: well clear of NEAR green, so a stage-3 highlight never reads as a coin. */
+  cerulean: "#1e9bd7",
   ochre: "#c9a227",
   /** The "pass" mark (checks, verdicts). Not a NEAR colour. */
   green: "#2fa36b",
@@ -54,7 +56,7 @@ export const STAGE_ACCENTS = {
   0: COLORS.orange,
   1: COLORS.blue,
   2: COLORS.pink,
-  3: COLORS.green,
+  3: COLORS.cerulean,
   4: COLORS.violet,
   7: COLORS.ochre,
 } as const;
