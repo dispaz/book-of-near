@@ -17,7 +17,7 @@
 }
 .bb3-panel .bb-details,
 .bb3-panel .bb-result {
-  background: var(--paper-2, #fffdf7);
+  background: var(--paper-2);
 }
 .bb3-panel code {
   font-size: 13px;
@@ -71,7 +71,7 @@
   padding: 4px 8px;
   border: 1.5px solid var(--ink);
   border-radius: 8px;
-  background: #fffdf7;
+  background: var(--card);
   box-shadow: 2px 2px 0 var(--ink);
 }
 .bb3-tag.block .n {
@@ -119,7 +119,7 @@
   height: 22px;
   border: 1.5px solid var(--ink);
   border-radius: 50%;
-  background: #fffdf7;
+  background: var(--card);
   font: 700 13px var(--ui);
 }
 .bb3-link.broken {
@@ -133,7 +133,7 @@
   padding: 2px 8px;
   border: 1.5px solid var(--ink);
   border-radius: 999px;
-  background: #fffdf7;
+  background: var(--card);
   font: 500 13px var(--ui);
   white-space: nowrap;
 }
@@ -147,7 +147,13 @@
   padding: 4px 10px;
   border: 1.5px solid var(--ink);
   border-radius: 6px 10px 10px 6px;
-  background: repeating-linear-gradient(180deg, transparent 0 19px, #4d6bff26 19px 20px), #fffdf7;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      transparent 0 19px,
+      color-mix(in srgb, var(--blue) 15%, transparent) 19px 20px
+    ),
+    var(--card);
   font: 500 14px/20px var(--serif);
 }
 .bb3-nb b {
@@ -165,7 +171,7 @@
   padding: 4px 10px;
   border: 1.5px solid var(--ink);
   border-radius: 8px;
-  background: #fffdf7;
+  background: var(--card);
   box-shadow: 2px 2px 0 var(--ink);
   font: 500 12px var(--ui);
   white-space: nowrap;
@@ -179,7 +185,7 @@
 .bb3-copy.bad {
   border-color: var(--red);
   box-shadow:
-    0 0 0 4px #d8433b33,
+    0 0 0 4px color-mix(in srgb, var(--red) 20%, transparent),
     2px 2px 0 var(--red);
 }
 .bb3-copy.bad .mark,
@@ -291,7 +297,7 @@
   border: 1.5px solid var(--ink);
   border-top: 5px solid var(--accent);
   border-radius: 10px;
-  background: #fffdf7;
+  background: var(--card);
   box-shadow: 3px 3px 0 var(--ink);
   font: 500 14px/1.35 var(--serif);
   transform-origin: 50% 100%;
