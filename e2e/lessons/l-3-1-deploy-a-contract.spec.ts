@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { answerCheck, completionOf, nextStep, seedRoute } from "./helpers";
+import { LOAD_3D, answerCheck, completionOf, nextStep, seedRoute, slow3d } from "./helpers";
 
 // Walks lesson 3.1 in demo mode (no wallet, no network), in both views.
 const ID = "l-3-1-deploy-a-contract";
@@ -8,6 +8,7 @@ const STAGE = 3;
 const T = { timeout: 15_000 };
 
 // Five realtime transactions (each about 3 s in demo mode) plus page turns: give each walk room.
+// This is transaction time, not 3D load; 3D tests also use the shared LOAD_3D / slow3d().
 test.describe.configure({ timeout: 90_000 });
 test.beforeEach(({ page }) => seedRoute(page));
 
@@ -160,7 +161,7 @@ test.describe(`lesson ${ID}: motion, fallback, switching, phones`, () => {
       const page = await ctx.newPage();
       await seedRoute(page);
       await page.goto(`/lesson/${ID}?view=${view}`);
-      if (view === "3d") await expect(page.locator("canvas").first()).toBeVisible({ timeout: 20_000 });
+      if (view === "3d") await expect(page.locator("canvas").first()).toBeVisible({ timeout: LOAD_3D });
       await walkToCheck(page);
       await ctx.close();
     });
@@ -190,7 +191,7 @@ test.describe(`lesson ${ID}: motion, fallback, switching, phones`, () => {
     await page.getByRole("button", { name: "Increment", exact: true }).click();
     await state(page, /count:1;/);
     await page.getByRole("group", { name: "Scene view" }).getByRole("button", { name: "3D" }).click();
-    await expect(scene(page)).toHaveAttribute("data-view", "3d", { timeout: 20_000 });
+    await expect(scene(page)).toHaveAttribute("data-view", "3d", { timeout: LOAD_3D });
     await state(page, /deployed:yes;count:1;/);
     await page.getByRole("button", { name: "Read the count", exact: true }).click();
     await state(page, /read:1;/);
@@ -203,7 +204,7 @@ test.describe(`lesson ${ID}: motion, fallback, switching, phones`, () => {
   // Pick buttons follow their 3D object; keyboard picking (Enter) is what screen readers and tests use.
   test("in 3D, picking the objects runs the step's actions", async ({ page }) => {
     await page.goto(`/lesson/${ID}?view=3d`);
-    await expect(page.locator(".book-scene .sk-stage")).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator(".book-scene .sk-stage")).toBeVisible({ timeout: LOAD_3D });
     await nextStep(page);
     await nextStep(page);
     await page.getByRole("button", { name: /^Sub-mailbox: deploy/ }).press("Enter");
@@ -217,7 +218,7 @@ test.describe(`lesson ${ID}: motion, fallback, switching, phones`, () => {
 });
 
 test.describe(`lesson ${ID}: 3D book scene`, () => {
-  const LOAD_3D = 20_000;
+  test.beforeEach(() => slow3d());
 
   test("wide screens print the step on the left page; the tour moves the camera and docks the words", async ({
     browser,

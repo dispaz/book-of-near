@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { answerCheck, completionOf, nextStep, seedRoute } from "./helpers";
+import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3dUnless2d } from "./helpers";
 
 // Lesson 0.1 in demo mode (no wallet, no network). Hashes are the fixtures from docs/lessons/stage-0/0.1.md.
 const ID = "l-0-1-blockchain-basics";
@@ -13,8 +13,7 @@ const RIGHT_ANSWERS = [
 ];
 
 test.beforeEach(async ({ page }, info) => {
-  // 3D draws with software WebGL (SwiftShader) in headless runs: slow when many tests share the CPU.
-  if (/3d|switching|contents/i.test(info.titlePath.join(" "))) test.slow();
+  slow3dUnless2d(info);
   await seedRoute(page);
 });
 
@@ -23,8 +22,6 @@ const action = (page: Page, name: string) =>
   page.locator(".action-slot").getByRole("button", { name, exact: true });
 const hashOf = (page: Page, n: number) => page.getByTestId(`block-hash-${n}`);
 const VIEWS = ["2d", "3d"] as const;
-/** The 3D view loads three.js lazily and compiles shaders in software WebGL: allow it time to appear. */
-const LOAD_3D = 20_000;
 
 /**
  * Clicks an object in the scene. In 2D it is a normal button. In 3D the object is picked through its
@@ -376,7 +373,7 @@ test.describe(`lesson ${ID}: switching views`, () => {
     expect(scripts.some((s) => s.includes("WebGLRenderer"))).toBe(false);
 
     await viewButton(page, "3D").click();
-    await expect(page.locator(".sk-stage canvas")).toBeVisible();
+    await expect(page.locator(".sk-stage canvas")).toBeVisible({ timeout: LOAD_3D });
     await expect.poll(() => scripts.some((s) => s.includes("WebGLRenderer"))).toBe(true);
   });
 });
