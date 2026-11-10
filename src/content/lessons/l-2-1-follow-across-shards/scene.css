@@ -1,0 +1,263 @@
+/* Lesson 2.1: follow a transaction across shards. One state, a flat page (2D) or the pop-up book (3D). */
+.shs {
+  position: absolute;
+  top: var(--head-h, 112px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--bar-reserve, 88px) + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .shs {
+    top: var(--head-h, 104px);
+    left: 448px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    gap: 12px;
+  }
+}
+.shs p,
+.shs-panel p {
+  margin: 0;
+}
+.shs code,
+.shs-panel code {
+  font:
+    600 13px ui-monospace,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- flat page ---------- */
+.shs-2d {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #fffdf7;
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 6px;
+}
+.shs-2d svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 46vh;
+}
+.shs-cell {
+  fill: #fffdf7;
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+.shs-cell.lit {
+  fill: var(--accent);
+}
+.shs-svg-label {
+  font: 600 12px var(--ui);
+  fill: var(--ink);
+}
+.shs-path {
+  stroke: var(--ink);
+  stroke-width: 2.2;
+}
+.shs-path.refund {
+  stroke-dasharray: 6 4;
+}
+
+/* ---------- 3D: the facts in the book scene's panel ---------- */
+/* Sized to a hop's facts (step 4); longer content (step 5's timeline) scrolls inside. A taller panel
+   covered the right page's lower corner with empty space and, on phones, squeezed the book. */
+.shs-panel .shs-facts.compact {
+  max-height: min(30vh, 250px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+/* One height from the grid step on, where the step is printed on the page (PRINT_MIN_WIDTH): the
+   camera's free frame, and so the printed page, stays put. Narrow screens keep the panel snug. */
+@media (min-width: 1100px) {
+  .shs-panel .shs-facts.compact {
+    max-height: min(27vh, 236px);
+  }
+  .shs-panel .shs-facts.compact.steady {
+    height: min(27vh, 236px);
+  }
+}
+
+/* ---------- step 4's hop bar: the lesson step bar's look (src/ui/ink.css .stage-bar), smaller ---------- */
+.shs-hopnav {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 4px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper, #fffdf7);
+  font-family: var(--ui);
+}
+.shs-hopnav button {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.shs-hopnav button:hover {
+  background: #16141f14;
+}
+.shs-hopnav button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.shs-hopnav button:focus-visible {
+  outline: 2.5px solid var(--ink);
+  outline-offset: 2px;
+}
+.shs-hopnav svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.shs-hopnav .dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  padding: 0 4px;
+  list-style: none;
+}
+.shs-hopnav .dots li {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+}
+.shs-hopnav .dots li.done {
+  background: var(--ink);
+}
+.shs-hopnav .dots li.now {
+  width: 20px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+/* ---------- facts ---------- */
+.shs-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--ink);
+  border-top: 5px solid var(--accent);
+  border-radius: 12px;
+  background: var(--glass);
+  font: 500 15px/1.4 var(--serif);
+  color: var(--ink);
+}
+.shs-facts:empty {
+  display: none;
+}
+.shs-note {
+  font: 500 14px/1.4 var(--serif);
+  color: var(--mute);
+}
+.shs-warn {
+  font: 600 15px/1.4 var(--ui);
+  color: #8a1f17;
+}
+.shs-detail dl {
+  margin: 6px 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 4px 14px;
+}
+.shs-detail dt {
+  font: 700 12px var(--ui);
+  color: var(--mute);
+}
+.shs-detail dd {
+  margin: 0;
+  font: 500 14px var(--serif);
+  overflow-wrap: anywhere;
+}
+.shs-kind {
+  font: 500 15px/1.35 var(--serif);
+  overflow-wrap: anywhere;
+}
+.shs-steps {
+  margin: 0;
+  padding-left: 18px;
+  font: 500 14px/1.45 var(--serif);
+}
+.shs-when {
+  font: 700 12px var(--ui);
+  color: var(--mute);
+}
+.shs-bar {
+  display: flex;
+  height: 14px;
+  margin-top: 4px;
+  border: 1.5px solid var(--ink);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.shs-bar span + span {
+  border-left: 1.5px solid var(--ink);
+}
+.shs-legend {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font: 500 14px/1.5 var(--serif);
+}
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 4px;
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+.handover {
+  background: #fffdf7;
+}
+.hops {
+  background: var(--accent);
+}
+.finality {
+  background: #e9e2d0;
+}
+@media (max-width: 899px) {
+  .shs-facts {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+  .shs-detail dl {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+}
+
+/* Reduced motion: end states only (the global CSS already cuts transitions). */
+.shs.still * {
+  animation: none !important;
+  transition: none !important;
+}
