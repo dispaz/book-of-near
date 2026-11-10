@@ -40,7 +40,7 @@
 .dpc-2d {
   border: 2px solid var(--ink);
   border-radius: 12px;
-  background: #fffdf7;
+  background: var(--card);
   box-shadow: 3px 3px 0 var(--ink);
   padding: 6px;
 }
@@ -58,7 +58,7 @@
   stroke-dasharray: 7 5;
 }
 .dpc-bar {
-  fill: #fffdf7;
+  fill: var(--card);
   stroke: var(--ink);
   stroke-width: 2.5;
 }
@@ -99,7 +99,7 @@
 }
 .dpc-warn {
   font: 600 15px/1.4 var(--ui);
-  color: #8a1f17;
+  color: color-mix(in srgb, var(--red) 60%, var(--ink));
 }
 .dpc-list {
   margin: 0;
@@ -120,7 +120,7 @@
   height: 14px;
   border: 1.5px solid var(--ink);
   border-radius: 999px;
-  background: #fffdf7;
+  background: var(--card);
   overflow: hidden;
 }
 .dpc-gauge-lock {
@@ -152,10 +152,10 @@
   font: 700 15px var(--ui);
 }
 .dpc-receipts li.ok .dpc-mark {
-  color: #1d7a4c;
+  color: color-mix(in srgb, var(--green) 75%, var(--ink));
 }
 .dpc-receipts li.failed .dpc-mark {
-  color: #b3261e;
+  color: color-mix(in srgb, var(--red) 80%, var(--ink));
 }
 .dpc-note {
   font-size: 14px;

@@ -7,7 +7,7 @@
 import type { SceneProps } from "../../../app/types";
 import { SvgPickable } from "../../../scene-kit/svg";
 import { SvgMailbox, SvgReceiptSlip, SvgScroll } from "../../../scene-kit/svg/objects";
-import { COLORS } from "../../../scene-kit/theme";
+import { STAGE_ACCENTS } from "../../../scene-kit/theme";
 import { nearText } from "./contract";
 import { FIGURE, GAUGE, PARENT, partsAt, SCROLL, SLIPS, SUB } from "./layout3d";
 import { describe, Facts, picksOf, short } from "./parts";
@@ -15,7 +15,7 @@ import { CHECK, FAIL, WASM } from "./steps";
 import type { Deploy } from "./useDeploy";
 
 /** The stage accent (stage 3). */
-export const ACCENT = COLORS.green;
+export const ACCENT = STAGE_ACCENTS[3];
 
 /** SVG units per world unit. */
 const SCALE = 70;

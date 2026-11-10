@@ -8,11 +8,11 @@ import { useEffect, useRef, useState } from "react";
 import { base64 } from "@scure/base";
 import type { SceneProps } from "../../../app/types";
 import { useChain } from "../../../chain/ChainContext";
-import { COUNTER_WASM_SHA256 } from "../../../chain/demo/contracts";
 import { isChainError } from "../../../chain/errors";
 import { actions, callMethod, createNamedAccount, decodeSuccessValue } from "../../../chain/ops";
+import { formatTgas } from "../../../chain/units";
 import type { AccountView, PracticeAccount, TxOutcome, TxPhase } from "../../../chain/types";
-import { COUNTER_WASM_BASE64 } from "../../../chain/counterWasm";
+import { COUNTER_WASM_BASE64, COUNTER_WASM_SHA256 } from "../../../chain/counterWasm";
 import {
   CALL_GAS,
   CALLBACK_GAS,
@@ -43,6 +43,8 @@ export interface ReceiptLine {
   method: string;
   ok: boolean;
   note: string;
+  /** Gas this receipt burnt, in Tgas: paid even when it failed. */
+  gas: string;
 }
 
 export interface Parent {
@@ -279,7 +281,7 @@ export function useDeploy({
                 : r.logs.length
                   ? r.logs.join(" ")
                   : "Done.";
-            return { id: r.id, method, ok, note };
+            return { id: r.id, method, ok, note, gas: formatTgas(r.gasBurnt) };
           }),
       );
       const [last, num] = await Promise.all([

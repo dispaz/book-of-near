@@ -206,7 +206,9 @@ function Receipts({ d }: { d: Deploy }) {
             {r.ok ? "✓" : "✗"}
           </span>{" "}
           <code>{r.method}</code> <span className="visually-hidden">{r.ok ? "worked" : "failed"}</span>
-          <span className="dpc-note">{r.note}</span>
+          <span className="dpc-note">
+            {r.note} · {r.gas} Tgas burnt
+          </span>
         </li>
       ))}
     </ol>

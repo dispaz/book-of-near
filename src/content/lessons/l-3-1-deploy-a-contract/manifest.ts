@@ -46,14 +46,14 @@ export default {
     {
       caption: "Click Increment to change the count. Then read it back with a second, free call.",
       explain:
-        "increment is a change call: a transaction that runs the Wasm and writes the count to the account's storage. That new record needs a few more bytes of storage deposit. get_num is a view call: it only reads, needs no transaction and costs nothing.",
+        "increment is a change call: a transaction that runs the Wasm and writes the count to the account's storage. That new record needs a few more bytes of storage deposit. get_num is a view call: it only reads, needs no transaction and costs you no gas.",
       explainAt: "scroll",
       action: { label: "increment, then read the count", gate: true },
     },
     {
       caption: "Ask the counter to call its own fail method, with a callback that waits for the answer.",
       explain:
-        'call_other calls fail, which always panics. A failed call changes nothing, but the gas is still spent. The callback, on_other_done, runs in a later block and is told the call failed. It writes "failed" to storage. NEAR does not undo the caller\'s work: the callback must handle it.',
+        'call_other calls fail, which always stops with an error. A failed call changes nothing, but the gas is still spent. The callback, on_other_done, runs in a later block and is told the call failed. It writes "failed" to storage. NEAR does not undo the caller\'s work: the callback must handle it.',
       explainAt: "receipts",
       action: { label: "call fail with a callback", gate: true },
     },

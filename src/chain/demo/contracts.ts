@@ -63,11 +63,10 @@ export function demoContractCode(name: string): Uint8Array {
 }
 
 /**
- * base58 sha256 of the real counter (contracts/counter/counter.wasm). DemoChain cannot run Wasm, so
+ * base58 sha256 of the real counter (generated in ../counterWasm.ts). DemoChain cannot run Wasm, so
  * deploying those exact bytes installs `counterContract` instead; its storage still counts every byte.
- * DemoChain.test.ts checks it against the file: rebuild the counter, update this.
  */
-export const COUNTER_WASM_SHA256 = "3ayPSfwczvFs1xWLJzSzFYPMaBiJdZQVoEGJ8fR8NHAr";
+export { COUNTER_WASM_SHA256 } from "../counterWasm";
 
 /**
  * The `testnet` registrar: makes top-level `.testnet` names.

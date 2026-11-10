@@ -28,6 +28,7 @@ import {
   type Focus,
   type Vec3,
 } from "../../../scene-kit";
+import { STAGE_ACCENTS } from "../../../scene-kit/theme";
 import type { SceneProps } from "../../../app/types";
 import { nearText } from "./contract";
 import { boxOf, FIGURE, GAUGE, PARENT, partsAt, SCROLL, SLIPS, SUB } from "./layout3d";
@@ -36,7 +37,7 @@ import { CALL, CHECK, FAIL, HOOK, WASM } from "./steps";
 import { tourFor, type Target } from "./tour";
 import type { Deploy } from "./useDeploy";
 
-const ACCENT = COLORS.green;
+const ACCENT = STAGE_ACCENTS[3];
 const SPREAD = { print: spreadBeside(FIGURE), docked: spreadFor(FIGURE) };
 /** Where the step's words are printed on the left page. */
 const TEXT = textBlock(SPREAD.print);

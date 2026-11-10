@@ -93,6 +93,7 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
    `theme.ts`, `--near-*` in `ink.css`): a deep green cloth cover, a NEAR green ribbon, NEAR greens in
    the plants and hills. The light is a warm sunset (orange desk, violet and pink sky). Coins are NEAR coins: `Coin` and `SvgCoin` default to NEAR green with the
    NEAR mark (`nearMark.ts`) on their faces. Pass `color` only when a coin must mean something else.
+   All values come from `theme.ts`; the layers, rules and sources are in `docs/palette.md`.
 9. **Reduced motion.** No page turn, no pop-up and no camera easing: the camera jumps from shot to shot.
    The tour still plays when the learner presses play (it is their choice), one still shot after another.
    Nothing extra to do if you use `BookScene`, `Traveller` and the kit primitives.

@@ -117,6 +117,8 @@ test.describe(`lesson ${ID}`, () => {
     await expect(receipts).toContainText("call_other");
     await expect(receipts).toContainText("This method always fails");
     await expect(receipts).toContainText("on_other_done");
+    // The failed call still burnt gas.
+    await expect(receipts.locator("li.failed")).toContainText(/[0-9.]+ Tgas burnt/);
     await expect(page.getByTestId("last-result")).toHaveText("failed");
     // The failed call changed nothing: the count is still 1.
     await expect(page.getByTestId("count-read")).toHaveText("1");
