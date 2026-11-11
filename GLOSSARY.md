@@ -17,3 +17,6 @@
 - **Planned card**: a locked backlog topic shown in the menu.
 - **Worker**: the Cloudflare Worker (faucet, claim signer, exam grader, intents proxy).
 - **Spike**: a short ticket that verifies an unverified fact.
+- **Chain Signatures**: a NEAR feature that lets a NEAR account (or contract) sign transactions for other chains, such as Ethereum or Bitcoin. A network of signing nodes makes the signature together. Lesson 4.1.
+- **Derivation path**: a label you choose (for example `ethereum-1`). Your account name, the path and the signing network's public key together give one address on another chain. Another path gives another address. Working it out is free math, with no transaction.
+- **Threshold signature**: a signature made by a group of nodes, each holding only a piece of the key (a key share). Once enough of them (the threshold) take part, the signature is complete. No single node ever holds the whole key.

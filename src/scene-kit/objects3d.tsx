@@ -25,6 +25,7 @@ import type { Vec3 } from "./motion";
 import { COLORS, INK } from "./theme";
 import {
   itemSlots,
+  ledgerDims,
   lookOf,
   mailboxDims,
   parcelDims,
@@ -32,6 +33,7 @@ import {
   ribbonOutline,
   screenDims,
   scrollDims,
+  signerNodeDims,
   slipDims,
   type ObjectLook,
   type ObjectState,
@@ -54,6 +56,7 @@ function Part({
   rotation,
   hull = false,
   threshold = 20,
+  edges = true,
   children,
 }: {
   fill: string | null;
@@ -62,6 +65,8 @@ function Part({
   rotation?: Vec3;
   hull?: boolean;
   threshold?: number;
+  /** Edge lines. Off for small details and hull-only curved parts, where many copies stand on a page. */
+  edges?: boolean;
   children: ReactNode;
 }) {
   const ink = useInk(fill ?? COLORS.paper);
@@ -69,7 +74,7 @@ function Part({
     <mesh position={position} rotation={rotation} material={fill ? ink : HIDDEN}>
       {children}
       {hull && !dashed ? <Outline mode="hull" thickness={0.025} /> : null}
-      <Outline threshold={threshold} dashed={dashed} />
+      {edges || dashed ? <Outline threshold={threshold} dashed={dashed} /> : null}
     </mesh>
   );
 }
@@ -782,4 +787,204 @@ export function ShardRibbon({
     </group>
   );
   return <group position={position}>{maybePickable(pick, name, 0.1, body)}</group>;
+}
+
+// ---------- chain signatures: a signing node ----------
+
+/**
+ * One node of the chain-signature signing network: a small figure behind a desk, its key share (a
+ * piece of the key, never the whole key) lying on the desk. `lit` colours the share: the node has added
+ * it to the signature. Pending: dashed (the node has not been asked yet).
+ */
+export function SignerNode({
+  position = [0, 0, 0],
+  rotation = 0,
+  size = 0.8,
+  color = COLORS.orange,
+  lit = false,
+  name = "signing node",
+  state = "ok",
+  ...pick
+}: ObjectProps & { rotation?: number; size?: number; lit?: boolean; name?: string }) {
+  const d = signerNodeDims(size);
+  const look = lookOf(state, COLORS.paper);
+  const dashed = look.dashed;
+  const bodyY = d.desk.height * 0.5 + d.body.height / 2;
+  const node = (
+    <SelectRing selected={!!pick.selected} radius={size * 0.5} color={color}>
+      {/* The figure stands behind the desk. */}
+      <group position={[0, 0, -d.desk.depth * 0.6]}>
+        {/* Curved parts: a hull silhouette only, no edge lines (eight nodes stand on one page). */}
+        <Part fill={partFill(look, COLORS.paper)} dashed={dashed} position={[0, bodyY, 0]} hull edges={false}>
+          <cylinderGeometry args={[d.body.radius * 0.8, d.body.radius, d.body.height, 10]} />
+        </Part>
+        <Part
+          fill={partFill(look, COLORS.paper)}
+          dashed={dashed}
+          position={[0, bodyY + d.body.height / 2 + d.head, 0]}
+          hull
+          edges={false}
+        >
+          <sphereGeometry args={[d.head, 10, 6]} />
+        </Part>
+      </group>
+      {/* The desk. */}
+      <Part fill={partFill(look, COLORS.slab)} dashed={dashed} position={[0, d.desk.height / 2, 0]}>
+        <boxGeometry args={[d.desk.width, d.desk.height, d.desk.depth]} />
+      </Part>
+      {/* The key share on the desk: coloured once the node has added it. */}
+      <Part
+        fill={partFill(look, lit ? color : COLORS.paper)}
+        dashed={dashed}
+        position={[0, d.desk.height + 0.02, 0]}
+        rotation={[0, Math.PI / 10, 0]}
+        edges={false}
+      >
+        <boxGeometry args={[d.share[0], 0.04, d.share[1]]} />
+      </Part>
+      <StateMarks look={look} at={[0, d.desk.height, d.desk.depth / 2 + 0.05]} size={d.desk.width} />
+    </SelectRing>
+  );
+  return (
+    <group position={position} rotation={[0, rotation, 0]}>
+      {maybePickable(pick, name, d.height * 0.6, node)}
+    </group>
+  );
+}
+
+// ---------- blockchain: a row of linked block pages ----------
+
+/**
+ * A blockchain: a short row of block pages standing up, linked by a string (the hash). `edge` colours
+ * the pages' top edge: another chain, another page edge.
+ */
+export function Ledger({
+  position = [0, 0, 0],
+  name,
+  size = 0.9,
+  pages = 3,
+  edge = COLORS.slab,
+  state = "ok",
+  showName = true,
+  ...pick
+}: ObjectProps & {
+  name: string;
+  size?: number;
+  pages?: number;
+  edge?: string;
+  /** The handwritten name above the pages. Off when something else names the chain (a `ChainArea`). */
+  showName?: boolean;
+}) {
+  const d = ledgerDims(size, pages);
+  const look = lookOf(state, COLORS.paper);
+  const dashed = look.dashed;
+  const xs = Array.from({ length: pages }, (_, i) => -d.length / 2 + d.width / 2 + i * d.pitch);
+  const body = (
+    <SelectRing selected={!!pick.selected} radius={d.length * 0.6} color={edge}>
+      {xs.map((x) => (
+        <group key={x} position={[x, 0, 0]}>
+          <Part fill={partFill(look, COLORS.paper)} dashed={dashed} position={[0, d.height / 2, 0]}>
+            <boxGeometry args={[d.width, d.height, d.depth]} />
+          </Part>
+          {/* The top edge in the chain's colour, inside the page's outline (no lines of its own). */}
+          <Part
+            fill={partFill(look, edge)}
+            dashed={dashed}
+            position={[0, d.height - d.edge / 2 - 0.01, 0.005]}
+            edges={false}
+          >
+            <boxGeometry args={[d.width - 0.02, d.edge, d.depth + 0.01]} />
+          </Part>
+        </group>
+      ))}
+      {/* The string from page to page: one thin ink bar (cheap; three chains stand on a page). */}
+      {xs.length > 1 ? (
+        <mesh position={[0, d.height * 0.55, d.depth / 2 + 0.012]} material={LINE_INK}>
+          <boxGeometry args={[xs[xs.length - 1]! - xs[0]!, 0.02, 0.006]} />
+        </mesh>
+      ) : null}
+      {showName ? (
+        <NameLabel height={d.height + 0.3} depth={d.depth}>
+          {name}
+        </NameLabel>
+      ) : null}
+    </SelectRing>
+  );
+  return (
+    <group position={position}>
+      {dashed ? null : <SoftShadow position={[0, 0, 0.1]} size={[d.length * 1.1, size * 0.5]} />}
+      {maybePickable(pick, name, d.height * 0.6, body)}
+    </group>
+  );
+}
+
+const LINE_INK = new MeshBasicMaterial({ color: INK });
+
+// ---------- another chain's ground: a marked area on the page ----------
+
+/**
+ * Another chain's ground on the page: a light tint of `color` inside a dashed ink border, its name
+ * printed at the front edge, and the chain itself (a `Ledger` of `blocks` pages) standing along the
+ * back edge. Things that live on that chain (an address, a delivered transaction) stand inside it.
+ * `position` is the area's middle on the page; the whole area, chain included, is one pick.
+ */
+export function ChainArea({
+  position = [0, 0, 0],
+  width,
+  depth,
+  name,
+  color = COLORS.slab,
+  blocks = 4,
+  blockSize = 0.85,
+  ...pick
+}: ObjectProps & {
+  width: number;
+  depth: number;
+  /** Printed at the front edge, and the default pick label. */
+  name: string;
+  /** Blocks in the chain along the back edge. */
+  blocks?: number;
+  blockSize?: number;
+}) {
+  const border = useMemo<Vec3[]>(() => {
+    const [x, z] = [width / 2, depth / 2];
+    return [
+      [-x, 0.02, -z],
+      [x, 0.02, -z],
+      [x, 0.02, z],
+      [-x, 0.02, z],
+      [-x, 0.02, -z],
+    ];
+  }, [width, depth]);
+  const chainZ = -depth / 2 + 0.55;
+  const body = (
+    <>
+      {/* The tint: one flat plane, under everything that stands in the area. */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 0]} renderOrder={-1}>
+        <planeGeometry args={[width, depth]} />
+        <meshBasicMaterial color={color} transparent opacity={0.16} depthWrite={false} />
+      </mesh>
+      <Line
+        points={border}
+        color={INK}
+        lineWidth={pick.selected ? 3.2 : 2}
+        dashed
+        dashSize={0.22}
+        gapSize={0.14}
+      />
+      <Ledger
+        position={[0, 0, chainZ]}
+        name={name}
+        size={blockSize}
+        pages={blocks}
+        edge={color}
+        showName={false}
+      />
+      <Label position={[0, 0.03, depth / 2 - 0.22]} variant="small">
+        {name}
+      </Label>
+    </>
+  );
+  // Selected shows as the thicker border: a SelectRing's disc would not fit a long, flat area.
+  return <group position={position}>{maybePickable(pick, name, [0, blockSize * 0.6, chainZ], body)}</group>;
 }

@@ -214,14 +214,18 @@ export function SelectRing({
   );
 }
 
-export function maybePickable(pick: PickProps, name: string, anchorY: number, node: ReactNode) {
+/**
+ * Wraps `node` in a Pickable when the object has an `onPick`. `anchor` is where the focus marker sits:
+ * a height above the object's origin, or a full local point for a wide object.
+ */
+export function maybePickable(pick: PickProps, name: string, anchor: number | Vec3, node: ReactNode) {
   if (!pick.onPick) return node;
   return (
     <Pickable
       label={pick.pickLabel ?? name}
       selected={pick.selected}
       onPick={pick.onPick}
-      anchor={[0, anchorY, 0]}
+      anchor={typeof anchor === "number" ? [0, anchor, 0] : anchor}
     >
       {node}
     </Pickable>

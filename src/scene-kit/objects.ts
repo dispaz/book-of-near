@@ -44,6 +44,18 @@ export const OBJECTS = {
   app: { shape: "screen", note: "an app: a program that can hold a key and sign with it" },
   receipt: { shape: "slip", note: "a delivery slip: what an action becomes when it moves on" },
   shard: { shape: "ribbon", note: "a section of the book, marked by its own ribbon" },
+  signingNode: {
+    shape: "figure at a desk",
+    note: "one node of the chain-signature network: it holds a key share and adds it to a signature",
+  },
+  blockchain: {
+    shape: "page row",
+    note: "a short row of linked block pages; another chain, another page edge",
+  },
+  chainArea: {
+    shape: "marked area",
+    note: "another chain's ground on the page: a tinted area in a dashed border, its chain along the back",
+  },
 } as const;
 
 export type Concept = keyof typeof OBJECTS;
@@ -132,4 +144,27 @@ export function ribbonOutline(length: number, width: number): [number, number][]
 export function itemSlots(count: number, max: number, gap = 0.4): { y: number; z: number }[] {
   const n = Math.min(count, max);
   return Array.from({ length: n }, (_, i) => ({ y: 0.75 + (n - 1 - i) * gap, z: 0.02 * i }));
+}
+
+/** A signing node: a small figure behind a desk, its key share lying on the desk. `size` is about its height. */
+export function signerNodeDims(size: number) {
+  const desk = { width: size * 0.7, height: size * 0.3, depth: size * 0.36 };
+  const body = { radius: size * 0.13, height: size * 0.44 };
+  const head = size * 0.12;
+  return { desk, body, head, height: body.height + head * 2, share: [size * 0.26, size * 0.18] as const };
+}
+
+/** A blockchain: `pages` block pages standing in a row, linked by a string. `size` is about a page's height. */
+export function ledgerDims(size: number, pages: number) {
+  const width = size * 0.66;
+  const gap = size * 0.24;
+  const pitch = width + gap;
+  return {
+    width,
+    height: size,
+    depth: 0.04,
+    pitch,
+    length: pages * width + (pages - 1) * gap,
+    edge: size * 0.14,
+  };
 }

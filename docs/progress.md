@@ -334,3 +334,19 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Versioning: `scripts/release-version.mjs` (tested). MAJOR.MINOR from `package.json`, PATCH = next after the highest matching tag. The build ships `dist/version.json` and `VITE_APP_VERSION`.
 - **Not done (owner):** Cloudflare token + account id as repo secrets, Pages production branch `release`, `git push origin main:release`. Steps in `docs/release.md`.
 - 2026-11-11 · Release workflow merged for v0.2.0: deploys with `--branch main` (the Pages production branch, no dashboard change), CI e2e gets 60 min and `E2E_WORKERS=2` (software WebGL, see #36/#44), `package.json` is 0.2.0 so the first release is `v0.2.0`. `deploy.yml` stays as the manual path.
+
+## 2026-11-11 · Lesson 4.1: One account, every chain (Closes #22)
+
+- Chain Signatures through the Chain interface only (`src/chain/chainSignatures.ts`): the address is derived offline from the signer's root key (a `viewCall` of `public_key`), the account and the path. The derivation reproduces spike 5's fixture (`testnet` + `ethereum-1` → `0x2F9e…1280`) and the contract's `derived_public_key` view. Signing is one `sign` call (1 yoctoNEAR, 30 Tgas) sent with `chain.sendTransaction`; the Sepolia transfer, its payload and the recovered signer use viem (pinned 2.57.10).
+- DemoChain has a demo signer at `v1.signer-prod.testnet` (`src/chain/demo/mpcSigner.ts`): same calls and answer shape, real secp256k1 math with one fixed demo root key, and the answer comes 3 blocks later (about 5.5 s) through a new `delay` option on demo contract calls (models yield/resume).
+- Not broadcast: every derived address starts with 0 Sepolia ETH (spike 5), so the lesson stops at "signed and verified" and says why.
+- New scene objects: `SignerNode` (a figure at a desk with its key share) and `Ledger` (another chain as a row of block pages), 3D and SVG. Kept cheap (hull-only curved parts, no edge lines on small details, no per-node shadows): software WebGL went from 73.8 to 44.0 ms per frame (2.1: 31.7).
+- Book scene and 2D share one state (`useChainSig`); every object is a pick. Captions use the short address (the full one overflowed the printed page).
+- Not run on real testnet: the live `sign` answer shape is taken from the spike / chainsig.js, and `parseSignResponse` is unit-tested against it.
+
+## 2026-11-11 · Lesson 4.1: the Ethereum area and the signing animation (Refs #22, PR #48)
+
+- The right page is split: the NEAR side (mailbox, signer, ring of 8 nodes) and an Ethereum side, a new scene object `ChainArea` / `SvgChainArea` (accent tint, dashed ink border, "Ethereum (Sepolia)" printed at the front, a 3-block `Ledger` along the back; one pick). `Ledger` / `SvgLedger` gained `showName`. Row in `docs/scene-objects.md`.
+- The address grows inside the area at step 2 (beam: NEAR mailbox → ring → area). The parcel is packed by the NEAR mailbox, goes to the signer at step 4, comes home with r, s and v slips, and is delivered into the area at step 5 (after the page turn in 3D). The check (`= signer ✓`) and "Not sent to Sepolia" sit in the area.
+- Step 4 animation driven by the real wait: `signAnim(phase, finale)` in `signing.ts` (`travel` → `work` → `shares` → `sealed` → `done`); the finale (0.8 s + 0.7 s) runs on timers in `useChainSig`, never under reduced motion. Chips = lit nodes, so they follow the countdown. 3D in `SigningFx.tsx` (shared geometry, hidden when idle, one frame callback); 2D with CSS (pulses on the lines, flying dots, a flash). Scenes expose `data-sign-anim` and `data-parcel`.
+- Render cost unchanged: software WebGL (swiftshader, 1440×900, idle) step 4 / step 5 ≈ 71 / 72 ms per frame before and 70 / 71 after on a loaded machine (the 44 ms of the first entry was measured on an idle one; compare runs on the same machine only).
