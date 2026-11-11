@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3d, slow3dUnless2d } from "./helpers";
 
@@ -57,7 +58,7 @@ async function expectSlips(page: Page, view: "2d" | "3d") {
 }
 
 /** Steps 1 to 7: derive, pack, sign, verify, the check, the honest take, Finish. */
-async function walk(page: Page) {
+async function walk(page: Page, signMs = 15_000) {
   await go(page, "Derive an Ethereum address"); // hook → derive
   await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
   await dock(page).getByRole("button", { name: "Derive Ethereum address" }).click();
@@ -73,7 +74,7 @@ async function walk(page: Page) {
   await go(page, "Ask the signing network"); // prepare → sign
   await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
   await dock(page).getByRole("button", { name: "Request signature (MPC)" }).click();
-  await expect(page.getByTestId("sign-status")).toContainText("Signed.", { timeout: 15_000 });
+  await expect(page.getByTestId("sign-status")).toContainText("Signed.", { timeout: signMs });
   await expect(page.getByTestId("mpc-tx")).toHaveText(/^[1-9A-HJ-NP-Za-km-z]{10}…/);
   // r, s (32 bytes each) and v (the recovery id) are shown when the signature returns.
   await expect(page.getByTestId("sig-r")).toHaveText(HASH32);
@@ -369,4 +370,43 @@ test.describe("3D book scene", () => {
     await expect(page.locator("main.lesson")).not.toHaveAttribute("data-spread", /.*/);
     await expect(page.locator(".book-page")).toHaveCSS("display", "contents");
   });
+});
+
+// Opt-in: needs the real testnet. TESTNET=1 TESTNET_STORE=/path/outside/repo.json npx playwright test --grep @testnet
+// Asks the real v1.signer-prod.testnet for one signature (1 yoctoNEAR). Nothing goes to Sepolia.
+// Use --workers=1: tests that share one practice key must not send at the same time (nonces clash).
+// The real signer usually answers in 7 to 14 s, but can take much longer, so the wait is generous.
+test("@testnet signs with the real signing network and recovers the derived address", async ({ page }) => {
+  test.skip(!process.env.TESTNET, "set TESTNET=1 to run against the real testnet");
+  test.setTimeout(300_000);
+  const storePath = process.env.TESTNET_STORE;
+  if (storePath && existsSync(storePath)) {
+    const saved = readFileSync(storePath, "utf8");
+    await page.addInitScript((v) => localStorage.setItem("bon:testnet-practice-account:v1", v), saved);
+  }
+  await page.addInitScript(() => localStorage.setItem("bon:view", "2d"));
+  await page.goto(`/lesson/${ID}?mode=testnet`);
+  await expect(page.getByTestId("mode-pill")).toHaveText("Testnet", { timeout: 90_000 });
+  // On a failure, say why: the problem the page shows and what the network answered.
+  const notes: string[] = [];
+  page.on("console", (m) => m.type() === "error" && notes.push(`console: ${m.text()}`));
+  page.on("response", async (r) => {
+    if (!r.url().includes("rpc")) return;
+    const body = await r.text().catch(() => "");
+    if (r.status() >= 400 || body.includes('"error"'))
+      notes.push(`${r.status()} ${r.url()}: ${body.slice(0, 300)}`);
+  });
+  const address = await walk(page, 120_000).catch(async (e) => {
+    const why = await page
+      .getByTestId("problem")
+      .textContent({ timeout: 1_000 })
+      .catch(() => "none shown");
+    throw new Error(`${(e as Error).message.split("\n")[0]} | problem: ${why} | ${notes.join(" || ")}`);
+  });
+  const record = await completionOf(page, ID);
+  expect(record).toMatchObject({
+    mode: "testnet",
+    evidence: { derivedEthAddress: address, recoveredAddress: address, recoveredMatches: "true" },
+  });
+  console.log(`[4.1 testnet] evidence: ${JSON.stringify(record)}`);
 });

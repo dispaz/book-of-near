@@ -7,8 +7,14 @@
 export const NODES = 8;
 /** Shares the drawing needs before the signature is whole (k of n). Also illustrative. */
 export const THRESHOLD = 6;
-/** About how long the signing network takes (spike 5: about 5.5 s). */
+/** About how long the demo signer takes (spike 5 measured about 5.5 s; DemoChain answers in that time). */
 export const EXPECTED_MS = 5500;
+/** About how long the real testnet signer takes: 6.7 to 13.9 s from send to final, 11 Nov 2026. */
+export const TESTNET_EXPECTED_MS = 10_000;
+
+/** The usual wait for a signature on this network, for the countdown and the lit shares. */
+export const expectedSignMs = (network: string) =>
+  network === "testnet" ? TESTNET_EXPECTED_MS : EXPECTED_MS;
 
 export type SignPhase = "idle" | "sending" | "waiting" | "answered" | "failed";
 

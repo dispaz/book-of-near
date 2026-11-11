@@ -9,6 +9,8 @@ import {
   NODES,
   parcelSpot,
   secondsLeft,
+  expectedSignMs,
+  EXPECTED_MS,
   sharesIn,
   sharesLit,
   shortHex,
@@ -32,6 +34,14 @@ describe("sharesLit: how many nodes have added their share", () => {
     expect(secondsLeft(0)).toBe(6);
     expect(secondsLeft(4000)).toBe(2);
     expect(secondsLeft(9000)).toBe(0);
+  });
+
+  it("expects a longer wait on the real testnet signer than on the demo one", () => {
+    expect(expectedSignMs("demo")).toBe(EXPECTED_MS);
+    // Measured on testnet, 11 Nov 2026: 6.7 to 13.9 s from send to final (docs/spikes-seed.md).
+    expect(expectedSignMs("testnet")).toBe(10_000);
+    expect(secondsLeft(0, expectedSignMs("testnet"))).toBe(10);
+    expect(sharesLit("waiting", 5000, expectedSignMs("testnet"))).toBe(THRESHOLD / 2);
   });
 
   it("grows while the request waits, but never reaches the threshold before the answer", () => {
