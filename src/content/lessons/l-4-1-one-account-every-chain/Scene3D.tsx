@@ -1,21 +1,25 @@
 /**
- * Lesson 4.1 in 3D: a pop-up book scene (docs/book-scene.md). The figure stands on the right page:
- * your NEAR mailbox, the signer contract (a scroll) in a ring of signing nodes, three other chains as
- * rows of block pages, the derived Ethereum address (a mailbox) and the Ethereum transaction (a parcel)
- * that travels into the ring, waits there while the nodes add their key shares, and comes back stamped.
- * It only draws the shared state from useChainSig. Loaded lazily from Scene.tsx.
+ * Lesson 4.1 in 3D: a pop-up book scene (docs/book-scene.md). The right page is split in two. The NEAR
+ * side: your mailbox and the signer contract (a scroll) in a ring of signing nodes. The Ethereum side: a
+ * marked area (`ChainArea`) with a chain of blocks along its back edge, where the derived address grows
+ * and the signed transaction (a parcel) is delivered. On step 4 the parcel goes to the signer and the
+ * nodes send their shares back (SigningFx). It only draws the shared state from useChainSig. Loaded
+ * lazily from Scene.tsx.
  */
-import { useRef } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useFrame } from "@react-three/fiber";
 import { Line } from "@react-three/drei";
+import type { Group } from "three";
 import {
   Anchor,
   BookScene,
+  ChainArea,
   focusOf,
   inset,
   Label,
-  Ledger,
   Mailbox,
   Parcel,
+  parcelDims,
   Scroll,
   SignerNode,
   spreadBeside,
@@ -23,26 +27,32 @@ import {
   textBlock,
   Traveller,
   useFreeFrame,
+  useStage,
   type Focus,
   type Vec3,
 } from "../../../scene-kit";
 import type { SceneProps } from "../../../app/types";
 import {
   beamPoints,
+  ETH_AREA,
+  ETH_AREA_CENTER,
+  ETH_BLOCKS,
   ETH_MAILBOX,
   FIGURE,
-  ETH_LEDGER,
   NEAR_MAILBOX,
   nodeSpots,
+  PARCEL_AT,
+  PARCEL_ETH,
   PARCEL_HOME,
   RING_CENTER,
   RING_RADIUS,
   SIGNER,
 } from "./layout3d";
-import { ACCENT, describe, parcelAt } from "./page";
+import { ACCENT, canDeliver, describe, ETH_AREA_NAME, parcelAt } from "./page";
 import { Facts, pickLabels } from "./parts";
-import { isWaiting, shortHex, shortName } from "./signing";
-import { CHECK, DERIVE, PREPARE, SIGN } from "./steps";
+import { isWaiting, shortHex, shortName, slipsShown } from "./signing";
+import { NodeWork, RsvSlips, SigningFx } from "./SigningFx";
+import { CHECK, DERIVE, PREPARE, SIGN, VERIFY } from "./steps";
 import { tourFor, type Target } from "./tour";
 import type { ChainSig } from "./useChainSig";
 
@@ -57,18 +67,22 @@ const TEXT = textBlock(SPREAD.print);
 const HEADS: [string, string] = ["Stage 4", "One account, every chain"];
 /** One caption per sheet (steps 0 to CHECK; the honest take shares the check's sheet). */
 const FIGURES = [
-  "Fig. 1  One account, many chains",
+  "Fig. 1  One account, two chains",
   "Fig. 2  An address worked out from your name",
   "Fig. 3  An Ethereum transaction, packed",
   "Fig. 4  The signing nodes add their shares",
-  "Fig. 5  Who signed it",
+  "Fig. 5  Delivered to Ethereum: who signed it",
   "Fig. 6  Chain Signatures",
 ];
+const PARCEL_SIZE = 0.8;
+const PARCEL_TOP = parcelDims(PARCEL_SIZE).height + 0.03;
+/** How long the parcel waits after the page turns to step 5 before it moves into the Ethereum area. */
+const DELIVER_DELAY_MS = 1600;
 
 const WHOLE = focusOf([[FIGURE.minX, FIGURE.maxX, FIGURE.minZ, FIGURE.maxZ, 2.2]], 46, 0, 0.25);
 
 /** What one tour shot looks at: low and close, turned a little. */
-function shotFocus(t: Target): Focus {
+function shotFocus(t: Target, step: number): Focus {
   const close = (center: Vec3, width: number, depth: number, height = 1.6): Focus => ({
     center,
     width,
@@ -83,14 +97,36 @@ function shotFocus(t: Target): Focus {
     case "ring":
       return close([RING_CENTER[0], 0.5, RING_CENTER[2]], RING_RADIUS * 2.4, RING_RADIUS * 2.4, 1.4);
     case "ethereum":
-      return close([ETH_LEDGER[0], 0.5, ETH_LEDGER[2]], 2.6, 1.8, 1.4);
+      return close(
+        [ETH_AREA_CENTER[0], 0.4, ETH_AREA_CENTER[2]],
+        ETH_AREA.maxX - ETH_AREA.minX,
+        ETH_AREA.maxZ - ETH_AREA.minZ,
+        1.4,
+      );
     case "address":
       return close([ETH_MAILBOX[0], 0.7, ETH_MAILBOX[2]], 2.2, 2.2, 1.8);
-    case "parcel":
-      return close([PARCEL_HOME[0], 0.4, PARCEL_HOME[2]], 2, 2, 1.2);
+    case "parcel": {
+      const p = step >= VERIFY ? PARCEL_ETH : PARCEL_HOME;
+      return close([p[0], 0.5, p[2]], 2, 2, 1.6);
+    }
     default:
       return { ...WHOLE, elevation: 36, azimuth: -14 };
   }
+}
+
+/**
+ * Step 5: the signed parcel moves into the Ethereum area once the page has turned, so the learner sees it
+ * go. Opened straight at step 5 (or from 2D), it is already there.
+ */
+function useDelivered(cs: ChainSig, reducedMotion: boolean) {
+  const can = canDeliver(cs);
+  const [delivered, setDelivered] = useState(can);
+  useEffect(() => {
+    if (!can) return setDelivered(false);
+    const id = window.setTimeout(() => setDelivered(true), reducedMotion ? 0 : DELIVER_DELAY_MS);
+    return () => clearTimeout(id);
+  }, [can, reducedMotion]);
+  return can && delivered;
 }
 
 export default function Scene3D({
@@ -110,12 +146,16 @@ export default function Scene3D({
   const summary = step >= CHECK;
   const { frame, size, wide, print } = useFreeFrame(root, panel, { summary });
   const sheet = Math.min(step, CHECK);
+  const delivered = useDelivered(cs, reducedMotion);
+  const spot = parcelAt(cs, delivered);
   return (
     <div
       ref={root}
       className={`book-scene csg-book${summary ? " summary" : ""}`}
       data-testid="csg-scene"
       data-scene-state={cs.state}
+      data-sign-anim={cs.anim}
+      data-parcel={step >= PREPARE ? spot : undefined}
       data-view="3d"
       data-mode={mode}
       role="group"
@@ -132,7 +172,7 @@ export default function Scene3D({
         frame={inset(frame, { top: 24, bottom: 16 })}
         size={size}
         shots={tourFor(step)}
-        shotFocus={shotFocus}
+        shotFocus={(t) => shotFocus(t, step)}
         flat={flat}
         reducedMotion={reducedMotion}
         state={cs.state}
@@ -145,7 +185,7 @@ export default function Scene3D({
         minDistance={3}
         maxDistance={140}
       >
-        {summary && !wide ? null : <Figure cs={cs} compact={!print} />}
+        {summary && !wide ? null : <Figure cs={cs} compact={!print} parcel={PARCEL_AT[spot]} />}
       </BookScene>
       <div className="book-scene-panel csg-panel" ref={panel}>
         {summary ? null : <Facts cs={cs} compact />}
@@ -154,13 +194,59 @@ export default function Scene3D({
   );
 }
 
-function Figure({ cs, compact }: { cs: ChainSig; compact: boolean }) {
-  const { step, account } = cs;
+/** Grows its children up from the page when they first appear (not when the figure opens with them). */
+function GrowIn({ at, children }: { at: Vec3; children: ReactNode }) {
+  const { reducedMotion } = useStage();
+  const g = useRef<Group>(null);
+  const t0 = useRef<number | null>(reducedMotion ? -1 : null);
+  useFrame(({ clock }) => {
+    const n = g.current;
+    if (!n || t0.current === -1) return;
+    t0.current ??= clock.elapsedTime;
+    const u = Math.min(1, (clock.elapsedTime - t0.current) / 0.7);
+    // Ease out with a little overshoot, like paper popping up.
+    const s = u >= 1 ? 1 : 1 + 1.4 * Math.pow(u - 1, 3) + 0.4 * Math.pow(u - 1, 2);
+    n.scale.set(Math.max(0.05, s), Math.max(0.05, s), Math.max(0.05, s));
+    if (u >= 1) t0.current = -1;
+  });
+  return (
+    // Scaled about `at` (where the child stands on the page), so it grows in place.
+    <group position={at}>
+      <group ref={g} scale={reducedMotion ? 1 : 0.05}>
+        <group position={[-at[0], -at[1], -at[2]]}>{children}</group>
+      </group>
+    </group>
+  );
+}
+
+function Figure({ cs, compact, parcel }: { cs: ChainSig; compact: boolean; parcel: Vec3 }) {
+  const { step, account, result } = cs;
   const waiting = isWaiting(cs.phase);
   const spots = nodeSpots();
+  // The address only grows when it is derived while this figure is open, not when it opens with one.
+  const openedWith = useRef(account?.address ?? null);
+  const working = cs.anim === "work";
+  const slips = slipsShown(cs.anim) && !!result;
+  // After the check, the address's name says whether it is the recovered signer.
+  const verdict = cs.match ? "= signer ✓" : "≠ signer ✗";
+  const checked = step === VERIFY && cs.recovered ? (compact ? ` ${verdict.slice(-1)}` : ` ${verdict}`) : "";
+  const short = account ? (compact ? shortHex(account.address, 4, 3) : shortHex(account.address, 6, 4)) : "";
+  const address = (state: "ok" | "pending") => (
+    <Mailbox
+      position={ETH_MAILBOX}
+      size={1.35}
+      name={account ? `${short}${checked}` : "address?"}
+      color={ACCENT}
+      state={state}
+      flag={cs.match}
+      onPick={() => cs.pick("address")}
+      pickLabel={pickLabels.address}
+      selected={cs.picked === "address"}
+    />
+  );
   return (
     <group>
-      {/* Your NEAR account. */}
+      {/* ---------- the NEAR side ---------- */}
       <Mailbox
         position={NEAR_MAILBOX}
         size={1.7}
@@ -178,76 +264,94 @@ function Figure({ cs, compact }: { cs: ChainSig; compact: boolean }) {
         position={SIGNER}
         size={1.05}
         name="signer"
-        running={waiting}
+        running={waiting || cs.anim === "shares"}
         onPick={() => cs.pick("signer")}
         pickLabel={pickLabels.signer}
         selected={cs.picked === "signer"}
       />
       {spots.map((s, i) => (
-        <SignerNode
-          key={i}
-          position={s.position}
-          rotation={s.facing}
-          size={0.72}
-          color={ACCENT}
-          lit={i < cs.lit}
-          name={`signing node ${i + 1}`}
-          onPick={() => cs.pick("ring")}
-          pickLabel={`Signing node ${i + 1}${i < cs.lit ? ", share added" : ""}`}
-          selected={cs.picked === "ring"}
-        />
+        <group key={i} position={s.position}>
+          <NodeWork i={i} busy={working && i >= cs.lit}>
+            <SignerNode
+              rotation={s.facing}
+              size={0.72}
+              color={ACCENT}
+              lit={i < cs.lit}
+              name={`signing node ${i + 1}`}
+              onPick={() => cs.pick("ring")}
+              pickLabel={`Signing node ${i + 1}${i < cs.lit ? ", share added" : ""}`}
+              selected={cs.picked === "ring"}
+            />
+          </NodeWork>
+        </group>
       ))}
       <Anchor name="ring" position={[RING_CENTER[0], 0.9, RING_CENTER[2] - RING_RADIUS]} />
-      {step === SIGN && cs.result && !compact ? (
-        <Label position={[RING_CENTER[0], 1.9, RING_CENTER[2]]} variant="small">
+      {step === SIGN ? <SigningFx anim={cs.anim} lit={cs.lit} color={ACCENT} parcelTop={PARCEL_TOP} /> : null}
+      {step === SIGN && result && (cs.anim === "sealed" || cs.anim === "done") && !compact ? (
+        <Label position={[RING_CENTER[0], 0.05, RING_CENTER[2] + RING_RADIUS + 0.5]} variant="small">
           threshold reached
         </Label>
       ) : null}
 
-      {/* Ethereum: the one other chain (Bitcoin and Solana are out of scope, #49). */}
-      <Ledger
-        position={ETH_LEDGER}
-        size={0.95}
-        name="Ethereum"
-        edge={ACCENT}
+      {/* ---------- the Ethereum side: its own area on the page ---------- */}
+      <ChainArea
+        position={ETH_AREA_CENTER}
+        width={ETH_AREA.maxX - ETH_AREA.minX}
+        depth={ETH_AREA.maxZ - ETH_AREA.minZ}
+        name={ETH_AREA_NAME}
+        color={ACCENT}
+        blocks={ETH_BLOCKS}
+        blockSize={0.85}
         onPick={() => cs.pick("ethereum")}
         pickLabel={pickLabels.ethereum}
         selected={cs.picked === "ethereum"}
       />
 
-      {/* The derived address: dashed until derived; its flag goes up when the signer checks out. */}
-      <Mailbox
-        position={ETH_MAILBOX}
-        size={1.35}
-        name={account ? shortHex(account.address, 6, 4) : "address?"}
-        color={ACCENT}
-        state={account ? "ok" : "pending"}
-        flag={cs.match}
-        onPick={() => cs.pick("address")}
-        pickLabel={pickLabels.address}
-        selected={cs.picked === "address"}
-      />
+      {/* The derived address: dashed until derived, then it grows inside the area. */}
+      {account ? (
+        account.address === openedWith.current ? (
+          address("ok")
+        ) : (
+          <GrowIn key={account.address} at={ETH_MAILBOX}>
+            {address("ok")}
+          </GrowIn>
+        )
+      ) : (
+        address("pending")
+      )}
       <Anchor name="address" position={[ETH_MAILBOX[0], 1.1, ETH_MAILBOX[2]]} />
 
-      {/* The beam: your name, through the ring's master key, to the address. */}
+      {/* Step 5: the check of who signed (in the address's name) and the note that nothing was sent. */}
+      {/* Too small to read docked (the facts panel says it there). */}
+      {step === VERIFY && cs.recovered && !compact ? (
+        <Label
+          position={[PARCEL_ETH[0] - 0.2, 0.05, PARCEL_ETH[2] + 0.95]}
+          variant={compact ? "small" : "hint"}
+        >
+          {compact ? "not sent" : "Not sent to Sepolia: 0 ETH"}
+        </Label>
+      ) : null}
+
+      {/* The beam: your name, through the ring's master key, into the area to the address. */}
       {account && step >= DERIVE ? (
         <Line points={beamPoints()} color={ACCENT} lineWidth={3} dashed dashSize={0.18} gapSize={0.1} />
       ) : null}
 
-      {/* The Ethereum transaction. */}
+      {/* The Ethereum transaction: packed by your mailbox, signed in the ring, delivered to Ethereum. */}
       {step >= PREPARE ? (
         <>
-          <Traveller to={parcelAt(cs)} arc={1.4} duration={0.9} color={ACCENT}>
+          <Traveller to={parcel} arc={1.4} duration={0.9} color={ACCENT}>
             <Parcel
-              size={0.8}
+              size={PARCEL_SIZE}
               color={ACCENT}
               to="Sepolia"
-              stamped={!!cs.result}
+              stamped={slips}
               state={cs.prepared ? "ok" : "pending"}
               onPick={() => cs.pick("parcel")}
               pickLabel={pickLabels.parcel}
               selected={cs.picked === "parcel"}
             />
+            {slips && result ? <RsvSlips parcelTop={PARCEL_TOP} v={result.signature.yParity} /> : null}
           </Traveller>
           <Anchor name="parcel" position={[PARCEL_HOME[0], 0.8, PARCEL_HOME[2]]} />
         </>

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3d, slow3dUnless2d } from "./helpers";
 
 // Walks lesson 4.1 in demo mode (no wallet, no network): derive an Ethereum address from the practice
@@ -27,6 +27,33 @@ const dock = (page: Page) => page.locator(".action-slot");
 
 async function expectView(page: Page, view: "2d" | "3d") {
   await expect(scene(page)).toHaveAttribute("data-view", view, { timeout: LOAD_3D });
+}
+
+/** The 3D canvas wrapper: its description and its labels. */
+const stage = (page: Page) => page.locator(".book-scene .sk-stage");
+
+/** `inner`'s box lies inside `outer`'s (2D: the SVG drawing, so boxes are real). Waits for transitions. */
+async function expectInside(inner: Locator, outer: Locator) {
+  await expect(async () => {
+    const a = (await inner.boundingBox())!;
+    const b = (await outer.boundingBox())!;
+    expect(a.x).toBeGreaterThanOrEqual(b.x - 1);
+    expect(a.y).toBeGreaterThanOrEqual(b.y - 1);
+    expect(a.x + a.width).toBeLessThanOrEqual(b.x + b.width + 1);
+    expect(a.y + a.height).toBeLessThanOrEqual(b.y + b.height + 1);
+  }).toPass({ timeout: 5_000 });
+}
+
+/** The r, s and v slips stand on the parcel: SVG slips in 2D, printed labels in 3D. */
+async function expectSlips(page: Page, view: "2d" | "3d") {
+  if (view === "2d") {
+    const slips = page.getByTestId("rsv-slips");
+    await expect(slips).toBeVisible();
+    await expect(slips).toContainText(/r\s*s\s*v [01]/);
+  } else {
+    for (const t of [/^r$/, /^s$/, /^v [01]$/])
+      await expect(stage(page).locator(".sk-label", { hasText: t })).toBeVisible();
+  }
 }
 
 /** Steps 1 to 7: derive, pack, sign, verify, the check, the honest take, Finish. */
@@ -124,6 +151,25 @@ for (const view of ["2d", "3d"] as const)
       await context.close();
     });
 
+    test("with reduced motion the signing shows each phase's end state, no finale", async ({ browser }) => {
+      const context = await browser.newContext({ reducedMotion: "reduce" });
+      const page = await context.newPage();
+      await seedRoute(page);
+      await page.goto(`/lesson/${ID}?view=${view}&step=4`);
+      await expectView(page, view);
+      await expect(scene(page)).toHaveAttribute("data-scene-state", /packed:yes/);
+      await dock(page).getByRole("button", { name: "Request signature (MPC)" }).click();
+      await expect(scene(page)).toHaveAttribute("data-scene-state", /sign:answered/, { timeout: 15_000 });
+      // Straight to the end state: no last shares, no seal, the parcel home with r, s and v.
+      await expect(scene(page)).toHaveAttribute("data-sign-anim", "done");
+      await expect(scene(page)).toHaveAttribute("data-parcel", "near");
+      await expect(page.getByTestId("sign-status")).toContainText("Signed.");
+      await expectSlips(page, view);
+      await go(page, "Attach r, s and v");
+      await expect(scene(page)).toHaveAttribute("data-parcel", "ethereum");
+      await context.close();
+    });
+
     test("walks on a phone-sized screen", async ({ browser }) => {
       const context = await browser.newContext({ viewport: { width: 390, height: 760 } });
       const page = await context.newPage();
@@ -151,10 +197,59 @@ for (const view of ["2d", "3d"] as const)
       await expect(page.getByRole("button", { name: "Next step" })).toBeEnabled();
     });
 
+    test("Ethereum has its own area: the address grows in it and the signed parcel is delivered into it", async ({
+      page,
+    }) => {
+      await page.goto(`/lesson/${ID}?view=${view}&step=2`);
+      await expectView(page, view);
+      // The area is one pick (it explains itself), the same in both views.
+      await expect(page.getByRole("button", { name: "Ethereum (Sepolia)", exact: true })).toHaveCount(1);
+      await dock(page).getByRole("button", { name: "Derive Ethereum address" }).click();
+      await expect(page.getByTestId("eth-address")).toHaveText(ADDRESS);
+      const address = page.getByRole("button", { name: "Your derived Ethereum address" });
+      if (view === "2d") await expectInside(address, page.getByTestId("chain-area"));
+      else await expect(stage(page)).toContainText(/into the Ethereum area, where the Ethereum address 0x/);
+
+      await go(page, "Sepolia");
+      await dock(page).getByRole("button", { name: "Prepare payload" }).click();
+      // Packed on the NEAR side, by your mailbox.
+      await expect(scene(page)).toHaveAttribute("data-parcel", "near");
+      await go(page, "Ask the signing network");
+      await dock(page).getByRole("button", { name: "Request signature (MPC)" }).click();
+      // While it waits the parcel is at the signer and the nodes work; the countdown runs alongside.
+      await expect(scene(page)).toHaveAttribute("data-sign-anim", "work");
+      await expect(scene(page)).toHaveAttribute("data-parcel", "signer");
+      await expect(page.getByTestId("sign-status")).toContainText("Waiting for the signing network");
+      if (view === "2d") await expect(page.getByTestId("sign-fx")).toBeAttached();
+      // The answer: the last shares, the seal, then the parcel comes home carrying r, s and v.
+      await expect(scene(page)).toHaveAttribute("data-scene-state", /sign:answered/, { timeout: 15_000 });
+      await expect(scene(page)).toHaveAttribute("data-sign-anim", "done", { timeout: 5_000 });
+      await expect(scene(page)).toHaveAttribute("data-parcel", "near");
+      await expectSlips(page, view);
+
+      await go(page, "Attach r, s and v");
+      await expect(scene(page)).toHaveAttribute("data-parcel", "ethereum", { timeout: 10_000 });
+      const parcel = page.getByRole("button", { name: "The Ethereum transaction" });
+      if (view === "2d") await expectInside(parcel, page.getByTestId("chain-area"));
+      await expectSlips(page, view);
+      await dock(page).getByRole("button", { name: "Verify signer" }).click();
+      await expect(page.getByTestId("match")).toContainText("Match");
+      // The check and the "not sent" note sit in the area.
+      if (view === "2d") {
+        await expect(page.getByTestId("recovered-mark")).toContainText("recovered signer = this address");
+        await expectInside(page.getByTestId("recovered-mark"), page.getByTestId("chain-area"));
+        await expect(page.getByTestId("not-sent-mark")).toContainText("Not sent to Sepolia");
+        await expectInside(page.getByTestId("not-sent-mark"), page.getByTestId("chain-area"));
+      } else {
+        await expect(stage(page)).toContainText("Not sent to Sepolia");
+        await expect(stage(page).locator(".sk-label", { hasText: /✓$/ })).toBeVisible();
+      }
+    });
+
     test("the scene's objects are buttons that do the step's action", async ({ page }) => {
       await page.goto(`/lesson/${ID}?view=${view}`);
       await expectView(page, view);
-      await page.getByRole("button", { name: "Ethereum", exact: true }).press("Enter");
+      await page.getByRole("button", { name: "Ethereum (Sepolia)", exact: true }).press("Enter");
       await expect(page.getByTestId("picked-note")).toContainText(
         "Normally you need its own wallet and private key",
       );

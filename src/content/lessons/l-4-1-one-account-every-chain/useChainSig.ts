@@ -21,7 +21,17 @@ import {
 } from "../../../chain/chainSignatures";
 import { isChainError } from "../../../chain/errors";
 import type { Hex } from "viem";
-import { cleanPath, isWaiting, sharesLit, shortHex, shortName, type SignPhase } from "./signing";
+import {
+  cleanPath,
+  FINALE_MS,
+  isWaiting,
+  sharesLit,
+  shortHex,
+  shortName,
+  signAnim,
+  type Finale,
+  type SignPhase,
+} from "./signing";
 import { DERIVE, PREPARE, SIGN, VERIFY } from "./steps";
 
 export * from "./steps";
@@ -53,6 +63,10 @@ export function useChainSig({
   const [problem, setProblem] = useState<string | null>(null);
   const [picked, setPicked] = useState<Picked>(null);
   const [passed, setPassed] = useState(false);
+  // The figure's finale after the answer (signing.ts, Finale). Timers, so it settles even off screen.
+  const [finale, setFinale] = useState<Finale>(null);
+  const finaleTimers = useRef<number[]>([]);
+  useEffect(() => () => finaleTimers.current.forEach((t) => clearTimeout(t)), []);
 
   const pathCheck = cleanPath(pathText);
   const path = account?.path ?? (pathCheck.ok ? pathCheck.path : DEFAULT_PATH);
@@ -76,6 +90,7 @@ export function useChainSig({
 
   /** Start the address over with the path box open again (the same text, ready to change). */
   const again = () => {
+    setFinale(null);
     setAccount(null);
     setPrepared(null);
     setResult(null);
@@ -131,6 +146,14 @@ export function useChainSig({
       setResult(out);
       setSigned(finalizeEvmTransaction(prepared, out.signature));
       setPhase("answered");
+      // The last shares fly in, the signature is sealed, then the parcel comes home.
+      if (!reducedMotion) {
+        setFinale("shares");
+        finaleTimers.current.push(
+          window.setTimeout(() => setFinale("sealed"), FINALE_MS.shares),
+          window.setTimeout(() => setFinale(null), FINALE_MS.shares + FINALE_MS.sealed),
+        );
+      }
     } catch (e) {
       setPhase("failed");
       setProblem(
@@ -230,6 +253,7 @@ export function useChainSig({
 
   const elapsed = isWaiting(phase) ? Math.max(0, now - waitStart) : 0;
   const lit = reducedMotion && phase === "waiting" ? 0 : sharesLit(phase, elapsed);
+  const anim = signAnim(phase, finale);
   const state = [
     `path:${path}`,
     `derived:${account ? "yes" : "no"}`,
@@ -255,6 +279,7 @@ export function useChainSig({
     phase,
     elapsed,
     lit,
+    anim,
     result,
     signed,
     sign,

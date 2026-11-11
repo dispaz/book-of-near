@@ -343,3 +343,10 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - New scene objects: `SignerNode` (a figure at a desk with its key share) and `Ledger` (another chain as a row of block pages), 3D and SVG. Kept cheap (hull-only curved parts, no edge lines on small details, no per-node shadows): software WebGL went from 73.8 to 44.0 ms per frame (2.1: 31.7).
 - Book scene and 2D share one state (`useChainSig`); every object is a pick. Captions use the short address (the full one overflowed the printed page).
 - Not run on real testnet: the live `sign` answer shape is taken from the spike / chainsig.js, and `parseSignResponse` is unit-tested against it.
+
+## 2026-11-11 · Lesson 4.1: the Ethereum area and the signing animation (Refs #22, PR #48)
+
+- The right page is split: the NEAR side (mailbox, signer, ring of 8 nodes) and an Ethereum side, a new scene object `ChainArea` / `SvgChainArea` (accent tint, dashed ink border, "Ethereum (Sepolia)" printed at the front, a 3-block `Ledger` along the back; one pick). `Ledger` / `SvgLedger` gained `showName`. Row in `docs/scene-objects.md`.
+- The address grows inside the area at step 2 (beam: NEAR mailbox → ring → area). The parcel is packed by the NEAR mailbox, goes to the signer at step 4, comes home with r, s and v slips, and is delivered into the area at step 5 (after the page turn in 3D). The check (`= signer ✓`) and "Not sent to Sepolia" sit in the area.
+- Step 4 animation driven by the real wait: `signAnim(phase, finale)` in `signing.ts` (`travel` → `work` → `shares` → `sealed` → `done`); the finale (0.8 s + 0.7 s) runs on timers in `useChainSig`, never under reduced motion. Chips = lit nodes, so they follow the countdown. 3D in `SigningFx.tsx` (shared geometry, hidden when idle, one frame callback); 2D with CSS (pulses on the lines, flying dots, a flash). Scenes expose `data-sign-anim` and `data-parcel`.
+- Render cost unchanged: software WebGL (swiftshader, 1440×900, idle) step 4 / step 5 ≈ 71 / 72 ms per frame before and 70 / 71 after on a loaded machine (the 44 ms of the first entry was measured on an idle one; compare runs on the same machine only).

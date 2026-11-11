@@ -679,8 +679,9 @@ export function SvgLedger({
   pages = 3,
   edge = COLORS.slab,
   state = "ok",
+  showName = true,
   ...p
-}: SvgObjectProps & { name: string; size?: number; pages?: number; edge?: string }) {
+}: SvgObjectProps & { name: string; size?: number; pages?: number; edge?: string; showName?: boolean }) {
   const look = lookOf(state, CARD);
   const d = ledgerDims(size, pages);
   const xs = Array.from({ length: pages }, (_, i) => x - d.length / 2 + d.width / 2 + i * d.pitch);
@@ -711,12 +712,68 @@ export function SvgLedger({
           ))}
         </g>
       ))}
-      <SvgLabel x={x} y={top - 10}>
+      {showName ? (
+        <SvgLabel x={x} y={top - 10}>
+          {name}
+        </SvgLabel>
+      ) : null}
+    </g>
+  );
+  return pick(p, name, [x - d.length / 2 - 8, top - 34, d.length + 16, d.height + 42], node);
+}
+
+// ---------- another chain's ground: a marked area on the page ----------
+
+/**
+ * 2D twin of `ChainArea`: a tinted area in a dashed ink border, the chain's block pages along its back
+ * edge and its name printed at the front edge. (x, y) is the top-left corner; one pick for the whole.
+ */
+export function SvgChainArea({
+  x,
+  y,
+  width,
+  height,
+  name,
+  color = COLORS.slab,
+  blocks = 4,
+  blockSize = 46,
+  ...p
+}: SvgObjectProps & {
+  width: number;
+  height: number;
+  name: string;
+  blocks?: number;
+  blockSize?: number;
+}) {
+  const node = (
+    <g data-testid="chain-area" data-name={name}>
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        rx="10"
+        fill={color}
+        fillOpacity={0.14}
+        stroke={INK}
+        strokeWidth="2"
+        strokeDasharray="9 6"
+      />
+      <SvgLedger
+        x={x + width / 2}
+        y={y + blockSize + 14}
+        name={name}
+        size={blockSize}
+        pages={blocks}
+        edge={color}
+        showName={false}
+      />
+      <SvgLabel x={x + width / 2} y={y + height - 10} variant="small">
         {name}
       </SvgLabel>
     </g>
   );
-  return pick(p, name, [x - d.length / 2 - 8, top - 34, d.length + 16, d.height + 42], node);
+  return pick(p, name, [x, y, width, height], node);
 }
 
 // ---------- small icons for HTML cards ----------

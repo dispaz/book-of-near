@@ -52,6 +52,10 @@ export const OBJECTS = {
     shape: "page row",
     note: "a short row of linked block pages; another chain, another page edge",
   },
+  chainArea: {
+    shape: "marked area",
+    note: "another chain's ground on the page: a tinted area in a dashed border, its chain along the back",
+  },
 } as const;
 
 export type Concept = keyof typeof OBJECTS;

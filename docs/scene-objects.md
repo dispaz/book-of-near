@@ -54,7 +54,8 @@ both views.
 | **Person / learner** | 0.1's `Person` figure | Already standard | — | — |
 
 | **Signing node** (Chain Signatures) | A small figure behind a desk, its key share (a piece of the key) lying on the desk | One node of the signing network: it holds a share, never the whole key, and adds it to a signature | share plain, share in the accent (added); pending (dashed) | `SignerNode` / `SvgSignerNode` (lesson 4.1) |
-| **Another chain** | A short row of block pages standing up, linked by a string, the top edge in the chain's colour | The "blockchain" row, built: another chain, another page edge | edge in the accent (the chain that matters now) or plain | `Ledger` / `SvgLedger` (lesson 4.1 draws one: Ethereum, in the accent) |
+| **Another chain** | A short row of block pages standing up, linked by a string, the top edge in the chain's colour | The "blockchain" row, built: another chain, another page edge | edge in the accent (the chain that matters now) or plain | `Ledger` / `SvgLedger` (`showName={false}` when an area names it) |
+| **Another chain's ground** | A marked area on the page: a light tint of the chain's colour in a dashed ink border, its name printed at the front edge, the chain itself (a `Ledger`) standing along the back edge | Splits the page by chain: what lives on that chain (an address, a delivered transaction) stands inside it, what lives on NEAR stays outside | plain; selected (thicker border). One pick for the whole area and its chain | `ChainArea` / `SvgChainArea` (lesson 4.1: "Ethereum (Sepolia)", tinted in the accent, 3 blocks) |
 
 Open: intents will need rows when that stage is designed. The validator above is still not built; lesson 4.1's signing node borrows its shape (a figure at a desk).
 
@@ -63,7 +64,7 @@ Open: intents will need rows when that stage is designed. The validator above is
 | File | What |
 | --- | --- |
 | `src/scene-kit/objects.ts` | Pure: `OBJECTS` (concept → shape), `ObjectState` and `lookOf` (how each state looks), the objects' dimensions, `itemSlots` (where action cards stand), `gaugeShare`. Unit tested; safe to import from 2D code. |
-| `src/scene-kit/objects3d.tsx` | 3D: `Mailbox`, `Parcel` (+ `ActionCard`, `FATE_FILL`, `FATE_MARK`), `Stamp`, `Scroll`, `TaggedKey`, `AppScreen`, `Cross`, `Strike`. Exported from `src/scene-kit`. |
+| `src/scene-kit/objects3d.tsx` | 3D: `Mailbox`, `Parcel` (+ `ActionCard`, `FATE_FILL`, `FATE_MARK`), `Stamp`, `Scroll`, `TaggedKey`, `AppScreen`, `SignerNode`, `Ledger`, `ChainArea`, `Cross`, `Strike`. Exported from `src/scene-kit`. `ChainArea` is cheap: one tinted plane, one dashed line, the `Ledger`; its name is an HTML label. |
 | `src/scene-kit/svg/objects.tsx` | 2D twins: `SvgMailbox`, `SvgParcel`, `SvgStamp`, `SvgScroll`, `SvgTaggedKey`, `SvgAppScreen`, and `ObjectIcon` (the same shapes small, for HTML card headers). |
 | `src/content/lessons/scene-objects/` | Hidden gallery, `/lesson/scene-objects`: every object in every state, 2D and 3D. |
 

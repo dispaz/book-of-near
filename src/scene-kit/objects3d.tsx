@@ -14,6 +14,7 @@ import {
   Label,
   NameLabel,
   Outline,
+  Pickable,
   SelectRing,
   SoftShadow,
   maybePickable,
@@ -865,8 +866,16 @@ export function Ledger({
   pages = 3,
   edge = COLORS.slab,
   state = "ok",
+  showName = true,
   ...pick
-}: ObjectProps & { name: string; size?: number; pages?: number; edge?: string }) {
+}: ObjectProps & {
+  name: string;
+  size?: number;
+  pages?: number;
+  edge?: string;
+  /** The handwritten name above the pages. Off when something else names the chain (a `ChainArea`). */
+  showName?: boolean;
+}) {
   const d = ledgerDims(size, pages);
   const look = lookOf(state, COLORS.paper);
   const dashed = look.dashed;
@@ -895,9 +904,11 @@ export function Ledger({
           <boxGeometry args={[xs[xs.length - 1]! - xs[0]!, 0.02, 0.006]} />
         </mesh>
       ) : null}
-      <NameLabel height={d.height + 0.3} depth={d.depth}>
-        {name}
-      </NameLabel>
+      {showName ? (
+        <NameLabel height={d.height + 0.3} depth={d.depth}>
+          {name}
+        </NameLabel>
+      ) : null}
     </SelectRing>
   );
   return (
@@ -909,3 +920,86 @@ export function Ledger({
 }
 
 const LINE_INK = new MeshBasicMaterial({ color: INK });
+
+// ---------- another chain's ground: a marked area on the page ----------
+
+/**
+ * Another chain's ground on the page: a light tint of `color` inside a dashed ink border, its name
+ * printed at the front edge, and the chain itself (a `Ledger` of `blocks` pages) standing along the
+ * back edge. Things that live on that chain (an address, a delivered transaction) stand inside it.
+ * `position` is the area's middle on the page; the whole area, chain included, is one pick.
+ */
+export function ChainArea({
+  position = [0, 0, 0],
+  width,
+  depth,
+  name,
+  color = COLORS.slab,
+  blocks = 4,
+  blockSize = 0.85,
+  ...pick
+}: ObjectProps & {
+  width: number;
+  depth: number;
+  /** Printed at the front edge, and the default pick label. */
+  name: string;
+  /** Blocks in the chain along the back edge. */
+  blocks?: number;
+  blockSize?: number;
+}) {
+  const border = useMemo<Vec3[]>(() => {
+    const [x, z] = [width / 2, depth / 2];
+    return [
+      [-x, 0.02, -z],
+      [x, 0.02, -z],
+      [x, 0.02, z],
+      [-x, 0.02, z],
+      [-x, 0.02, -z],
+    ];
+  }, [width, depth]);
+  const chainZ = -depth / 2 + 0.55;
+  const body = (
+    <>
+      {/* The tint: one flat plane, under everything that stands in the area. */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 0]} renderOrder={-1}>
+        <planeGeometry args={[width, depth]} />
+        <meshBasicMaterial color={color} transparent opacity={0.16} depthWrite={false} />
+      </mesh>
+      <Line
+        points={border}
+        color={INK}
+        lineWidth={pick.selected ? 3.2 : 2}
+        dashed
+        dashSize={0.22}
+        gapSize={0.14}
+      />
+      <Ledger
+        position={[0, 0, chainZ]}
+        name={name}
+        size={blockSize}
+        pages={blocks}
+        edge={color}
+        showName={false}
+      />
+      <Label position={[0, 0.03, depth / 2 - 0.22]} variant="small">
+        {name}
+      </Label>
+    </>
+  );
+  return (
+    <group position={position}>
+      {pick.onPick ? (
+        <Pickable
+          label={pick.pickLabel ?? name}
+          selected={pick.selected}
+          onPick={pick.onPick}
+          anchor={[0, blockSize * 0.6, chainZ]}
+        >
+          {body}
+        </Pickable>
+      ) : (
+        body
+      )}
+    </group>
+  );
+}

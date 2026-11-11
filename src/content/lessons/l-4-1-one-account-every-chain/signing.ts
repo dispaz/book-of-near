@@ -46,3 +46,42 @@ export const shortHex = (h: string, head = 8, tail = 4) =>
 /** A 64-hex implicit account id is shortened; a named account is kept whole. */
 export const shortName = (id: string) =>
   /^[0-9a-f]{64}$/.test(id) ? `${id.slice(0, 6)}…${id.slice(-4)}` : id;
+
+/**
+ * After the answer comes back, the figure plays a short finale before it settles: "shares" (the last
+ * shares fly in, up to the threshold), then "sealed" (a flash, and the r, s and v slips form on the
+ * parcel), then null (the parcel comes home with them). Never under reduced motion.
+ */
+export type Finale = "shares" | "sealed" | null;
+/** How long the last shares take to fly in, then how long the sealed parcel stays in the ring (ms). */
+export const FINALE_MS = { shares: 800, sealed: 700 } as const;
+
+/**
+ * What the signing figure is doing, for both views and the tests (`data-sign-anim`): the parcel
+ * travels to the signer, the nodes work, the last shares fly in, the signature is sealed, done.
+ */
+export type SignAnim = "idle" | "travel" | "work" | "shares" | "sealed" | "done";
+
+export function signAnim(phase: SignPhase, finale: Finale): SignAnim {
+  if (phase === "sending") return "travel";
+  if (phase === "waiting") return "work";
+  if (phase === "answered") return finale ?? "done";
+  return "idle";
+}
+
+/** Shares gathered at the signer: the lit ones while waiting, the threshold's once the answer is in. */
+export const sharesIn = (anim: SignAnim, lit: number) =>
+  anim === "work" ? lit : anim === "shares" ? THRESHOLD : 0;
+
+/** The r, s and v slips are on the parcel once the signature is sealed. */
+export const slipsShown = (anim: SignAnim) => anim === "sealed" || anim === "done";
+
+/** Where the parcel is: by your NEAR mailbox, in the ring while it is signed, or delivered to Ethereum. */
+export type ParcelSpot = "near" | "signer" | "ethereum";
+
+/** The parcel waits in the ring from the request until the finale is over; at step 5 it is delivered. */
+export function parcelSpot(anim: SignAnim, signing: boolean, delivered: boolean): ParcelSpot {
+  if (delivered) return "ethereum";
+  if (signing && anim !== "idle" && anim !== "done") return "signer";
+  return "near";
+}

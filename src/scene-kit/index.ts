@@ -57,6 +57,7 @@ export {
 export {
   ActionCard,
   AppScreen,
+  ChainArea,
   Cross,
   FATE_FILL,
   FATE_MARK,

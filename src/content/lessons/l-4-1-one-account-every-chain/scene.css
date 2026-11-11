@@ -72,6 +72,123 @@
   transition: none;
 }
 
+/* Step 4, the lighter 2D signing: pulses along the lines, share dots flying in, a flash at the seal. */
+.csg-spoke {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 4 10;
+  animation: csg-spoke 0.7s linear infinite;
+}
+@keyframes csg-spoke {
+  to {
+    stroke-dashoffset: 14;
+  }
+}
+.csg-pulse {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: csg-pulse 1.6s ease-out infinite;
+}
+@keyframes csg-pulse {
+  from {
+    transform: scale(0.15);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+.csg-node.busy {
+  animation: csg-work 0.5s ease-in-out infinite alternate;
+}
+@keyframes csg-work {
+  to {
+    transform: translateY(-2px);
+  }
+}
+.csg-chip {
+  fill: var(--accent);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  animation: csg-fly 0.5s ease-in-out both;
+}
+@keyframes csg-fly {
+  from {
+    transform: translate(var(--fx), var(--fy));
+  }
+  to {
+    transform: none;
+  }
+}
+.csg-flash {
+  fill: var(--accent);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: csg-flash 0.45s ease-out both;
+}
+@keyframes csg-flash {
+  from {
+    transform: scale(0.3);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+.csg-slip rect {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+.csg-slip text {
+  font:
+    700 10px ui-monospace,
+    Menlo,
+    monospace;
+  fill: var(--ink);
+  text-anchor: middle;
+}
+.csg-grow {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: csg-grow 0.6s ease-out both;
+}
+@keyframes csg-grow {
+  from {
+    transform: scaleY(0.05);
+  }
+  to {
+    transform: none;
+  }
+}
+.csg-svg-note {
+  font: 600 12px var(--ui);
+  fill: var(--ink);
+}
+.csg-svg-note.strong {
+  font-weight: 700;
+}
+.csg-svg-note.mid {
+  text-anchor: middle;
+  fill: var(--mute);
+}
+.csg.still .csg-spoke,
+.csg.still .csg-pulse,
+.csg.still .csg-node.busy,
+.csg.still .csg-chip,
+.csg.still .csg-grow {
+  animation: none;
+}
+.csg.still .csg-pulse,
+.csg.still .csg-flash {
+  display: none;
+}
+
 /* ---------- facts (both views) ---------- */
 .csg-facts {
   display: flex;
@@ -209,5 +326,17 @@
 @media (prefers-reduced-motion: reduce) {
   .csg-parcel {
     transition: none;
+  }
+  .csg-spoke,
+  .csg-pulse,
+  .csg-node.busy,
+  .csg-chip,
+  .csg-flash,
+  .csg-grow {
+    animation: none;
+  }
+  .csg-pulse,
+  .csg-flash {
+    display: none;
   }
 }

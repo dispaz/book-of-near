@@ -24,7 +24,7 @@ const PICK_NOTE: Record<Exclude<Picked, null>, string> = {
   ring: "The signing nodes. Each one holds a key share, never the whole key.",
   signer: `The signer contract, ${SIGNER_CONTRACT}. It takes sign requests and hands them to the nodes.`,
   ethereum:
-    "Ethereum. Normally you need its own wallet and private key. The address you derive lives here, as a normal Ethereum account.",
+    "Ethereum, here its Sepolia test network: a chain of its own. Normally you need its own wallet and private key. The address you derive lives here, as a normal Ethereum account.",
   address: "Your derived Ethereum address. NEAR controls it through the signing network.",
   parcel: "The Ethereum transaction: a transfer on Sepolia, from your derived address.",
 };
@@ -35,7 +35,7 @@ export const pickLabels = {
   signer: "The signer contract",
   address: "Your derived Ethereum address",
   parcel: "The Ethereum transaction",
-  ethereum: "Ethereum",
+  ethereum: "Ethereum (Sepolia)",
 } as const;
 
 function Row({ label, children, testId }: { label: string; children: ReactNode; testId?: string }) {

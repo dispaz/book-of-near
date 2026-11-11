@@ -27,7 +27,7 @@ export function tourFor(step: number): Shot<Target>[] {
       return [
         ALL,
         shot("account", "your NEAR account, the one mailbox you need."),
-        shot("ethereum", "Ethereum, a chain with its own wallets and keys."),
+        shot("ethereum", "the Ethereum area, a chain with its own wallets and keys."),
       ];
     case DERIVE:
       return [
@@ -50,7 +50,7 @@ export function tourFor(step: number): Shot<Target>[] {
     default:
       return [
         ALL,
-        shot("parcel", "the signed transaction, stamped."),
+        shot("parcel", "the signed transaction, delivered to Ethereum with r, s and v."),
         shot("address", "the address the signature points back to."),
       ];
   }
