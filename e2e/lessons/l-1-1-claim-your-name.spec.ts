@@ -91,24 +91,28 @@ test.describe(`lesson ${ID}`, () => {
     });
   }
 
-  test("the learner's own name appears in later text, and survives a view switch", async ({ page }) => {
-    slow3d();
-    await page.goto(`/lesson/${ID}?view=2d`);
-    await nextStep(page);
-    await nextStep(page);
-    await page.getByRole("textbox", { name: "Account name" }).fill("zed-writes");
-    await expect(page.getByTestId("name-feedback")).toHaveText("zed-writes.testnet is free.");
-    await nextStep(page);
-    await expect(dock(page).getByRole("button", { name: "Create zed-writes.testnet" })).toBeVisible();
-    await expect(page.getByTestId("caption")).toContainText("zed-writes.testnet");
-    await dock(page).getByRole("button", { name: "Create zed-writes.testnet" }).click();
-    await expect(page.getByTestId("new-account-id")).toHaveText("zed-writes.testnet", { timeout: 30_000 });
-    // Switch to 3D mid-lesson: the created account is still there.
-    await page.getByRole("group", { name: "Scene view" }).getByRole("button", { name: "3D" }).click();
-    await expectView(page, "3d");
-    await expect(page.getByTestId("new-account-id")).toHaveText("zed-writes.testnet");
-    await expect(page.getByRole("button", { name: "Next step" })).toBeEnabled();
-  });
+  test(
+    "the learner's own name appears in later text, and survives a view switch",
+    { tag: "@3d" },
+    async ({ page }) => {
+      slow3d();
+      await page.goto(`/lesson/${ID}?view=2d`);
+      await nextStep(page);
+      await nextStep(page);
+      await page.getByRole("textbox", { name: "Account name" }).fill("zed-writes");
+      await expect(page.getByTestId("name-feedback")).toHaveText("zed-writes.testnet is free.");
+      await nextStep(page);
+      await expect(dock(page).getByRole("button", { name: "Create zed-writes.testnet" })).toBeVisible();
+      await expect(page.getByTestId("caption")).toContainText("zed-writes.testnet");
+      await dock(page).getByRole("button", { name: "Create zed-writes.testnet" }).click();
+      await expect(page.getByTestId("new-account-id")).toHaveText("zed-writes.testnet", { timeout: 30_000 });
+      // Switch to 3D mid-lesson: the created account is still there.
+      await page.getByRole("group", { name: "Scene view" }).getByRole("button", { name: "3D" }).click();
+      await expectView(page, "3d");
+      await expect(page.getByTestId("new-account-id")).toHaveText("zed-writes.testnet");
+      await expect(page.getByRole("button", { name: "Next step" })).toBeEnabled();
+    },
+  );
 
   test("a second create is blocked once the account exists and the scene shows the outcome", async ({
     page,

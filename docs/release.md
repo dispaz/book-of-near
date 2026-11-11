@@ -36,4 +36,4 @@ Releases run one at a time. You can also start one by hand: Actions → Release 
 ## Other deploy paths
 
 - `.github/workflows/deploy.yml` still deploys when a GitHub Release is published by hand, or from Actions → Deploy → Run workflow with any ref. The Release workflow creates its GitHub Release with `GITHUB_TOKEN`, which does not trigger other workflows, so a normal release deploys once.
-- The CI e2e job runs software WebGL (no GPU) with `E2E_WORKERS=2`; that path is slower and less proven than macOS (see #36, #44). If it fails, nothing is deployed.
+- CI has no GPU, so the e2e job and the smoke test run with `E2E_NO_3D=1`: WebGL is switched off, lessons fall back to 2D, and tests that need the 3D scene (titles with `3d`, the `@3d` tag, `book-camera.spec.ts`) are left out. Software WebGL was too slow for them (v0.2.0's first runs: every 3D test timed out, every 2D test passed). The full suite with 3D stays the local gate before merging (`npm run e2e` on a Mac). Undo this once 3D scenes render on demand (#44).

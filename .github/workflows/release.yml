@@ -24,8 +24,7 @@ jobs:
   checks:
     name: Checks
     runs-on: ubuntu-latest
-    # Software WebGL on the runner is slow (#36, #44): two workers, generous time.
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -46,8 +45,11 @@ jobs:
         run: npm run typecheck && npm test
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
-      - name: E2E (demo mode, production build)
+      # No GPU on the runner: WebGL off, 3D tests left out (E2E_NO_3D, see playwright.config.ts and #44).
+      # The full suite with 3D is the local gate on a machine with a GPU.
+      - name: E2E without 3D (demo mode, production build)
         env:
+          E2E_NO_3D: "1"
           E2E_WORKERS: "2"
         run: npx playwright test
       - uses: actions/upload-artifact@v4
@@ -128,6 +130,7 @@ jobs:
       - name: Smoke test the live deploy
         env:
           BASE_URL: ${{ steps.pages.outputs.deployment-url }}
+          E2E_NO_3D: "1"
         run: |
           npx playwright install --with-deps chromium
           npx playwright test --grep @smoke

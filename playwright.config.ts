@@ -40,11 +40,17 @@ const workers =
       ? Number(envWorkers)
       : envWorkers;
 
+// E2E_NO_3D=1 (release CI, no GPU): WebGL is switched off, so lessons fall back to 2D, and the tests that
+// need the 3D scene are left out. Software WebGL on CI is too slow for them until scenes render on demand
+// (#44). The full suite, 3D included, stays the local gate on a machine with a GPU.
+const no3d = process.env.E2E_NO_3D === "1";
+
 const port = process.env.BASE_URL ? undefined : previewPort();
 const baseURL = process.env.BASE_URL ?? `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: "e2e",
+  ...(no3d ? { grepInvert: /\b3d\b|@3d/i, testIgnore: ["**/book-camera.spec.ts"] } : {}),
   fullyParallel: true,
   workers,
   retries: process.env.CI ? 1 : 0,
@@ -68,7 +74,11 @@ export default defineConfig({
         // The GPU where we can (macOS, Metal); otherwise software WebGL, which headless Chromium only
         // falls back to with this flag (machines without a GPU, CI).
         launchOptions: {
-          args: gpu ? ["--use-angle=metal", "--enable-unsafe-swiftshader"] : ["--enable-unsafe-swiftshader"],
+          args: no3d
+            ? ["--disable-3d-apis"]
+            : gpu
+              ? ["--use-angle=metal", "--enable-unsafe-swiftshader"]
+              : ["--enable-unsafe-swiftshader"],
         },
       },
     },
