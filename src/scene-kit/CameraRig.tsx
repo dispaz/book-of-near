@@ -100,7 +100,8 @@ export function CameraRig({
 }) {
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
-  const invalidate = useThree((s) => s.invalidate);
+  // Through a ref, so markMoving stays a function of refs only (the canvas draws on demand).
+  const invalidate = useRef(useThree((s) => s.invalidate));
   // OrbitControls listens on R3F's event target (or the canvas): watch the same element for gestures.
   const surface = useThree((s) => (s.events.connected as HTMLElement | undefined) ?? s.gl.domElement);
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
@@ -136,7 +137,7 @@ export function CameraRig({
    */
   const markMoving = () => {
     stillFrames.current = 0;
-    invalidate();
+    invalidate.current();
     if (motion.current === "moving") return;
     motion.current = "moving";
     reportMotion.current?.("moving");

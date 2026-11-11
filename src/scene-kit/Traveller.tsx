@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
-import { useFrame } from "@react-three/fiber";
 import { AdditiveBlending, type Group, type Sprite, type SpriteMaterial } from "three";
 import { arcPoint, easeInOut, MAX_FRAME_STEP as MAX_STEP, type Vec3 } from "./motion";
+import { useAnimatedFrame } from "./frames";
 import { glowTexture } from "./materials";
 import { useStage } from "./context";
 import { COLORS } from "./theme";
@@ -65,9 +65,10 @@ export function Traveller({
     hop.current = { from: [g.position.x, g.position.y, g.position.z], to: target, elapsed: 0 };
   }, [x, y, z, reducedMotion]);
 
-  useFrame(({ clock }, delta) => {
+  // Asks for frames while it hops or its trail catches up (the canvas draws on demand).
+  useAnimatedFrame(({ clock }, delta) => {
     const g = group.current;
-    if (!g) return;
+    if (!g) return false;
     const h = hop.current;
     if (h) {
       // Advance by the frame time, capped at MAX_STEP: a slow or stalled frame (busy phone, background
@@ -101,6 +102,7 @@ export function Traveller({
           : 0.75 + 0.25 * Math.sin(clock.elapsedTime * 5.5);
       glowSprite.scale.setScalar(moving ? 2.6 : 1.9);
     }
+    return !!hop.current || dots.some((d) => !!d?.visible);
   });
 
   return (

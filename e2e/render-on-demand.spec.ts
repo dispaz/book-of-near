@@ -45,7 +45,8 @@ function countDrawnFrames() {
     });
 }
 
-const drawn = (page: Page) => page.evaluate(() => (window as unknown as { __drawnFrames: number }).__drawnFrames);
+const drawn = (page: Page) =>
+  page.evaluate(() => (window as unknown as { __drawnFrames: number }).__drawnFrames);
 
 for (const id of LESSONS) {
   test(`an idle 3d scene draws no frames: ${id}`, async ({ page }) => {

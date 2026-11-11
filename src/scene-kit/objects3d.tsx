@@ -5,7 +5,6 @@
  * draws it the same way, so lessons never restyle objects.
  */
 import { useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
-import { useFrame } from "@react-three/fiber";
 import { Line } from "@react-three/drei";
 import { MeshBasicMaterial, Shape, type Group } from "three";
 import {
@@ -21,6 +20,7 @@ import {
   type PickProps,
 } from "./primitives";
 import { useStage } from "./context";
+import { useAnimatedFrame } from "./frames";
 import type { Vec3 } from "./motion";
 import { COLORS, INK } from "./theme";
 import {
@@ -301,13 +301,17 @@ export function Parcel({
     if (!reducedMotion) return;
     flaps.current.forEach((f, i) => f && (f.rotation.z = i === 0 ? target : -target));
   }, [reducedMotion, target]);
-  useFrame((_, dt) => {
+  useAnimatedFrame((_, dt) => {
+    let moving = false;
     flaps.current.forEach((f, i) => {
       if (!f) return;
       const goal = i === 0 ? target : -target;
       const k = reducedMotion ? 1 : Math.min(1, dt * 8);
       f.rotation.z += (goal - f.rotation.z) * k;
+      if (Math.abs(goal - f.rotation.z) < 0.001) f.rotation.z = goal;
+      else moving = true;
     });
+    return moving;
   });
   const slots = open ? itemSlots(items.length, maxItems) : [];
   const tape = partFill(look, color);
@@ -432,8 +436,11 @@ export function Scroll({
   const dashed = look.dashed;
   const { reducedMotion } = useStage();
   const gear = useRef<Group>(null);
-  useFrame((_, dt) => {
-    if (gear.current && running && !reducedMotion) gear.current.rotation.z -= dt * 2.2;
+  // The gear turns (and asks for frames) only while the contract runs.
+  useAnimatedFrame((_, dt) => {
+    if (!gear.current || !running || reducedMotion) return false;
+    gear.current.rotation.z -= dt * 2.2;
+    return true;
   });
   const sheetH = d.height - d.roller * 4;
   const lines = [0.26, 0.12, -0.02, -0.16].map((f) => f * d.height);

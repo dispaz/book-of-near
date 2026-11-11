@@ -146,9 +146,10 @@ function Shadows({ spread }: { spread: Spread }) {
  */
 function CastShadows() {
   const scene = useThree((s) => s.scene);
-  const n = useRef(0);
-  useFrame(() => {
-    if (n.current++ % 20) return;
+  // Every drawn frame (the canvas draws on demand, so frames are few and a new object is never missed);
+  // one more frame when something new casts a shadow, so its shadow shows.
+  useFrame(({ invalidate }) => {
+    let added = false;
     scene.traverse((o: Object3D) => {
       const m = o as Mesh;
       if (!m.isMesh || m.castShadow || m.userData.book) return;
@@ -156,7 +157,9 @@ function CastShadows() {
       if (Array.isArray(mat) || mat.transparent || !mat.visible) return;
       if ("isLineMaterial" in mat || "isLineSegments2" in m || "isLine2" in m) return;
       m.castShadow = true;
+      added = true;
     });
+    if (added) invalidate();
   });
   return null;
 }

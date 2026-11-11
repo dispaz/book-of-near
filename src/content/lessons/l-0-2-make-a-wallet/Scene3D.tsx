@@ -27,6 +27,7 @@ import {
   useInk,
   useStage,
   type Vec3,
+  useAnimatedFrame,
 } from "../../../scene-kit";
 import { CONVERT_STAGES, STEP, type Wallet } from "./useWallet";
 import {
@@ -66,10 +67,12 @@ function useTween(trigger: unknown, seconds: number, reducedMotion: boolean) {
     t.current = reducedMotion ? 1 : 0;
     start.current = null;
   }, [trigger, reducedMotion]);
-  useFrame(({ clock }) => {
-    if (t.current >= 1) return;
+  // The clock drives the motions that read it: it asks for frames until it reaches 1.
+  useAnimatedFrame(({ clock }) => {
+    if (t.current >= 1) return false;
     start.current ??= clock.elapsedTime;
     t.current = Math.min(1, (clock.elapsedTime - start.current) / seconds);
+    return t.current < 1;
   });
   return t;
 }
@@ -342,7 +345,8 @@ function PrivateKey({ w, step, fold, bin }: { w: Wallet; step: number; fold: Clo
   const ref = useBinned(POS.key, bin, w.cleared);
   const reveal = w.showSecret && !!w.keys;
   const { reducedMotion } = useStage();
-  useFrame((_, dt) => {
+  useAnimatedFrame((_, dt) => {
+    let moving = false;
     const T = fold.current;
     // The key appears as the words land in it, and pulses once.
     const k = keyRef.current;
@@ -362,7 +366,9 @@ function PrivateKey({ w, step, fold, bin }: { w: Wallet; step: number; fold: Clo
       c.position.y = 0.8 + u * 1.4;
       c.scale.setScalar(Math.max(0.001, 1 - u));
       c.visible = u < 0.99;
+      moving = u !== goal;
     }
+    return moving;
   });
   const shown = useContext(ShownContext);
   // Same masking as the panel: the value is hidden until the learner presses Show.
@@ -514,13 +520,14 @@ function GrowBlock({ height, color, size = 1.5 }: { height: number; color: strin
   const ink = useInk(color, true);
   const { reducedMotion } = useStage();
   const ref = useRef<Group>(null);
-  useFrame((_, dt) => {
+  useAnimatedFrame((_, dt) => {
     const g = ref.current;
-    if (!g) return;
+    if (!g) return false;
     const cur = g.scale.y;
     const next =
       reducedMotion || Math.abs(height - cur) < 0.005 ? height : cur + (height - cur) * Math.min(1, dt * 6);
     g.scale.y = Math.max(0.001, next);
+    return next !== height;
   });
   return (
     <group ref={ref} scale={[1, Math.max(0.001, height), 1]}>
@@ -739,7 +746,8 @@ function Seal({ w, verifying }: { w: Wallet; verifying: boolean }) {
   const cracked = result === "fail";
   const { reducedMotion } = useStage();
   const shown = useContext(ShownContext);
-  useFrame((_, dt) => {
+  useAnimatedFrame((_, dt) => {
+    let moving = false;
     for (const [g, side] of [
       [left.current, -1],
       [right.current, 1],
@@ -752,7 +760,9 @@ function Seal({ w, verifying }: { w: Wallet; verifying: boolean }) {
       g.userData.u = u;
       g.position.x = side * (0.2 + u * 0.22);
       g.rotation.z = -side * u * 0.35;
+      if (u !== goal) moving = true;
     }
+    return moving;
   });
   const at: Vec3 = signed ? [POS.card[0] + 0.7, 0.2, POS.card[2]] : [POS.key[0], 1.2, POS.key[2]];
   return (

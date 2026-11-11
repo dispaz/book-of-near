@@ -12,7 +12,6 @@
  * figure is idle (no draw calls then), moved in one frame callback with no React renders.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useFrame } from "@react-three/fiber";
 import {
   BoxGeometry,
   BufferGeometry,
@@ -28,7 +27,7 @@ import {
   type SpriteMaterial,
   type Vector3,
 } from "three";
-import { Label, Outline, useInk, useStage } from "../../../scene-kit";
+import { Label, Outline, useAnimatedFrame, useInk, useStage } from "../../../scene-kit";
 import { glowTexture } from "../../../scene-kit/materials";
 import { easeInOut, type Vec3 } from "../../../scene-kit/motion";
 import { COLORS, INK } from "../../../scene-kit/theme";
@@ -92,7 +91,8 @@ export function SigningFx({ anim, lit, color }: { anim: SignAnim; lit: number; c
     now.current = { anim, lit };
   });
 
-  useFrame(({ clock }) => {
+  // Asks for frames while anything moves: the wait (pulse, lines), a chip in flight, the flash.
+  useAnimatedFrame(({ clock }) => {
     const t = clock.elapsedTime;
     const { anim: a, lit: l } = now.current;
     const r = run.current;
@@ -106,6 +106,7 @@ export function SigningFx({ anim, lit, color }: { anim: SignAnim; lit: number; c
       r.prev = a;
     }
     const working = a === "work";
+    let moving = working && !reducedMotion;
     // A pulse spreading round the ring.
     const p = pulse.current;
     if (p) {
@@ -132,10 +133,13 @@ export function SigningFx({ anim, lit, color }: { anim: SignAnim; lit: number; c
       }
       const at = r.launch[i];
       if (i >= want || at === undefined || t < at) {
+        // A chip waiting for its turn to leave still needs frames.
+        if (i < want && at !== undefined) moving = true;
         chip.visible = false;
         continue;
       }
       const u = reducedMotion ? 1 : Math.min(1, (t - at) / FLIGHT);
+      if (u < 1) moving = true;
       arcInto(chip.position, from[i]!, to[i]!, 0.7, easeInOut(u));
       chip.visible = true;
     }
@@ -147,8 +151,10 @@ export function SigningFx({ anim, lit, color }: { anim: SignAnim; lit: number; c
       if (f.visible) {
         f.scale.setScalar(0.5 + 2.2 * u);
         (f.material as SpriteMaterial).opacity = 0.85 * (1 - u);
+        moving = true;
       }
     }
+    return moving;
   });
 
   const [cx, , cz] = RING_CENTER;
@@ -189,14 +195,15 @@ export function NodeWork({ i, busy, children }: { i: number; busy: boolean; chil
   const { reducedMotion } = useStage();
   const g = useRef<Group>(null);
   const on = busy && !reducedMotion;
-  useFrame(({ clock }) => {
+  useAnimatedFrame(({ clock }) => {
     const n = g.current;
-    if (!n) return;
+    if (!n) return false;
     if (!on) {
       if (n.rotation.y !== 0) n.rotation.y = 0;
-      return;
+      return false;
     }
     n.rotation.y = Math.sin(clock.elapsedTime * 7 + i * 0.9) * 0.25;
+    return true;
   });
   return <group ref={g}>{children}</group>;
 }
@@ -219,13 +226,14 @@ export function RsvSlips({ parcelTop, v, dropFrom }: { parcelTop: number; v: num
   const dropping = useRef(!!drop);
   const start = useRef(-1);
   const rest = useMemo<Vec3>(() => [0, parcelTop + 0.3, 0], [parcelTop]);
-  useFrame(({ clock }) => {
+  useAnimatedFrame(({ clock }) => {
     const n = g.current;
-    if (!n || !drop || !dropping.current) return;
+    if (!n || !drop || !dropping.current) return false;
     if (start.current < 0) start.current = clock.elapsedTime;
     const u = (clock.elapsedTime - start.current) / DROP;
     arcInto(n.position, drop, rest, 0.25, easeInOut(u));
     if (u >= 1) dropping.current = false;
+    return dropping.current;
   });
   return (
     <group ref={g} position={drop ?? rest}>

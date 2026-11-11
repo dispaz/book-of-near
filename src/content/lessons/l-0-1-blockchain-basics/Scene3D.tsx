@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import {
   Anchor,
@@ -17,6 +16,7 @@ import {
   type Focus,
   type Reserve,
   type Vec3,
+  useAnimatedFrame,
 } from "../../../scene-kit";
 import { tourFor, type TourTarget } from "./tour";
 import { PEOPLE, shortHash, START, type Chain, type Person, type Tx } from "./ledger";
@@ -527,8 +527,10 @@ function CoinHop({ from, to, onDone }: { from: Vec3; to: Vec3; onDone: () => voi
 
 function SpinningCoin() {
   const ref = useRef<Group>(null);
-  useFrame((_, dt) => {
+  // Spins for as long as it is shown (only during a hop).
+  useAnimatedFrame((_, dt) => {
     if (ref.current) ref.current.rotation.x += dt * 6;
+    return true;
   });
   return (
     <group ref={ref}>

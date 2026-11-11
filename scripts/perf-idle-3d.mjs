@@ -14,6 +14,7 @@
  * callback; CPU cores = CPU time of every browser process (the GPU process runs SwiftShader) over wall
  * time.
  */
+/* global window */
 import { execFileSync } from "node:child_process";
 import { chromium } from "@playwright/test";
 

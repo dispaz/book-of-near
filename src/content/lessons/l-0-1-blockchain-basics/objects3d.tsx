@@ -3,7 +3,7 @@
  * ledger blocks with a lid, and the hash links between blocks. Loaded only with the 3D view.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useThree } from "@react-three/fiber";
 import { Edges, Html, RoundedBox } from "@react-three/drei";
 import { CanvasTexture, DoubleSide, ExtrudeGeometry, Shape, SRGBColorSpace, type Group } from "three";
 import {
@@ -16,6 +16,8 @@ import {
   useInk,
   useStage,
   type Vec3,
+  CUE_SECONDS,
+  useAnimatedFrame,
 } from "../../../scene-kit";
 import { STAGE_ACCENTS, withAlpha } from "../../../scene-kit/theme";
 
@@ -80,12 +82,25 @@ function Ring({ radius, color = COLORS.orange }: { radius: number; color?: strin
   );
 }
 
-/** A gentle up-and-down bob for the object the learner should click next. */
+/**
+ * A gentle up-and-down bob for the object the learner should click next. It bobs for CUE_SECONDS, then
+ * rests lifted (still a cue), so an idle page stops drawing.
+ */
 function useBob(on: boolean, reducedMotion: boolean) {
   const ref = useRef<Group>(null);
-  useFrame(({ clock }) => {
-    if (!ref.current) return;
-    ref.current.position.y = on && !reducedMotion ? 0.12 + Math.sin(clock.elapsedTime * 4) * 0.1 : 0;
+  const t0 = useRef<number | null>(null);
+  useAnimatedFrame(({ clock }) => {
+    if (!ref.current) return false;
+    if (!on || reducedMotion) {
+      t0.current = null;
+      ref.current.position.y = on ? 0.12 : 0;
+      return false;
+    }
+    t0.current ??= clock.elapsedTime;
+    const t = clock.elapsedTime - t0.current;
+    const moving = t < CUE_SECONDS;
+    ref.current.position.y = 0.12 + (moving ? Math.sin(t * 4) * 0.1 * (1 - t / CUE_SECONDS) : 0);
+    return moving;
   });
   return ref;
 }
@@ -160,6 +175,7 @@ function usePageTexture(rows: PageRow[] | null) {
     t.anisotropy = 4;
     return t;
   }, []);
+  const invalidate = useThree((s) => s.invalidate);
   const [fonts, setFonts] = useState(0);
   useEffect(() => {
     let live = true;
@@ -175,8 +191,10 @@ function usePageTexture(rows: PageRow[] | null) {
   useLayoutEffect(() => {
     drawPage(tex.image as HTMLCanvasElement, rows);
     tex.needsUpdate = true;
+    // Same texture object, so React changes no prop: ask for the frame that shows it (draws on demand).
+    invalidate();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for `rows`
-  }, [tex, key, fonts]);
+  }, [tex, key, fonts, invalidate]);
   useEffect(() => () => tex.dispose(), [tex]);
   return tex;
 }
@@ -234,9 +252,9 @@ export function Ledger({
   const bob = useBob(hint, reducedMotion);
   const W = LEDGER_W;
   const D = LEDGER_D;
-  useFrame(() => {
+  useAnimatedFrame(() => {
     const h = hinge.current;
-    if (!h) return;
+    if (!h) return false;
     const goal = open ? OPEN_ANGLE : 0;
     const r =
       reducedMotion || Math.abs(goal - h.rotation.z) < 0.002
@@ -244,6 +262,7 @@ export function Ledger({
         : h.rotation.z + (goal - h.rotation.z) * 0.14;
     h.rotation.z = r;
     if (slide.current) slide.current.position.x = (W / 2) * (r / OPEN_ANGLE);
+    return r !== goal;
   });
   // The book leans back on its front edge (pivot), resting on the stand.
   const book = (
@@ -332,19 +351,24 @@ export function LedgerBlock({
   // Remember whether to drop at mount only: later renders never restart the fall.
   const [falling] = useState(() => drop && !reducedMotion);
   const t0 = useRef<number | null>(null);
-  useFrame(({ clock }) => {
+  useAnimatedFrame(({ clock }) => {
+    let moving = false;
     const l = lid.current;
     if (l) {
       // The lid swings open on its back edge.
       const r = open ? -1.9 : 0;
       l.rotation.x += (r - l.rotation.x) * (reducedMotion ? 1 : 0.15);
+      if (Math.abs(r - l.rotation.x) < 0.001) l.rotation.x = r;
+      else moving = true;
     }
     const f = fall.current;
     if (f && falling) {
       if (t0.current === null) t0.current = clock.elapsedTime;
       const u = Math.min(1, (clock.elapsedTime - t0.current) / 0.8);
       f.position.y = 5 * (1 - bounce(u));
+      if (u < 1) moving = true;
     }
+    return moving;
   });
   const edge = bad ? COLORS.red : INK;
   const box = (
@@ -426,12 +450,18 @@ export function Slip({
   const ink = useInk(INK);
   const ref = useRef<Group>(null);
   const top = BH + 0.55;
-  useFrame(() => {
+  useAnimatedFrame(() => {
     const g = ref.current;
-    if (!g) return;
+    if (!g) return false;
     const k = reducedMotion ? 1 : 0.12;
     g.position.y += (top - g.position.y) * k;
     g.rotation.x += (-1.1 - g.rotation.x) * k;
+    if (Math.abs(top - g.position.y) < 0.001 && Math.abs(-1.1 - g.rotation.x) < 0.001) {
+      g.position.y = top;
+      g.rotation.x = -1.1;
+      return false;
+    }
+    return true;
   });
   return (
     <>
@@ -515,8 +545,8 @@ export function HashLink({
     if (wasOk.current && !ok) crackT.current = -1;
     wasOk.current = ok;
   }, [ok]);
-  useFrame(({ clock }) => {
-    if (!a.current || !b.current) return;
+  useAnimatedFrame(({ clock }) => {
+    if (!a.current || !b.current) return false;
     let shake = 0;
     if (crackT.current !== null && !reducedMotion) {
       if (crackT.current < 0) crackT.current = clock.elapsedTime;
@@ -527,6 +557,7 @@ export function HashLink({
     const tilt = ok ? 0 : 0.22;
     a.current.rotation.z = -tilt + shake;
     b.current.rotation.z = tilt - shake;
+    return crackT.current !== null;
   });
   const half = ok ? len / 2 : len / 2 - 0.14;
   const rod = 0.09 * Math.max(0.8, scale);
