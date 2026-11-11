@@ -329,6 +329,12 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Book scene (3D) and 2D share one state (`useDeploy`); every object is a pick. e2e: walks in both views, outcome, reduced motion, phones, no WebGL, view switch, 3D picks, print and tour. 3D walks get 90 s (five realtime transactions).
 - Not tested on real testnet (demo only).
 
+## 2026-11-02 · Release workflow
+- `.github/workflows/release.yml`: a push or merge to `release` runs lint, typecheck, unit tests, Worker typecheck/tests and e2e (demo, production build). Then it builds, deploys to Cloudflare Pages (branch `release`), optionally deploys the Worker (`DEPLOY_WORKER=true`), smoke-tests the live URL, and tags `vX.Y.Z` with a GitHub Release.
+- Versioning: `scripts/release-version.mjs` (tested). MAJOR.MINOR from `package.json`, PATCH = next after the highest matching tag. The build ships `dist/version.json` and `VITE_APP_VERSION`.
+- **Not done (owner):** Cloudflare token + account id as repo secrets, Pages production branch `release`, `git push origin main:release`. Steps in `docs/release.md`.
+- 2026-11-11 · Release workflow merged for v0.2.0: deploys with `--branch main` (the Pages production branch, no dashboard change), CI e2e gets 60 min and `E2E_WORKERS=2` (software WebGL, see #36/#44), `package.json` is 0.2.0 so the first release is `v0.2.0`. `deploy.yml` stays as the manual path.
+
 ## 2026-11-11 · Lesson 4.1: One account, every chain (Closes #22)
 
 - Chain Signatures through the Chain interface only (`src/chain/chainSignatures.ts`): the address is derived offline from the signer's root key (a `viewCall` of `public_key`), the account and the path. The derivation reproduces spike 5's fixture (`testnet` + `ethereum-1` → `0x2F9e…1280`) and the contract's `derived_public_key` view. Signing is one `sign` call (1 yoctoNEAR, 30 Tgas) sent with `chain.sendTransaction`; the Sepolia transfer, its payload and the recovered signer use viem (pinned 2.57.10).
