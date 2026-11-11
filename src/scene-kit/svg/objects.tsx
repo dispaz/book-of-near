@@ -628,7 +628,7 @@ export function SvgSignerNode({
   state = "ok",
   ...p
 }: SvgObjectProps & { size?: number; lit?: boolean; name?: string }) {
-  const look = lookOf(state, PAPER);
+  const look = lookOf(state, CARD);
   const d = signerNodeDims(size);
   const deskTop = y - d.desk.height;
   const bodyTop = deskTop - d.body.height * 0.75;
@@ -637,9 +637,9 @@ export function SvgSignerNode({
       {look.dashed ? null : <SvgShadow x={x + 2} y={y + 2} w={size * 0.8} />}
       <path
         d={`M${x - d.body.radius},${deskTop + 2} L${x - d.body.radius * 0.8},${bodyTop} h${d.body.radius * 1.6} L${x + d.body.radius},${deskTop + 2} z`}
-        {...ink(look, PAPER)}
+        {...ink(look, CARD)}
       />
-      <circle cx={x} cy={bodyTop - d.head} r={d.head} {...ink(look, PAPER)} />
+      <circle cx={x} cy={bodyTop - d.head} r={d.head} {...ink(look, CARD)} />
       <rect
         x={x - d.desk.width / 2}
         y={deskTop}
@@ -654,7 +654,7 @@ export function SvgSignerNode({
         width={d.share[0]}
         height={5}
         rx="1"
-        {...ink(look, lit ? color : PAPER)}
+        {...ink(look, lit ? color : CARD)}
         strokeWidth={1.8}
       />
       <Marks look={look} x={x} y={deskTop} size={d.desk.width * 0.7} />
@@ -681,7 +681,7 @@ export function SvgLedger({
   state = "ok",
   ...p
 }: SvgObjectProps & { name: string; size?: number; pages?: number; edge?: string }) {
-  const look = lookOf(state, PAPER);
+  const look = lookOf(state, CARD);
   const d = ledgerDims(size, pages);
   const xs = Array.from({ length: pages }, (_, i) => x - d.length / 2 + d.width / 2 + i * d.pitch);
   const top = y - d.height;
@@ -696,7 +696,7 @@ export function SvgLedger({
       />
       {xs.map((px) => (
         <g key={px}>
-          <rect x={px - d.width / 2} y={top} width={d.width} height={d.height} rx="2" {...ink(look, PAPER)} />
+          <rect x={px - d.width / 2} y={top} width={d.width} height={d.height} rx="2" {...ink(look, CARD)} />
           <rect x={px - d.width / 2} y={top} width={d.width} height={d.edge} rx="2" {...ink(look, edge)} />
           {[0.45, 0.6, 0.75].map((t) => (
             <line

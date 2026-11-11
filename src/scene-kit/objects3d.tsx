@@ -56,6 +56,7 @@ function Part({
   rotation,
   hull = false,
   threshold = 20,
+  edges = true,
   children,
 }: {
   fill: string | null;
@@ -64,6 +65,8 @@ function Part({
   rotation?: Vec3;
   hull?: boolean;
   threshold?: number;
+  /** Edge lines. Off for small details and hull-only curved parts, where many copies stand on a page. */
+  edges?: boolean;
   children: ReactNode;
 }) {
   const ink = useInk(fill ?? COLORS.paper);
@@ -71,7 +74,7 @@ function Part({
     <mesh position={position} rotation={rotation} material={fill ? ink : HIDDEN}>
       {children}
       {hull && !dashed ? <Outline mode="hull" thickness={0.025} /> : null}
-      <Outline threshold={threshold} dashed={dashed} />
+      {edges || dashed ? <Outline threshold={threshold} dashed={dashed} /> : null}
     </mesh>
   );
 }
@@ -811,18 +814,18 @@ export function SignerNode({
     <SelectRing selected={!!pick.selected} radius={size * 0.5} color={color}>
       {/* The figure stands behind the desk. */}
       <group position={[0, 0, -d.desk.depth * 0.6]}>
-        {/* Curved parts: a hull for the silhouette, edges only at sharp folds (cheap: eight nodes stand on a page). */}
-        <Part fill={partFill(look, COLORS.paper)} dashed={dashed} position={[0, bodyY, 0]} hull threshold={60}>
-          <cylinderGeometry args={[d.body.radius * 0.8, d.body.radius, d.body.height, 12]} />
+        {/* Curved parts: a hull silhouette only, no edge lines (eight nodes stand on one page). */}
+        <Part fill={partFill(look, COLORS.paper)} dashed={dashed} position={[0, bodyY, 0]} hull edges={false}>
+          <cylinderGeometry args={[d.body.radius * 0.8, d.body.radius, d.body.height, 10]} />
         </Part>
         <Part
           fill={partFill(look, COLORS.paper)}
           dashed={dashed}
           position={[0, bodyY + d.body.height / 2 + d.head, 0]}
           hull
-          threshold={89}
+          edges={false}
         >
-          <sphereGeometry args={[d.head, 12, 8]} />
+          <sphereGeometry args={[d.head, 10, 6]} />
         </Part>
       </group>
       {/* The desk. */}
@@ -835,6 +838,7 @@ export function SignerNode({
         dashed={dashed}
         position={[0, d.desk.height + 0.02, 0]}
         rotation={[0, Math.PI / 10, 0]}
+        edges={false}
       >
         <boxGeometry args={[d.share[0], 0.04, d.share[1]]} />
       </Part>
@@ -843,7 +847,6 @@ export function SignerNode({
   );
   return (
     <group position={position} rotation={[0, rotation, 0]}>
-      {dashed ? null : <SoftShadow position={[0, 0, 0]} size={[size * 0.9, size * 0.6]} />}
       {maybePickable(pick, name, d.height * 0.6, node)}
     </group>
   );
@@ -875,26 +878,24 @@ export function Ledger({
           <Part fill={partFill(look, COLORS.paper)} dashed={dashed} position={[0, d.height / 2, 0]}>
             <boxGeometry args={[d.width, d.height, d.depth]} />
           </Part>
-          <Part fill={partFill(look, edge)} dashed={dashed} position={[0, d.height - d.edge / 2, 0.01]}>
-            <boxGeometry args={[d.width, d.edge, d.depth + 0.02]} />
+          {/* The top edge in the chain's colour, inside the page's outline (no lines of its own). */}
+          <Part
+            fill={partFill(look, edge)}
+            dashed={dashed}
+            position={[0, d.height - d.edge / 2 - 0.01, 0.005]}
+            edges={false}
+          >
+            <boxGeometry args={[d.width - 0.02, d.edge, d.depth + 0.01]} />
           </Part>
-          {/* Lines of text on the page. */}
-          {[0.5, 0.32].map((t) => (
-            <mesh key={t} position={[0, d.height * t, d.depth / 2 + 0.006]} material={LINE_INK}>
-              <boxGeometry args={[d.width * 0.62, 0.012, 0.004]} />
-            </mesh>
-          ))}
         </group>
       ))}
-      {/* The string from page to page. */}
+      {/* The string from page to page: one thin ink bar (cheap; three chains stand on a page). */}
       {xs.length > 1 ? (
-        <Line
-          points={xs.map((x) => [x, d.height * 0.7, d.depth / 2 + 0.01] as Vec3)}
-          color={INK}
-          lineWidth={1.6}
-        />
+        <mesh position={[0, d.height * 0.55, d.depth / 2 + 0.012]} material={LINE_INK}>
+          <boxGeometry args={[xs[xs.length - 1]! - xs[0]!, 0.02, 0.006]} />
+        </mesh>
       ) : null}
-      <NameLabel height={d.height + 0.45} depth={d.depth}>
+      <NameLabel height={d.height + 0.3} depth={d.depth}>
         {name}
       </NameLabel>
     </SelectRing>

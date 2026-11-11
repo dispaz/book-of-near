@@ -328,3 +328,12 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Script and topic changed: real size (~2 KB, ~0.02 NEAR, not 10 KB / 0.1 NEAR), the bon- parent for hex accounts, a new failing-callback step, upgrades in place vs Ethereum proxies in the honest take.
 - Book scene (3D) and 2D share one state (`useDeploy`); every object is a pick. e2e: walks in both views, outcome, reduced motion, phones, no WebGL, view switch, 3D picks, print and tour. 3D walks get 90 s (five realtime transactions).
 - Not tested on real testnet (demo only).
+
+## 2026-11-11 · Lesson 4.1: One account, every chain (Closes #22)
+
+- Chain Signatures through the Chain interface only (`src/chain/chainSignatures.ts`): the address is derived offline from the signer's root key (a `viewCall` of `public_key`), the account and the path. The derivation reproduces spike 5's fixture (`testnet` + `ethereum-1` → `0x2F9e…1280`) and the contract's `derived_public_key` view. Signing is one `sign` call (1 yoctoNEAR, 30 Tgas) sent with `chain.sendTransaction`; the Sepolia transfer, its payload and the recovered signer use viem (pinned 2.57.10).
+- DemoChain has a demo signer at `v1.signer-prod.testnet` (`src/chain/demo/mpcSigner.ts`): same calls and answer shape, real secp256k1 math with one fixed demo root key, and the answer comes 3 blocks later (about 5.5 s) through a new `delay` option on demo contract calls (models yield/resume).
+- Not broadcast: every derived address starts with 0 Sepolia ETH (spike 5), so the lesson stops at "signed and verified" and says why.
+- New scene objects: `SignerNode` (a figure at a desk with its key share) and `Ledger` (another chain as a row of block pages), 3D and SVG. Kept cheap (hull-only curved parts, no edge lines on small details, no per-node shadows): software WebGL went from 73.8 to 44.0 ms per frame (2.1: 31.7).
+- Book scene and 2D share one state (`useChainSig`); every object is a pick. Captions use the short address (the full one overflowed the printed page).
+- Not run on real testnet: the live `sign` answer shape is taken from the spike / chainsig.js, and `parseSignResponse` is unit-tested against it.

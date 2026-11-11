@@ -14,7 +14,10 @@ import { NODES } from "./signing";
 import type { Vec3 } from "../../../scene-kit/motion";
 
 const inside = ([x, , z]: Vec3, margin = 0.5) =>
-  x - margin >= FIGURE.minX && x + margin <= FIGURE.maxX && z - margin >= FIGURE.minZ && z + margin <= FIGURE.maxZ;
+  x - margin >= FIGURE.minX &&
+  x + margin <= FIGURE.maxX &&
+  z - margin >= FIGURE.minZ &&
+  z + margin <= FIGURE.maxZ;
 const dist = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[2] - b[2]);
 
 describe("lesson 4.1 layout", () => {

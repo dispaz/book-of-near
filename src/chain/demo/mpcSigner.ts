@@ -41,13 +41,19 @@ export const mpcSignerContract: DemoContract = {
   sign: {
     gas: tgas(3),
     run(ctx) {
-      if (ctx.deposit < SIGN_DEPOSIT) throw new Error("Attached deposit is lower than required (1 yoctoNEAR)");
+      if (ctx.deposit < SIGN_DEPOSIT)
+        throw new Error("Attached deposit is lower than required (1 yoctoNEAR)");
       const req = ctx.args.request as
         { payload_v2?: { Ecdsa?: string }; path?: string; domain_id?: number } | undefined;
       const payload = req?.payload_v2?.Ecdsa ?? "";
       if (!/^[0-9a-f]{64}$/i.test(payload)) throw new Error("The payload must be 32 bytes of hex");
       if ((req?.domain_id ?? ECDSA_DOMAIN) !== ECDSA_DOMAIN) throw new Error("Demo signer only signs ECDSA");
-      const response = demoThresholdSign(DEMO_ROOT_SECRET, ctx.predecessorId, String(req?.path ?? ""), payload);
+      const response = demoThresholdSign(
+        DEMO_ROOT_SECRET,
+        ctx.predecessorId,
+        String(req?.path ?? ""),
+        payload,
+      );
       ctx.log(`sign: request from ${ctx.predecessorId}, path ${String(req?.path ?? "")}`);
       // The request pauses until the nodes answer, then resumes with the signature.
       return ctx.functionCall(

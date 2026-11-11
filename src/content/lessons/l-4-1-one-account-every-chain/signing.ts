@@ -36,4 +36,5 @@ export const shortHex = (h: string, head = 8, tail = 4) =>
   h.length > head + tail + 1 ? `${h.slice(0, head)}…${h.slice(-tail)}` : h;
 
 /** A 64-hex implicit account id is shortened; a named account is kept whole. */
-export const shortName = (id: string) => (/^[0-9a-f]{64}$/.test(id) ? `${id.slice(0, 6)}…${id.slice(-4)}` : id);
+export const shortName = (id: string) =>
+  /^[0-9a-f]{64}$/.test(id) ? `${id.slice(0, 6)}…${id.slice(-4)}` : id;

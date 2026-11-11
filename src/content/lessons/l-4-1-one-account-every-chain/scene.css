@@ -40,7 +40,7 @@
 .csg-2d {
   border: 2px solid var(--ink);
   border-radius: 12px;
-  background: #fffdf7;
+  background: var(--card);
   box-shadow: 3px 3px 0 var(--ink);
   padding: 6px;
 }
@@ -99,7 +99,7 @@
   gap: 8px;
   padding: 4px 8px;
   border-left: 4px solid var(--ink);
-  background: #fff;
+  background: var(--card);
   font-weight: 600;
 }
 .csg-status.waiting,
@@ -107,7 +107,7 @@
   border-left-color: var(--accent);
 }
 .csg-status.answered {
-  border-left-color: var(--green, #2fa36b);
+  border-left-color: var(--green);
 }
 .csg-shares {
   display: inline-flex;
@@ -118,7 +118,7 @@
   height: 10px;
   border: 1.5px solid var(--ink);
   border-radius: 2px;
-  background: #fff;
+  background: var(--card);
 }
 .csg-shares i.on {
   background: var(--accent);
@@ -130,20 +130,20 @@
   font-weight: 700;
 }
 .csg-match.ok {
-  background: #bfe6cf;
+  background: color-mix(in srgb, var(--green) 30%, var(--card));
 }
 .csg-match.bad {
-  background: #f4bdb8;
+  background: color-mix(in srgb, var(--red) 30%, var(--card));
 }
 .csg-note {
-  color: var(--mute, #5d5a68);
+  color: var(--mute);
   font-size: 13px;
 }
 .csg-warn {
   padding: 4px 8px;
-  border-left: 4px solid var(--red, #d8433b);
-  background: #fff;
-  color: var(--red, #d8433b);
+  border-left: 4px solid var(--red);
+  background: var(--card);
+  color: var(--red);
   font-weight: 600;
 }
 
@@ -172,7 +172,7 @@
   padding: 6px;
   border: 2px solid var(--ink);
   border-radius: 8px;
-  background: #fff;
+  background: var(--card);
   font:
     600 15px ui-monospace,
     Menlo,
@@ -190,10 +190,16 @@
 }
 
 /* ---------- 3D: the facts in the book scene's panel ---------- */
+/* A card, so the facts stay readable where the panel runs over the desk or the book's cloth edge. */
 .csg-panel .csg-facts.compact {
   max-height: min(30vh, 250px);
   overflow-y: auto;
   overscroll-behavior: contain;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 2px 2px 0 var(--ink);
 }
 @media (min-width: 1100px) {
   .csg-panel .csg-facts.compact {

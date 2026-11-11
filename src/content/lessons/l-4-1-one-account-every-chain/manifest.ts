@@ -51,9 +51,9 @@ export default {
       action: { label: "request the signature", gate: true },
     },
     {
-      caption: "Check the signature with Ethereum's own math: who signed this transaction?",
+      caption: "Check the signature with Ethereum's own math: does it point back to {derivedEthAddress}?",
       explain:
-        "Ethereum works out the signer from the signature alone. The app does the same with the viem library. If it gives {derivedEthAddress}, your NEAR account controls that address. The app does not send it to Sepolia: the address has 0 ETH to pay Ethereum's gas.",
+        "Ethereum works out the signer from the signature alone. The app does the same with the viem library. If it gives your derived address, your NEAR account controls that address. The app does not send it to Sepolia: the address has 0 ETH to pay Ethereum's gas.",
       explainAt: "address",
       action: { label: "check who signed", gate: true },
     },

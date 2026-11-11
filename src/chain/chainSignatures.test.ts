@@ -93,9 +93,15 @@ describe("the whole flow on DemoChain", () => {
 
   it("refuses a sign call without the 1 yoctoNEAR deposit", async () => {
     const chain = new DemoChain({ pace: "instant" });
-    const out = await callMethod(chain, SIGNER_CONTRACT, "sign", signRequestArgs(`0x${"00".repeat(32)}`, "x"), {
-      pace: "instant",
-    });
+    const out = await callMethod(
+      chain,
+      SIGNER_CONTRACT,
+      "sign",
+      signRequestArgs(`0x${"00".repeat(32)}`, "x"),
+      {
+        pace: "instant",
+      },
+    );
     expect(out.status.type).toBe("Failure");
     expect(SIGN_DEPOSIT).toBe(1n);
   });

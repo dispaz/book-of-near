@@ -5,15 +5,19 @@
  * transaction (a parcel). Every object is a pick, as in 3D. Only draws the shared state from useChainSig.
  */
 import type { SceneProps } from "../../../app/types";
-import {
-  SvgLedger,
-  SvgMailbox,
-  SvgParcel,
-  SvgScroll,
-  SvgSignerNode,
-} from "../../../scene-kit/svg/objects";
+import { SvgLedger, SvgMailbox, SvgParcel, SvgScroll, SvgSignerNode } from "../../../scene-kit/svg/objects";
 import { COLORS } from "../../../scene-kit/theme";
-import { beamPoints, ETH_MAILBOX, FIGURE, LEDGERS, NEAR_MAILBOX, nodeSpots, RING_CENTER, RING_RADIUS, SIGNER } from "./layout3d";
+import {
+  beamPoints,
+  ETH_MAILBOX,
+  FIGURE,
+  LEDGERS,
+  NEAR_MAILBOX,
+  nodeSpots,
+  RING_CENTER,
+  RING_RADIUS,
+  SIGNER,
+} from "./layout3d";
 import { describe, parcelAt, ACCENT, CHAIN_NAMES } from "./page";
 import { Facts, pickLabels } from "./parts";
 import { shortHex, shortName } from "./signing";

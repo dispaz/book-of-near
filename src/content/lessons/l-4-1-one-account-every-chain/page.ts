@@ -29,7 +29,9 @@ export function parcelAt(cs: View): Vec3 {
 export function describe(
   cs: Pick<ChainSig, "step" | "phase" | "account" | "prepared" | "result" | "recovered" | "match" | "lit">,
 ): string {
-  const addr = cs.account ? `the Ethereum address ${shortHex(cs.account.address)}` : "an Ethereum address not yet derived";
+  const addr = cs.account
+    ? `the Ethereum address ${shortHex(cs.account.address)}`
+    : "an Ethereum address not yet derived";
   if (cs.step === HOOK)
     return "Your NEAR mailbox, a ring of signing nodes round the signer contract, and three other chains: Ethereum, Bitcoin and Solana.";
   if (cs.step === DERIVE)
@@ -43,7 +45,8 @@ export function describe(
   if (cs.step === SIGN) {
     if (cs.phase === "sending" || cs.phase === "waiting")
       return `The parcel waits inside the ring. ${cs.lit} of ${NODES} signing nodes have added their key share.`;
-    if (cs.result) return `Every node has added its share. The parcel is back beside ${addr}, stamped: signed.`;
+    if (cs.result)
+      return `Every node has added its share. The parcel is back beside ${addr}, stamped: signed.`;
     return "The unsigned parcel stands beside the address. The ring of signing nodes waits for your request.";
   }
   if (cs.recovered)

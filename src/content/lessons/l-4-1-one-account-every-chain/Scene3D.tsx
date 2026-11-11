@@ -44,7 +44,7 @@ import {
 import { ACCENT, CHAIN_NAMES, describe, parcelAt } from "./page";
 import { Facts, pickLabels } from "./parts";
 import { shortHex, shortName } from "./signing";
-import { CHECK, DERIVE, PREPARE, SIGN, VERIFY } from "./steps";
+import { CHECK, DERIVE, PREPARE, SIGN } from "./steps";
 import { tourFor, type Target } from "./tour";
 import type { ChainSig } from "./useChainSig";
 
@@ -236,14 +236,7 @@ function Figure({ cs, compact }: { cs: ChainSig; compact: boolean }) {
 
       {/* The beam: your name, through the ring's master key, to the address. */}
       {account && step >= DERIVE ? (
-        <Line
-          points={beamPoints()}
-          color={ACCENT}
-          lineWidth={3}
-          dashed
-          dashSize={0.18}
-          gapSize={0.1}
-        />
+        <Line points={beamPoints()} color={ACCENT} lineWidth={3} dashed dashSize={0.18} gapSize={0.1} />
       ) : null}
 
       {/* The Ethereum transaction. */}
@@ -263,11 +256,6 @@ function Figure({ cs, compact }: { cs: ChainSig; compact: boolean }) {
           </Traveller>
           <Anchor name="parcel" position={[PARCEL_HOME[0], 0.8, PARCEL_HOME[2]]} />
         </>
-      ) : null}
-      {step === VERIFY && cs.recovered ? (
-        <Label position={[ETH_MAILBOX[0], 2.3, ETH_MAILBOX[2]]} variant="small">
-          {cs.match ? "signer matches" : "no match"}
-        </Label>
       ) : null}
     </group>
   );

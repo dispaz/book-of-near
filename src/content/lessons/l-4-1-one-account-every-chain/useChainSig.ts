@@ -21,7 +21,7 @@ import {
 } from "../../../chain/chainSignatures";
 import { isChainError } from "../../../chain/errors";
 import type { Hex } from "viem";
-import { cleanPath, sharesLit, shortName, type SignPhase } from "./signing";
+import { cleanPath, sharesLit, shortHex, shortName, type SignPhase } from "./signing";
 import { DERIVE, PREPARE, SIGN, VERIFY } from "./steps";
 import type { ChainKey } from "./layout3d";
 
@@ -179,7 +179,8 @@ export function useChainSig({
   useEffect(() => {
     const v: Record<string, string> = { signer: SIGNER_CONTRACT, path };
     if (me) v.name = shortName(me);
-    if (account) v.derivedEthAddress = account.address;
+    // Short form in captions: a 42-character address overflows the printed page. The facts show it whole.
+    if (account) v.derivedEthAddress = shortHex(account.address, 8, 5);
     setVars?.(v);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me, path, account]);

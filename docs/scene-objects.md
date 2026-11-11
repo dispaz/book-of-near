@@ -53,7 +53,10 @@ both views.
 | **Validator** | A small stamping figure at a desk | Checks and stamps pages | — | — |
 | **Person / learner** | 0.1's `Person` figure | Already standard | — | — |
 
-Open: chain signatures (Stage 4 showpiece) and intents will need rows when those stages are designed.
+| **Signing node** (Chain Signatures) | A small figure behind a desk, its key share (a piece of the key) lying on the desk | One node of the signing network: it holds a share, never the whole key, and adds it to a signature | share plain, share in the accent (added); pending (dashed) | `SignerNode` / `SvgSignerNode` (lesson 4.1) |
+| **Another chain** | A short row of block pages standing up, linked by a string, the top edge in the chain's colour | The "blockchain" row, built: another chain, another page edge | edge in the accent (the chain that matters now) or plain | `Ledger` / `SvgLedger` (lesson 4.1) |
+
+Open: intents will need rows when that stage is designed. The validator above is still not built; lesson 4.1's signing node borrows its shape (a figure at a desk).
 
 ## How it fits the code
 

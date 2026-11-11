@@ -9,7 +9,7 @@ import type { Vec3 } from "../../../scene-kit/motion";
 import { NODES } from "./signing";
 
 /** The ground box (x, z) that holds every step's objects and labels. */
-export const FIGURE = { minX: -4.4, maxX: 4.4, minZ: -2.9, maxZ: 2.4 } as const;
+export const FIGURE = { minX: -4.4, maxX: 4.4, minZ: -3.1, maxZ: 2.4 } as const;
 
 export const NEAR_MAILBOX: Vec3 = [-3.5, 0, 0.8];
 export const RING_CENTER: Vec3 = [-0.6, 0, -0.1];
@@ -21,13 +21,13 @@ export const PARCEL_WAIT: Vec3 = [RING_CENTER[0], 0, RING_CENTER[2] + 0.75];
 
 export type ChainKey = "ethereum" | "bitcoin" | "solana";
 export const LEDGERS: Record<ChainKey, Vec3> = {
-  solana: [2.9, 0, -2.3],
-  bitcoin: [2.9, 0, -1.15],
-  ethereum: [2.9, 0, 0],
+  solana: [3.1, 0, -2.55],
+  bitcoin: [3.1, 0, -1.25],
+  ethereum: [3.1, 0, 0.05],
 };
-export const ETH_MAILBOX: Vec3 = [3.3, 0, 1.55];
+export const ETH_MAILBOX: Vec3 = [1.85, 0, 1.55];
 /** Where the transaction stands once packed, and comes back to once signed. */
-export const PARCEL_HOME: Vec3 = [1.75, 0, 1.6];
+export const PARCEL_HOME: Vec3 = [3.45, 0, 1.65];
 
 /** The ring's nodes, evenly round the signer, the first one at the back. Each faces the middle. */
 export function nodeSpots(n = NODES): { position: Vec3; facing: number }[] {

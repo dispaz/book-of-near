@@ -48,7 +48,10 @@ export const OBJECTS = {
     shape: "figure at a desk",
     note: "one node of the chain-signature network: it holds a key share and adds it to a signature",
   },
-  blockchain: { shape: "page row", note: "a short row of linked block pages; another chain, another page edge" },
+  blockchain: {
+    shape: "page row",
+    note: "a short row of linked block pages; another chain, another page edge",
+  },
 } as const;
 
 export type Concept = keyof typeof OBJECTS;
@@ -152,5 +155,12 @@ export function ledgerDims(size: number, pages: number) {
   const width = size * 0.66;
   const gap = size * 0.24;
   const pitch = width + gap;
-  return { width, height: size, depth: 0.04, pitch, length: pages * width + (pages - 1) * gap, edge: size * 0.14 };
+  return {
+    width,
+    height: size,
+    depth: 0.04,
+    pitch,
+    length: pages * width + (pages - 1) * gap,
+    edge: size * 0.14,
+  };
 }

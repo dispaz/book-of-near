@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { answerCheck, completionOf, nextStep, seedRoute } from "./helpers";
+import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3d, slow3dUnless2d } from "./helpers";
 
 // Walks lesson 4.1 in demo mode (no wallet, no network): derive an Ethereum address from the practice
 // account, pack a Sepolia transfer, ask DemoChain's signer for a signature (the same `sign` call the
@@ -9,9 +9,17 @@ const TITLE = "One account, every chain";
 const STAGE = 4;
 const BASE58_HASH = /^[1-9A-HJ-NP-Za-km-z]{43,44}$/;
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
-const LOAD_3D = 20_000;
 
-test.beforeEach(({ page }) => seedRoute(page));
+test.beforeEach(async ({ page }, info) => {
+  slow3dUnless2d(info);
+  await seedRoute(page);
+});
+
+/** Next, then wait until the new step is on screen (in 3D the words change after the page turn). */
+async function go(page: Page, caption: string | RegExp) {
+  await nextStep(page);
+  await expect(page.getByTestId("caption")).toContainText(caption);
+}
 
 const scene = (page: Page) => page.getByTestId("csg-scene");
 const dock = (page: Page) => page.locator(".action-slot");
@@ -22,27 +30,25 @@ async function expectView(page: Page, view: "2d" | "3d") {
 
 /** Steps 1 to 7: derive, pack, sign, verify, the check, the honest take, Finish. */
 async function walk(page: Page) {
-  await nextStep(page); // hook → derive
+  await go(page, "Derive an Ethereum address"); // hook → derive
   await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
   await dock(page).getByRole("button", { name: "Derive Ethereum address" }).click();
   await expect(page.getByTestId("eth-address")).toHaveText(ADDRESS);
   const address = (await page.getByTestId("eth-address").textContent())!;
   await expect(scene(page)).toHaveAttribute("data-scene-state", /derived:yes/);
 
-  await nextStep(page); // derive → prepare
-  await expect(page.getByTestId("caption")).toContainText("Sepolia");
+  await go(page, "Sepolia"); // derive → prepare
   await dock(page).getByRole("button", { name: "Prepare payload" }).click();
   await expect(page.getByTestId("payload")).toHaveText(/^0x[0-9a-f]{12}…[0-9a-f]{6}$/);
   await expect(page.getByTestId("eth-balance")).toContainText("0 ETH");
 
-  await nextStep(page); // prepare → sign
+  await go(page, "Ask the signing network"); // prepare → sign
   await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
   await dock(page).getByRole("button", { name: "Request signature (MPC)" }).click();
   await expect(page.getByTestId("sign-status")).toContainText("Signed.", { timeout: 15_000 });
   await expect(page.getByTestId("mpc-tx")).toHaveText(/^[1-9A-HJ-NP-Za-km-z]{10}…/);
 
-  await nextStep(page); // sign → verify
-  await expect(page.getByTestId("caption")).toContainText(address);
+  await go(page, `${address.slice(0, 8)}…${address.slice(-5)}`); // sign → verify (short form)
   await dock(page).getByRole("button", { name: "Verify signer" }).click();
   await expect(page.getByTestId("recovered")).toHaveText(address);
   await expect(page.getByTestId("match")).toContainText("Match");
@@ -64,7 +70,7 @@ async function walk(page: Page) {
 
 for (const view of ["2d", "3d"] as const)
   test.describe(`lesson ${ID} (${view})`, () => {
-    if (view === "3d") test.describe.configure({ timeout: 60_000 });
+    test.beforeEach(() => slow3d(view === "3d"));
 
     test("walks to Finish in demo mode, and the completion record carries the evidence", async ({ page }) => {
       const errors: string[] = [];
@@ -119,7 +125,7 @@ for (const view of ["2d", "3d"] as const)
       await page.goto(`/lesson/${ID}?view=${view}&step=3`);
       await expectView(page, view);
       await dock(page).getByRole("button", { name: "Prepare payload" }).click();
-      await nextStep(page);
+      await go(page, "Ask the signing network");
       await dock(page).getByRole("button", { name: "Request signature (MPC)" }).click();
       // While it waits: the state says so, the timer runs, the button is busy, Next stays locked.
       await expect(scene(page)).toHaveAttribute("data-scene-state", /sign:waiting/);
@@ -137,16 +143,16 @@ for (const view of ["2d", "3d"] as const)
       await expectView(page, view);
       await page.getByRole("button", { name: "Bitcoin" }).press("Enter");
       await expect(page.getByTestId("picked-note")).toContainText("Bitcoin uses the same kind of key");
-      await nextStep(page);
+      await go(page, "Derive an Ethereum address");
       await page.getByRole("button", { name: "Your NEAR account" }).press("Enter");
       await expect(page.getByTestId("eth-address")).toHaveText(ADDRESS);
-      await nextStep(page);
+      await go(page, "Sepolia");
       await page.getByRole("button", { name: "The Ethereum transaction" }).press("Enter");
       await expect(page.getByTestId("payload")).toBeVisible();
-      await nextStep(page);
+      await go(page, "Ask the signing network");
       await page.getByRole("button", { name: "Signing node 1", exact: true }).press("Enter");
       await expect(scene(page)).toHaveAttribute("data-scene-state", /sign:answered/, { timeout: 15_000 });
-      await nextStep(page);
+      await go(page, "does it point back");
       await page.getByRole("button", { name: "Your derived Ethereum address" }).press("Enter");
       await expect(page.getByTestId("match")).toContainText("Match");
     });
@@ -166,13 +172,13 @@ test.describe(`lesson ${ID}`, () => {
     await expect(page.getByTestId("eth-address")).toHaveText(ADDRESS);
     const second = (await page.getByTestId("eth-address").textContent())!;
     expect(second).not.toBe(first);
-    await nextStep(page);
+    await go(page, "Sepolia");
     await dock(page).getByRole("button", { name: "Prepare payload" }).click();
-    await nextStep(page);
+    await go(page, "Ask the signing network");
     await dock(page).getByRole("button", { name: "Request signature (MPC)" }).click();
     await expect(page.getByTestId("sign-status")).toContainText("Signed.", { timeout: 15_000 });
-    await nextStep(page);
-    await expect(page.getByTestId("caption")).toContainText(second);
+    await go(page, "does it point back");
+    await expect(page.getByTestId("caption")).toContainText(`${second.slice(0, 8)}…${second.slice(-5)}`);
   });
 
   test("an empty path cannot be derived", async ({ page }) => {
@@ -205,7 +211,7 @@ test.describe(`lesson ${ID}`, () => {
   test("2D to 3D keeps the derived address and the signature", async ({ page }) => {
     await page.goto(`/lesson/${ID}?view=2d&step=3`);
     await dock(page).getByRole("button", { name: "Prepare payload" }).click();
-    await nextStep(page);
+    await go(page, "Ask the signing network");
     await dock(page).getByRole("button", { name: "Request signature (MPC)" }).click();
     await expect(page.getByTestId("sign-status")).toContainText("Signed.", { timeout: 15_000 });
     await page.getByRole("group", { name: "Scene view" }).getByRole("button", { name: "3D" }).click();
