@@ -4,6 +4,7 @@ import { SceneAction } from "../../../ui/SceneAction";
 import { Check, HonestTake, type CheckQuestion } from "../../../lesson-kit";
 import Scene2D from "./Scene2D";
 import { PathForm } from "./parts";
+import { isWaiting } from "./signing";
 import { CHECK, DERIVE, HONEST, PREPARE, SIGN, useChainSig, VERIFY } from "./useChainSig";
 import "./scene.css";
 
@@ -70,7 +71,7 @@ const QUESTIONS: CheckQuestion[] = [
 export default function Scene(props: SceneProps) {
   const { step, view, flat, reducedMotion, mode, setGate, setVars, reportEvidence } = props;
   const cs = useChainSig({ step, setGate, setVars, reportEvidence, reducedMotion });
-  const waiting = cs.phase === "sending" || cs.phase === "waiting";
+  const waiting = isWaiting(cs.phase);
 
   return (
     <>

@@ -39,7 +39,7 @@ export function tourFor(step: number): Shot<Target>[] {
       return [
         ALL,
         shot("parcel", "the Ethereum transaction, packed but not signed."),
-        shot("address", "the new address. It holds 0 ETH."),
+        shot("address", "the new address. It starts with 0 ETH."),
       ];
     case SIGN:
       return [

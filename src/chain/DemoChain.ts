@@ -62,7 +62,7 @@ import {
   type PromiseResult,
 } from "./demo/contracts";
 import { mpcSignerContract } from "./demo/mpcSigner";
-import { SIGNER_CONTRACT } from "./chainSignatures";
+import { SIGNER_CONTRACT } from "./chainSigMath";
 import {
   attachedGas,
   deposits,

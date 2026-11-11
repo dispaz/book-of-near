@@ -1,10 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { cleanPath, NODES, sharesLit, shortHex, shortName, THRESHOLD } from "./signing";
+import {
+  cleanPath,
+  isWaiting,
+  NODES,
+  secondsLeft,
+  sharesLit,
+  shortHex,
+  shortName,
+  THRESHOLD,
+} from "./signing";
 
 describe("sharesLit: how many nodes have added their share", () => {
-  it("none before the request, all once the answer is back", () => {
+  it("none before the request, the threshold (not every node) once the answer is back", () => {
     expect(sharesLit("idle", 0)).toBe(0);
-    expect(sharesLit("answered", 0)).toBe(NODES);
+    expect(sharesLit("answered", 0)).toBe(THRESHOLD);
+    expect(THRESHOLD).toBeLessThan(NODES);
+  });
+
+  it("isWaiting and the countdown", () => {
+    expect(isWaiting("sending")).toBe(true);
+    expect(isWaiting("waiting")).toBe(true);
+    expect(isWaiting("answered")).toBe(false);
+    expect(secondsLeft(0)).toBe(6);
+    expect(secondsLeft(4000)).toBe(2);
+    expect(secondsLeft(9000)).toBe(0);
   });
 
   it("grows while the request waits, but never reaches the threshold before the answer", () => {

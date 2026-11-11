@@ -43,7 +43,7 @@ import {
 } from "./layout3d";
 import { ACCENT, CHAIN_NAMES, describe, parcelAt } from "./page";
 import { Facts, pickLabels } from "./parts";
-import { shortHex, shortName } from "./signing";
+import { isWaiting, shortHex, shortName } from "./signing";
 import { CHECK, DERIVE, PREPARE, SIGN } from "./steps";
 import { tourFor, type Target } from "./tour";
 import type { ChainSig } from "./useChainSig";
@@ -158,7 +158,7 @@ export default function Scene3D({
 
 function Figure({ cs, compact }: { cs: ChainSig; compact: boolean }) {
   const { step, account } = cs;
-  const waiting = cs.phase === "sending" || cs.phase === "waiting";
+  const waiting = isWaiting(cs.phase);
   const spots = nodeSpots();
   return (
     <group>

@@ -8,7 +8,7 @@ import { formatEther, formatGwei } from "viem";
 import { ActionSlot } from "../../../ui/SceneAction";
 import { SEPOLIA_CHAIN_ID, SIGN_DEPOSIT, SIGNER_CONTRACT } from "../../../chain/chainSignatures";
 import { formatNear } from "../../../chain/units";
-import { NODES, shortHex, shortName } from "./signing";
+import { NODES, secondsLeft, shortHex, shortName } from "./signing";
 import { DERIVE, HOOK, PREPARE, SIGN, VERIFY, type ChainSig, type Picked } from "./useChainSig";
 
 const secs = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
@@ -158,8 +158,9 @@ export function Facts({ cs, compact = false }: { cs: ChainSig; compact?: boolean
           ) : null}
           {cs.recovered ? (
             <p className="csg-note" data-testid="broadcast-note">
-              Not sent to Sepolia: your derived address holds 0 ETH, and Ethereum needs ETH to pay its gas. A
-              faucet or a gas relayer could fund it; then these signed bytes could be broadcast as they are.
+              Not sent to Sepolia: your derived address starts with 0 ETH, and Ethereum needs ETH to pay its
+              gas. These signed bytes could be broadcast once the address is funded, by a faucet or a gas
+              relayer.
             </p>
           ) : null}
         </>
@@ -191,7 +192,7 @@ function SignStatus({ cs }: { cs: ChainSig }) {
     cs.phase === "sending"
       ? "Sending your request to NEAR…"
       : cs.phase === "waiting"
-        ? `Waiting for the signing network… ${secs(cs.elapsed)}`
+        ? `Waiting for the signing network… ${secondsLeft(cs.elapsed) > 0 ? `about ${secondsLeft(cs.elapsed)} s left` : "any moment now"}`
         : cs.phase === "answered" && cs.result
           ? `Signed. The answer came ${cs.result.waitBlocks} blocks after your request, ${secs(cs.result.ms)} in all.`
           : cs.phase === "failed"

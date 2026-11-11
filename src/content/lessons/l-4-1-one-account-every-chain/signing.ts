@@ -12,12 +12,20 @@ export const EXPECTED_MS = 5500;
 
 export type SignPhase = "idle" | "sending" | "waiting" | "answered" | "failed";
 
+/** The request is out and the answer is not back yet. */
+export const isWaiting = (phase: SignPhase) => phase === "sending" || phase === "waiting";
+
+/** Seconds left of the usual wait, for the countdown (0 once it runs over). */
+export const secondsLeft = (elapsedMs: number, expectedMs = EXPECTED_MS) =>
+  Math.max(0, Math.ceil((expectedMs - elapsedMs) / 1000));
+
 /**
  * Nodes lit at a moment: none before the request reaches the signer, more as it waits (never the whole
- * threshold, which only the real answer brings), all of them once the signature is back.
+ * threshold, which only the real answer brings), the threshold once the signature is back.
  */
 export function sharesLit(phase: SignPhase, elapsedMs: number, expectedMs = EXPECTED_MS): number {
-  if (phase === "answered") return NODES;
+  // The answer means enough shares agreed: the threshold, not every node.
+  if (phase === "answered") return THRESHOLD;
   if (phase !== "waiting") return 0;
   const share = Math.floor((elapsedMs / expectedMs) * THRESHOLD);
   return Math.max(0, Math.min(THRESHOLD - 1, share));

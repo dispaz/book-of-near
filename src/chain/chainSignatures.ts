@@ -11,10 +11,7 @@
  *
  * Facts: docs/spikes-seed.md, "Result log", spike 5.
  */
-import { secp256k1 } from "@noble/curves/secp256k1.js";
-import { sha3_256 } from "@noble/hashes/sha3.js";
-import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
-import { base58 } from "@scure/base";
+import { bytesToHex } from "@noble/hashes/utils.js";
 import {
   keccak256,
   parseEther,
@@ -26,43 +23,23 @@ import {
 } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
 import { callMethod, decodeSuccessValue } from "./ops";
-import type { Chain, Gas, SendOptions, Yocto } from "./types";
-import { tgas } from "./units";
+import type { Chain, SendOptions, Yocto } from "./types";
+import {
+  deriveChildKey,
+  nearKeyOf,
+  SIGN_DEPOSIT,
+  SIGN_GAS,
+  SIGNER_CONTRACT,
+  ECDSA_DOMAIN,
+} from "./chainSigMath";
 
-/** The signer contract on testnet (spike 5). DemoChain runs a demo signer under the same name. */
-export const SIGNER_CONTRACT = "v1.signer-prod.testnet";
-/** The flat deposit a sign call needs (spike 5: `experimental_signature_deposit` is gone). */
-export const SIGN_DEPOSIT: Yocto = 1n;
-/** Gas attached to a sign call. Real ones attach 20–30 Tgas and burn about 8.5 Tgas (spike 5). */
-export const SIGN_GAS: Gas = tgas(30);
-/** The domain for secp256k1 (ECDSA) signatures, the kind Ethereum and Bitcoin use. */
-export const ECDSA_DOMAIN = 0;
-/** The path the lesson starts with. Any string works; each gives another address. */
-export const DEFAULT_PATH = "ethereum-1";
+// The viem-free part (constants, derivation) lives in chainSigMath.ts so DemoChain can use it.
+export * from "./chainSigMath";
 
 /** Sepolia, Ethereum's test network. */
 export const SEPOLIA_CHAIN_ID = 11_155_111;
 
-/** The prefix the signer contract hashes with the account and path (chainsig.js, the contract). */
-const EPSILON_PREFIX = "near-mpc-recovery v0.1.0 epsilon derivation:";
-
 // ---------- derivation ----------
-
-/** The tweak for (account, path): sha3-256 of "prefix + account,path", as a scalar. */
-export function derivationTweak(predecessor: string, path: string): bigint {
-  const h = sha3_256(utf8ToBytes(`${EPSILON_PREFIX}${predecessor},${path}`));
-  return BigInt(`0x${bytesToHex(h)}`) % secp256k1.Point.Fn.ORDER;
-}
-
-/** `secp256k1:<base58 of x‖y>` (the contract's format) → a curve point. */
-function pointFromNear(key: string) {
-  if (!key.startsWith("secp256k1:")) throw new Error(`Not a secp256k1 key: ${key}`);
-  const xy = base58.decode(key.slice("secp256k1:".length));
-  const bytes = new Uint8Array(65);
-  bytes[0] = 4;
-  bytes.set(xy, 1);
-  return secp256k1.Point.fromBytes(bytes);
-}
 
 export interface EvmAccount {
   /** The Ethereum address, checksummed (`0x…`, 20 bytes). */
@@ -78,11 +55,10 @@ export interface EvmAccount {
  * the last 20 bytes of keccak-256 of the child key. Pure math, done in the browser for free.
  */
 export function deriveEvmAccount(rootKey: string, predecessor: string, path: string): EvmAccount {
-  const child = pointFromNear(rootKey).add(secp256k1.Point.BASE.multiply(derivationTweak(predecessor, path)));
-  const raw = child.toBytes(false);
+  const raw = deriveChildKey(rootKey, predecessor, path);
   return {
     address: publicKeyToAddress(`0x${bytesToHex(raw)}`),
-    publicKey: `secp256k1:${base58.encode(raw.slice(1))}`,
+    publicKey: nearKeyOf(raw),
     predecessor,
     path,
   };
@@ -214,34 +190,4 @@ export function finalizeEvmTransaction(prepared: PreparedTransfer, sig: RsvSigna
 /** Who signed it, worked out from the signature alone (Ethereum's ecrecover, via viem). */
 export function recoverEvmSigner(signed: Hex): Promise<Hex> {
   return recoverTransactionAddress({ serializedTransaction: signed as `0x02${string}` });
-}
-
-// ---------- the demo signer's math (DemoChain only) ----------
-
-/**
- * Sign as the derived key would: (root secret + tweak) signs the payload. Only DemoChain uses this,
- * with its own demo root secret. On the real network no machine holds a root secret: each node holds
- * a share, and they sign together.
- */
-export function demoThresholdSign(rootSecret: bigint, predecessor: string, path: string, payload: string) {
-  const n = secp256k1.Point.Fn.ORDER;
-  const child = (rootSecret + derivationTweak(predecessor, path)) % n;
-  const key = hexToBytes(child.toString(16).padStart(64, "0"));
-  const sig = secp256k1.Signature.fromBytes(
-    secp256k1.sign(hexToBytes(payload), key, { prehash: false, format: "recovered" }),
-    "recovered",
-  );
-  const hex = (x: bigint) => x.toString(16).padStart(64, "0").toUpperCase();
-  return {
-    scheme: "Secp256k1",
-    big_r: { affine_point: `${sig.recovery ? "03" : "02"}${hex(sig.r)}` },
-    s: { scalar: hex(sig.s) },
-    recovery_id: sig.recovery!,
-  };
-}
-
-/** A root key in the contract's format, from a secret (DemoChain's demo signer). */
-export function demoRootPublicKey(rootSecret: bigint): string {
-  const raw = secp256k1.Point.BASE.multiply(rootSecret).toBytes(false);
-  return `secp256k1:${base58.encode(raw.slice(1))}`;
 }

@@ -20,7 +20,7 @@ import {
 } from "./layout3d";
 import { describe, parcelAt, ACCENT, CHAIN_NAMES } from "./page";
 import { Facts, pickLabels } from "./parts";
-import { shortHex, shortName } from "./signing";
+import { isWaiting, shortHex, shortName } from "./signing";
 import { CHECK, HOOK, PREPARE, SIGN, VERIFY, type ChainSig } from "./useChainSig";
 import type { ChainKey } from "./layout3d";
 
@@ -63,7 +63,7 @@ export default function Scene2D({
 
 function Page({ cs }: { cs: ChainSig }) {
   const { step, account } = cs;
-  const waiting = cs.phase === "sending" || cs.phase === "waiting";
+  const waiting = isWaiting(cs.phase);
   const parcel = parcelAt(cs);
   const beam = beamPoints()
     .map(([x, , z]) => `${px(x)},${pz(z)}`)

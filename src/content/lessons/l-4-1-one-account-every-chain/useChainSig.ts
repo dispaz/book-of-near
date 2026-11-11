@@ -21,7 +21,7 @@ import {
 } from "../../../chain/chainSignatures";
 import { isChainError } from "../../../chain/errors";
 import type { Hex } from "viem";
-import { cleanPath, sharesLit, shortHex, shortName, type SignPhase } from "./signing";
+import { cleanPath, isWaiting, sharesLit, shortHex, shortName, type SignPhase } from "./signing";
 import { DERIVE, PREPARE, SIGN, VERIFY } from "./steps";
 import type { ChainKey } from "./layout3d";
 
@@ -113,7 +113,7 @@ export function useChainSig({
   };
 
   const sign = async () => {
-    if (!prepared || !account || phase === "sending" || phase === "waiting" || result) return;
+    if (!prepared || !account || isWaiting(phase) || result) return;
     setProblem(null);
     setPhase("sending");
     const t0 = Date.now();
@@ -225,7 +225,7 @@ export function useChainSig({
     if (n.step === VERIFY && (what === "address" || what === "parcel")) void verify();
   };
 
-  const elapsed = phase === "sending" || phase === "waiting" ? Math.max(0, now - waitStart) : 0;
+  const elapsed = isWaiting(phase) ? Math.max(0, now - waitStart) : 0;
   const lit = reducedMotion && phase === "waiting" ? 0 : sharesLit(phase, elapsed);
   const state = [
     `path:${path}`,

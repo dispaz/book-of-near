@@ -9,13 +9,8 @@
  */
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
-import {
-  deriveEvmAccount,
-  demoRootPublicKey,
-  demoThresholdSign,
-  ECDSA_DOMAIN,
-  SIGN_DEPOSIT,
-} from "../chainSignatures";
+import { deriveChildKey, ECDSA_DOMAIN, nearKeyOf, SIGN_DEPOSIT } from "../chainSigMath";
+import { demoRootPublicKey, demoThresholdSign } from "./mpcMath";
 import { tgas } from "../units";
 import type { DemoContract } from "./contracts";
 
@@ -35,8 +30,9 @@ export const mpcSignerContract: DemoContract = {
     view: true,
     gas: tgas(1),
     run: (ctx) =>
-      deriveEvmAccount(DEMO_SIGNER_ROOT, String(ctx.args.predecessor ?? ""), String(ctx.args.path ?? ""))
-        .publicKey,
+      nearKeyOf(
+        deriveChildKey(DEMO_SIGNER_ROOT, String(ctx.args.predecessor ?? ""), String(ctx.args.path ?? "")),
+      ),
   },
   sign: {
     gas: tgas(3),
@@ -48,13 +44,9 @@ export const mpcSignerContract: DemoContract = {
       const payload = req?.payload_v2?.Ecdsa ?? "";
       if (!/^[0-9a-f]{64}$/i.test(payload)) throw new Error("The payload must be 32 bytes of hex");
       if ((req?.domain_id ?? ECDSA_DOMAIN) !== ECDSA_DOMAIN) throw new Error("Demo signer only signs ECDSA");
-      const response = demoThresholdSign(
-        DEMO_ROOT_SECRET,
-        ctx.predecessorId,
-        String(req?.path ?? ""),
-        payload,
-      );
-      ctx.log(`sign: request from ${ctx.predecessorId}, path ${String(req?.path ?? "")}`);
+      const path = String(req?.path ?? "");
+      const response = demoThresholdSign(DEMO_ROOT_SECRET, ctx.predecessorId, path, payload);
+      ctx.log(`sign: request from ${ctx.predecessorId}, path ${path}`);
       // The request pauses until the nodes answer, then resumes with the signature.
       return ctx.functionCall(
         ctx.contractId,

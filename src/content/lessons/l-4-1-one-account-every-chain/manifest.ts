@@ -37,7 +37,7 @@ export default {
       action: { label: "derive your Ethereum address", gate: true },
     },
     {
-      caption: "Pack a transfer on Sepolia, Ethereum's test network. Your new address holds 0 ETH.",
+      caption: "Pack a transfer on Sepolia, Ethereum's test network. Your new address starts with 0 ETH.",
       explain:
         "This is a normal Ethereum transaction: who it goes to, how much, gas, fees and a nonce (a counter, 0 for a new address). The app hashes it into 32 bytes, the payload. That payload is what must be signed. Nothing is signed yet.",
       explainAt: "parcel",
