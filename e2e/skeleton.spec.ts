@@ -98,7 +98,7 @@ test.describe("scene contract", () => {
     await ctx.close();
   });
 
-  test("no 3D code loads on the contents page or a lesson in 2D", async ({ page }) => {
+  test("no three.js code loads on the contents page or a lesson in 2D", async ({ page }) => {
     const scripts: string[] = [];
     page.on("response", async (r) => {
       if (r.url().endsWith(".js") && r.status() === 200) scripts.push(await r.text().catch(() => ""));
