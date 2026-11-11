@@ -1,24 +1,27 @@
-/* Ink style, taken from docs/prototype/ink-stage.html: ink outlines on pale paper, one accent per stage. */
+/* Ink style, taken from docs/prototype/ink-stage.html: ink outlines on pale paper, one accent per stage.
+   The palette's source of truth is src/scene-kit/theme.ts (CSS_TOKENS); palette.test.ts keeps this
+   :root block equal to it. Use var(--…) everywhere else; see docs/palette.md. */
 :root {
   --ink: #16141f;
-  --paper: #efeadd;
-  --paper-2: #f6f2e8;
+  --paper: #f2f1e9;
+  --paper-2: #f7f6f0;
   --page: #f3efe4;
+  --card: #fffdf7;
   --desk: #d8dfd6;
   --wood: #e9e1cf;
   --orange: #ff8a3d;
-  --blue: #4d6bff;
+  --blue: #5f7bff;
   --pink: #ff5fa2;
   --green: #2fa36b;
   --red: #d8433b;
   --glass: #ffffffcc;
-  --mute: #5d5a68;
+  --mute: #625f57;
   --accent: var(--orange);
   /* NEAR's brand colours (NEAR in src/scene-kit/theme.ts): the green marks NEAR things such as coins;
      the forest shade is the book's cloth cover. */
   --near-green: #00ec97;
   --near-black: #000000;
-  --near-off-white: #f2f1ea;
+  --near-off-white: #f2f1e9;
   --near-forest: #145c43;
   --serif: "Newsreader", Georgia, serif;
   --hand: "Caveat", cursive;
@@ -240,13 +243,14 @@ body:has(.lesson) {
   overflow: hidden;
   border: 1.5px solid var(--ink);
   border-radius: 4px 14px 14px 4px;
-  background: linear-gradient(90deg, #16141f22 0, #16141f00 28px), var(--page);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 13%, transparent) 0, transparent 28px), var(--page);
   box-shadow:
-    2px 2px 0 #f3efe4,
+    2px 2px 0 var(--page),
     3px 3px 0 var(--ink),
-    5px 5px 0 #f3efe4,
+    5px 5px 0 var(--page),
     6px 6px 0 var(--ink),
-    0 18px 40px #16141f33;
+    0 18px 40px color-mix(in srgb, var(--ink) 20%, transparent);
   --book-gap: 12px;
   /* The space under and over the stage bar (8px on phones). --bar-h is measured by LessonPage.
      --bar-reserve is what scenes and panels keep free at the bottom for the bar: gap + bar + gap. */
@@ -281,12 +285,12 @@ body:has(.lesson) {
   text-align: center;
   color: var(--ink);
   background:
-    linear-gradient(90deg, #16141f40 0, #16141f00 34px),
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 25%, transparent) 0, transparent 34px),
     radial-gradient(circle at 50% 35%, #ffffff40, #ffffff00 60%), var(--accent);
   border-radius: 4px 14px 14px 4px;
   box-shadow:
-    inset 0 0 0 10px #16141f14,
-    inset 0 0 0 12px #16141f;
+    inset 0 0 0 10px color-mix(in srgb, var(--ink) 8%, transparent),
+    inset 0 0 0 12px var(--ink);
   transform-origin: left center;
   transition:
     transform 0.9s cubic-bezier(0.55, 0, 0.3, 1),
@@ -441,7 +445,7 @@ body:has(.lesson) {
   border: 1.5px solid var(--ink);
   border-left: 8px solid var(--accent);
   border-radius: 14px;
-  background: var(--paper-2, #fffdf7);
+  background: var(--paper-2);
   box-shadow: 3px 3px 0 var(--ink);
 }
 /* Wide screens: in the header row, between the title and the pills. */
@@ -531,7 +535,7 @@ body:has(.lesson) {
   stroke-linejoin: round;
 }
 .note-arrow .halo {
-  stroke: var(--paper-2, #fffdf7);
+  stroke: var(--paper-2);
   stroke-width: 7;
 }
 .note-arrow .tip {
@@ -586,7 +590,7 @@ body:has(.lesson) {
   border-radius: 50%;
 }
 .note-fold:hover {
-  background: #16141f14;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
 }
 .note-open {
   width: 40px;
@@ -641,7 +645,7 @@ body:has(.lesson) {
   place-items: center;
 }
 .stage-bar button:hover {
-  background: #16141f14;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
 }
 .stage-bar button:disabled {
   opacity: 0.3;
@@ -748,13 +752,13 @@ body:has(.lesson) {
   align-items: center;
   gap: 8px;
   padding-left: 6px;
-  border-left: 1px solid #16141f26;
+  border-left: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
 }
 .stage-bar .tour-play {
   width: 34px;
   height: 34px;
   border: 1.5px solid var(--ink);
-  background: var(--paper-2, #fffdf7);
+  background: var(--paper-2);
 }
 .stage-bar .tour-play svg {
   width: 16px;
@@ -846,7 +850,7 @@ body:has(.lesson) {
   overflow: visible;
   padding: calc(12px * var(--k)) 0 0;
   border: 0;
-  border-top: 1px solid #16141f30;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 19%, transparent);
   border-radius: 0;
   background: none;
   backdrop-filter: none;
@@ -864,7 +868,7 @@ body:has(.lesson) {
   order: 2;
   position: relative;
   padding: calc(16px * var(--k)) 12px 10px;
-  border: 1.5px dashed #16141f80;
+  border: 1.5px dashed color-mix(in srgb, var(--ink) 50%, transparent);
   border-radius: 10px;
 }
 .lesson[data-spread] .lesson-dock .action-slot::before {
@@ -968,7 +972,7 @@ body:has(.lesson) {
     padding: 10px 14px 10px 34px;
     border: 1.5px solid var(--ink);
     border-radius: 14px;
-    background: var(--paper-2, #fffdf7);
+    background: var(--paper-2);
     box-shadow: 3px 3px 0 var(--ink);
   }
 }
@@ -982,7 +986,7 @@ body:has(.lesson) {
 }
 .note.docked.compact {
   padding: 8px 14px;
-  background: var(--paper-2, #fffdf7);
+  background: var(--paper-2);
   backdrop-filter: none;
 }
 .note.docked.compact .note-clip {
@@ -1029,7 +1033,7 @@ body:has(.lesson) {
   overscroll-behavior: contain;
   box-shadow:
     3px 3px 0 var(--ink),
-    0 -10px 30px #16141f33;
+    0 -10px 30px color-mix(in srgb, var(--ink) 20%, transparent);
 }
 .note.docked.compact.open .note-more {
   position: sticky;
@@ -1119,7 +1123,12 @@ body:has(.lesson) {
   border: 1.5px solid var(--ink);
   border-radius: 6px 18px 18px 6px;
   background:
-    repeating-linear-gradient(180deg, transparent 0 27px, #4d6bff1f 27px 28px), var(--paper-2, #fffdf7);
+    repeating-linear-gradient(
+      180deg,
+      transparent 0 27px,
+      color-mix(in srgb, var(--blue) 12%, transparent) 27px 28px
+    ),
+    var(--paper-2);
   box-shadow: 4px 4px 0 var(--ink);
 }
 .summary-kicker {

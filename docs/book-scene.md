@@ -93,6 +93,7 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
    `theme.ts`, `--near-*` in `ink.css`): a deep green cloth cover, a NEAR green ribbon, NEAR greens in
    the plants and hills. The light is a warm sunset (orange desk, violet and pink sky). Coins are NEAR coins: `Coin` and `SvgCoin` default to NEAR green with the
    NEAR mark (`nearMark.ts`) on their faces. Pass `color` only when a coin must mean something else.
+   All values come from `theme.ts`; the layers, rules and sources are in `docs/palette.md`.
 9. **Reduced motion.** No page turn, no pop-up and no camera easing: the camera jumps from shot to shot.
    The tour still plays when the learner presses play (it is their choice), one still shot after another.
    Nothing extra to do if you use `BookScene`, `Traveller` and the kit primitives.
@@ -164,6 +165,10 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
 `--book` scaffolds the print, tour and phone e2e tests and the `tourFor` unit test; the author adds the
 rest as the lesson grows.
 
+Every test that draws a 3D scene calls `slow3d()` (`slow3d(view === "3d")` in a loop over both views, `slow3dUnless2d(info)` in a spec-wide `beforeEach`; all in `e2e/lessons/helpers.ts`) and waits for the 3D
+view to appear with `LOAD_3D`; no per-test timeouts. On a Mac the e2e browser draws WebGL on the GPU;
+without one (CI) it is software WebGL, slower, and `playwright.config.ts` runs fewer workers (issue #36).
+
 Lesson 0.1's spec (`e2e/lessons/l-0-1-blockchain-basics.spec.ts`, "wide screens print the step…" and
 "phones keep the step's words docked…") is the reference.
 
@@ -189,3 +194,4 @@ Lower-level pieces (`BookBackdrop`, `PrintOnPage`, `PopUp`, `homography`) are de
 | --- | --- |
 | 0.1 How a blockchain works | Yes (the reference) |
 | 0.2, 0.3, 1.1, 1.2 | Not yet: plain `InkStage` on paper. Move them over one by one. |
+| 2.1, 3.1 | Yes |

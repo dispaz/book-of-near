@@ -4,7 +4,7 @@
  * headers of HTML cards, so a 2D card and its 3D object read as the same thing.
  */
 import type { ReactNode } from "react";
-import { COLORS, INK, PAPER } from "../theme";
+import { COLORS, INK, CARD } from "../theme";
 import { markTransform, NEAR_MARK } from "../nearMark";
 import {
   itemSlots,
@@ -22,7 +22,7 @@ import { SvgCoin, SvgLabel, SvgPickable, SvgShadow, type SvgPickProps } from "./
 type Fate = "idle" | "done" | "undone" | "failed" | "skipped";
 
 const FILL: Record<Fate, string> = {
-  idle: PAPER,
+  idle: CARD,
   done: COLORS.greenTint,
   undone: COLORS.slab,
   failed: COLORS.redTint,
@@ -111,7 +111,7 @@ export function SvgMailbox({
   const node = (
     <g>
       {look.dashed ? null : <SvgShadow x={x + 4} y={y + 3} w={size * 0.9} />}
-      <rect x={x - size * 0.05} y={y - post} width={size * 0.1} height={post} {...ink(look, PAPER)} />
+      <rect x={x - size * 0.05} y={y - post} width={size * 0.1} height={post} {...ink(look, CARD)} />
       {/* Side view: a box with a round roof, the door on the right. */}
       <path
         d={`M${x - w / 2},${y - post} v${-body} a${r},${r} 0 0 1 ${r},${-r} h${w - 2 * r} a${r},${r} 0 0 1 ${r},${r} v${body} z`}
@@ -123,7 +123,7 @@ export function SvgMailbox({
         width={w * 0.6}
         height={body * 0.7}
         rx="3"
-        {...ink(look, PAPER)}
+        {...ink(look, CARD)}
       />
       {/* Flag. */}
       <g transform={`rotate(${flag && state === "ok" ? 0 : 90} ${x + w / 2 - 6} ${y - post - body / 2})`}>
@@ -177,7 +177,7 @@ export function SvgStamp({
         strokeWidth="2"
         strokeDasharray="3 2"
       />
-      <rect x={x - size * 0.35} y={y - h * 0.35} width={size * 0.7} height={h * 0.7} fill={PAPER} />
+      <rect x={x - size * 0.35} y={y - h * 0.35} width={size * 0.7} height={h * 0.7} fill={CARD} />
       <circle
         cx={x + size * 0.28}
         cy={y + size * 0.2}
@@ -264,7 +264,7 @@ export function SvgParcel({
             width={w * 0.6}
             height={h * 0.36}
             rx="2"
-            {...ink(look, PAPER)}
+            {...ink(look, CARD)}
           />
           <text
             x={x - w * 0.16}
@@ -340,7 +340,7 @@ export function SvgScroll({
   const node = (
     <g>
       {look.dashed ? null : <SvgShadow x={x + 4} y={y + 3} w={size} />}
-      <rect x={x - w / 2} y={top + roll} width={w} height={size - roll * 2} {...ink(look, PAPER)} />
+      <rect x={x - w / 2} y={top + roll} width={w} height={size - roll * 2} {...ink(look, CARD)} />
       {[top + roll, y - roll].map((cy) => (
         <rect
           key={cy}
@@ -381,7 +381,7 @@ export function SvgScroll({
           );
         })}
         <circle cx={gx} cy={gy} r={g} {...ink(look, COLORS.gold)} />
-        <circle cx={gx} cy={gy} r={g * 0.35} fill={PAPER} stroke={INK} strokeWidth="2" />
+        <circle cx={gx} cy={gy} r={g * 0.35} fill={CARD} stroke={INK} strokeWidth="2" />
       </g>
       <Marks look={look} x={x} y={top + size / 2} size={w * 0.8} />
       <SvgLabel x={x} y={top - 12}>
@@ -419,7 +419,7 @@ export function SvgTaggedKey({
         strokeLinejoin="round"
       />
       <line x1={x - 26} y1={y + 14} x2={x - 30} y2={y + 34} stroke={INK} strokeWidth="1.5" />
-      <rect x={x - 70} y={y + 34} width="80" height="34" rx="3" fill={PAPER} stroke={INK} strokeWidth="2" />
+      <rect x={x - 70} y={y + 34} width="80" height="34" rx="3" fill={CARD} stroke={INK} strokeWidth="2" />
       <text
         x={x - 30}
         y={y + 48}
@@ -464,11 +464,11 @@ export function SvgAppScreen({
   const node = (
     <g>
       {look.dashed ? null : <SvgShadow x={x + 4} y={y + 3} w={size} />}
-      <rect x={x - w * 0.25} y={y - 5} width={w * 0.5} height="5" {...ink(look, PAPER)} />
-      <rect x={x - 4} y={y - stand} width="8" height={stand} {...ink(look, PAPER)} />
+      <rect x={x - w * 0.25} y={y - 5} width={w * 0.5} height="5" {...ink(look, CARD)} />
+      <rect x={x - 4} y={y - stand} width="8" height={stand} {...ink(look, CARD)} />
       <rect x={x - w / 2} y={top} width={w} height={h} rx="5" {...ink(look, INK)} />
       <rect x={x - w * 0.45} y={top + h * 0.08} width={w * 0.9} height={h * 0.16} {...ink(look)} />
-      <rect x={x - w * 0.45} y={top + h * 0.26} width={w * 0.9} height={h * 0.66} {...ink(look, PAPER)} />
+      <rect x={x - w * 0.45} y={top + h * 0.26} width={w * 0.9} height={h * 0.66} {...ink(look, CARD)} />
       {look.dashed
         ? null
         : [0.42, 0.58, 0.74].map((f, i) => (
@@ -740,7 +740,7 @@ export function ObjectIcon({ kind, size = 22, color }: { kind: IconKind; size?: 
     case "mailbox":
       body = (
         <>
-          <rect x="10.5" y="13" width="3" height="10" {...s} fill={PAPER} />
+          <rect x="10.5" y="13" width="3" height="10" {...s} fill={CARD} />
           <path d="M3,13 v-4 a4,4 0 0 1 4,-4 h10 a4,4 0 0 1 4,4 v4 z" {...s} fill={color ?? COLORS.orange} />
           <rect x="18" y="3" width="2" height="7" fill={INK} />
           <rect x="18" y="2.5" width="5" height="3" {...s} fill={COLORS.red} strokeWidth={1} />
@@ -777,7 +777,7 @@ export function ObjectIcon({ kind, size = 22, color }: { kind: IconKind; size?: 
             fill={color ?? COLORS.orange}
             strokeDasharray="2 1.5"
           />
-          <rect x="8" y="6" width="8" height="11" fill={PAPER} />
+          <rect x="8" y="6" width="8" height="11" fill={CARD} />
           <circle cx="15" cy="15" r="5" fill="none" stroke={INK} strokeWidth="1.4" />
         </>
       );
@@ -785,7 +785,7 @@ export function ObjectIcon({ kind, size = 22, color }: { kind: IconKind; size?: 
     case "scroll":
       body = (
         <>
-          <rect x="5" y="4" width="14" height="16" {...s} fill={PAPER} />
+          <rect x="5" y="4" width="14" height="16" {...s} fill={CARD} />
           <rect x="3" y="2" width="18" height="3.5" rx="1.75" {...s} />
           <rect x="3" y="18.5" width="18" height="3.5" rx="1.75" {...s} />
           <line x1="7.5" x2="15" y1="9" y2="9" stroke={INK} strokeWidth="1.4" />
@@ -808,7 +808,7 @@ export function ObjectIcon({ kind, size = 22, color }: { kind: IconKind; size?: 
           {kind === "tagged-key" ? (
             <>
               <line x1="6" y1="13" x2="5" y2="16" stroke={INK} strokeWidth="1" />
-              <rect x="1.5" y="16" width="9" height="6" rx="1" fill={PAPER} stroke={INK} strokeWidth="1.2" />
+              <rect x="1.5" y="16" width="9" height="6" rx="1" fill={CARD} stroke={INK} strokeWidth="1.2" />
             </>
           ) : null}
         </>
@@ -819,9 +819,9 @@ export function ObjectIcon({ kind, size = 22, color }: { kind: IconKind; size?: 
         <>
           <rect x="2.5" y="3" width="19" height="14" rx="2" {...s} fill={INK} />
           <rect x="4" y="4.5" width="16" height="3" fill={color ?? COLORS.blue} />
-          <rect x="4" y="8" width="16" height="7.5" fill={PAPER} />
-          <rect x="10.5" y="17" width="3" height="3.5" fill={PAPER} stroke={INK} strokeWidth="1.2" />
-          <rect x="7" y="20.5" width="10" height="2" fill={PAPER} stroke={INK} strokeWidth="1.2" />
+          <rect x="4" y="8" width="16" height="7.5" fill={CARD} />
+          <rect x="10.5" y="17" width="3" height="3.5" fill={CARD} stroke={INK} strokeWidth="1.2" />
+          <rect x="7" y="20.5" width="10" height="2" fill={CARD} stroke={INK} strokeWidth="1.2" />
         </>
       );
       break;

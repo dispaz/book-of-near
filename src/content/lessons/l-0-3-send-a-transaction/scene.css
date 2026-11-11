@@ -64,7 +64,7 @@
   padding: 8px 12px;
   border: 2px solid var(--ink);
   border-radius: 12px;
-  background: #fffdf7;
+  background: var(--card);
   box-shadow: 3px 3px 0 var(--ink);
 }
 .stx-acct-role {
@@ -185,7 +185,7 @@
   height: 48px;
   border: 2.5px solid var(--ink);
   border-radius: 50%;
-  background: #fffdf7;
+  background: var(--card);
   box-shadow: 2px 2px 0 var(--ink);
   transition:
     background 0.3s,
@@ -318,7 +318,7 @@
   padding: 8px 12px;
   border: 2px solid var(--ink);
   border-radius: 10px;
-  background: #fffdf7;
+  background: var(--card);
   box-shadow: 3px 3px 0 var(--ink);
   animation: stx-drop 0.6s ease-out;
 }
@@ -550,7 +550,7 @@
   overflow: hidden;
   border: 2px solid var(--ink);
   border-radius: 12px;
-  background: #f3efe4;
+  background: var(--page);
   box-shadow: 3px 3px 0 var(--ink);
 }
 .stx-3d .sk-status {

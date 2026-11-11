@@ -7,7 +7,7 @@ import {
   Vector3,
   type ColorRepresentation,
 } from "three";
-import { INK } from "./theme";
+import { INK, withAlpha } from "./theme";
 
 /**
  * A colour as raw sRGB numbers. The ink shaders shade and write sRGB directly (no colour management),
@@ -135,6 +135,6 @@ let shadow: CanvasTexture | null = null;
 /** Soft ink blot for contact shadows under objects. */
 export const shadowTexture = () =>
   (shadow ??= radialTexture(128, 64, [
-    [0, "rgba(22,20,31,0.38)"],
-    [1, "rgba(22,20,31,0)"],
+    [0, withAlpha(INK, 0.38)],
+    [1, withAlpha(INK, 0)],
   ]));

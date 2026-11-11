@@ -4,20 +4,15 @@ import { registry } from "../app/registry";
 import { useProgress } from "../progress";
 import { isOpen, isOptionalStage, ROUTE_INFO, startLesson } from "../progress/routes";
 import "../progress/progress.css";
+import { LockedCard } from "./TopicCard";
 
-const LockIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true" className="chip-icon">
-    <rect x="5" y="11" width="14" height="9" rx="2" />
-    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-  </svg>
-);
 const TickIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true" className="chip-icon tick">
     <path d="M5 12.5l4.5 4.5L19 7.5" />
   </svg>
 );
 
-/** The book's table of contents: every stage with its lessons, planned ones as locked cards. */
+/** The book's table of contents: every stage with its lessons; planned ones and backlog topics as locked cards. */
 export function ContentsPage() {
   const { route, completions, position } = useProgress();
   const done = new Set(completions.map((c) => c.lessonId));
@@ -26,7 +21,8 @@ export function ContentsPage() {
   const start =
     registry.stages.flatMap((s) => s.lessons).find((l) => isOpen(l) && !done.has(l.id)) ??
     startLesson(registry, 0);
-  const stage0Done = !!registry.stages[0]?.lessons.every((l) => l.hidden || done.has(l.id));
+  // Locked cards do not count: only lessons a learner can open.
+  const stage0Done = !!registry.stages[0]?.lessons.every((l) => !isOpen(l) || done.has(l.id));
 
   return (
     <main className="page">
@@ -66,7 +62,8 @@ export function ContentsPage() {
         <nav aria-label="Contents">
           {registry.stages.map((s) => {
             const visible = s.lessons.filter((l) => !l.hidden);
-            const finished = visible.filter((l) => done.has(l.id)).length;
+            const open = visible.filter(isOpen);
+            const finished = open.filter((l) => done.has(l.id)).length;
             return (
               <section
                 key={s.id}
@@ -79,9 +76,10 @@ export function ContentsPage() {
                     Stage {s.id}
                   </p>
                   {isOptionalStage(route, s.id) ? <span className="tag">Optional for your path</span> : null}
+                  {open.length === 0 ? <span className="tag">Coming later</span> : null}
                   {finished > 0 ? (
                     <span className="tag done">
-                      {finished} of {visible.length} done
+                      {finished} of {open.length} done
                     </span>
                   ) : null}
                 </div>
@@ -94,17 +92,7 @@ export function ContentsPage() {
                     if (l.status === "planned") {
                       return (
                         <li key={l.id}>
-                          <div className="lesson-chip locked" data-lesson-id={l.id}>
-                            <span className="num">{num}</span>
-                            <span className="chip-body">
-                              <span className="chip-title">{l.title}</span>
-                              {l.summary ? <span className="chip-summary">{l.summary}</span> : null}
-                            </span>
-                            <span className="chip-state">
-                              <LockIcon />
-                              <span className="chip-soon">Coming soon</span>
-                            </span>
-                          </div>
+                          <LockedCard lesson={l} num={num} />
                         </li>
                       );
                     }

@@ -53,6 +53,7 @@ import type {
 import { parseNear, tgas } from "./units";
 import {
   counterContract,
+  COUNTER_WASM_SHA256,
   demoContractCode,
   DemoPromise,
   registrarContract,
@@ -225,6 +226,8 @@ export class DemoChain implements Chain {
     this.slowdown = options.slowdown ?? 1;
     this.sleep = options.sleep ?? realSleep;
     this.install(demoContractCode("counter"), counterContract);
+    // The real counter.wasm runs as the same simulated counter (lesson 3.1 deploys the real bytes).
+    this.contracts.set(COUNTER_WASM_SHA256, counterContract);
     this.install(demoContractCode("registrar"), registrarContract);
     this.install(demoContractCode("mpc-signer"), mpcSignerContract);
     for (const c of options.contracts ?? []) this.install(c.code, c.contract);
@@ -299,6 +302,9 @@ export class DemoChain implements Chain {
       blockHeight: this.head,
       get: (k) => a.state.get(k),
       set: () => {
+        throw new Error("ProhibitedInView: a view call cannot change state");
+      },
+      remove: () => {
         throw new Error("ProhibitedInView: a view call cannot change state");
       },
       log: (m) => logs.push(m),
@@ -750,6 +756,7 @@ export class DemoChain implements Chain {
               promiseResult: r.promiseResult,
               get: (k) => a.state.get(k),
               set: (k, v) => void a.state.set(k, v),
+              remove: (k) => void a.state.delete(k),
               log: (m) => logs.push(m),
               functionCall: (receiverId, methodName, args = {}, o = {}) =>
                 new DemoPromise(

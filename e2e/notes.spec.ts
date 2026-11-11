@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { seedRoute } from "./lessons/helpers";
+import { LOAD_3D, seedRoute, slow3d } from "./lessons/helpers";
 
 // Step notes (StepNote): on wide screens a note sits in the left margin with an arrow to the thing it
 // explains (the step's explainAt); on phones, or when the scene has no room beside it, it stays docked.
@@ -9,8 +9,9 @@ const floating = (page: Page) => page.locator(".note.floating:not(.folded)");
 const docked = (page: Page) => page.locator(".note.docked");
 
 async function open(page: Page, lesson: string, view: "2d" | "3d", step = 1) {
+  slow3d(view === "3d");
   await page.goto(`/lesson/${lesson}?view=${view}&step=${step}`);
-  if (view === "3d") await expect(page.locator(".sk-stage canvas").first()).toBeVisible();
+  if (view === "3d") await expect(page.locator(".sk-stage canvas").first()).toBeVisible({ timeout: LOAD_3D });
 }
 
 const dock = (page: Page) => page.locator(".action-slot");

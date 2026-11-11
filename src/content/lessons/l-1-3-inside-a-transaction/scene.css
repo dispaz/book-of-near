@@ -67,7 +67,7 @@
   padding: 8px 12px;
   border: 2px solid var(--ink);
   border-radius: 12px;
-  background: #fffdf7;
+  background: var(--card);
   box-shadow: 3px 3px 0 var(--ink);
   display: flex;
   flex-direction: column;
@@ -364,7 +364,7 @@
   padding: 0;
   border: 1.5px solid var(--ink);
   border-radius: 6px;
-  background: #fffdf7;
+  background: var(--card);
   font: 700 14px var(--ui);
   color: var(--ink);
   cursor: pointer;
@@ -403,7 +403,7 @@
   overflow: hidden;
   border: 2px solid var(--ink);
   border-radius: 12px;
-  background: #f3efe4;
+  background: var(--page);
   box-shadow: 3px 3px 0 var(--ink);
 }
 .tl-3d-box {

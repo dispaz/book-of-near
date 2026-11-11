@@ -85,6 +85,22 @@ export interface LessonManifest {
   fallback?: ComponentType<SceneProps>;
   /** Hidden lessons have routes but are left out of menus (developer placeholders). */
   hidden?: boolean;
+  /** Backlog topic card from the curriculum map (`docs/curriculum/topics.json`); planned cards only. */
+  topic?: TopicCardInfo;
+}
+
+/** What a locked backlog card shows when the learner opens it. */
+export interface TopicCardInfo {
+  /** How NEAR compares with other chains on this topic. */
+  comparison?: string;
+  /** "Going deeper" topic: optional extra reading. */
+  goingDeeper?: boolean;
+  /** Some facts on the card are not yet checked against official docs. */
+  unverified?: boolean;
+  /** The planned interactive scene this topic belongs to, if any. */
+  plannedScene?: string;
+  /** Where the comparison comes from. */
+  source?: string;
 }
 
 export interface StageManifest {

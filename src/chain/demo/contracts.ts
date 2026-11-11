@@ -18,6 +18,8 @@ export interface DemoContractContext {
   /** Contract state (string key → string value). Writes throw in a view call. */
   get(key: string): string | undefined;
   set(key: string, value: string): void;
+  /** Delete a key. Its bytes no longer count towards storage. Throws in a view call. */
+  remove(key: string): void;
   log(message: string): void;
   /** In a callback: the result of the call it waited for. */
   promiseResult?: PromiseResult;
@@ -68,6 +70,12 @@ export function demoContractCode(name: string): Uint8Array {
 }
 
 /**
+ * base58 sha256 of the real counter (generated in ../counterWasm.ts). DemoChain cannot run Wasm, so
+ * deploying those exact bytes installs `counterContract` instead; its storage still counts every byte.
+ */
+export { COUNTER_WASM_SHA256 } from "../counterWasm";
+
+/**
  * The `testnet` registrar: makes top-level `.testnet` names.
  * UNVERIFIED (#4): method name and arguments follow docs, not a tested call.
  */
@@ -100,6 +108,14 @@ export const counterContract: DemoContract = {
   },
   get_num: { view: true, gas: tgas(1), run: (ctx) => Number(ctx.get("num") ?? "0") },
   last_result: { view: true, gas: tgas(1), run: (ctx) => ctx.get("last_result") ?? null },
+  reset: {
+    gas: tgas(1),
+    run(ctx) {
+      ctx.remove("num");
+      ctx.remove("last_result");
+      ctx.log("State cleared");
+    },
+  },
   fail: {
     gas: tgas(1),
     run() {
