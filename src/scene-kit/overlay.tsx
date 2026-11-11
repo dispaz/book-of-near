@@ -9,7 +9,7 @@ import {
   useSyncExternalStore,
   type RefObject,
 } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Vector3, type Object3D } from "three";
 
 /**
@@ -27,6 +27,8 @@ export class OverlayStore {
   private entries: Entry[] = [];
   private listeners = new Set<() => void>();
   private els = new Map<string, HTMLElement>();
+  /** Set by OverlaySync: asks the canvas for a frame (it draws on demand), so a new item is placed. */
+  requestFrame: () => void = () => undefined;
 
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
@@ -39,6 +41,7 @@ export class OverlayStore {
     const entry = { id, item, anchor };
     this.entries = i < 0 ? [...this.entries, entry] : this.entries.map((e, k) => (k === i ? entry : e));
     this.listeners.forEach((fn) => fn());
+    this.requestFrame();
   }
   remove(id: string) {
     this.entries = this.entries.filter((e) => e.id !== id);
@@ -46,8 +49,10 @@ export class OverlayStore {
     this.listeners.forEach((fn) => fn());
   }
   bind(id: string, el: HTMLElement | null) {
-    if (el) this.els.set(id, el);
-    else this.els.delete(id);
+    if (el) {
+      this.els.set(id, el);
+      this.requestFrame();
+    } else this.els.delete(id);
   }
 
   private v = new Vector3();
@@ -89,6 +94,14 @@ export function useOverlayItem(item: OverlayItem, anchor: RefObject<Object3D | n
 /** Inside the canvas: moves overlay items to their anchors every frame. */
 export function OverlaySync() {
   const store = useContext(OverlayContext);
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    if (!store) return;
+    store.requestFrame = () => invalidate();
+    return () => {
+      store.requestFrame = () => undefined;
+    };
+  }, [store, invalidate]);
   useFrame(({ camera, size }) => store?.project(camera, size.width, size.height));
   return null;
 }

@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
+import { useAnimatedFrame } from "./frames";
 import { REVEAL } from "./materials";
 import { popState, POP_DONE, type PopFrame, type PopKind } from "./pop";
 
@@ -50,7 +51,8 @@ export function usePopDriver({
     [],
   );
   const phase = useRef<string | null>(null);
-  const tick = (now: number) => {
+  /** Advances the pop-up to `now`; true while it still runs (the canvas draws on demand). */
+  const tick = (now: number): boolean => {
     const r = run.current;
     let next = POP_DONE;
     if (r && !reducedMotion) {
@@ -69,13 +71,14 @@ export function usePopDriver({
       if (p) wrap.current?.setAttribute("data-pop", p);
       else wrap.current?.removeAttribute("data-pop");
     }
+    return run.current !== null;
   };
   return { frame, tick };
 }
 
 /** Inside the canvas: advances the pop-up driver once per frame. */
-export function PopClock({ tick }: { tick: (now: number) => void }) {
-  useFrame(({ clock }) => tick(clock.elapsedTime), -1);
+export function PopClock({ tick }: { tick: (now: number) => boolean }) {
+  useAnimatedFrame(({ clock }) => tick(clock.elapsedTime), -1);
   return null;
 }
 

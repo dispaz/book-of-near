@@ -3,6 +3,7 @@ import { Canvas } from "@react-three/fiber";
 import { IntroContext } from "../app/intro";
 import { CameraControls } from "./CameraControls";
 import { CameraRig } from "./CameraRig";
+import { useFrameOnRender } from "./frames";
 import { recallView } from "./viewMemory";
 import { PopClock, PopContext, PopGroup, usePopDriver } from "./PopUp";
 import { StageContext } from "./context";
@@ -117,6 +118,8 @@ export function InkStage({
       <StageContext.Provider value={settings}>
         <OverlayContext.Provider value={store}>
           <Canvas
+            // Draw only when something asks for a frame (frames.ts, #44): an idle scene costs nothing.
+            frameloop="demand"
             dpr={[1, 2]}
             flat
             camera={{ fov: 34, near: 0.1, far: ROOM.far, position: [...view.position] }}
@@ -126,6 +129,7 @@ export function InkStage({
             }}
           >
             <PopContext.Provider value={pop.frame}>
+              <DrawOnRender />
               <PopClock tick={pop.tick} />
               {backdrop ?? (
                 <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.002, 0]}>
@@ -165,4 +169,10 @@ export function InkStage({
       {keepView ? <CameraControls userView={userView} onReset={() => setResets((n) => n + 1)} /> : null}
     </div>
   );
+}
+
+/** Inside the canvas: one frame after every render of the stage (new step, new props), as a safety net. */
+function DrawOnRender() {
+  useFrameOnRender();
+  return null;
 }

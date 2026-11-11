@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ComponentRef } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { PerspectiveCamera, Vector3 } from "three";
 import {
@@ -18,6 +18,7 @@ import {
   type CameraView,
 } from "./motion";
 import { clampToBox, type DeskBox } from "./book";
+import { useAnimatedFrame } from "./frames";
 import { growBox, isInside, keepInside, WALL_GAP, type CameraBox } from "./roomLayout";
 import { forgetView, recallView, rememberView } from "./viewMemory";
 
@@ -99,6 +100,7 @@ export function CameraRig({
 }) {
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
+  const invalidate = useThree((s) => s.invalidate);
   // OrbitControls listens on R3F's event target (or the canvas): watch the same element for gestures.
   const surface = useThree((s) => (s.events.connected as HTMLElement | undefined) ?? s.gl.domElement);
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
@@ -134,6 +136,7 @@ export function CameraRig({
    */
   const markMoving = () => {
     stillFrames.current = 0;
+    invalidate();
     if (motion.current === "moving") return;
     motion.current = "moving";
     reportMotion.current?.("moving");
@@ -274,9 +277,10 @@ export function CameraRig({
     };
   }, [memoryKey, camera]);
 
-  useFrame((_, delta) => {
+  // Keeps asking for frames while the camera moves (frameloop="demand"), and stops once it is "still".
+  useAnimatedFrame((_, delta) => {
     const c = controls.current;
-    if (!c) return;
+    if (!c) return false;
     const dt = Math.min(delta, MAX_FRAME_STEP);
     // drei updates the controls once a frame (its own useFrame at priority -1, drei 10.7
     // core/OrbitControls.js) and the rig once more below: per update, this factor keeps the coasting
@@ -375,6 +379,7 @@ export function CameraRig({
         onPose(s, room ? isInside([p.x, p.y, p.z], growBox(room, WALL_GAP)) : null);
       }
     }
+    return now === "moving";
   });
 
   return (
