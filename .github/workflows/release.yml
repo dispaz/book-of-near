@@ -24,7 +24,7 @@ jobs:
   checks:
     name: Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -45,11 +45,12 @@ jobs:
         run: npm run typecheck && npm test
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
-      # No GPU on the runner: WebGL off, 3D tests left out (E2E_NO_3D, see playwright.config.ts and #44).
-      # The full suite with 3D is the local gate on a machine with a GPU.
-      - name: E2E without 3D (demo mode, production build)
+      # No GPU on the runner: WebGL runs in software (SwiftShader). Scenes render on demand (#44), so the 3D
+      # tests run too; two workers on the runner's four cores. If software WebGL ever gets too slow again,
+      # E2E_NO_3D: "1" leaves the 3D tests out (see playwright.config.ts).
+      - name: E2E with 3D in software WebGL (demo mode, production build)
+        timeout-minutes: 45
         env:
-          E2E_NO_3D: "1"
           E2E_WORKERS: "2"
         run: npx playwright test
       - uses: actions/upload-artifact@v4
