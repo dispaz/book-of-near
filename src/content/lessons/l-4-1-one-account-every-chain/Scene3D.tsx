@@ -2,8 +2,9 @@
  * Lesson 4.1 in 3D: a pop-up book scene (docs/book-scene.md). The right page is split in two. The NEAR
  * side: your mailbox and the signer contract (a scroll) in a ring of signing nodes. The Ethereum side: a
  * marked area (`ChainArea`) with a chain of blocks along its back edge, where the derived address grows
- * and the signed transaction (a parcel) is delivered. On step 4 the parcel goes to the signer and the
- * nodes send their shares back (SigningFx). It only draws the shared state from useChainSig. Loaded
+ * and the signed transaction (a parcel) is delivered. On step 4 the parcel goes to the signer, the nodes
+ * pick up the request and combine their shares between them, and the finished signature drops onto the
+ * parcel (SigningFx). It only draws the shared state from useChainSig. Loaded
  * lazily from Scene.tsx.
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -44,8 +45,10 @@ import {
   PARCEL_AT,
   PARCEL_ETH,
   PARCEL_HOME,
+  PARCEL_WAIT,
   RING_CENTER,
   RING_RADIUS,
+  SHARE_MEET,
   SIGNER,
 } from "./layout3d";
 import { ACCENT, canDeliver, describe, ETH_AREA_NAME, parcelAt } from "./page";
@@ -76,6 +79,8 @@ const FIGURES = [
 ];
 const PARCEL_SIZE = 0.8;
 const PARCEL_TOP = parcelDims(PARCEL_SIZE).height + 0.03;
+/** The meeting spot of the shares, seen from the waiting parcel: where the r, s and v slips drop from. */
+const SIGNATURE_FROM: Vec3 = [SHARE_MEET[0] - PARCEL_WAIT[0], SHARE_MEET[1], SHARE_MEET[2] - PARCEL_WAIT[2]];
 /** How long the parcel waits after the page turns to step 5 before it moves into the Ethereum area. */
 const DELIVER_DELAY_MS = 1600;
 
@@ -286,7 +291,7 @@ function Figure({ cs, compact, parcel }: { cs: ChainSig; compact: boolean; parce
         </group>
       ))}
       <Anchor name="ring" position={[RING_CENTER[0], 0.9, RING_CENTER[2] - RING_RADIUS]} />
-      {step === SIGN ? <SigningFx anim={cs.anim} lit={cs.lit} color={ACCENT} parcelTop={PARCEL_TOP} /> : null}
+      {step === SIGN ? <SigningFx anim={cs.anim} lit={cs.lit} color={ACCENT} /> : null}
       {step === SIGN && result && (cs.anim === "sealed" || cs.anim === "done") && !compact ? (
         <Label position={[RING_CENTER[0], 0.05, RING_CENTER[2] + RING_RADIUS + 0.5]} variant="small">
           threshold reached
@@ -324,11 +329,8 @@ function Figure({ cs, compact, parcel }: { cs: ChainSig; compact: boolean; parce
       {/* Step 5: the check of who signed (in the address's name) and the note that nothing was sent. */}
       {/* Too small to read docked (the facts panel says it there). */}
       {step === VERIFY && cs.recovered && !compact ? (
-        <Label
-          position={[PARCEL_ETH[0] - 0.2, 0.05, PARCEL_ETH[2] + 0.95]}
-          variant={compact ? "small" : "hint"}
-        >
-          {compact ? "not sent" : "Not sent to Sepolia: 0 ETH"}
+        <Label position={[PARCEL_ETH[0] - 0.2, 0.05, PARCEL_ETH[2] + 0.95]} variant="hint">
+          Not sent to Sepolia: 0 ETH
         </Label>
       ) : null}
 
@@ -351,7 +353,14 @@ function Figure({ cs, compact, parcel }: { cs: ChainSig; compact: boolean; parce
               pickLabel={pickLabels.parcel}
               selected={cs.picked === "parcel"}
             />
-            {slips && result ? <RsvSlips parcelTop={PARCEL_TOP} v={result.signature.yParity} /> : null}
+            {slips && result ? (
+              <RsvSlips
+                parcelTop={PARCEL_TOP}
+                v={result.signature.yParity}
+                // Sealed: the finished signature drops from where the nodes put it together.
+                dropFrom={cs.anim === "sealed" ? SIGNATURE_FROM : undefined}
+              />
+            ) : null}
           </Traveller>
           <Anchor name="parcel" position={[PARCEL_HOME[0], 0.8, PARCEL_HOME[2]]} />
         </>

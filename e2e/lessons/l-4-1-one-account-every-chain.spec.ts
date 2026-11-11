@@ -220,6 +220,8 @@ for (const view of ["2d", "3d"] as const)
       await expect(scene(page)).toHaveAttribute("data-sign-anim", "work");
       await expect(scene(page)).toHaveAttribute("data-parcel", "signer");
       await expect(page.getByTestId("sign-status")).toContainText("Waiting for the signing network");
+      // The 8 nodes and the threshold of 6 are said to be a drawing.
+      await expect(page.getByTestId("illustration-note")).toContainText("are a drawing");
       if (view === "2d") await expect(page.getByTestId("sign-fx")).toBeAttached();
       // The answer: the last shares, the seal, then the parcel comes home carrying r, s and v.
       await expect(scene(page)).toHaveAttribute("data-scene-state", /sign:answered/, { timeout: 15_000 });

@@ -14,7 +14,6 @@ import {
   Label,
   NameLabel,
   Outline,
-  Pickable,
   SelectRing,
   SoftShadow,
   maybePickable,
@@ -986,20 +985,6 @@ export function ChainArea({
       </Label>
     </>
   );
-  return (
-    <group position={position}>
-      {pick.onPick ? (
-        <Pickable
-          label={pick.pickLabel ?? name}
-          selected={pick.selected}
-          onPick={pick.onPick}
-          anchor={[0, blockSize * 0.6, chainZ]}
-        >
-          {body}
-        </Pickable>
-      ) : (
-        body
-      )}
-    </group>
-  );
+  // Selected shows as the thicker border: a SelectRing's disc would not fit a long, flat area.
+  return <group position={position}>{maybePickable(pick, name, [0, blockSize * 0.6, chainZ], body)}</group>;
 }

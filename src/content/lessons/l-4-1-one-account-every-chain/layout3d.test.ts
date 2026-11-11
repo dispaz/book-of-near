@@ -15,6 +15,7 @@ import {
   RING_CENTER,
   RING_RADIUS,
   shareSpot,
+  SIGNER,
 } from "./layout3d";
 import { NODES } from "./signing";
 import type { Vec3 } from "../../../scene-kit/motion";
@@ -72,15 +73,18 @@ describe("lesson 4.1 layout", () => {
     expect(dist(spots[0]!.position, spots[1]!.position)).toBeGreaterThan(0.9);
   });
 
-  it("keeps the waiting parcel inside the ring and the shares stacked on it", () => {
+  it("keeps the waiting parcel inside the ring and gathers the shares between the nodes, off the contract", () => {
     expect(dist(PARCEL_WAIT, RING_CENTER)).toBeLessThan(RING_RADIUS - 0.4);
     expect(dist(NEAR_MAILBOX, RING_CENTER)).toBeGreaterThan(RING_RADIUS + 0.8);
+    const spots = nodeSpots();
     for (let i = 0; i < 6; i++) {
-      const s = shareSpot(i, 0.6);
-      // On the lid (the parcel is 0.88 wide at size 0.8), either side of its tape.
-      expect(dist(s, PARCEL_WAIT)).toBeLessThan(0.3);
-      expect(Math.abs(s[0] - PARCEL_WAIT[0])).toBeGreaterThan(0.15);
-      expect(s[1]).toBeGreaterThan(0.6);
+      const s = shareSpot(i);
+      // Inside the ring, clear of the signer contract and of the waiting parcel...
+      expect(dist(s, RING_CENTER)).toBeLessThan(RING_RADIUS - 0.3);
+      expect(dist(s, SIGNER)).toBeGreaterThan(0.5);
+      expect(dist(s, PARCEL_WAIT)).toBeGreaterThan(0.5);
+      // ...and not on top of a node.
+      for (const n of spots) expect(dist(s, n.position)).toBeGreaterThan(0.4);
     }
   });
 

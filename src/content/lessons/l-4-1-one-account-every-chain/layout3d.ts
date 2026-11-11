@@ -68,14 +68,16 @@ export function nodeSpots(n = NODES): { position: Vec3; facing: number }[] {
   });
 }
 
-/** Where share `i` lands while the signature comes together: a small stack on the waiting parcel. */
-export function shareSpot(i: number, parcelTop: number): Vec3 {
-  // Two columns, either side of the parcel's tape (in the accent too), so the chips stand out.
-  return [
-    PARCEL_WAIT[0] + ((i % 2) - 0.5) * 0.5,
-    parcelTop + 0.05 + Math.floor(i / 2) * 0.09,
-    PARCEL_WAIT[2],
-  ];
+/**
+ * Where the nodes combine their shares: a spot in the ring, between the nodes and clear of the signer
+ * contract. The nodes work together off chain; the contract only gets the finished signature, which drops
+ * from here to the parcel. In plan (x, z) for 2D; `y` is its height in 3D.
+ */
+export const SHARE_MEET: Vec3 = [RING_CENTER[0] + 0.78, 1.0, RING_CENTER[2] + 0.2];
+
+/** Where share `i` lands while the signature comes together: a small stack at the meeting spot. */
+export function shareSpot(i: number): Vec3 {
+  return [SHARE_MEET[0] + ((i % 2) - 0.5) * 0.3, SHARE_MEET[1] + Math.floor(i / 2) * 0.1, SHARE_MEET[2]];
 }
 
 /** Points of the beam: NEAR mailbox → through the ring's middle → into the area, to the address. */

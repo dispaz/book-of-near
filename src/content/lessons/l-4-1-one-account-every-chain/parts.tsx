@@ -13,7 +13,7 @@ import {
   type RsvSignature,
 } from "../../../chain/chainSignatures";
 import { formatNear } from "../../../chain/units";
-import { NODES, secondsLeft, shortHex, shortName } from "./signing";
+import { NODES, secondsLeft, shortHex, shortName, THRESHOLD } from "./signing";
 import { DERIVE, HOOK, PREPARE, SIGN, VERIFY, type ChainSig, type Picked } from "./useChainSig";
 
 const secs = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
@@ -21,8 +21,8 @@ const secs = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
 /** What a picked object is, in one line. */
 const PICK_NOTE: Record<Exclude<Picked, null>, string> = {
   near: "Your NEAR account. It is the only account you sign in with.",
-  ring: "The signing nodes. Each one holds a key share, never the whole key.",
-  signer: `The signer contract, ${SIGNER_CONTRACT}. It takes sign requests and hands them to the nodes.`,
+  ring: "The signing nodes. Each one holds a key share, never the whole key. They combine their shares among themselves, off chain.",
+  signer: `The signer contract, ${SIGNER_CONTRACT}. It records sign requests for the nodes to pick up, and gets back only the finished signature.`,
   ethereum:
     "Ethereum, here its Sepolia test network: a chain of its own. Normally you need its own wallet and private key. The address you derive lives here, as a normal Ethereum account.",
   address: "Your derived Ethereum address. NEAR controls it through the signing network.",
@@ -123,6 +123,9 @@ export function Facts({ cs, compact = false }: { cs: ChainSig; compact?: boolean
             ) : null}
           </dl>
           <SignStatus cs={cs} />
+          <p className="csg-note" data-testid="illustration-note">
+            {NODES} nodes and a threshold of {THRESHOLD} are a drawing. The real network&apos;s size differs.
+          </p>
         </>
       ) : null}
 

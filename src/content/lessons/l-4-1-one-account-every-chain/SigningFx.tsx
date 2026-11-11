@@ -1,15 +1,17 @@
 /**
  * Lesson 4.1, 3D: the signing animation on step 4, driven by the real wait (`cs.anim`, `cs.lit`).
- * While the request waits the signer sends a pulse round the ring and lines out to every node, the nodes
- * that have not answered yet work (a small staggered turn), and each node's share chip flies back to the
- * parcel one by one, as `lit` grows with the countdown. When the answer comes the last chips fly in up to
- * the threshold, a short flash seals them, and the r, s and v slips form (RsvSlips). Under reduced motion
+ * While the request waits a pulse spreads round the ring and lines run out to every node (the nodes pick
+ * up the request), the nodes that have not answered yet work (a small staggered turn), and each node's
+ * share chip flies to a meeting spot between the nodes (SHARE_MEET), one by one, as `lit` grows with the
+ * countdown. The nodes combine their shares there, off chain: the signer contract never sees a share.
+ * When the answer comes the last chips fly in up to the threshold, a short flash at the meeting spot joins
+ * them, and only the finished r, s and v drop from there onto the parcel (RsvSlips). Under reduced motion
  * nothing moves: the lines show while it waits, and each phase shows its end state.
  *
  * Cheap on purpose: a handful of simple meshes that share one geometry and one material, hidden when the
  * figure is idle (no draw calls then), moved in one frame callback with no React renders.
  */
-import { useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
   BoxGeometry,
@@ -24,13 +26,14 @@ import {
   type Mesh,
   type Sprite,
   type SpriteMaterial,
+  type Vector3,
 } from "three";
 import { Label, Outline, useInk, useStage } from "../../../scene-kit";
 import { glowTexture } from "../../../scene-kit/materials";
-import { arcPoint, easeInOut, type Vec3 } from "../../../scene-kit/motion";
+import { easeInOut, type Vec3 } from "../../../scene-kit/motion";
 import { COLORS, INK } from "../../../scene-kit/theme";
-import { nodeSpots, PARCEL_WAIT, RING_CENTER, RING_RADIUS, shareSpot } from "./layout3d";
-import { sharesIn, THRESHOLD, type SignAnim } from "./signing";
+import { nodeSpots, RING_CENTER, RING_RADIUS, SHARE_MEET, shareSpot } from "./layout3d";
+import { rsvRows, sharesIn, THRESHOLD, type SignAnim } from "./signing";
 
 /** Seconds: a chip's flight, the gap between chips, the same while catching up, the pulse, the flash. */
 const FLIGHT = 0.5;
@@ -38,26 +41,27 @@ const GAP = 0.22;
 const CATCH_UP = 0.08;
 const PULSE = 1.6;
 const FLASH = 0.45;
+/** Seconds: the finished signature's drop from the meeting spot onto the parcel. */
+const DROP = 0.45;
 
 const CHIP = new BoxGeometry(0.24, 0.08, 0.18);
 
-export function SigningFx({
-  anim,
-  lit,
-  color,
-  parcelTop,
-}: {
-  anim: SignAnim;
-  lit: number;
-  color: string;
-  /** Height of the waiting parcel's lid: the chips stack on it. */
-  parcelTop: number;
-}) {
+/** `arcPoint` without the array: writes the point into `out`, so the frame loop allocates nothing. */
+function arcInto(out: Vector3, from: Vec3, to: Vec3, height: number, u: number) {
+  const t = Math.min(1, Math.max(0, u));
+  out.set(
+    from[0] + (to[0] - from[0]) * t,
+    from[1] + (to[1] - from[1]) * t + Math.sin(t * Math.PI) * height,
+    from[2] + (to[2] - from[2]) * t,
+  );
+}
+
+export function SigningFx({ anim, lit, color }: { anim: SignAnim; lit: number; color: string }) {
   const { reducedMotion } = useStage();
   const chipInk = useInk(color);
   const spots = useMemo(() => nodeSpots(), []);
   const from = useMemo(() => spots.map((s) => [s.position[0], 0.3, s.position[2]] as Vec3), [spots]);
-  const to = useMemo(() => from.map((_, i) => shareSpot(i, parcelTop)), [from, parcelTop]);
+  const to = useMemo(() => from.map((_, i) => shareSpot(i)), [from]);
   const spokes = useMemo(() => {
     const g = new BufferGeometry();
     const pts: number[] = [];
@@ -71,6 +75,11 @@ export function SigningFx({
     () => new MeshBasicMaterial({ color, transparent: true, side: DoubleSide, depthWrite: false }),
     [color],
   );
+  // Made here, so freed here when they change or the figure goes.
+  useEffect(() => () => spokes.dispose(), [spokes]);
+  useEffect(() => () => spokeInk.dispose(), [spokeInk]);
+  useEffect(() => () => pulseGeo.dispose(), [pulseGeo]);
+  useEffect(() => () => pulseInk.dispose(), [pulseInk]);
 
   const pulse = useRef<Mesh>(null);
   const lines = useRef<LineSegments>(null);
@@ -97,7 +106,7 @@ export function SigningFx({
       r.prev = a;
     }
     const working = a === "work";
-    // The signer's pulse, spreading round the ring.
+    // A pulse spreading round the ring.
     const p = pulse.current;
     if (p) {
       p.visible = working && !reducedMotion;
@@ -107,12 +116,12 @@ export function SigningFx({
         pulseInk.opacity = 0.55 * (1 - u);
       }
     }
-    // Lines from the signer out to every node.
+    // Lines out to every node: the nodes pick up the request.
     if (lines.current) {
       lines.current.visible = working;
       spokeInk.opacity = reducedMotion ? 0.5 : 0.3 + 0.3 * (0.5 + 0.5 * Math.sin(t * 5));
     }
-    // The share chips, one per node that has answered, flying to the parcel.
+    // The share chips, one per node that has answered, flying to the meeting spot between the nodes.
     const want = sharesIn(a, l);
     for (let i = 0; i < THRESHOLD; i++) {
       const chip = chips.current[i];
@@ -127,10 +136,10 @@ export function SigningFx({
         continue;
       }
       const u = reducedMotion ? 1 : Math.min(1, (t - at) / FLIGHT);
-      chip.position.set(...arcPoint(from[i]!, to[i]!, 0.7, easeInOut(u)));
+      arcInto(chip.position, from[i]!, to[i]!, 0.7, easeInOut(u));
       chip.visible = true;
     }
-    // The seal: a short flash at the parcel.
+    // The seal: a short flash where the shares became one signature.
     const f = flash.current;
     if (f) {
       const u = (t - r.sealed) / FLASH;
@@ -168,7 +177,7 @@ export function SigningFx({
         </mesh>
       ))}
       {/* Normal blending: an additive glow would vanish on the white page. */}
-      <sprite ref={flash} position={[PARCEL_WAIT[0], parcelTop + 0.2, PARCEL_WAIT[2]]} visible={false}>
+      <sprite ref={flash} position={SHARE_MEET} visible={false}>
         <spriteMaterial map={glowTexture()} color={color} transparent depthWrite={false} />
       </sprite>
     </group>
@@ -198,13 +207,29 @@ const SLIP_PITCH = 0.42;
 /**
  * The signature's three values as slips standing in a row on the parcel: r, s and v (its value, 0 or
  * 1). The full r and s are in the facts panel; a slip only names them, so the labels stay readable.
+ * `dropFrom` (parcel-local) is where the nodes put the signature together: when given, the slips drop
+ * from there onto the parcel as they appear. Under reduced motion they are simply there.
  */
-export function RsvSlips({ parcelTop, v }: { parcelTop: number; v: number }) {
+export function RsvSlips({ parcelTop, v, dropFrom }: { parcelTop: number; v: number; dropFrom?: Vec3 }) {
   const paper = useInk(COLORS.paper);
-  const rows = ["r", "s", `v ${v}`];
+  const { reducedMotion } = useStage();
+  const g = useRef<Group>(null);
+  // Only the first render decides: the slips drop once, when the signature is sealed.
+  const [drop] = useState(() => (reducedMotion ? undefined : dropFrom));
+  const dropping = useRef(!!drop);
+  const start = useRef(-1);
+  const rest = useMemo<Vec3>(() => [0, parcelTop + 0.3, 0], [parcelTop]);
+  useFrame(({ clock }) => {
+    const n = g.current;
+    if (!n || !drop || !dropping.current) return;
+    if (start.current < 0) start.current = clock.elapsedTime;
+    const u = (clock.elapsedTime - start.current) / DROP;
+    arcInto(n.position, drop, rest, 0.25, easeInOut(u));
+    if (u >= 1) dropping.current = false;
+  });
   return (
-    <group position={[0, parcelTop + 0.3, 0]}>
-      {rows.map((text, k) => (
+    <group ref={g} position={drop ?? rest}>
+      {rsvRows(v).map((text, k) => (
         <group key={k} position={[(k - 1) * SLIP_PITCH, 0, 0]} rotation={[0, 0, (k - 1) * -0.12]}>
           <mesh geometry={SLIP} material={paper}>
             <Outline threshold={20} />

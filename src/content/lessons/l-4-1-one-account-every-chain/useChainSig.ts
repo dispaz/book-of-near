@@ -23,7 +23,7 @@ import { isChainError } from "../../../chain/errors";
 import type { Hex } from "viem";
 import {
   cleanPath,
-  FINALE_MS,
+  finaleRunner,
   isWaiting,
   sharesLit,
   shortHex,
@@ -65,8 +65,11 @@ export function useChainSig({
   const [passed, setPassed] = useState(false);
   // The figure's finale after the answer (signing.ts, Finale). Timers, so it settles even off screen.
   const [finale, setFinale] = useState<Finale>(null);
-  const finaleTimers = useRef<number[]>([]);
-  useEffect(() => () => finaleTimers.current.forEach((t) => clearTimeout(t)), []);
+  const [finaleRun] = useState(() => finaleRunner(setFinale));
+  useEffect(() => {
+    finaleRun.revive();
+    return () => finaleRun.dispose();
+  }, [finaleRun]);
 
   const pathCheck = cleanPath(pathText);
   const path = account?.path ?? (pathCheck.ok ? pathCheck.path : DEFAULT_PATH);
@@ -90,6 +93,7 @@ export function useChainSig({
 
   /** Start the address over with the path box open again (the same text, ready to change). */
   const again = () => {
+    finaleRun.cancel();
     setFinale(null);
     setAccount(null);
     setPrepared(null);
@@ -146,14 +150,9 @@ export function useChainSig({
       setResult(out);
       setSigned(finalizeEvmTransaction(prepared, out.signature));
       setPhase("answered");
-      // The last shares fly in, the signature is sealed, then the parcel comes home.
-      if (!reducedMotion) {
-        setFinale("shares");
-        finaleTimers.current.push(
-          window.setTimeout(() => setFinale("sealed"), FINALE_MS.shares),
-          window.setTimeout(() => setFinale(null), FINALE_MS.shares + FINALE_MS.sealed),
-        );
-      }
+      // The last shares come together, the signature is sealed, then the parcel comes home. The runner
+      // clears any earlier timers and does nothing once the scene has unmounted.
+      if (!reducedMotion) finaleRun.play();
     } catch (e) {
       setPhase("failed");
       setProblem(

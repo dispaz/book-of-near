@@ -140,6 +140,18 @@
     opacity: 0;
   }
 }
+/* The finished signature drops from where the nodes combined their shares onto the parcel. */
+.csg-drop {
+  animation: csg-drop 0.45s ease-in-out both;
+}
+@keyframes csg-drop {
+  from {
+    transform: translate(var(--dx), var(--dy)) scale(0.4);
+  }
+  to {
+    transform: none;
+  }
+}
 .csg-slip rect {
   fill: var(--card);
   stroke: var(--ink);
@@ -181,6 +193,7 @@
 .csg.still .csg-pulse,
 .csg.still .csg-node.busy,
 .csg.still .csg-chip,
+.csg.still .csg-drop,
 .csg.still .csg-grow {
   animation: none;
 }
@@ -332,6 +345,7 @@
   .csg-node.busy,
   .csg-chip,
   .csg-flash,
+  .csg-drop,
   .csg-grow {
     animation: none;
   }

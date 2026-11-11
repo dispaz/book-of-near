@@ -3,7 +3,8 @@
  * (layout3d.ts) and the same scene objects. The NEAR side: your mailbox and the signer contract in a ring
  * of signing nodes. The Ethereum side: a marked area (`SvgChainArea`) with its chain of blocks, the
  * derived address and, from step 5, the delivered transaction. Step 4's signing is a lighter version of
- * the 3D one: pulses along the lines to the nodes, share dots flying in, the nodes filling. Every object
+ * the 3D one: pulses along the lines to the nodes, share dots flying to a spot between the nodes, the
+ * nodes filling, then the finished r, s and v dropping onto the parcel. Every object
  * is a pick, as in 3D. Only draws the shared state from useChainSig.
  */
 import type { CSSProperties } from "react";
@@ -27,11 +28,12 @@ import {
   PARCEL_WAIT,
   RING_CENTER,
   RING_RADIUS,
+  SHARE_MEET,
   SIGNER,
 } from "./layout3d";
 import { describe, ETH_AREA_NAME, parcelAt, ACCENT } from "./page";
 import { Facts, pickLabels } from "./parts";
-import { isWaiting, sharesIn, shortHex, shortName, slipsShown } from "./signing";
+import { isWaiting, rsvRows, sharesIn, shortHex, shortName, slipsShown } from "./signing";
 import { CHECK, HOOK, PREPARE, SIGN, VERIFY, type ChainSig } from "./useChainSig";
 
 /** SVG units per world unit. */
@@ -45,8 +47,14 @@ const pz = (z: number) => (z - FIGURE.minZ) * SCALE + PAD_TOP;
 const PARCEL_DY = 26;
 const PARCEL_SIZE = 44;
 const PARCEL_H = PARCEL_SIZE * 0.8;
-/** Where the share dots gather: on the waiting parcel's lid. */
-const STACK = { x: px(PARCEL_WAIT[0]), y: pz(PARCEL_WAIT[2]) + PARCEL_DY - PARCEL_H - 6 };
+/** Where the share dots gather: the meeting spot between the nodes, off the signer contract. */
+const STACK = { x: px(SHARE_MEET[0]), y: pz(SHARE_MEET[2]) };
+/** The slips' row above the parcel, and how far the meeting spot is from it (they drop from there). */
+const SLIP_Y = -PARCEL_H - 26;
+const DROP = {
+  "--dx": `${STACK.x - px(PARCEL_WAIT[0])}px`,
+  "--dy": `${STACK.y - (pz(PARCEL_WAIT[2]) + PARCEL_DY + SLIP_Y + 10)}px`,
+} as CSSProperties;
 
 export default function Scene2D({
   cs,
@@ -222,7 +230,8 @@ function Page({ cs }: { cs: ChainSig }) {
         </>
       ) : null}
 
-      {/* Step 4's shares: one dot per node that has answered, flying to the parcel in the ring. */}
+      {/* Step 4's shares: one dot per node that has answered, flying to the spot between the nodes where
+          they are combined, off chain. Only the finished signature then drops onto the parcel. */}
       {shares > 0 ? (
         <g aria-hidden="true">
           {Array.from({ length: shares }, (_, i) => {
@@ -271,10 +280,15 @@ function Page({ cs }: { cs: ChainSig }) {
             selected={cs.picked === "parcel"}
           />
           {slips && result ? (
-            <g data-testid="rsv-slips" aria-hidden="true">
-              {["r", "s", `v ${result.signature.yParity}`].map((text, k) => {
+            <g
+              data-testid="rsv-slips"
+              aria-hidden="true"
+              className={cs.anim === "sealed" ? "csg-drop" : undefined}
+              style={cs.anim === "sealed" ? DROP : undefined}
+            >
+              {rsvRows(result.signature.yParity).map((text, k) => {
                 const x = (k - 1) * 21;
-                const y = -PARCEL_H - 26;
+                const y = SLIP_Y;
                 return (
                   <g key={k} className="csg-slip" transform={`rotate(${(k - 1) * 7} ${x} ${y + 20})`}>
                     <rect x={x - 9.5} y={y} width={19} height={20} rx={2} />

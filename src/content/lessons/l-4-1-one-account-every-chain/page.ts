@@ -53,11 +53,11 @@ export function describe(
       case "travel":
         return "The parcel, carrying the payload hash, travels to the signer contract.";
       case "work":
-        return `The signer sends the request to every node. ${cs.lit} of ${NODES} signing nodes have sent back their key share.`;
+        return `The signing nodes pick up the request. ${cs.lit} of ${NODES} signing nodes have added their key share.`;
       case "shares":
-        return `The last shares arrive: ${THRESHOLD} of ${NODES}, the threshold.`;
+        return `The nodes combine their shares between them: ${THRESHOLD} of ${NODES}, the threshold.`;
       case "sealed":
-        return "The threshold is reached. The r, s and v slips form on the parcel.";
+        return "The threshold is reached. The finished signature drops onto the parcel as r, s and v.";
       default:
         return cs.result
           ? `Enough nodes have added their shares (the threshold). The parcel is back by your NEAR mailbox, stamped and carrying r, s and v.`

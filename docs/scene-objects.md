@@ -65,7 +65,7 @@ Open: intents will need rows when that stage is designed. The validator above is
 | --- | --- |
 | `src/scene-kit/objects.ts` | Pure: `OBJECTS` (concept → shape), `ObjectState` and `lookOf` (how each state looks), the objects' dimensions, `itemSlots` (where action cards stand), `gaugeShare`. Unit tested; safe to import from 2D code. |
 | `src/scene-kit/objects3d.tsx` | 3D: `Mailbox`, `Parcel` (+ `ActionCard`, `FATE_FILL`, `FATE_MARK`), `Stamp`, `Scroll`, `TaggedKey`, `AppScreen`, `SignerNode`, `Ledger`, `ChainArea`, `Cross`, `Strike`. Exported from `src/scene-kit`. `ChainArea` is cheap: one tinted plane, one dashed line, the `Ledger`; its name is an HTML label. |
-| `src/scene-kit/svg/objects.tsx` | 2D twins: `SvgMailbox`, `SvgParcel`, `SvgStamp`, `SvgScroll`, `SvgTaggedKey`, `SvgAppScreen`, and `ObjectIcon` (the same shapes small, for HTML card headers). |
+| `src/scene-kit/svg/objects.tsx` | 2D twins: `SvgMailbox`, `SvgParcel`, `SvgStamp`, `SvgScroll`, `SvgTaggedKey`, `SvgAppScreen`, `SvgSignerNode`, `SvgLedger`, `SvgChainArea`, and `ObjectIcon` (the same shapes small, for HTML card headers). |
 | `src/content/lessons/scene-objects/` | Hidden gallery, `/lesson/scene-objects`: every object in every state, 2D and 3D. |
 
 - Every object takes `state` (`"ok" | "pending" | "failed" | "gone"`), an accent `color` and the usual

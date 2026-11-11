@@ -1,7 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   cleanPath,
   FINALE_MS,
+  finaleRunner,
+  rsvRows,
+  type Finale,
   isWaiting,
   NODES,
   parcelSpot,
@@ -67,6 +70,11 @@ describe("the signing animation follows the real wait", () => {
     expect(slipsShown("done")).toBe(true);
   });
 
+  it("writes the slips as r, s and v with its value", () => {
+    expect(rsvRows(1)).toEqual(["r", "s", "v 1"]);
+    expect(rsvRows(0)).toEqual(["r", "s", "v 0"]);
+  });
+
   it("keeps the parcel in the ring from the request to the end of the finale, then delivers it", () => {
     expect(parcelSpot("idle", true, false)).toBe("near");
     for (const a of ["travel", "work", "shares", "sealed"] as const)
@@ -75,6 +83,55 @@ describe("the signing animation follows the real wait", () => {
     expect(parcelSpot("done", false, true)).toBe("ethereum");
     // Off the signing step the parcel is never in the ring.
     expect(parcelSpot("work", false, false)).toBe("near");
+  });
+});
+
+describe("finaleRunner: the finale's timers", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+  const total = FINALE_MS.shares + FINALE_MS.sealed;
+
+  it("plays shares, then sealed, then settles", () => {
+    const seen: Finale[] = [];
+    const run = finaleRunner((f) => seen.push(f));
+    run.play();
+    vi.advanceTimersByTime(total);
+    expect(seen).toEqual(["shares", "sealed", null]);
+  });
+
+  it("cancel (a new path) stops the pending steps", () => {
+    const seen: Finale[] = [];
+    const run = finaleRunner((f) => seen.push(f));
+    run.play();
+    run.cancel();
+    vi.advanceTimersByTime(total);
+    expect(seen).toEqual(["shares"]);
+  });
+
+  it("playing again clears the old timers first, so the finale runs once", () => {
+    const seen: Finale[] = [];
+    const run = finaleRunner((f) => seen.push(f));
+    run.play();
+    vi.advanceTimersByTime(FINALE_MS.shares / 2);
+    run.play();
+    vi.advanceTimersByTime(total * 2);
+    expect(seen).toEqual(["shares", "shares", "sealed", null]);
+  });
+
+  it("after dispose (unmount) a late play, after an await, schedules nothing", () => {
+    const seen: Finale[] = [];
+    const run = finaleRunner((f) => seen.push(f));
+    run.play();
+    run.dispose();
+    run.play();
+    vi.advanceTimersByTime(total);
+    expect(seen).toEqual(["shares"]);
+    expect(vi.getTimerCount()).toBe(0);
+    // React's dev double mount brings it back.
+    run.revive();
+    run.play();
+    vi.advanceTimersByTime(total);
+    expect(seen).toEqual(["shares", "shares", "sealed", null]);
   });
 });
 
