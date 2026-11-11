@@ -23,7 +23,8 @@ jobs:
   checks:
     name: Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Software WebGL on the runner is slow (#36, #44): two workers, generous time.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -45,6 +46,8 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
       - name: E2E (demo mode, production build)
+        env:
+          E2E_WORKERS: "2"
         run: npx playwright test
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -100,7 +103,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4.149.0"
           command: >-
-            pages deploy dist --project-name book-of-near --branch release
+            pages deploy dist --project-name book-of-near --branch main
             --commit-hash ${{ github.sha }} --commit-message "v${{ steps.version.outputs.version }}"
 
       - name: Deploy the Worker
