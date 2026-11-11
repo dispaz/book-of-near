@@ -29,8 +29,16 @@ function previewPort(): number {
 const gpu = process.platform === "darwin" && process.env.E2E_GL !== "swiftshader";
 // Software WebGL: about one worker per four cores, so the 3D pages get the CPU they need. With a GPU the
 // default (half the cores) is fine. E2E_WORKERS overrides both.
+// Playwright wants a number or a "50%" string, so a plain "2" from the environment becomes 2.
+const envWorkers = process.env.E2E_WORKERS;
 const workers =
-  process.env.E2E_WORKERS ?? (gpu ? undefined : Math.max(1, Math.floor(os.availableParallelism() / 4)));
+  envWorkers === undefined
+    ? gpu
+      ? undefined
+      : Math.max(1, Math.floor(os.availableParallelism() / 4))
+    : /^\d+$/.test(envWorkers)
+      ? Number(envWorkers)
+      : envWorkers;
 
 const port = process.env.BASE_URL ? undefined : previewPort();
 const baseURL = process.env.BASE_URL ?? `http://localhost:${port}`;
