@@ -10,27 +10,19 @@
  * key is kept OUTSIDE the repo in $TESTNET_STORE (default: the OS temp dir) and reused while it
  * still has more than 7 NEAR. The counter contract is contracts/counter/counter.wasm.
  */
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "vitest";
 import { runChainContract } from "../contract.test-kit";
 import { parseNear } from "../units";
-import { helperFunder, type PracticeStore, type StoredPracticeAccount } from "./practice";
+import { testnetFileStore } from "./fileStore.test-kit";
+import { helperFunder, type PracticeStore } from "./practice";
 import { Rpc } from "./rpc";
 import { TestnetChain } from "./TestnetChain";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const counterCode = new Uint8Array(readFileSync(join(here, "../../../contracts/counter/counter.wasm")));
-
-function fileStore(path: string): PracticeStore {
-  return {
-    load: () => (existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as StoredPracticeAccount) : null),
-    save: (a) => writeFileSync(path, JSON.stringify(a, null, 1), { mode: 0o600 }),
-    clear: () => rmSync(path, { force: true }),
-  };
-}
 
 async function freshEnough(store: PracticeStore) {
   const saved = store.load();
@@ -46,7 +38,7 @@ async function freshEnough(store: PracticeStore) {
 }
 
 if (process.env.TESTNET) {
-  const store = fileStore(process.env.TESTNET_STORE ?? join(tmpdir(), "bon-testnet-practice.json"));
+  const store = testnetFileStore();
   // One chain (one funded practice account) for the whole run keeps the helper faucet calls to one.
   let chain: Promise<TestnetChain> | null = null;
   const make = () =>

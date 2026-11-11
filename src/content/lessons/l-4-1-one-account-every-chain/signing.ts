@@ -3,6 +3,8 @@
  * rules and short forms for long ids. No React, no three.js, so both views and the tests share them.
  */
 
+import type { ChainNetwork } from "../../../chain/types";
+
 /** Signing nodes drawn round the signer contract. An illustration: the real network's size differs. */
 export const NODES = 8;
 /** Shares the drawing needs before the signature is whole (k of n). Also illustrative. */
@@ -13,7 +15,7 @@ export const EXPECTED_MS = 5500;
 export const TESTNET_EXPECTED_MS = 10_000;
 
 /** The usual wait for a signature on this network, for the countdown and the lit shares. */
-export const expectedSignMs = (network: string) =>
+export const expectedSignMs = (network: ChainNetwork) =>
   network === "testnet" ? TESTNET_EXPECTED_MS : EXPECTED_MS;
 
 export type SignPhase = "idle" | "sending" | "waiting" | "answered" | "failed";

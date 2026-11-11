@@ -1,6 +1,14 @@
-import { existsSync, readFileSync } from "node:fs";
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3d, slow3dUnless2d } from "./helpers";
+import {
+  answerCheck,
+  completionOf,
+  LOAD_3D,
+  nextStep,
+  seedPracticeAccount,
+  seedRoute,
+  slow3d,
+  slow3dUnless2d,
+} from "./helpers";
 
 // Walks lesson 4.1 in demo mode (no wallet, no network): derive an Ethereum address from the practice
 // account, pack a Sepolia transfer, ask DemoChain's signer for a signature (the same `sign` call the
@@ -379,11 +387,7 @@ test.describe("3D book scene", () => {
 test("@testnet signs with the real signing network and recovers the derived address", async ({ page }) => {
   test.skip(!process.env.TESTNET, "set TESTNET=1 to run against the real testnet");
   test.setTimeout(300_000);
-  const storePath = process.env.TESTNET_STORE;
-  if (storePath && existsSync(storePath)) {
-    const saved = readFileSync(storePath, "utf8");
-    await page.addInitScript((v) => localStorage.setItem("bon:testnet-practice-account:v1", v), saved);
-  }
+  await seedPracticeAccount(page);
   await page.addInitScript(() => localStorage.setItem("bon:view", "2d"));
   await page.goto(`/lesson/${ID}?mode=testnet`);
   await expect(page.getByTestId("mode-pill")).toHaveText("Testnet", { timeout: 90_000 });

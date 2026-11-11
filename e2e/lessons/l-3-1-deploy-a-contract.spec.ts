@@ -1,6 +1,13 @@
-import { existsSync, readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
-import { LOAD_3D, answerCheck, completionOf, nextStep, seedRoute, slow3d } from "./helpers";
+import {
+  LOAD_3D,
+  answerCheck,
+  completionOf,
+  nextStep,
+  seedPracticeAccount,
+  seedRoute,
+  slow3d,
+} from "./helpers";
 
 // Walks lesson 3.1 in demo mode (no wallet, no network), in both views.
 const ID = "l-3-1-deploy-a-contract";
@@ -269,11 +276,7 @@ test("@testnet deploys the real counter, fails with a callback and resets", asyn
   test.setTimeout(300_000);
   const L = { timeout: 90_000 };
   const live = (re: RegExp) => expect(scene(page)).toHaveAttribute("data-scene-state", re, L);
-  const storePath = process.env.TESTNET_STORE;
-  if (storePath && existsSync(storePath)) {
-    const saved = readFileSync(storePath, "utf8");
-    await page.addInitScript((v) => localStorage.setItem("bon:testnet-practice-account:v1", v), saved);
-  }
+  await seedPracticeAccount(page);
   await page.goto(`/lesson/${ID}?mode=testnet&view=2d`);
   await expect(page.getByTestId("mode-pill")).toHaveText("Testnet", L);
   await live(/network:testnet/);

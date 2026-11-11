@@ -3,14 +3,14 @@
  * Live check of lessons 3.1 (deploy a contract) and 4.1 (chain signatures) on the REAL NEAR testnet.
  * Opt-in, because it needs the network and spends free testnet NEAR:
  *
- *   TESTNET_VERIFY=1 npx vitest run scripts/verify-lessons.testnet.test.ts
+ *   npm run test:testnet:lessons        (sets TESTNET=1)
  *
  * It makes the same calls as the lessons' state hooks (useDeploy.ts, useChainSig.ts), through the Chain
  * interface (TestnetChain) and the same helpers, and prints the evidence (tx hashes, numbers, answer
  * shape) as JSON. Nothing is sent to Sepolia. The throwaway practice key is kept OUTSIDE the repo in
  * $TESTNET_STORE (default: the OS temp dir), like `npm run test:testnet`.
  */
-import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { base64 } from "@scure/base";
@@ -27,7 +27,8 @@ import {
 import { COUNTER_WASM_BASE64, COUNTER_WASM_SHA256 } from "../src/chain/counterWasm";
 import { actions, callMethod, createNamedAccount, decodeSuccessValue, explorerTxUrl } from "../src/chain/ops";
 import { formatTgas } from "../src/chain/units";
-import { helperFunder, type PracticeStore, type StoredPracticeAccount } from "../src/chain/testnet/practice";
+import { testnetFileStore } from "../src/chain/testnet/fileStore.test-kit";
+import { helperFunder } from "../src/chain/testnet/practice";
 import { TestnetChain } from "../src/chain/testnet/TestnetChain";
 import {
   CALL_GAS,
@@ -40,22 +41,14 @@ import {
   storageLock,
 } from "../src/content/lessons/l-3-1-deploy-a-contract/contract";
 
-function fileStore(path: string): PracticeStore {
-  return {
-    load: () => (existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as StoredPracticeAccount) : null),
-    save: (a) => writeFileSync(path, JSON.stringify(a, null, 1), { mode: 0o600 }),
-    clear: () => rmSync(path, { force: true }),
-  };
-}
-
 const log = (label: string, v: unknown) =>
   appendFileSync(
     process.env.VERIFY_OUT ?? join(tmpdir(), "bon-verify-lessons.log"),
     `[verify] ${label} ${JSON.stringify(v, (_, x) => (typeof x === "bigint" ? x.toString() : x), 1)}\n`,
   );
 
-if (process.env.TESTNET_VERIFY) {
-  const store = fileStore(process.env.TESTNET_STORE ?? join(tmpdir(), "bon-testnet-practice.json"));
+if (process.env.TESTNET) {
+  const store = testnetFileStore();
   const chain = new TestnetChain({ store, funders: [helperFunder()] });
 
   describe("lesson 3.1 on testnet", () => {
@@ -170,15 +163,7 @@ if (process.env.TESTNET_VERIFY) {
         predecessor: me,
         domain_id: 0,
       });
-      const noDomain = await chain
-        .viewCall<string>(SIGNER_CONTRACT, "derived_public_key", { path, predecessor: me })
-        .then((r) => r.result)
-        .catch((e) => `error: ${(e as Error).message}`);
-      const rootDomain0 = await chain
-        .viewCall<string>(SIGNER_CONTRACT, "public_key", { domain_id: 0 })
-        .then((r) => r.result)
-        .catch((e) => `error: ${(e as Error).message}`);
-      log("derive", { me, root, rootDomain0, account, contract: withDomain.result, noDomain });
+      log("derive", { me, root, account, contract: withDomain.result });
       expect(withDomain.result).toBe(account.publicKey);
 
       const prepared = prepareEvmTransfer({ from: account.address });
@@ -209,6 +194,6 @@ if (process.env.TESTNET_VERIFY) {
   });
 } else {
   describe("lessons 3.1 and 4.1 on testnet", () => {
-    it.skip("runs only with TESTNET_VERIFY=1", () => {});
+    it.skip("runs only with TESTNET=1 (npm run test:testnet:lessons)", () => {});
   });
 }

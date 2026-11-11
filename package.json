@@ -21,6 +21,7 @@
     "prepare": "git config core.hooksPath .githooks || true",
     "new-lesson": "node scripts/new-lesson.mjs",
     "test:testnet": "TESTNET=1 vitest run src/chain/testnet/testnet.test.ts",
+    "test:testnet:lessons": "TESTNET=1 vitest run scripts/verify-lessons.testnet.test.ts",
     "build:counter": "node scripts/build-counter.mjs",
     "build:artifact": "node scripts/build-artifact.mjs"
   },
