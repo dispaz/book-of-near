@@ -11,6 +11,10 @@ Merge (or push) to the `release` branch. `.github/workflows/release.yml` then:
 
 Releases run one at a time. You can also start one by hand: Actions → Release → Run workflow.
 
+**How to release:** fast-forward `release` to `main` and push: `git push origin main:release` (or open a PR from `main` into `release` and merge it). Creating the `release` branch for the first time is itself a push, so it runs the first release.
+
+**If a step fails:** checks failing means nothing is deployed. If the deploy succeeds but the smoke test fails, the new build is already live in production but has no tag or GitHub Release; fix forward and push to `release` again (or redeploy the last tag with Actions → Deploy → Run workflow).
+
 ## Versioning
 
 - `MAJOR.MINOR` come from `version` in the root `package.json`.

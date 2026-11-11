@@ -9,8 +9,9 @@ on:
   workflow_dispatch:
 
 # One release at a time, never cancelled half way (the version number depends on the last tag).
+# Same group as deploy.yml, so a manual Deploy never races a Release.
 concurrency:
-  group: release
+  group: deploy-production
   cancel-in-progress: false
 
 permissions:
@@ -59,6 +60,8 @@ jobs:
   deploy:
     name: Deploy and tag
     needs: checks
+    # Only the release branch deploys and tags, also when started by hand.
+    if: github.ref == 'refs/heads/release'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -105,6 +108,11 @@ jobs:
           command: >-
             pages deploy dist --project-name book-of-near --branch main
             --commit-hash ${{ github.sha }} --commit-message "v${{ steps.version.outputs.version }}"
+
+      - name: Install Worker dependencies
+        if: vars.DEPLOY_WORKER == 'true'
+        run: npm ci
+        working-directory: worker
 
       - name: Deploy the Worker
         if: vars.DEPLOY_WORKER == 'true'
