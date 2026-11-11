@@ -23,13 +23,12 @@ import { isChainError } from "../../../chain/errors";
 import type { Hex } from "viem";
 import { cleanPath, isWaiting, sharesLit, shortHex, shortName, type SignPhase } from "./signing";
 import { DERIVE, PREPARE, SIGN, VERIFY } from "./steps";
-import type { ChainKey } from "./layout3d";
 
 export * from "./steps";
 
 export type ChainSig = ReturnType<typeof useChainSig>;
 /** Something on the page the learner picked, to read about it. */
-export type Picked = "near" | "ring" | "signer" | ChainKey | "address" | "parcel" | null;
+export type Picked = "near" | "ring" | "signer" | "ethereum" | "address" | "parcel" | null;
 
 export function useChainSig({
   step,
@@ -181,9 +180,10 @@ export function useChainSig({
     if (me) v.name = shortName(me);
     // Short form in captions: a 42-character address overflows the printed page. The facts show it whole.
     if (account) v.derivedEthAddress = shortHex(account.address, 8, 5);
+    if (prepared) v.payloadHash = shortHex(prepared.payload, 10, 8);
     setVars?.(v);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me, path, account]);
+  }, [me, path, account, prepared]);
 
   // The completion record carries the evidence: the address, the sign request and the check.
   useEffect(() => {
@@ -198,6 +198,9 @@ export function useChainSig({
       ev.txHash = result.txHash;
       ev.mpcTxHash = result.txHash;
       ev.signatureReturned = "true";
+      ev.r = result.signature.r;
+      ev.s = result.signature.s;
+      ev.v = String(result.signature.yParity);
     }
     if (signed) ev.signedTx = signed;
     if (recovered) {

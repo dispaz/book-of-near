@@ -5,18 +5,12 @@
 import stage from "../../stages/4-any-chain/stage";
 import type { Vec3 } from "../../../scene-kit/motion";
 import { isWaiting, NODES, shortHex } from "./signing";
-import { PARCEL_HOME, PARCEL_WAIT, type ChainKey } from "./layout3d";
+import { PARCEL_HOME, PARCEL_WAIT } from "./layout3d";
 import { DERIVE, HOOK, PREPARE, SIGN } from "./steps";
 import type { ChainSig } from "./useChainSig";
 
 /** Stage 4's accent: marks the things that matter now (the account, the address, the shares). */
 export const ACCENT = stage.accent;
-
-export const CHAIN_NAMES: Record<ChainKey, string> = {
-  ethereum: "Ethereum",
-  bitcoin: "Bitcoin",
-  solana: "Solana",
-};
 
 type View = Pick<ChainSig, "step" | "phase">;
 
@@ -33,7 +27,7 @@ export function describe(
     ? `the Ethereum address ${shortHex(cs.account.address)}`
     : "an Ethereum address not yet derived";
   if (cs.step === HOOK)
-    return "Your NEAR mailbox, a ring of signing nodes round the signer contract, and three other chains: Ethereum, Bitcoin and Solana.";
+    return "Your NEAR mailbox, a ring of signing nodes round the signer contract, and Ethereum, a row of block pages with its own keys.";
   if (cs.step === DERIVE)
     return cs.account
       ? `A line runs from your NEAR mailbox through the ring of signing nodes to ${addr}, standing by Ethereum.`

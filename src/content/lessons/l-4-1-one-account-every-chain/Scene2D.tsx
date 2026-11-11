@@ -6,23 +6,21 @@
  */
 import type { SceneProps } from "../../../app/types";
 import { SvgLedger, SvgMailbox, SvgParcel, SvgScroll, SvgSignerNode } from "../../../scene-kit/svg/objects";
-import { COLORS } from "../../../scene-kit/theme";
 import {
   beamPoints,
   ETH_MAILBOX,
   FIGURE,
-  LEDGERS,
+  ETH_LEDGER,
   NEAR_MAILBOX,
   nodeSpots,
   RING_CENTER,
   RING_RADIUS,
   SIGNER,
 } from "./layout3d";
-import { describe, parcelAt, ACCENT, CHAIN_NAMES } from "./page";
+import { describe, parcelAt, ACCENT } from "./page";
 import { Facts, pickLabels } from "./parts";
 import { isWaiting, shortHex, shortName } from "./signing";
 import { CHECK, HOOK, PREPARE, SIGN, VERIFY, type ChainSig } from "./useChainSig";
-import type { ChainKey } from "./layout3d";
 
 /** SVG units per world unit. */
 const SCALE = 64;
@@ -81,19 +79,16 @@ function Page({ cs }: { cs: ChainSig }) {
       />
       {account && step >= 1 ? <polyline points={beam} className="csg-beam" fill="none" /> : null}
 
-      {(Object.keys(LEDGERS) as ChainKey[]).map((k) => (
-        <SvgLedger
-          key={k}
-          x={px(LEDGERS[k][0])}
-          y={pz(LEDGERS[k][2]) + 18}
-          size={40}
-          name={CHAIN_NAMES[k]}
-          edge={k === "ethereum" ? ACCENT : COLORS.slab}
-          onPick={() => cs.pick(k)}
-          pickLabel={pickLabels[k]}
-          selected={cs.picked === k}
-        />
-      ))}
+      <SvgLedger
+        x={px(ETH_LEDGER[0])}
+        y={pz(ETH_LEDGER[2]) + 24}
+        size={52}
+        name="Ethereum"
+        edge={ACCENT}
+        onPick={() => cs.pick("ethereum")}
+        pickLabel={pickLabels.ethereum}
+        selected={cs.picked === "ethereum"}
+      />
 
       {nodeSpots().map((s, i) => (
         <SvgSignerNode

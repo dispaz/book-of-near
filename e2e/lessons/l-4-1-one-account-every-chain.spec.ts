@@ -9,6 +9,7 @@ const TITLE = "One account, every chain";
 const STAGE = 4;
 const BASE58_HASH = /^[1-9A-HJ-NP-Za-km-z]{43,44}$/;
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+const HASH32 = /^0x[0-9a-f]{64}$/;
 
 test.beforeEach(async ({ page }, info) => {
   slow3dUnless2d(info);
@@ -39,7 +40,7 @@ async function walk(page: Page) {
 
   await go(page, "Sepolia"); // derive → prepare
   await dock(page).getByRole("button", { name: "Prepare payload" }).click();
-  await expect(page.getByTestId("payload")).toHaveText(/^0x[0-9a-f]{12}…[0-9a-f]{6}$/);
+  await expect(page.getByTestId("payload")).toHaveText(HASH32);
   await expect(page.getByTestId("eth-balance")).toContainText("0 ETH");
 
   await go(page, "Ask the signing network"); // prepare → sign
@@ -47,8 +48,17 @@ async function walk(page: Page) {
   await dock(page).getByRole("button", { name: "Request signature (MPC)" }).click();
   await expect(page.getByTestId("sign-status")).toContainText("Signed.", { timeout: 15_000 });
   await expect(page.getByTestId("mpc-tx")).toHaveText(/^[1-9A-HJ-NP-Za-km-z]{10}…/);
+  // r, s (32 bytes each) and v (the recovery id) are shown when the signature returns.
+  await expect(page.getByTestId("sig-r")).toHaveText(HASH32);
+  await expect(page.getByTestId("sig-s")).toHaveText(HASH32);
+  await expect(page.getByTestId("sig-v")).toHaveText(/^[01]$/);
 
-  await go(page, `${address.slice(0, 8)}…${address.slice(-5)}`); // sign → verify (short form)
+  await go(page, "Attach r, s and v"); // sign → verify
+  // The signed transaction carries the same r, s and v.
+  await expect(page.getByTestId("tx-r")).toHaveText(HASH32);
+  await expect(page.getByTestId("tx-s")).toHaveText(HASH32);
+  await expect(page.getByTestId("tx-v")).toHaveText(/^[01]$/);
+  await expect(page.getByTestId("derived")).toHaveText(address);
   await dock(page).getByRole("button", { name: "Verify signer" }).click();
   await expect(page.getByTestId("recovered")).toHaveText(address);
   await expect(page.getByTestId("match")).toContainText("Match");
@@ -92,6 +102,9 @@ for (const view of ["2d", "3d"] as const)
           txHash: expect.stringMatching(BASE58_HASH),
           mpcTxHash: expect.stringMatching(BASE58_HASH),
           signatureReturned: "true",
+          r: expect.stringMatching(HASH32),
+          s: expect.stringMatching(HASH32),
+          v: expect.stringMatching(/^[01]$/),
           signedTx: expect.stringMatching(/^0x02[0-9a-f]+$/),
           recoveredAddress: address,
           recoveredMatches: "true",
@@ -141,8 +154,10 @@ for (const view of ["2d", "3d"] as const)
     test("the scene's objects are buttons that do the step's action", async ({ page }) => {
       await page.goto(`/lesson/${ID}?view=${view}`);
       await expectView(page, view);
-      await page.getByRole("button", { name: "Bitcoin" }).press("Enter");
-      await expect(page.getByTestId("picked-note")).toContainText("Bitcoin uses the same kind of key");
+      await page.getByRole("button", { name: "Ethereum", exact: true }).press("Enter");
+      await expect(page.getByTestId("picked-note")).toContainText(
+        "Normally you need its own wallet and private key",
+      );
       await go(page, "Derive an Ethereum address");
       await page.getByRole("button", { name: "Your NEAR account" }).press("Enter");
       await expect(page.getByTestId("eth-address")).toHaveText(ADDRESS);
@@ -152,7 +167,7 @@ for (const view of ["2d", "3d"] as const)
       await go(page, "Ask the signing network");
       await page.getByRole("button", { name: "Signing node 1", exact: true }).press("Enter");
       await expect(scene(page)).toHaveAttribute("data-scene-state", /sign:answered/, { timeout: 15_000 });
-      await go(page, "does it point back");
+      await go(page, "Attach r, s and v");
       await page.getByRole("button", { name: "Your derived Ethereum address" }).press("Enter");
       await expect(page.getByTestId("match")).toContainText("Match");
     });
@@ -177,8 +192,8 @@ test.describe(`lesson ${ID}`, () => {
     await go(page, "Ask the signing network");
     await dock(page).getByRole("button", { name: "Request signature (MPC)" }).click();
     await expect(page.getByTestId("sign-status")).toContainText("Signed.", { timeout: 15_000 });
-    await go(page, "does it point back");
-    await expect(page.getByTestId("caption")).toContainText(`${second.slice(0, 8)}…${second.slice(-5)}`);
+    await go(page, "Attach r, s and v");
+    await expect(page.getByTestId("derived")).toHaveText(second);
   });
 
   test("an empty path cannot be derived", async ({ page }) => {

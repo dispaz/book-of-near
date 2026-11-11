@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ETH_MAILBOX,
   FIGURE,
-  LEDGERS,
+  ETH_LEDGER,
   NEAR_MAILBOX,
   nodeSpots,
   PARCEL_HOME,
@@ -22,7 +22,7 @@ const dist = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[2] - b[2]);
 
 describe("lesson 4.1 layout", () => {
   it("keeps every object inside the figure box, with room for its size", () => {
-    for (const p of [NEAR_MAILBOX, ETH_MAILBOX, PARCEL_HOME, PARCEL_WAIT, ...Object.values(LEDGERS)])
+    for (const p of [NEAR_MAILBOX, ETH_MAILBOX, PARCEL_HOME, PARCEL_WAIT, ETH_LEDGER])
       expect(inside(p), String(p)).toBe(true);
     for (const s of nodeSpots()) expect(inside(s.position, 0.4), String(s.position)).toBe(true);
   });
@@ -44,6 +44,6 @@ describe("lesson 4.1 layout", () => {
     expect(dist(PARCEL_WAIT, RING_CENTER)).toBeLessThan(RING_RADIUS - 0.4);
     expect(dist(PARCEL_HOME, ETH_MAILBOX)).toBeGreaterThan(1);
     expect(dist(NEAR_MAILBOX, RING_CENTER)).toBeGreaterThan(RING_RADIUS + 0.8);
-    expect(dist(LEDGERS.ethereum, ETH_MAILBOX)).toBeGreaterThan(1.2);
+    expect(dist(ETH_LEDGER, ETH_MAILBOX)).toBeGreaterThan(1.2);
   });
 });

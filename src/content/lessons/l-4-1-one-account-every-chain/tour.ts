@@ -12,7 +12,7 @@ export type Target =
   | { kind: "all" }
   | { kind: "account" }
   | { kind: "ring" }
-  | { kind: "chains" }
+  | { kind: "ethereum" }
   | { kind: "address" }
   | { kind: "parcel" };
 
@@ -27,7 +27,7 @@ export function tourFor(step: number): Shot<Target>[] {
       return [
         ALL,
         shot("account", "your NEAR account, the one mailbox you need."),
-        shot("chains", "Ethereum, Bitcoin and Solana, each a chain of its own."),
+        shot("ethereum", "Ethereum, a chain with its own wallets and keys."),
       ];
     case DERIVE:
       return [

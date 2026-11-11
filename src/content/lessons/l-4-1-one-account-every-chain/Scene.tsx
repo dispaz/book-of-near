@@ -56,8 +56,8 @@ const QUESTIONS: CheckQuestion[] = [
         why: "Every Ethereum transaction pays gas in ETH.",
       },
       {
-        text: "Yes. NEAR pays Ethereum's gas in NEAR.",
-        why: "Each chain takes only its own coin for gas. NEAR cannot pay Ethereum's.",
+        text: "Yes, NEAR pays the Ethereum validators on its behalf.",
+        why: "The address must hold ETH or use a relayer to pay gas.",
       },
     ],
   },
@@ -139,17 +139,17 @@ export default function Scene(props: SceneProps) {
       {step === HONEST ? (
         <HonestTake
           comparedWith="Ethereum"
+          // docs/lessons/stage-4/4.1.md, section 4 (#49), word for word.
           strengths={[
-            "One account, many chains. A NEAR account can control addresses on Bitcoin, Ethereum, Solana and more, with no contract to deploy on those chains.",
-            "Contracts can sign too. A NEAR smart contract, such as a DAO, can hold an Ethereum address and sign for it by its own rules.",
-            "Native, not wrapped. The transaction you signed is an ordinary Ethereum transaction. No bridge locks your coins and hands out copies, so there is no pile of locked coins to steal.",
-            "Free addresses. Deriving an address is math in your browser: no fee and no transaction.",
+            "Multichain sovereignty without contracts: One NEAR account controls an Ethereum address without deploying a wallet contract on Ethereum.",
+            "Smart contract control: A NEAR DAO or smart contract can programmatically control an Ethereum treasury.",
+            "Zero-bridge native assets: The signed transaction executes directly on Ethereum; no wrapped token honeypots.",
           ]}
           weaknesses={[
-            "Slower than a local key. The signing network took about 5.5 s on testnet, where a wallet on your own device signs at once.",
-            "Gas on the other chain. A new derived address holds no ETH, so it cannot send anything until someone funds it or a relayer pays. This lesson stops before sending for that reason.",
-            "Trust in the nodes. The scheme is safe only while enough of the signing nodes stay honest. A wallet key you keep yourself does not depend on anyone.",
-            "Compared with Ethereum's smart contract wallets (ERC-4337): they need a contract on every chain and work only on chains with smart contracts, so not on Bitcoin. Chain Signatures avoid that, at the cost of the trust above.",
+            "MPC signing latency: Threshold consensus requires 4 to 6 seconds to coordinate node shares, slower than local private key signing.",
+            "Foreign gas bootstrapping: A newly derived address requires ETH (or a gas relayer) before its signed transactions can broadcast.",
+            "Validator threshold trust: Security relies on the cryptographic assumption that a threshold majority of MPC validators remain honest.",
+            "Compared with: Cross-chain Bridges (vulnerable to smart contract hacks) and Account Abstraction (ERC-4337) (EVM-only; needs a contract wallet deployed on each chain).",
           ]}
         />
       ) : null}

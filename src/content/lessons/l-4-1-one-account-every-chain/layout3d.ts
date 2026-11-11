@@ -1,7 +1,7 @@
 /**
  * Where things stand in lesson 4.1 (world units, y up, z toward the reader), on the right page of the
  * book. Left: the learner's NEAR mailbox. Middle: the signer contract (a scroll) in a ring of signing
- * nodes. Right: three other chains as rows of block pages, and in front of Ethereum the derived
+ * nodes. Right: Ethereum as a row of block pages, and in front of it the derived
  * address (a mailbox) with the transaction (a parcel) beside it. The 2D view draws the same plan from
  * above. Pure, so it is unit tested and never pulls three.js into the 2D view.
  */
@@ -9,7 +9,7 @@ import type { Vec3 } from "../../../scene-kit/motion";
 import { NODES } from "./signing";
 
 /** The ground box (x, z) that holds every step's objects and labels. */
-export const FIGURE = { minX: -4.4, maxX: 4.4, minZ: -3.1, maxZ: 2.4 } as const;
+export const FIGURE = { minX: -4.4, maxX: 4.4, minZ: -2.6, maxZ: 2.4 } as const;
 
 export const NEAR_MAILBOX: Vec3 = [-3.5, 0, 0.8];
 export const RING_CENTER: Vec3 = [-0.6, 0, -0.1];
@@ -19,15 +19,11 @@ export const SIGNER: Vec3 = RING_CENTER;
 /** Where the parcel waits while the nodes sign: in the ring, in front of the scroll. */
 export const PARCEL_WAIT: Vec3 = [RING_CENTER[0], 0, RING_CENTER[2] + 0.75];
 
-export type ChainKey = "ethereum" | "bitcoin" | "solana";
-export const LEDGERS: Record<ChainKey, Vec3> = {
-  solana: [3.1, 0, -2.55],
-  bitcoin: [3.1, 0, -1.25],
-  ethereum: [3.1, 0, 0.05],
-};
-export const ETH_MAILBOX: Vec3 = [1.85, 0, 1.55];
+/** Ethereum, the one other chain this lesson works with (Bitcoin and Solana are out of scope, #49). */
+export const ETH_LEDGER: Vec3 = [3.0, 0, -1.0];
+export const ETH_MAILBOX: Vec3 = [2.4, 0, 1.05];
 /** Where the transaction stands once packed, and comes back to once signed. */
-export const PARCEL_HOME: Vec3 = [3.45, 0, 1.65];
+export const PARCEL_HOME: Vec3 = [3.65, 0, 1.6];
 
 /** The ring's nodes, evenly round the signer, the first one at the back. Each faces the middle. */
 export function nodeSpots(n = NODES): { position: Vec3; facing: number }[] {

@@ -6,7 +6,12 @@ import { useContext, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { formatEther, formatGwei } from "viem";
 import { ActionSlot } from "../../../ui/SceneAction";
-import { SEPOLIA_CHAIN_ID, SIGN_DEPOSIT, SIGNER_CONTRACT } from "../../../chain/chainSignatures";
+import {
+  SEPOLIA_CHAIN_ID,
+  SIGN_DEPOSIT,
+  SIGNER_CONTRACT,
+  type RsvSignature,
+} from "../../../chain/chainSignatures";
 import { formatNear } from "../../../chain/units";
 import { NODES, secondsLeft, shortHex, shortName } from "./signing";
 import { DERIVE, HOOK, PREPARE, SIGN, VERIFY, type ChainSig, type Picked } from "./useChainSig";
@@ -18,9 +23,8 @@ const PICK_NOTE: Record<Exclude<Picked, null>, string> = {
   near: "Your NEAR account. It is the only account you sign in with.",
   ring: "The signing nodes. Each one holds a key share, never the whole key.",
   signer: `The signer contract, ${SIGNER_CONTRACT}. It takes sign requests and hands them to the nodes.`,
-  ethereum: "Ethereum. The address you derive lives here, as a normal Ethereum account.",
-  bitcoin: "Bitcoin uses the same kind of key (secp256k1), so another path could give a Bitcoin address.",
-  solana: "Solana uses another kind of key (ed25519). The signer has a separate domain for it.",
+  ethereum:
+    "Ethereum. Normally you need its own wallet and private key. The address you derive lives here, as a normal Ethereum account.",
   address: "Your derived Ethereum address. NEAR controls it through the signing network.",
   parcel: "The Ethereum transaction: a transfer on Sepolia, from your derived address.",
 };
@@ -32,8 +36,6 @@ export const pickLabels = {
   address: "Your derived Ethereum address",
   parcel: "The Ethereum transaction",
   ethereum: "Ethereum",
-  bitcoin: "Bitcoin",
-  solana: "Solana",
 } as const;
 
 function Row({ label, children, testId }: { label: string; children: ReactNode; testId?: string }) {
@@ -51,8 +53,8 @@ export function Facts({ cs, compact = false }: { cs: ChainSig; compact?: boolean
     <div className={`csg-facts${compact ? " compact" : ""}`}>
       {step === HOOK ? (
         <p className="csg-line">
-          One NEAR account, <strong>{cs.me ? shortName(cs.me) : "yours"}</strong>. Three other chains:
-          Ethereum, Bitcoin and Solana.
+          One NEAR account, <strong>{cs.me ? shortName(cs.me) : "yours"}</strong>. One Ethereum address to
+          control, with no Ethereum key.
         </p>
       ) : null}
 
@@ -88,8 +90,8 @@ export function Facts({ cs, compact = false }: { cs: ChainSig; compact?: boolean
             <Row label="Balance" testId="eth-balance">
               0 ETH (a new address)
             </Row>
-            <Row label="Payload" testId="payload">
-              <code>{shortHex(prepared.payload, 14, 6)}</code>
+            <Row label="Payload hash (32 bytes)" testId="payload">
+              <code>{prepared.payload}</code>
             </Row>
           </dl>
         ) : (
@@ -116,12 +118,7 @@ export function Facts({ cs, compact = false }: { cs: ChainSig; compact?: boolean
                   <code>{shortHex(result.txHash, 10, 6)}</code>
                 </Row>
                 <Row label="Fee burnt">{formatNear(result.tokensBurnt, 5)} NEAR</Row>
-                <Row label="Signature" testId="signature">
-                  <code>
-                    r {shortHex(result.signature.r, 10, 4)}, s {shortHex(result.signature.s, 10, 4)}, v{" "}
-                    {result.signature.yParity}
-                  </code>
-                </Row>
+                <Rsv sig={result.signature} prefix="sig" />
               </>
             ) : null}
           </dl>
@@ -132,17 +129,18 @@ export function Facts({ cs, compact = false }: { cs: ChainSig; compact?: boolean
       {step === VERIFY ? (
         <>
           <dl className="csg-dl">
-            <Row label="Derived address">
-              <code>{account?.address ?? "…"}</code>
-            </Row>
-            <Row label="Recovered signer" testId="recovered">
-              {cs.recovered ? <code>{cs.recovered}</code> : "not checked yet"}
-            </Row>
+            {result ? <Rsv sig={result.signature} prefix="tx" /> : null}
             {cs.signed ? (
               <Row label="Signed transaction">
                 <code>{shortHex(cs.signed, 12, 6)}</code>
               </Row>
             ) : null}
+            <Row label="Recovered signer" testId="recovered">
+              {cs.recovered ? <code>{cs.recovered}</code> : "not checked yet"}
+            </Row>
+            <Row label="Derived address" testId="derived">
+              <code>{account?.address ?? "…"}</code>
+            </Row>
           </dl>
           {cs.recovered ? (
             <p className={`csg-match${cs.match ? " ok" : " bad"}`} data-testid="match" role="status">
@@ -183,6 +181,23 @@ export function Facts({ cs, compact = false }: { cs: ChainSig; compact?: boolean
         </p>
       ) : null}
     </div>
+  );
+}
+
+/** The signature's three values, as they sit in the Ethereum transaction's signature fields. */
+function Rsv({ sig, prefix }: { sig: RsvSignature; prefix: string }) {
+  return (
+    <>
+      <Row label="r (32 bytes)" testId={`${prefix}-r`}>
+        <code>{sig.r}</code>
+      </Row>
+      <Row label="s (32 bytes)" testId={`${prefix}-s`}>
+        <code>{sig.s}</code>
+      </Row>
+      <Row label="v (recovery id)" testId={`${prefix}-v`}>
+        <code>{sig.yParity}</code>
+      </Row>
+    </>
   );
 }
 

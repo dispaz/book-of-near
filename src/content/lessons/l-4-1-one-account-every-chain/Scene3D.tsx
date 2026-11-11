@@ -10,7 +10,6 @@ import { Line } from "@react-three/drei";
 import {
   Anchor,
   BookScene,
-  COLORS,
   focusOf,
   inset,
   Label,
@@ -32,16 +31,15 @@ import {
   beamPoints,
   ETH_MAILBOX,
   FIGURE,
-  LEDGERS,
+  ETH_LEDGER,
   NEAR_MAILBOX,
   nodeSpots,
   PARCEL_HOME,
   RING_CENTER,
   RING_RADIUS,
   SIGNER,
-  type ChainKey,
 } from "./layout3d";
-import { ACCENT, CHAIN_NAMES, describe, parcelAt } from "./page";
+import { ACCENT, describe, parcelAt } from "./page";
 import { Facts, pickLabels } from "./parts";
 import { isWaiting, shortHex, shortName } from "./signing";
 import { CHECK, DERIVE, PREPARE, SIGN } from "./steps";
@@ -84,8 +82,8 @@ function shotFocus(t: Target): Focus {
       return close([NEAR_MAILBOX[0], 0.8, NEAR_MAILBOX[2]], 2.2, 2.2, 2);
     case "ring":
       return close([RING_CENTER[0], 0.5, RING_CENTER[2]], RING_RADIUS * 2.4, RING_RADIUS * 2.4, 1.4);
-    case "chains":
-      return close([LEDGERS.bitcoin[0], 0.5, LEDGERS.bitcoin[2]], 2.6, 3.4, 1.4);
+    case "ethereum":
+      return close([ETH_LEDGER[0], 0.5, ETH_LEDGER[2]], 2.6, 1.8, 1.4);
     case "address":
       return close([ETH_MAILBOX[0], 0.7, ETH_MAILBOX[2]], 2.2, 2.2, 1.8);
     case "parcel":
@@ -200,25 +198,22 @@ function Figure({ cs, compact }: { cs: ChainSig; compact: boolean }) {
         />
       ))}
       <Anchor name="ring" position={[RING_CENTER[0], 0.9, RING_CENTER[2] - RING_RADIUS]} />
-      {step === SIGN && cs.result ? (
+      {step === SIGN && cs.result && !compact ? (
         <Label position={[RING_CENTER[0], 1.9, RING_CENTER[2]]} variant="small">
           threshold reached
         </Label>
       ) : null}
 
-      {/* Three other chains. */}
-      {(Object.keys(LEDGERS) as ChainKey[]).map((k) => (
-        <Ledger
-          key={k}
-          position={LEDGERS[k]}
-          size={0.75}
-          name={CHAIN_NAMES[k]}
-          edge={k === "ethereum" ? ACCENT : COLORS.slab}
-          onPick={() => cs.pick(k)}
-          pickLabel={pickLabels[k]}
-          selected={cs.picked === k}
-        />
-      ))}
+      {/* Ethereum: the one other chain (Bitcoin and Solana are out of scope, #49). */}
+      <Ledger
+        position={ETH_LEDGER}
+        size={0.95}
+        name="Ethereum"
+        edge={ACCENT}
+        onPick={() => cs.pick("ethereum")}
+        pickLabel={pickLabels.ethereum}
+        selected={cs.picked === "ethereum"}
+      />
 
       {/* The derived address: dashed until derived; its flag goes up when the signer checks out. */}
       <Mailbox

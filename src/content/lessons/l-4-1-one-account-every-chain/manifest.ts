@@ -19,14 +19,15 @@ export default {
     name: "your account",
     path: "ethereum-1",
     derivedEthAddress: "your new address",
+    payloadHash: "the payload hash",
     signer: "v1.signer-prod.testnet",
   },
   steps: [
     {
       caption:
-        "Ethereum, Bitcoin, Solana. Why should you need a separate wallet and seed phrase for each one?",
+        "Ethereum needs its own wallet and its own private key. Could one NEAR account control the Ethereum address instead?",
       explain:
-        "Each chain has its own wallets and keys, so using several chains means several seed phrases and several kinds of gas money. On NEAR, one account can sign transactions for other chains too. The feature is called Chain Signatures.",
+        "Normally, controlling an Ethereum address means holding its private key, so each chain needs its own wallet and seed phrase. On NEAR, an account can get signatures for an Ethereum address through Chain Signatures, with no Ethereum key stored anywhere.",
       explainAt: "mailbox",
     },
     {
@@ -39,23 +40,24 @@ export default {
     {
       caption: "Pack a transfer on Sepolia, Ethereum's test network. Your new address starts with 0 ETH.",
       explain:
-        "This is a normal Ethereum transaction: who it goes to, how much, gas, fees and a nonce (a counter, 0 for a new address). The app hashes it into 32 bytes, the payload. That payload is what must be signed. Nothing is signed yet.",
+        "This is a normal Ethereum transaction: who it goes to, how much, gas, fees and a nonce (a counter, 0 for a new address). The app hashes it into 32 bytes, the payload. That payload, {payloadHash}, is the only thing the signing network signs. Nothing is signed yet.",
       explainAt: "parcel",
       action: { label: "pack the transaction", gate: true },
     },
     {
-      caption: "Ask the signing network ({signer}) to sign the payload for your address.",
+      caption: "Ask the signing network ({signer}) to sign the Ethereum payload hash.",
       explain:
-        "You call sign() on the signer contract and attach 1 yoctoNEAR (the smallest unit of NEAR) plus gas. Your request waits while the signing nodes work. Each node holds a key share, one piece of the key. Once enough shares agree (the threshold), the signature comes back. No machine ever holds the whole key.",
+        "You call sign() with the payload, the path and the key type (ECDSA on secp256k1, the curve Ethereum uses), plus 1 yoctoNEAR (the smallest unit of NEAR) and gas. Each signing node holds a key share, one piece of the key. Once enough shares agree (the threshold), r, s and v come back. No machine ever holds the whole key.",
       explainAt: "ring",
       action: { label: "request the signature", gate: true },
     },
     {
-      caption: "Check the signature with Ethereum's own math: does it point back to {derivedEthAddress}?",
+      caption:
+        "Attach r, s and v to the transaction, then recover the signer address with viem. If the address matches, your NEAR account signed for Ethereum.",
       explain:
-        "Ethereum works out the signer from the signature alone. The app does the same with the viem library. If it gives your derived address, your NEAR account controls that address. The app does not send it to Sepolia: the address has 0 ETH to pay Ethereum's gas.",
+        "From r, s and v, Ethereum software works out the signer's public key, hashes it with Keccak-256 (Ethereum's hash function) and keeps the last 20 bytes: the address. If that equals {derivedEthAddress}, the signing network signed for your address, and no one holds an Ethereum private key.",
       explainAt: "address",
-      action: { label: "check who signed", gate: true },
+      action: { label: "verify the signer", gate: true },
     },
     {
       caption: "Three quick questions on Chain Signatures, signing nodes and derived addresses.",
