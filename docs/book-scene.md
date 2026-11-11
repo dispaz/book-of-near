@@ -151,6 +151,14 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
     Tests read `data-camera-user` (`on` / `off`), `data-pan-bounds` (`minX,maxX,minZ,maxZ`) and `data-camera-pose` (`x,y,z@x,y,z`, camera and target,
     2 decimals) on `.sk-stage`; see `e2e/book-camera.spec.ts`. `data-camera` turns `moving` in the same
     tick a glide, a reset or a press is requested, so waiting for `still` never reads the old pose.
+12. **Animations must request frames (`frameloop="demand"`).** The canvas draws only when something asks
+    for a frame, so an idle book costs nothing (#44). Anything that moves in a frame callback uses
+    `useAnimatedFrame` (scene-kit `frames.ts`) instead of `useFrame` and returns `true` while it still
+    moves, `false` once it has settled. A callback that only follows something else (labels, printed copy,
+    the pop-up fill) stays a plain `useFrame`. Attention cues (bobs, pulses on the next thing to click)
+    move for `CUE_SECONDS` and then rest in a pose that still reads as a cue. A texture redrawn in place
+    (same object, `needsUpdate = true`) calls `invalidate()`. `e2e/render-on-demand.spec.ts` checks that
+    every 3D lesson draws no frames once settled; add new 3D lessons to its list.
 
 ### Tests every book lesson needs
 
