@@ -1,0 +1,134 @@
+# Release: every push (merge) to `release` runs the full checks, deploys the app to Cloudflare Pages,
+# smoke-tests the live URL, then tags the commit vX.Y.Z and creates a GitHub Release.
+# Setup and versioning rules: docs/release.md.
+name: Release
+
+on:
+  push:
+    branches: [release]
+  workflow_dispatch:
+
+# One release at a time, never cancelled half way (the version number depends on the last tag).
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CI: true
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            worker/package-lock.json
+      - run: npm ci
+      - run: npm ci
+        working-directory: worker
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Worker typecheck and tests
+        working-directory: worker
+        run: npm run typecheck && npm test
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: E2E (demo mode, production build)
+        run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+
+  deploy:
+    name: Deploy and tag
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ steps.pages.outputs.deployment-url }}
+    permissions:
+      contents: write # push the tag and create the GitHub Release
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # all tags, for the version number
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+
+      - name: Work out the version
+        id: version
+        run: |
+          v="$(node scripts/release-version.mjs)"
+          echo "Releasing v$v"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        env:
+          VITE_APP_VERSION: ${{ steps.version.outputs.version }}
+          VITE_CHAIN_MODE: ${{ vars.VITE_CHAIN_MODE || 'demo' }}
+          VITE_WORKER_URL: ${{ vars.VITE_WORKER_URL }}
+          VITE_RETURN_ACCOUNT_ID: ${{ vars.VITE_RETURN_ACCOUNT_ID }}
+        run: |
+          npm run build
+          node -e 'require("fs").writeFileSync("dist/version.json", JSON.stringify({
+            version: process.argv[1], commit: process.env.GITHUB_SHA, builtAt: new Date().toISOString()
+          }, null, 2) + "\n")' "${{ steps.version.outputs.version }}"
+
+      - name: Deploy to Cloudflare Pages
+        id: pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.149.0"
+          command: >-
+            pages deploy dist --project-name book-of-near --branch release
+            --commit-hash ${{ github.sha }} --commit-message "v${{ steps.version.outputs.version }}"
+
+      - name: Deploy the Worker
+        if: vars.DEPLOY_WORKER == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.149.0"
+          workingDirectory: worker
+          packageManager: npm
+          command: deploy --tag v${{ steps.version.outputs.version }}
+
+      - name: Smoke test the live deploy
+        env:
+          BASE_URL: ${{ steps.pages.outputs.deployment-url }}
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test --grep @smoke
+          curl -fsS "$BASE_URL/version.json"
+
+      - name: Tag and create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: v${{ steps.version.outputs.version }}
+          URL: ${{ steps.pages.outputs.deployment-url }}
+        run: |
+          git tag "$V" "$GITHUB_SHA"
+          git push origin "$V"
+          gh release create "$V" --verify-tag --title "$V" --generate-notes \
+            --notes "Deployed to $URL (Cloudflare Pages, branch \`release\`)."

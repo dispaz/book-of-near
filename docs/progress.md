@@ -328,3 +328,8 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Script and topic changed: real size (~2 KB, ~0.02 NEAR, not 10 KB / 0.1 NEAR), the bon- parent for hex accounts, a new failing-callback step, upgrades in place vs Ethereum proxies in the honest take.
 - Book scene (3D) and 2D share one state (`useDeploy`); every object is a pick. e2e: walks in both views, outcome, reduced motion, phones, no WebGL, view switch, 3D picks, print and tour. 3D walks get 90 s (five realtime transactions).
 - Not tested on real testnet (demo only).
+
+## 2026-11-02 · Release workflow
+- `.github/workflows/release.yml`: a push or merge to `release` runs lint, typecheck, unit tests, Worker typecheck/tests and e2e (demo, production build). Then it builds, deploys to Cloudflare Pages (branch `release`), optionally deploys the Worker (`DEPLOY_WORKER=true`), smoke-tests the live URL, and tags `vX.Y.Z` with a GitHub Release.
+- Versioning: `scripts/release-version.mjs` (tested). MAJOR.MINOR from `package.json`, PATCH = next after the highest matching tag. The build ships `dist/version.json` and `VITE_APP_VERSION`.
+- **Not done (owner):** Cloudflare token + account id as repo secrets, Pages production branch `release`, `git push origin main:release`. Steps in `docs/release.md`.
