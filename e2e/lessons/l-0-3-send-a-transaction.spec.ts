@@ -376,7 +376,7 @@ for (const view of ["2d", "3d"] as const)
     });
   });
 
-test.describe(`lesson ${ID}: 2D and 3D`, () => {
+test.describe(`lesson ${ID}: both views`, () => {
   const labels = (page: Page) => page.locator(".stx-3d .sk-label");
 
   test("switching 2D → 3D → 2D mid-lesson keeps the step, the amount, the transaction and open gates", async ({

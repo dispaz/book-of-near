@@ -141,9 +141,11 @@ async function open(page: Page, view: View, query = "") {
 }
 
 async function expectView(page: Page, view: View) {
-  await expect(
-    page.getByRole("group", { name: "Scene view" }).getByRole("button", { name: view.toUpperCase() }),
-  ).toHaveAttribute("aria-pressed", "true");
+  // Without WebGL (E2E_NO_3D, release CI) 2D is the only view and the switch is hidden.
+  if (!(view === "2d" && process.env.E2E_NO_3D === "1"))
+    await expect(
+      page.getByRole("group", { name: "Scene view" }).getByRole("button", { name: view.toUpperCase() }),
+    ).toHaveAttribute("aria-pressed", "true");
   if (view === "3d") await expect(page.locator(".sk-stage canvas")).toBeVisible({ timeout: LOAD_3D });
   else {
     await expect(page.locator(".sk-stage")).toHaveCount(0);
