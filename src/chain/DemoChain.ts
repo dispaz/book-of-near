@@ -15,10 +15,13 @@ import { base58, base64 } from "@scure/base";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import { isDirectSubAccount, isImplicitAccountId, isValidAccountId } from "./accountId";
 import { ChainError } from "./errors";
-import { encodeSuccessValue } from "./ops";
+import { DELEGATE_VALIDITY_BLOCKS, encodeSuccessValue } from "./ops";
 import { HISTORICAL_BLOCK, RECORDED_LATENCY_MS, rpcEndpoint, type RpcEndpointId } from "./rpcEndpoints";
 import { shardForAccount } from "./shards";
 import type {
+  DelegateRequest,
+  RelayResult,
+  SignedDelegate,
   AccessKeyInfo,
   AccessKeyPermission,
   AccountId,
@@ -65,6 +68,7 @@ import {
   type PromiseResult,
 } from "./demo/contracts";
 import { mpcSignerContract } from "./demo/mpcSigner";
+import { tokenContract } from "./demo/token";
 import { buyerContract, DEMO_BUYER, DEMO_SHOP, shopContract } from "./demo/shop";
 import { SIGNER_CONTRACT } from "./chainSigMath";
 import {
@@ -134,7 +138,14 @@ export interface DemoChainOptions {
   contracts?: { code: Uint8Array; contract: DemoContract }[];
   /** Override the timer (tests). */
   sleep?: (ms: number) => Promise<void>;
+  /** Meta-transactions the demo relayer pays for, per sender, for this chain's life. Default `DEMO_RELAY_CAP`. */
+  relayCap?: number;
 }
+
+/** The demo relayer (lesson 3.2): pays the gas of signed delegate actions, up to `relayCap` per sender. */
+export const DEMO_RELAYER = "relayer.bon.testnet";
+/** Transfers the demo relayer pays for per sender. The count lives in memory, so a reload resets it. */
+export const DEMO_RELAY_CAP = 3;
 
 // ---------- Internal state ----------
 
@@ -200,7 +211,13 @@ function cloneAccount(a: AccountState): AccountState {
 }
 
 function cloneActions(list: Action[]): Action[] {
-  return list.map((a) => (a.type === "FunctionCall" ? { ...a, args: structuredClone(a.args) } : { ...a }));
+  return list.map((a) =>
+    a.type === "FunctionCall"
+      ? { ...a, args: structuredClone(a.args) }
+      : a.type === "Delegate"
+        ? { ...a, delegate: { ...a.delegate, actions: cloneActions(a.delegate.actions) } }
+        : { ...a },
+  );
 }
 
 const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -223,6 +240,9 @@ export class DemoChain implements Chain {
   private readonly practice: PracticeAccount;
   private head = GENESIS_HEIGHT;
   private keyCounter = 0;
+  private readonly relayCap: number;
+  private readonly relayed = new Map<AccountId, number>();
+  private readonly relayerKey: PublicKey;
 
   constructor(options: DemoChainOptions = {}) {
     this.seed = options.seed ?? "book-of-near";
@@ -236,6 +256,7 @@ export class DemoChain implements Chain {
     this.install(demoContractCode("mpc-signer"), mpcSignerContract);
     this.install(demoContractCode("shop"), shopContract);
     this.install(demoContractCode("buyer"), buyerContract);
+    this.install(demoContractCode("ft"), tokenContract);
     for (const c of options.contracts ?? []) this.install(c.code, c.contract);
 
     const publicKey = options.practicePublicKey ?? DEMO_PRACTICE_PUBLIC_KEY;
@@ -249,6 +270,11 @@ export class DemoChain implements Chain {
     // Lesson 2.2's cross-contract call: a buyer contract and a shop, on different demo shards.
     this.genesisAccount(DEMO_BUYER, parseNear("10"), undefined, demoContractCode("buyer"));
     this.genesisAccount(DEMO_SHOP, parseNear("10"), undefined, demoContractCode("shop"));
+    // Lesson 3.2's relayer: its key lives in this chain's key store, like the Worker's secret key.
+    this.relayCap = options.relayCap ?? DEMO_RELAY_CAP;
+    this.relayerKey = `ed25519:${base58.encode(this.digest("relayer-key"))}`;
+    this.keyStore.add(this.relayerKey);
+    this.genesisAccount(DEMO_RELAYER, parseNear("50"), this.relayerKey);
     for (const a of options.accounts ?? []) this.genesisAccount(a.accountId, a.balance, undefined, a.code);
     this.makeBlock(GENESIS_HEIGHT);
   }
@@ -457,6 +483,49 @@ export class DemoChain implements Chain {
       throw new ChainError("InvalidTransaction", "This app does not hold that key.", "InvalidSignature");
     const hash = this.txHash(tx);
     return { ...tx, actions: cloneActions(tx.actions), hash, signature: this.signatureFor(hash) };
+  }
+
+  async signDelegate(request: DelegateRequest): Promise<SignedDelegate> {
+    if (request.actions.some((a) => a.type === "Delegate"))
+      throw new ChainError("InvalidTransaction", "A delegate action cannot hold another one.");
+    const tx = await this.buildTransaction({
+      signerId: request.senderId,
+      receiverId: request.receiverId,
+      actions: request.actions,
+      publicKey: request.publicKey,
+    });
+    if (!this.keyStore.has(tx.publicKey))
+      throw new ChainError("InvalidTransaction", "This app does not hold that key.", "InvalidSignature");
+    const unsigned = {
+      senderId: tx.signerId,
+      receiverId: tx.receiverId,
+      actions: tx.actions,
+      nonce: tx.nonce,
+      maxBlockHeight: BigInt(this.head + DELEGATE_VALIDITY_BLOCKS),
+      publicKey: tx.publicKey,
+    };
+    const hash = this.delegateHash(unsigned);
+    return {
+      ...unsigned,
+      signature: this.signatureFor(hash),
+      payload: base64.encode(enc.encode(serialize(unsigned))),
+    };
+  }
+
+  async relayDelegate(signed: SignedDelegate, options: SendOptions = {}): Promise<RelayResult> {
+    const used = this.relayed.get(signed.senderId) ?? 0;
+    if (used >= this.relayCap)
+      throw new ChainError(
+        "RelayRefused",
+        `The relayer has paid for ${this.relayCap} transfers for ${signed.senderId} on this visit. That is its cap, so it refused this one.`,
+      );
+    this.relayed.set(signed.senderId, used + 1);
+    const delegate = { ...signed, actions: cloneActions(signed.actions) };
+    const outcome = await this.sendTransaction(
+      { signerId: DEMO_RELAYER, receiverId: signed.senderId, actions: [{ type: "Delegate", delegate }] },
+      options,
+    );
+    return { relayerId: DEMO_RELAYER, outcome, remaining: this.relayCap - used - 1, cap: this.relayCap };
   }
 
   async sendTransaction(request: TransactionRequest, options: SendOptions = {}): Promise<TxOutcome> {
@@ -794,6 +863,37 @@ export class DemoChain implements Chain {
               });
             break;
           }
+          case "Delegate": {
+            // NEP-366: the relayer's receipt reaches the sender's account, which checks the signature and
+            // nonce, then sends the inner actions on as if the sender had signed a transaction.
+            const d = action.delegate;
+            const bad = (
+              reason: Extract<ActionErrorKind, { type: "DelegateActionInvalid" }>["reason"],
+              m: string,
+            ) => fail({ type: "DelegateActionInvalid", reason }, m);
+            if (d.senderId !== r.receiverId)
+              bad("SenderMismatch", "A delegate action must be sent to its own sender's account.");
+            if (BigInt(r.height) > d.maxBlockHeight)
+              bad("Expired", "The signed delegate action has expired.");
+            const a = needAccount();
+            const key = a.keys.get(d.publicKey);
+            if (!key) return bad("AccessKeyNotFound", `${d.senderId} has no key ${d.publicKey}.`);
+            if (d.signature !== this.signatureFor(this.delegateHash(d)))
+              bad("InvalidSignature", "The signature does not match the delegate action. Was it changed?");
+            if (d.nonce <= key.nonce)
+              bad("InvalidNonce", "This delegate action was already used. Sign a new one.");
+            key.nonce = d.nonce;
+            children.push({
+              id: this.receiptId(r.id, children.length),
+              predecessorId: d.senderId,
+              receiverId: d.receiverId,
+              actions: cloneActions(d.actions),
+              height: r.height + 1,
+              isRefund: false,
+            });
+            status = { type: "SuccessReceiptId", receiptId: children[children.length - 1]!.id };
+            break;
+          }
           case "FunctionCall": {
             const a = needAccount();
             a.amount += action.deposit;
@@ -1069,6 +1169,15 @@ export class DemoChain implements Chain {
     const { signerId, publicKey, nonce, receiverId, blockHash, actions } = tx;
     return base58.encode(
       this.digest(`tx|${serialize({ signerId, publicKey, nonce, receiverId, blockHash, actions })}`),
+    );
+  }
+
+  private delegateHash(d: Omit<SignedDelegate, "signature" | "payload">): CryptoHash {
+    const { senderId, receiverId, actions, nonce, maxBlockHeight, publicKey } = d;
+    return base58.encode(
+      this.digest(
+        `delegate|${serialize({ senderId, receiverId, actions, nonce, maxBlockHeight, publicKey })}`,
+      ),
     );
   }
 

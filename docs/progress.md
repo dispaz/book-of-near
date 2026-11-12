@@ -462,6 +462,15 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Scene objects: bridge vault (safe, cracks and drains) and confidential shield (+ dome) are lesson-local; rows added to `docs/scene-objects.md`. Picks: own reaction per object (vault rattles, slip and coin flip/spin, mailbox hops, shield pulses), "not yet" shake + hint, detail after. Hover lift / press squash are not done (the kit's `Pickable` does not expose hover yet).
 - `e2e/backlog-cards.spec.ts`: the "being written" planned-card test now uses lesson 7.1, since 4.3 is ready.
 
+## 2026-11-13 · Lesson 3.2: Issue your own token (Closes #20)
+
+- New lesson `l-3-2-issue-a-token` (7 steps from `docs/lessons/stage-3/3.2.md`): hook, mint (symbol and supply fields, `{symbol}`/`{supply}` in later text), a transfer refused because the friend is not registered, the NEP-145 storage deposit, a gasless transfer through the relayer (send again until the cap refuses), check, honest take (compared with ERC-20 + ERC-4337). 2D and 3D (pop-up `BookScene`) draw one state (`useToken`). Reuses 3.1's parent-name and storage-gauge helpers (`contractIdFor` now takes a label).
+- Chain interface: `signDelegate` (NEP-366), a `Delegate` action, `ChainError` kind `RelayRefused`. DemoChain runs delegate actions (signature, nonce, expiry checked; relayer pays gas and deposit) with a demo-only `DemoChain.relayDelegate` (relayer `relayer.bon.testnet`, up to 3 transfers per sender per visit; the count is in memory, so a reload resets it). TestnetChain borsh-encodes and signs delegate actions (byte-checked against near-kit). Delegate actions stay valid 200 blocks on both chains (`DELEGATE_VALIDITY_BLOCKS`, near-kit's default). No live relayer: the app ships no Worker relay route and holds no relayer key.
+- Completion evidence carries `mode` (always `demo`: the lesson runs a DemoChain).
+- Token: a demo NEP-141 + NEP-145 contract (`src/chain/demo/token.ts`, `demoContractCode("ft")`). No token Wasm ships yet, so in testnet mode the lesson runs on its own DemoChain and says so. A real token Wasm (like `counter.wat`) is the follow-up for a live testnet run.
+- Picks: stamp mints, padlock sends, friend's mailbox registers, parcel signs, the relayer's mailbox shows what it paid for; "not yet" shake + hint, a hop and a detail after. 3.2 is in `render-on-demand.spec.ts`. Hover lift / press squash not done (the kit's `Pickable` does not expose hover).
+- Gate: lint, typecheck, unit tests (+ worker), the lesson's e2e (8) and the full e2e. Screenshots checked at 1440×900 and 390×844, 2D and 3D, reduced motion and `?webgl=0`.
+
 ## 2026-11-12 · Lesson 3.3: Race the RPC nodes (Closes #21)
 
 - New lesson `l-3-3-race-the-rpc` (7 steps from `docs/lessons/stage-3/3.3.md`): hook, race three providers, switch FastNEAR off, failover, an old block on a regular vs an archival node, check, honest take. 2D and 3D (pop-up `BookScene`) draw one state (`useRace`); pure logic in `race.ts` (unit tested).
