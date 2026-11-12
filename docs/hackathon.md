@@ -48,23 +48,25 @@ Claim `nfts` only if the badge claim works. A track with no evidence hurts more 
    - "do X, see Y" steps for each feature;
    - the tracks and where their evidence is;
    - **disclosure of AI-generated code and libraries used** (rule Q-005);
-   - the baseline: commits before 1 Nov (docs only) and a link to the diff from `pre-hackathon` to `hackathon-submission`.
+   - the baseline: commits before 1 Nov (docs only) and a link to the diff from `pre-hackathon` to `hackathon-submission`;
+   - other chains used (Ethereum Sepolia in lesson 4.1, rule Q-002) and any other hackathon project by the same person (rule Q-015; none).
 4. **Git tags:** `pre-hackathon` (last commit before 1 Nov) and `hackathon-submission`.
-5. **Post on X** by the owner: says it was built at NEAR HACKATHON, tags `@NEARProtocol` and `#NEARHackathon` (`@NearLegion`, `@NearBuilders` optional), **with the demo video attached**. Screenshots alone are not enough when judges cannot open the demo.
+5. **Post on X** by the owner: says it was built at NEAR HACKATHON, tags `@NEARProtocol` and `#NEARHackathon` (`@NearLegion`, `@NearBuilders` optional), **with the demo video attached**. The rules allow "video or screenshots", but also say screenshots are not enough when judges cannot open the demo, so we choose a video.
 6. **Mainnet payout account** (`name.near` or a 64-character implicit account), created by the owner in a wallet. Agents never create it.
 7. **The form** at https://nearhackathon.com/#apply. It cannot be edited after sending (changes only through https://nearhackathon.com/request-changes). Fields:
    - project name (2 to 80 characters), lead name (2 to 80), email (up to 160; at most 2 submissions per email);
    - team size `1`;
    - tracks;
    - NEAR payout address;
-   - project URL (the repo) and demo URL (the live site);
+   - project URL: the repo (up to 300 characters, unique per submission);
+   - demo URL: the **X post** (up to 300 characters), not the live site; put the live site in the README and the post;
    - "what you built": 20 to 2,000 characters on the problem, the product and how NEAR fits in;
    - consent: "I agree that the organizers may use these details to review our submission and contact us about this hackathon."
 
 ## Strongly recommended
 
 - **Hosted demo** (Cloudflare Pages, `book-of-near.pages.dev`), up until 25 Nov. It counts as "a plus".
-- **Video of 2:20 or less.** X accounts without Premium upload at most 140 seconds of MP4 (H.264).
+- **Video of 2:20 or less.** This is an X limit, not a hackathon rule: X accounts without Premium upload at most 140 seconds of MP4 (H.264).
 - No secrets anywhere in git history (scan before going public).
 
 ## Who does what
