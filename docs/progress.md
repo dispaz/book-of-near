@@ -406,6 +406,18 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Gate: lint (0 errors), typecheck, `npm test` (538 passed), Worker tests (13), `npm run test:badge` (19 sandbox tests), `e2e/wallet.spec.ts` and the full e2e suite (249 passed, 5 skipped).
 - #12 stays open: its testnet mint is issue #68. Real wallet sign-in and a real mainnet signature are still untested (needs a person with a mainnet wallet).
 
+## 2026-11-12 · Lesson 4.2: Swap across chains with an intent (#24)
+- `src/chain/intents.ts`: the only way to 1Click. Quote bodies (dry, and the real swap's non-dry one kept in NEAR Intents for the learner's own account), `parseQuote` (plain-English errors), `RECORDED_QUOTE` (script numbers, 1Click shape), `requestQuote` (Worker `$VITE_WORKER_URL/intents/quote` first, else 1Click direct without a key), `swapOffer` (= `checkFunds`), `capCheck` (0.25 NEAR and $1), `tinySwapRequest` (one wrap.near transaction: `near_deposit`, `storage_deposit`, `ft_transfer`) and `runTinySwap` (funds → cap → quote → cap on USD → `sign` through the wallet seam).
+- Worker `POST /intents/quote` (`worker/src/intents.ts`): NEAR in only, non-dry refused above 0.25 NEAR, optional `ONECLICK_JWT` secret as a bearer token. Checked live with `wrangler dev` and the app in testnet mode (`quote:worker`, 5 NEAR → 17.09 USDC, 21 s).
+- Lesson `l-4-2-intent-swap` (2D + 3D book scene, one state in `useIntentSwap`): quote (recorded in demo, live dry in testnet mode, recorded fallback with a notice), inspect, solver fill (lock → deliver → settle), finish on the dry quote or the optional tiny swap. Picks act, give the script's "not yet" hints and details after the step; the not-yet shake is lesson-level (kit reactions are #54). Completion evidence: quote numbers, `quoteSource`, `dryQuoteVerified`, `realSwapExecuted` (true only with the learner's own wallet), `finishedOn`.
+- Found: 1Click now refuses the `0x…dEaD` recipient in a dry quote ("recipient is not valid"); the lesson uses `0x1111…1111`. 1Click timed out (25 s) for a while on 12 Nov, hence the recorded fallback.
+- Not verified: a real tiny swap on mainnet (needs a person with a funded wallet), the deposit flow for a NEAR-origin swap (wrap + `ft_transfer` to the deposit address), and the bearer header with a real 1Click key.
+
+## 2026-11-12 · Lesson 4.2 review fixes (#24)
+- Real swap copy: the finish panel, step 5 explain (script `docs/lessons/stage-4/4.2.md` and manifest), the wallet confirm text and the "Sent" outcome now say the USDC stays in the learner's NEAR Intents account (intents.near), not on Arbitrum, and is withdrawn separately.
+- `capCheck` refuses a live quote with no dollar value (the $1 cap is never skipped silently).
+- Worker `/intents/quote`: per-IP and global daily quote limits (`QUOTE_PER_IP_DAILY` 20, `QUOTE_GLOBAL_DAILY` 400, `quote:` key prefix apart from the faucet), body capped at 4 KB (413), and every field checked: `EXACT_INPUT` only (so the 0.25 NEAR cap bounds the NEAR going in), wNEAR → USDC on Arbitrum only, slippage 0..300 bps, deadline within 30 minutes, fixed deposit/refund types. An app unit test checks the Worker's cap, asset ids and `Fetch` type match the app's and that it accepts the app's quote bodies.
+
 ## 2026-11-12 · Lesson 1.2 review notes fixed (Closes #15)
 
 - Reload: restore-on-reload moved out of `useKeyLesson.ts` into `resume.ts` (`findResumableKey`). When the lesson adds the key it remembers, in this browser, the starting allowance and the add hash (`rememberKey`, forgotten on delete; storage blocked is handled). A key picked up after a reload is recorded with `keyResumed: "yes"`, plus `addKeyTxHash` when remembered.
