@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
-import { Link } from "react-router";
+import { useEffect } from "react";
+import { Link, useLocation } from "react-router";
 import { registry } from "../app/registry";
 import { useProgress } from "../progress";
 import { isOpen, isOptionalStage, ROUTE_INFO, startLesson } from "../progress/routes";
@@ -17,6 +18,18 @@ const TickIcon = () => (
 /** The book's table of contents: every stage with its lessons; planned ones and backlog topics as locked cards. */
 export function ContentsPage() {
   const { route, completions, position } = useProgress();
+  const { hash } = useLocation();
+  // "Claim the stage N badge" at the end of a stage links here: bring its card into view.
+  useEffect(() => {
+    if (!hash.startsWith("#stage-")) return;
+    let tries = 0;
+    const t = window.setInterval(() => {
+      const el = document.getElementById(hash.slice(1));
+      if (el || ++tries > 20) window.clearInterval(t);
+      el?.scrollIntoView({ block: "center" });
+    }, 100);
+    return () => window.clearInterval(t);
+  }, [hash]);
   const done = new Set(completions.map((c) => c.lessonId));
   const resume = position ? registry.lessons.get(position.lessonId) : undefined;
   const canResume = !!resume && isOpen(resume);

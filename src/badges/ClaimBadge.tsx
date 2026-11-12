@@ -75,6 +75,7 @@ export function ClaimBadge({ stage, accent }: { stage: number; accent?: string }
       className={`claim-badge claim-${view.s}`}
       style={{ "--stage-accent": accent } as CSSProperties}
       aria-label={`Stage ${stage} badge`}
+      id={`stage-${stage}-badge`}
       data-claim-state={view.s}
     >
       <div className="claim-art">

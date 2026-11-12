@@ -4,7 +4,6 @@ import { registry } from "../app/registry";
 import type { ChainMode, LessonManifest } from "../app/types";
 import { progress, useProgress } from ".";
 import { nextLesson } from "./routes";
-import { ClaimBadge } from "../badges/ClaimBadge";
 import { ruleFor } from "../badges/rules";
 import "./progress.css";
 
@@ -62,13 +61,17 @@ export function FinishLesson({
             Next: {next.title}
           </Link>
         ) : null}
-        <Link className="btn" to="/">
-          Back to contents
-        </Link>
+        {/* The stage's last lesson: the way back to the contents leads to the stage's badge card. */}
+        {ruleFor(lesson.stage)?.lessons.at(-1) === lesson.id ? (
+          <Link className="btn" to={`/#stage-${lesson.stage}-badge`}>
+            Claim the stage {lesson.stage} badge
+          </Link>
+        ) : (
+          <Link className="btn" to="/">
+            Back to contents
+          </Link>
+        )}
       </div>
-      {ruleFor(lesson.stage)?.lessons.at(-1) === lesson.id ? (
-        <ClaimBadge stage={lesson.stage} accent={registry.stageOf(lesson.id)?.accent} />
-      ) : null}
     </div>
   );
 }

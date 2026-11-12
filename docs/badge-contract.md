@@ -73,6 +73,10 @@ Deployed on 12 Nov 2026 with `scripts/deploy-badge.mjs`:
 | `set_claim_key` | `634pxtxMFQSVfV7CVA4THzKiZMCbMTfM6zwHUPzCwH1h` |
 | `set_base_uri(https://book-of-near.pages.dev/badges)` | `HdCxMF5q7QY6AhFQx9V1nPAzJMeCkKa4tzyjURjbSUca` |
 
+`set_art` for `stage-0` to `stage-4` (13 Nov 2026, media `stage-<n>.svg`, hashes from `public/badges/art.json`): `5pogwK2r2bwrwzLNwk7HE4gz5qeMVqEDkaEoZd5bYtD6`, `FBvcFxFx256JSTDEzLj7UypiX2ymbGMX8Eve58C6gpSd`, `47Ve4RYK5iDCzYRqWqeXoTERAaQtoVY7Aoppo4TpHGd1`, `Ez2BPyJWeyWjCXa7E56VXMi4vWprYN7X2KraC2UrZPa`, `9kiUhZor8aEXdBuKDNYdPMyWKtjPGC5nMdrWbt6dhXN9`.
+
+First real claim (stage 0, Worker run locally): learner `bon-learner-mwe61s8i.testnet`, evidence transfer `AQ63WVtJWPYtAzFka5XgRc5miHEuZkYZD3gtYrRpgyPY`, `claim_stage` `EAuadk9PtuXBfee1fMx32okJyo6t2xCMbwJkumk8XJ1o` → token `1`. The image shows on explorers once `https://book-of-near.pages.dev/badges/stage-0.svg` is deployed.
+
 The contract id is config, not code: `src/badges/config.ts` reads `VITE_BADGE_CONTRACT_ID` and falls back to the id above; the Worker reads `BADGE_CONTRACT_ID` from `wrangler.toml`.
 
 The owner key, the contract account's key and the claim key pair are in `worker/.dev.vars` (git-ignored) of the checkout that ran the script: `BADGE_OWNER_ID`, `BADGE_OWNER_PRIVATE_KEY`, `BADGE_CONTRACT_PRIVATE_KEY`, `CLAIM_SIGNING_KEY`, `CLAIM_PUBLIC_KEY`, `BADGE_CONTRACT_ID`.

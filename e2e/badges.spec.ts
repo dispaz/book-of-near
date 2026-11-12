@@ -151,6 +151,8 @@ test.describe("badges in demo mode", () => {
   test("the claim card shows at the end of the stage's last lesson", async ({ page }) => {
     await seed(page, STAGE0);
     await page.goto("/lesson/l-0-3-send-a-transaction?step=99&webgl=0");
+    await page.getByRole("link", { name: "Claim the stage 0 badge" }).click();
     await expect(claimBox(page, 0)).toContainText("Your badge is ready");
+    await expect(claimBox(page, 0)).toBeInViewport();
   });
 });
