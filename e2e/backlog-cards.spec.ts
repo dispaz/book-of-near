@@ -56,9 +56,9 @@ test.describe("backlog topic cards", () => {
   test("a planned lesson with a summary shows its being-written state", async ({ page }) => {
     await page.goto("/");
     const stage4 = page.getByRole("region", { name: /Stage 4/ });
-    const card = stage4.getByRole("button", { name: /Swap across chains with an intent/ });
+    const card = stage4.getByRole("button", { name: /Old bridge vs the NEAR way/ });
     await card.click();
-    const details = stage4.getByRole("region", { name: "Swap across chains with an intent" });
+    const details = stage4.getByRole("region", { name: "Old bridge vs the NEAR way" });
     await expect(details).toContainText(/being written/);
   });
 

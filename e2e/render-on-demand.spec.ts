@@ -15,6 +15,7 @@ const LESSONS = [
   "l-2-1-follow-across-shards",
   "l-3-1-deploy-a-contract",
   "l-4-1-one-account-every-chain",
+  "l-4-2-intent-swap",
 ];
 
 test.beforeEach(() => slow3d());
