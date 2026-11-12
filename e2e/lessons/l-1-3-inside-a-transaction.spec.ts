@@ -109,6 +109,34 @@ test.describe(`lesson ${ID}`, () => {
     await expect(fields).toContainText("create_account");
   });
 
+  test("the 2D cards carry the scene objects: parcel, mailboxes and the registrar's scroll", async ({
+    page,
+  }) => {
+    await page.goto(`/lesson/${ID}?view=2d`);
+    const icon = (where: ReturnType<Page["locator"]>) => where.locator(".sk-icon").first();
+    const card = page.getByRole("region", { name: "The transaction" });
+    await expect(icon(card.locator(".tl-role"))).toHaveAttribute("data-object", "parcel");
+    await nextStep(page);
+    await makeWorkshop(page);
+    const fields = page.getByTestId("tx-fields");
+    await expect(icon(fields.locator("dd").nth(0))).toHaveAttribute("data-object", "mailbox");
+    await expect(icon(fields.locator("dd").nth(1))).toHaveAttribute("data-object", "scroll");
+    await nextStep(page);
+    await buildBatch(page, "icons");
+    await expect(icon(fields.locator("dd").nth(1))).toHaveAttribute("data-object", "mailbox");
+    await expect(icon(page.getByTestId("tx-result").locator(".tl-role"))).toHaveAttribute(
+      "data-object",
+      "mailbox",
+    );
+    await nextStep(page);
+    await breakBatch(page);
+    await nextStep(page);
+    await expect(icon(page.getByTestId("replay-log").locator(".tl-role"))).toHaveAttribute(
+      "data-object",
+      "parcel",
+    );
+  });
+
   test("actions can be ordered, and a wrong order fails and rolls back", async ({ page }) => {
     await page.goto(`/lesson/${ID}?view=2d`);
     await nextStep(page);

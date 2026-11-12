@@ -73,6 +73,11 @@ Open: intents will need rows when that stage is designed. The validator above is
 - Lessons draw objects a little bigger than their layout unit (`OBJ = SIZE * 1.35`): mailboxes and
   scrolls are slimmer than the old blocks.
 - Old names (`AccountBlock`, `ContractBlock`, ...) stay until stage 0 moves over, then go.
+- Parts kept exported on purpose: `ActionCard`, `Cross`, `Strike`, `Stamp`, `FATE_FILL`, `FATE_MARK`,
+  `SvgStamp` and the `SvgParcelItem` type. Today they are drawn inside `Parcel`, `SvgParcel` and the
+  object states, and no lesson imports them directly. They stay in the kit for a scene that needs one
+  part alone (a lone action card, a stamp being pressed, a struck object) or a legend in the same
+  colours, so it does not copy them.
 - Next: stage 0 (0.1 is also the `BookScene` reference, now merged into `stage-1`), then the rows not
   built yet as their lessons need them.
 
