@@ -68,6 +68,7 @@ export {
   Parcel,
   ReceiptSlip,
   RefundCoin,
+  RpcWindow,
   Scroll,
   ShardRibbon,
   SignerNode,

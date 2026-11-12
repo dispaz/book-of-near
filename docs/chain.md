@@ -57,6 +57,7 @@ formatTgas(totalGasBurnt(out)); // "0.45"
 | `block(ref)` | `BlockView` | `ref`: `"final"`, `"optimistic"`, `{ height }` or `{ hash }`. Includes one chunk header per shard. |
 | `chunk(ref, shardId)` | `ChunkView` | The transactions and receipts in one shard's chunk. |
 | `shardLayout()` | `{ shardIds, boundaryAccounts }` | Use `shardForAccount` to place an account. |
+| `probeRpc(endpointId, ref?, { pace })` | `RpcProbe` | One timed `block` request to ONE endpoint of `RPC_ENDPOINTS` (`rpcEndpoints.ts`), no fallback (lesson 3.3). Resolves `ok: false` with `UnknownBlock` or `Unavailable` (5xx, 429, no answer) instead of rejecting. Demo: answers after `RECORDED_LATENCY_MS` (recorded 12 Nov 2026); only the archival endpoint knows `HISTORICAL_BLOCK` (#100,000,000). Testnet: real fetch, timed with `performance.now()`. |
 
 `ops.ts` wraps the common cases: `transfer`, `createSubAccount` (CreateAccount + Transfer + AddKey in one transaction), `createNamedAccount` (top-level `.testnet` name through the `testnet` registrar; verified on testnet by #4 and #7), `createImplicitAccount`, `addKey`, `deleteKey`, `deployContract`, `callMethod`. For a batch, pass several actions to `chain.sendTransaction`.
 
