@@ -160,9 +160,9 @@ function Docked({ children }: { children: ReactNode }) {
 const mark = (marks: boolean, name: string) => (marks ? { "data-explain": name } : {});
 
 function Cards({ lesson, marks }: { lesson: Lesson; marks: boolean }) {
-  const { me, balance, keyInfo, keyState, initial, left, counter, says, step } = lesson;
+  const { me, balance, keyInfo, keyState, initial, gaugeFrom, left, counter, says, step } = lesson;
   const perm = keyInfo?.permission.type === "FunctionCall" ? keyInfo.permission : null;
-  const share = initial && left !== null && initial > 0n ? Number((left * 1000n) / initial) / 10 : 0;
+  const share = gaugeFrom && left !== null && gaugeFrom > 0n ? Number((left * 1000n) / gaugeFrom) / 10 : 0;
   const keys = keyState === "active" ? 2 : 1;
   return (
     <div className="kl-cards">

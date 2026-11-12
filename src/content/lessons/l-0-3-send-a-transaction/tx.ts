@@ -5,6 +5,7 @@
 import { isChainError } from "../../../chain/errors";
 import { formatNear, parseNear } from "../../../chain/units";
 import type { ChainNetwork, Yocto } from "../../../chain/types";
+import { shortId } from "../../../ui/format";
 
 /** Amount rules from docs/lessons/stage-0/0.3.md, step 2. */
 export const DEFAULT_AMOUNT = "0.01";
@@ -41,7 +42,7 @@ export function near(amount: Yocto, decimals = 6): string {
 
 /** First and last characters of a long id (over 24 characters), for tight spots. The full id goes in `title`. */
 export function short(id: string, head = 6, tail = 4): string {
-  return id.length > Math.max(24, head + tail + 1) ? `${id.slice(0, head)}…${id.slice(-tail)}` : id;
+  return shortId(id, head, tail, 24);
 }
 
 /** "250 ms" under a second, "3.25 s" above. */

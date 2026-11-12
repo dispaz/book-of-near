@@ -23,12 +23,14 @@ import {
   THIEF,
   appLine,
   keyGoneShown,
+  keyLeftLine,
   near,
   readAllowance,
   refusedKinds,
   type Attempt,
   type Intent,
 } from "./key";
+import { findResumableKey, forgetKey, rememberKey } from "./resume";
 
 // Step numbers (0-based) from manifest.ts.
 export const HOOK = 0;
@@ -78,6 +80,10 @@ export function useKeyLesson({
   const [passed, setPassed] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [addKeyTxHash, setAddKeyTxHash] = useState<string | null>(null);
+  /** The key was added on an earlier visit and picked up again after a reload. */
+  const [resumed, setResumed] = useState(false);
+  /** What the key had when it was picked up after a reload. */
+  const [resumedAllowance, setResumedAllowance] = useState<bigint | null>(null);
 
   // The practice account, through the Chain interface.
   useEffect(() => {
@@ -89,21 +95,18 @@ export function useKeyLesson({
         if (!live) return;
         setMe(acc);
         setBalance(view.amount);
-        // A reload must not orphan a key from an earlier visit: pick up a function-call key that
-        // targets this account, so the learner can use it and delete it.
-        const keys = await chain.listKeys(acc.accountId).catch(() => []);
-        const found = keys.find(
-          (k) => k.permission.type === "FunctionCall" && k.permission.receiverId === acc.accountId,
-        );
-        if (found && live) {
-          const num = await chain.viewCall(acc.accountId, "get_num", {}).catch(() => null);
-          if (!live) return;
-          setAppKey(found.publicKey);
-          setKeyInfo(found);
-          if (found.permission.type === "FunctionCall") setInitial(found.permission.allowance ?? null);
-          setKeyState("active");
-          if (num) setCounter(Number(num.result));
-        }
+        // A reload must not orphan a key from an earlier visit (resume.ts).
+        const found = await findResumableKey(chain, acc.accountId);
+        if (!found || !live) return;
+        setAppKey(found.key);
+        setKeyInfo(found.info);
+        setInitial(found.initial);
+        setAddKeyTxHash(found.addKeyTxHash);
+        setResumed(true);
+        if (found.info.permission.type === "FunctionCall")
+          setResumedAllowance(found.info.permission.allowance ?? null);
+        setKeyState("active");
+        if (found.counter !== null) setCounter(found.counter);
       } catch (e) {
         if (live) setError(message(e));
       }
@@ -135,7 +138,9 @@ export function useKeyLesson({
 
   // The learner's own values, used in later text.
   const left = keyInfo?.permission.type === "FunctionCall" ? (keyInfo.permission.allowance ?? 0n) : null;
-  const shownAllowance = initial ?? (typed.ok ? typed.amount : null);
+  // The allowance the key started with. After a reload this browser may not know it: then what the key
+  // has now stands in, which is still true for "watch the allowance drop".
+  const shownAllowance = initial ?? left ?? (typed.ok ? typed.amount : null);
   const varsRef = useRef(setVars);
   varsRef.current = setVars;
   const allowanceVar = shownAllowance !== null ? near(shownAllowance) : undefined;
@@ -143,16 +148,19 @@ export function useKeyLesson({
   const lastLeft = useRef<bigint | null>(null);
   if (left !== null) lastLeft.current = left;
   const leftVar = lastLeft.current !== null ? near(lastLeft.current) : undefined;
+  const originalKnown = keyState === "none" || initial !== null;
   useEffect(() => {
     const v: Record<string, string> = {};
     if (allowanceVar) v.allowance = allowanceVar;
     if (leftVar) v.left = leftVar;
     else if (allowanceVar) v.left = allowanceVar;
+    if (v.left) v.keyLeft = keyLeftLine(v.left, originalKnown ? (allowanceVar ?? null) : null);
     varsRef.current?.(v);
-  }, [allowanceVar, leftVar]);
+  }, [allowanceVar, leftVar, originalKnown]);
 
   // Evidence for the completion record: never keys, only counts and transaction hashes. txHash is the
   // latest key transaction (the delete, once done); addKeyTxHash keeps the add so both can be checked.
+  // A key picked up after a reload says so (keyResumed); its add hash is there only if this browser kept it.
   const evidenceRef = useRef(reportEvidence);
   evidenceRef.current = reportEvidence;
   useEffect(() => {
@@ -160,10 +168,11 @@ export function useKeyLesson({
     evidenceRef.current?.({
       txHash,
       ...(addKeyTxHash ? { addKeyTxHash } : {}),
+      ...(resumed ? { keyResumed: "yes" } : {}),
       refusedAttacks: String(refused.length),
       deletedKeyRefused: goneShown ? "yes" : "no",
     });
-  }, [txHash, addKeyTxHash, refused.length, goneShown]);
+  }, [txHash, addKeyTxHash, resumed, refused.length, goneShown]);
 
   async function readKey(key: PublicKey, account: string) {
     const keys = await chain.listKeys(account);
@@ -213,6 +222,7 @@ export function useKeyLesson({
       }
       setAppKey(key);
       setInitial(r.amount);
+      rememberKey(me.accountId, key, { allowance: r.amount, addKeyTxHash: out.transaction.hash });
       setTxHash(out.transaction.hash);
       setAddKeyTxHash(out.transaction.hash);
       setKeyState("active");
@@ -329,6 +339,7 @@ export function useKeyLesson({
         setError("The key is still on the chain. Please try again.");
         return;
       }
+      forgetKey(me.accountId, appKey);
       setTxHash(out.transaction.hash);
       setKeyState("revoked");
       setAim(null);
@@ -391,6 +402,8 @@ export function useKeyLesson({
     keyInfo,
     appKey,
     initial,
+    /** What the allowance gauges are measured against: the start, or what the key had when picked up. */
+    gaugeFrom: initial ?? resumedAllowance,
     left,
     keyState,
     counter,

@@ -3,7 +3,11 @@
  * to try with its function-call key, what each try asks the chain to do, and small formatters. No React,
  * no chain calls: unit tested on its own. The app is played by the lesson itself; nothing else is called.
  */
-import { formatNear, parseNear } from "../../../chain/units";
+import { parseNear } from "../../../chain/units";
+import { nearAmount as near, shortId as short } from "../../../ui/format";
+
+// Shared formatters (src/ui/format.ts), under the names this lesson's views use.
+export { near, short };
 
 /** What a transaction signed with the app's key tries to do. */
 export type Intent = "count" | "send" | "other" | "addkey";
@@ -50,14 +54,14 @@ export function readAllowance(text: string): AllowanceRead {
   return { ok: true, amount };
 }
 
-/** "0.094" style: up to 4 decimals, no trailing zeros. */
-export function near(amount: bigint): string {
-  return formatNear(amount, 4);
-}
-
-/** Short form of a long account id: "cf4342…c3c5". */
-export function short(id: string, head = 6, tail = 4): string {
-  return id.length > head + tail + 1 ? `${id.slice(0, head)}…${id.slice(-tail)}` : id;
+/**
+ * The delete step's line about the allowance left. `original` is null when the key was picked up after a
+ * reload and this browser did not remember what it started with: then only what is left is named.
+ */
+export function keyLeftLine(left: string, original: string | null): string {
+  return original === null
+    ? `It still had ${left} NEAR of allowance left.`
+    : `It still had ${left} NEAR of its ${original} NEAR allowance.`;
 }
 
 /** What the transaction signed with the app's key asks the chain to do. */
