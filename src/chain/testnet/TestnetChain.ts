@@ -11,6 +11,9 @@ import { base64 } from "@scure/base";
 import { isValidAccountId } from "../accountId";
 import { ChainError } from "../errors";
 import type {
+  DelegateRequest,
+  RelayResult,
+  SignedDelegate,
   AccessKeyInfo,
   AccountId,
   AccountView,
@@ -32,7 +35,13 @@ import type {
   UnsignedTransaction,
   ViewCallResult,
 } from "../types";
-import { serializeSignedTransaction, transactionDigest, transactionHash } from "./borsh";
+import {
+  delegateDigest,
+  serializeSignedDelegate,
+  serializeSignedTransaction,
+  transactionDigest,
+  transactionHash,
+} from "./borsh";
 import { KeyStore } from "./keys";
 import {
   blockHashesOf,
@@ -48,6 +57,7 @@ import {
   fundPracticeAccount,
   memoryPracticeStore,
   newPracticeRecord,
+  postJson,
   type Funder,
   type PracticeStore,
 } from "./practice";
@@ -55,6 +65,9 @@ import { Rpc, RpcError, RpcUnreachable, TESTNET_ARCHIVAL_RPC_URLS } from "./rpc"
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- RPC JSON */
 type Json = any;
+
+/** A delegate action stays valid for this many blocks after it is signed (about 2 minutes). */
+const DELEGATE_VALIDITY_BLOCKS = 200;
 
 export interface TestnetChainOptions {
   rpc?: Rpc;
@@ -69,6 +82,10 @@ export interface TestnetChainOptions {
   /** How long to wait for a new account to show up at final finality. */
   accountWaitMs?: number;
   now?: () => number;
+  /** The Worker that relays meta-transactions (`VITE_WORKER_URL`); `POST <url>/relay`. */
+  relayUrl?: string;
+  /** Fetch used for the relayer (tests). */
+  fetch?: typeof fetch;
 }
 
 export class TestnetChain implements Chain {
@@ -81,6 +98,8 @@ export class TestnetChain implements Chain {
   private readonly now: () => number;
   private readonly accountWaitMs: number;
   private readonly returnAccountId: AccountId | undefined;
+  private readonly relayUrl: string | undefined;
+  private readonly doFetch: typeof fetch;
   private practice: Promise<PracticeAccount> | null = null;
   private layout: Promise<ShardLayout> | null = null;
   private readonly blockInfo = new Map<string, BlockInfo>();
@@ -96,6 +115,8 @@ export class TestnetChain implements Chain {
     this.now = opts.now ?? (() => performance.now());
     this.accountWaitMs = opts.accountWaitMs ?? 20_000;
     this.returnAccountId = opts.returnAccountId?.trim() || undefined;
+    this.relayUrl = opts.relayUrl?.trim().replace(/\/+$/, "") || undefined;
+    this.doFetch = opts.fetch ?? ((...a) => fetch(...a));
   }
 
   async returnAccount(): Promise<AccountId> {
@@ -322,6 +343,55 @@ export class TestnetChain implements Chain {
     const digest = transactionDigest(tx);
     const signature = await this.keys.sign(tx.publicKey, digest);
     return { ...tx, hash: transactionHash(tx), signature };
+  }
+
+  async signDelegate(request: DelegateRequest): Promise<SignedDelegate> {
+    if (request.actions.some((a) => a.type === "Delegate"))
+      throw new ChainError("InvalidTransaction", "A delegate action cannot hold another one.");
+    const tx = await this.buildTransaction({
+      signerId: request.senderId,
+      receiverId: request.receiverId,
+      actions: request.actions,
+      publicKey: request.publicKey,
+    });
+    const head = await this.block("final");
+    const fields = {
+      senderId: tx.signerId,
+      receiverId: tx.receiverId,
+      actions: tx.actions,
+      nonce: tx.nonce,
+      maxBlockHeight: BigInt(head.height + DELEGATE_VALIDITY_BLOCKS),
+      publicKey: tx.publicKey,
+    };
+    const signature = await this.keys.sign(tx.publicKey, delegateDigest(fields));
+    const payload = base64.encode(serializeSignedDelegate({ ...fields, signature }));
+    return { ...fields, signature, payload };
+  }
+
+  async relayDelegate(signed: SignedDelegate, options: SendOptions = {}): Promise<RelayResult> {
+    if (!this.relayUrl)
+      throw new ChainError("RelayRefused", "No relayer is set up for testnet in this app yet.");
+    let reply: Awaited<ReturnType<typeof postJson>>;
+    try {
+      reply = await postJson(this.doFetch, `${this.relayUrl}/relay`, { signedDelegate: signed.payload }, 60_000);
+    } catch {
+      throw new ChainError("Network", "The relayer could not be reached.");
+    }
+    const body = (reply.json ?? {}) as Json;
+    if (!reply.res.ok || typeof body.txHash !== "string")
+      throw new ChainError(
+        "RelayRefused",
+        typeof body.error === "string" ? body.error : `The relayer answered ${reply.res.status}.`,
+      );
+    // The Worker waited for the relayer's transaction; read it back so the lesson can show its receipts.
+    const outcome = await this.getTransaction(body.txHash, String(body.relayerId));
+    options.onPhase?.({ phase: "final", atMs: 0, txHash: body.txHash, status: "FINAL" });
+    return {
+      relayerId: String(body.relayerId),
+      outcome,
+      remaining: Number(body.remaining ?? 0),
+      cap: Number(body.cap ?? 0),
+    };
   }
 
   async sendTransaction(request: TransactionRequest, options: SendOptions = {}): Promise<TxOutcome> {

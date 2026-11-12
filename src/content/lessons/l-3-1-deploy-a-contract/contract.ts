@@ -51,12 +51,12 @@ export const nearText = (yocto: Yocto) => formatNear(yocto, 5);
 export const bytesText = (n: number) => `${n.toLocaleString("en-US")} ${n === 1 ? "byte" : "bytes"}`;
 
 /**
- * The contract's account, `counter.<parent>`, or null when `parent` cannot have one: a hex (implicit)
+ * The contract's account, `<label>.<parent>` (default `counter`), or null when `parent` cannot have one: a hex (implicit)
  * account has no sub-accounts, and no account id may pass 64 characters.
  */
-export function contractIdFor(parent: AccountId): AccountId | null {
+export function contractIdFor(parent: AccountId, label = LABEL): AccountId | null {
   if (isImplicitAccountId(parent) || isEthImplicitAccountId(parent)) return null;
-  const id = `${LABEL}.${parent}`;
+  const id = `${label}.${parent}`;
   return accountIdProblem(id) ? null : id;
 }
 

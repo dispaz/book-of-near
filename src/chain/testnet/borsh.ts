@@ -5,7 +5,7 @@
  */
 import { base58 } from "@scure/base";
 import { sha256 } from "@noble/hashes/sha2.js";
-import type { AccessKeyPermission, Action, PublicKey, UnsignedTransaction } from "../types";
+import type { AccessKeyPermission, Action, PublicKey, SignedDelegate, UnsignedTransaction } from "../types";
 
 class Writer {
   private chunks: number[] = [];
@@ -87,7 +87,53 @@ function action(w: Writer, a: Action) {
     case "DeleteAccount":
       w.u8(7);
       return w.string(a.beneficiaryId);
+    case "Delegate":
+      w.u8(8);
+      delegateAction(w, a.delegate);
+      return signature(w, a.delegate.signature);
   }
+}
+
+type DelegateFields = Omit<SignedDelegate, "signature" | "payload">;
+
+function delegateAction(w: Writer, d: DelegateFields) {
+  w.string(d.senderId);
+  w.string(d.receiverId);
+  w.u32(d.actions.length);
+  for (const a of d.actions) {
+    if (a.type === "Delegate") throw new Error("A delegate action cannot hold another one");
+    action(w, a);
+  }
+  w.uint(d.nonce, 8);
+  w.uint(d.maxBlockHeight, 8);
+  publicKey(w, d.publicKey);
+}
+
+function signature(w: Writer, sig: string) {
+  if (!sig.startsWith("ed25519:")) throw new Error("Only ed25519 signatures are supported");
+  const bytes = base58.decode(sig.slice(8));
+  if (bytes.length !== 64) throw new Error("An ed25519 signature has 64 bytes");
+  w.u8(0);
+  w.bytes(bytes);
+}
+
+/** NEP-461 prefix for delegate actions: 2^30 + 366, so a signed delegate action is never a transaction. */
+export const DELEGATE_ACTION_PREFIX = 2 ** 30 + 366;
+
+/** What the user's key signs for a meta-transaction: sha256(u32 prefix + borsh(DelegateAction)). */
+export function delegateDigest(d: DelegateFields): Uint8Array {
+  const w = new Writer();
+  w.u32(DELEGATE_ACTION_PREFIX);
+  delegateAction(w, d);
+  return sha256(w.done());
+}
+
+/** borsh(SignedDelegateAction): the bytes a relayer receives (base64 in `SignedDelegate.payload`). */
+export function serializeSignedDelegate(d: DelegateFields & { signature: string }): Uint8Array {
+  const w = new Writer();
+  delegateAction(w, d);
+  signature(w, d.signature);
+  return w.done();
 }
 
 export function serializeTransaction(tx: UnsignedTransaction): Uint8Array {

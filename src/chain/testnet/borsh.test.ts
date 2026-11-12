@@ -1,8 +1,21 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { base58 } from "@scure/base";
-import { generateKey, parsePublicKey } from "near-kit";
-import { serializeSignedTransaction, serializeTransaction, transactionHash } from "./borsh";
+import { sha256 } from "@noble/hashes/sha2.js";
+import {
+  DelegateAction,
+  decodeSignedDelegateAction,
+  generateKey,
+  parsePublicKey,
+  serializeDelegateAction,
+} from "near-kit";
+import {
+  delegateDigest,
+  serializeSignedDelegate,
+  serializeSignedTransaction,
+  serializeTransaction,
+  transactionHash,
+} from "./borsh";
 import { actions } from "../ops";
 import type { Action, UnsignedTransaction } from "../types";
 import { parseNear, tgas } from "../units";
@@ -109,5 +122,40 @@ describe("Borsh transaction encoding", () => {
     const h = transactionHash(tx);
     expect(base58.decode(h)).toHaveLength(32);
     expect(transactionHash({ ...tx, nonce: tx.nonce + 1n })).not.toBe(h);
+  });
+});
+
+describe("Borsh meta-transaction (NEP-366) encoding", () => {
+  const key = generateKey().publicKey.toString();
+  const fields = {
+    senderId: "alice.testnet",
+    receiverId: "token.alice.testnet",
+    actions: [actions.functionCall("ft_transfer", { receiver_id: "bob.testnet", amount: "50" }, tgas(10), 1n)],
+    nonce: 42n,
+    maxBlockHeight: 200_000_100n,
+    publicKey: key,
+  };
+  const sig = `ed25519:${base58.encode(new Uint8Array(64).fill(3))}`;
+
+  it("signs what near-kit's serializeDelegateAction signs (NEP-461 prefix + borsh)", () => {
+    const d = new DelegateAction(
+      fields.senderId,
+      fields.receiverId,
+      fields.actions.map(kitAction) as never,
+      fields.nonce,
+      fields.maxBlockHeight,
+      parsePublicKey(key),
+    );
+    expect(delegateDigest(fields)).toEqual(sha256(serializeDelegateAction(d)));
+  });
+
+  it("encodes a payload near-kit (and so the Worker relayer) can decode", () => {
+    const bytes = serializeSignedDelegate({ ...fields, signature: sig });
+    const decoded = decodeSignedDelegateAction(bytes) as unknown as {
+      signedDelegate: { delegateAction: { senderId: string; receiverId: string; nonce: bigint } };
+    };
+    expect(decoded.signedDelegate.delegateAction.senderId).toBe("alice.testnet");
+    expect(decoded.signedDelegate.delegateAction.receiverId).toBe("token.alice.testnet");
+    expect(decoded.signedDelegate.delegateAction.nonce).toBe(42n);
   });
 });

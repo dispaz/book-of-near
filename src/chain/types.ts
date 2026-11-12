@@ -57,7 +57,48 @@ export type Action =
   | { type: "Transfer"; deposit: Yocto }
   | { type: "AddKey"; publicKey: PublicKey; permission: AccessKeyPermission }
   | { type: "DeleteKey"; publicKey: PublicKey }
-  | { type: "DeleteAccount"; beneficiaryId: AccountId };
+  | { type: "DeleteAccount"; beneficiaryId: AccountId }
+  /** A meta-transaction (NEP-366): actions another account signed, carried by a relayer. */
+  | { type: "Delegate"; delegate: SignedDelegate };
+
+// ---------- Meta-transactions (NEP-366) ----------
+
+/** What the caller asks a user to sign off-chain: actions to run as `senderId`, paid for by a relayer. */
+export interface DelegateRequest {
+  /** Defaults to the practice account. */
+  senderId?: AccountId;
+  receiverId: AccountId;
+  /** Plain actions only (no nested Delegate). */
+  actions: Action[];
+  /** Key to sign with; defaults to the sender's full-access key held by the chain. */
+  publicKey?: PublicKey;
+}
+
+/** A `SignedDelegateAction`: the user's signature over a `DelegateAction`. No NEAR is spent to make it. */
+export interface SignedDelegate {
+  senderId: AccountId;
+  receiverId: AccountId;
+  actions: Action[];
+  /** Key nonce + 1, like a transaction's: the delegate action can run only once. */
+  nonce: bigint;
+  /** The delegate action is refused after this block height. */
+  maxBlockHeight: bigint;
+  publicKey: PublicKey;
+  /** `ed25519:<base58>` over sha256(NEP-461 prefix + borsh(DelegateAction)). */
+  signature: string;
+  /** base64 borsh `SignedDelegateAction`: what goes to the relayer. */
+  payload: string;
+}
+
+/** What a relayer did with a signed delegate action. */
+export interface RelayResult {
+  /** The account that signed the outer transaction and paid its gas. */
+  relayerId: AccountId;
+  outcome: TxOutcome;
+  /** Relays this sender may still use today, and the cap. */
+  remaining: number;
+  cap: number;
+}
 
 // ---------- Transactions ----------
 
@@ -132,7 +173,9 @@ export type ActionErrorKind =
   | { type: "DeleteKeyDoesNotExist"; accountId: AccountId; publicKey: PublicKey }
   | { type: "LackBalanceForState"; accountId: AccountId; amount: Yocto }
   | { type: "NotEnoughBalance"; accountId: AccountId; balance: Yocto; cost: Yocto }
-  | { type: "FunctionCallError"; message: string };
+  | { type: "FunctionCallError"; message: string }
+  /** A delegate action that is expired, signed by the wrong key, reused, or sent to the wrong account. */
+  | { type: "DelegateActionInvalid"; reason: "Expired" | "InvalidSignature" | "InvalidNonce" | "SenderMismatch" | "AccessKeyNotFound" };
 
 export type TxExecutionError =
   | { type: "ActionError"; index: number; kind: ActionErrorKind; message: string }
@@ -274,6 +317,8 @@ export type ChainErrorKind =
   | "UnknownBlock"
   | "UnknownChunk"
   | "ViewFailed"
+  /** The relayer would not pay for a meta-transaction (its per-learner cap, or a request it does not sponsor). */
+  | "RelayRefused"
   | "Network";
 
 // ---------- The interface ----------
@@ -313,6 +358,16 @@ export interface Chain {
   sendSignedTransaction(tx: SignedTransaction, options?: SendOptions): Promise<TxOutcome>;
   /** build + sign + send, reporting every phase. */
   sendTransaction(request: TransactionRequest, options?: SendOptions): Promise<TxOutcome>;
+  /**
+   * Sign a meta-transaction (NEP-366) off-chain. Fills in nonce (key nonce + 1) and max block height.
+   * Local signing, nothing is sent and no NEAR is spent.
+   */
+  signDelegate(request: DelegateRequest): Promise<SignedDelegate>;
+  /**
+   * Hand a signed delegate action to the app's relayer, which wraps it in its own transaction and pays
+   * the gas. Rejects with ChainError "RelayRefused" once this sender has used the relayer's cap.
+   */
+  relayDelegate(signed: SignedDelegate, options?: SendOptions): Promise<RelayResult>;
   /** Look up a past transaction (RPC `tx`). Rejects with "UnknownTransaction". */
   getTransaction(hash: CryptoHash, senderId: AccountId): Promise<TxOutcome>;
 
