@@ -166,6 +166,11 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - e2e: `e2e/notes.spec.ts` (floating on desktop, docked on tablet and phone, both views).
 - Review fixes: `Box` and `focusOf` moved into the scene kit (0.1, 0.2 and 0.3 used three copies). 0.2 takes the note margin from StepNote (`NOTE_MARGIN_RIGHT`) instead of a copied 420. StepNote's unreachable "float beside the element" search is gone; `placeNote` only places in the margin. 0.2 asks for docked notes only in 3D, so its 2D note floats again from 1100px. 0.3 uses one prop name (`flat`) for "the 2D view marks the note targets". `e2e/notes.spec.ts` now walks steps 1–8 of both lessons in both views and checks each note floats with its arrow.
 
+## 2026-11-05 · #12 Badge contract
+- `contracts/badge/` (Rust, near-sdk 5.11, Rust 1.86 pinned): NEP-171 with NEP-177 metadata and NEP-297 events. `claim_stage` / `claim_final` check an ed25519 claim over account, stage and expiry (final also over route and rarity); one badge per account per stage, previous stage required, final needs the route's stages, all badges non-transferable, no deposit (contract pays storage), owner sets stage count, routes, daily cap, claim key, base URI and art; `has_badge` view. Format and deploy steps: `docs/badge-contract.md`.
+- Tests: `npm run test:badge` builds the wasm (`scripts/build-badge.mjs`, cargo + binaryen `wasm-opt` sign-extension lowering) and runs 19 sandbox tests (`contracts/badge/sandbox-tests`, near-workspaces on sandbox 2.6.5): valid, expired, replayed, wrong signer, skipped stage, duplicate stage, non-transferable transfer, owner config, final badge rarity, daily cap, metadata. Added: owner-only methods, final-badge negatives, stage-signature substitution, key rotation, expiry, contract-pays-storage (405 bytes for a first badge), transfer_call refusal.
+- Not done: testnet deployment and explorer check (needs the owner's funded account and claim key; steps documented), badge images, Worker signer, DemoChain side.
+
 ## 2026-11-03 · Deploy on release
 - `.github/workflows/deploy.yml`: publishing a GitHub release (or running the workflow by hand with a ref) checks out the tag, runs typecheck and unit tests, builds, and deploys `dist` to Cloudflare Pages `book-of-near` as production (`--branch main`) with `cloudflare/wrangler-action@v3`.
 - Owner setup: repo secrets `CLOUDFLARE_API_TOKEN` (Pages: Edit) and `CLOUDFLARE_ACCOUNT_ID`; optional repo variables `VITE_CHAIN_MODE` (default `demo`), `VITE_WORKER_URL`, `VITE_RETURN_ACCOUNT_ID`. The Pages project must exist (`npx wrangler pages project create book-of-near --production-branch main`). The Worker is not deployed by this workflow.
@@ -383,3 +388,20 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - `useBoxSize` moved to `src/scene-kit/useBoxSize.ts` (unit tested); 0.3 and 1.3 use it, 1.1 no longer needs it. 1.2 still has its copy (left to #15 to avoid clashing edits).
 - Issue body and script 1.1 wording: blocks → mailboxes / scroll. `docs/book-scene.md` lists 1.1 as on the standard.
 - New e2e: book print + tour, phone docked, 3D registrar pick creates, reduced motion (2D, 3D), no-WebGL fallback, 2D object icons. Not done here: the rule 10a reactions (hover lift, press, not yet) are kit work under #54.
+
+## 2026-11-05 · #23 Mainnet wallet connection and funds check
+- New seam `src/chain/mainnet/` (documented in `docs/chain.md`, no `Chain` change): `MainnetWallet` interface with `DemoWallet` (simulated `demo-learner.near`, 25 NEAR) and `NearConnectWallet` (`@hot-labs/near-connect` 0.12.0 + mainnet RPC `view_account`, lazy, injected connector so tests never touch a real wallet).
+- `checkFunds` gives `enough` / `not-enough` / `no-wallet` (the last two name the testnet fallback). `signWithConfirmation` is the only signing path: it checks the request, shows summary, receiver and total NEAR in a dialog, and asks the wallet only after "Confirm".
+- UI: `MainnetWalletProvider` in `main.tsx`, `WalletPanel`, `FundsNotice`, page `/wallet`. Demo wallet by default; the real wallet loads only after "Use my own wallet".
+- Tests: Vitest for funds, signing order, DemoWallet, NearConnectWallet (fake connector and fetch, RPC fallback), provider/UI, no-network imports; e2e `e2e/wallet.spec.ts` in demo mode.
+- Untested: a real wallet sign-in and a real mainnet signature (needs a human; never done in tests).
+
+- Review fixes (#23): signing never throws (`failed` with message) and is single-flight per wallet (`busy`), with a "Waiting for your wallet" overlay; the gate uses the same amount + fee reserve as `checkFunds` and re-reads the balance after Confirm; `NearConnectWallet.signAndSend` throws on a `Failure` status or empty tx id; the raw wallet is no longer exposed by `useMainnetWallet`; the confirmation never shows "0 NEAR" for tiny deposits and adds a fee note and call arguments; `locked` stake counts toward storage; `DemoWallet` refuses overspend.
+
+- Review round 2 (#23): `MainnetWallet.refresh()` now rejects on a network error and leaves the connected state untouched; `signWithConfirmation` refuses with "We could not check your balance" if the re-read before signing fails, and `NearConnectWallet.signAndSend` ignores a failed re-read after a send. A wallet that resolves with nothing gives `reason: "unconfirmed"` (check your wallet) instead of an error. The balance re-read test now uses a fake wallet and fails if the `refresh()` call is removed.
+- Known issues for follow-up tickets (#23): the "Waiting for your wallet" overlay has no timeout or cancel; the single-flight lock is not released if the provider unmounts mid-signing; `argsText` can throw on BigInt args and cuts at 120 characters (the learner may not see the full arguments); the confirmation dialog has no focus trap; real wallet sign-in and signing are still unverified.
+
+## 2026-11-12 · Platform (#23 mainnet wallet, #12 badge contract) merged onto main
+- Branch `issue-23-platform-merge`: `origin/platform` merged into current `main`. Only `docs/progress.md` conflicted (all entries kept). `src/chain/mainnet/wallet.css` overlay now uses `color-mix(var(--ink))` instead of a hard-coded rgba (palette test).
+- Gate: lint (0 errors), typecheck, `npm test` (538 passed), Worker tests (13), `npm run test:badge` (19 sandbox tests), `e2e/wallet.spec.ts` and the full e2e suite (249 passed, 5 skipped).
+- #12 stays open: its testnet mint is issue #68. Real wallet sign-in and a real mainnet signature are still untested (needs a person with a mainnet wallet).

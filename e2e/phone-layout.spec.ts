@@ -282,10 +282,10 @@ test.describe("desktop is unchanged", () => {
         const p = path.getPointAtLength((len * i) / 20);
         const x = svg.left + p.x;
         const y = svg.top + p.y;
-        // Each 3D object is marked by a small anchor at its centre; the cubes are about 70px across.
-        const near = (r: DOMRect) =>
-          Math.abs(x - (r.left + r.right) / 2) < 36 && Math.abs(y - (r.top + r.bottom) / 2) < 36;
-        if (others.some(near)) hits.push(`object at ${Math.round(x)},${Math.round(y)}`);
+        // The other cards ("you", the registrar) are marked with data-explain: the arrow must not
+        // cross any of them, anywhere on the card.
+        const inside = (r: DOMRect) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+        if (others.some(inside)) hits.push(`card at ${Math.round(x)},${Math.round(y)}`);
         const hit = document.elementFromPoint(x, y);
         const text = [...(hit?.childNodes ?? [])].some((n) => n.nodeType === 3 && n.textContent!.trim());
         if (text)
