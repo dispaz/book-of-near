@@ -285,10 +285,10 @@ function Meter({ c }: { c: CallState }) {
       {g ? (
         <>
           <Label position={[-len / 2 + 1.4, 0.3, -0.45]} variant="small">
-            {`70% burned: ${formatTgas(g.burned)} Tgas`}
+            {`about 70% burned: ${formatTgas(g.burned)} Tgas`}
           </Label>
           <Label position={[len / 2 - 1.4, 0.3, 0.5]} variant="small">
-            {`30% to the contracts: ${formatTgas(g.rebate)} Tgas`}
+            {`about 30% to the contracts: ${formatTgas(g.rebate)} Tgas`}
           </Label>
         </>
       ) : null}

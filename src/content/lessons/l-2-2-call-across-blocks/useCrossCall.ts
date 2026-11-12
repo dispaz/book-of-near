@@ -2,7 +2,7 @@
  * The ONE state of lesson 2.2, shared by the 2D and the 3D view. Everything on chain goes through
  * useChain(). Demo mode sends a real DemoChain transaction to the buyer contract, which calls the shop
  * on another shard. Testnet mode opens a recorded real testnet call (recorded.ts) and illustrates the
- * failure on it, marked as such: the app has no helper contracts it can place on chosen shards.
+ * failure on it, marked as such. It sends nothing there, on purpose: the lesson stays free and fast.
  * No three.js here, so 2D never loads 3D code.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -14,7 +14,7 @@ import { callMethod } from "../../../chain/ops";
 import { tgas } from "../../../chain/units";
 import { callFromOutcome, contractHops, illustrateFailure, varsFor, type CrossCall } from "./call";
 import { RECORDED } from "./recorded";
-import { FAIL, GAS, HOOK, HOP, ORDER } from "./steps";
+import { FAIL, GAS, HOOK, HOP, ORDER, ORDER_COPY, orderButton } from "./steps";
 
 export * from "./steps";
 
@@ -98,7 +98,10 @@ export function useCrossCall({
     setHint(null);
     try {
       const c = await send(what === "fail", instant);
-      setShown(instant ? 99 : 0);
+      // Play the hops only while the learner is still on the step that sent it; after a page turn
+      // mid-flight the new step shows the call whole, so the hops do not replay there.
+      const still = now.current.step === (what === "order" ? ORDER : FAIL);
+      setShown(instant || !still ? 99 : 0);
       if (what === "order") setCall(c);
       else setFailure(c);
     } catch (e) {
@@ -110,6 +113,12 @@ export function useCrossCall({
   };
   const order = () => void (call ? undefined : run("order"));
   const fail = () => void (failure ? undefined : run("fail"));
+
+  // Step 3's words follow the mode: testnet mode opens a recorded call, it does not send an order.
+  useEffect(() => {
+    if (network !== "demo") setVars?.({ ...ORDER_COPY.testnet });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [network]);
 
   // The learner's own numbers in later text; the completion record points at the transaction.
   useEffect(() => {
@@ -124,6 +133,10 @@ export function useCrossCall({
   }, [call]);
 
   // Opened past the order with nothing sent (a link to a later step, or a reload): send it, instantly.
+  // The script gates the honest take "until the learner ordered". Walking the lesson, that holds: the
+  // order step's gate opens only after the learner's own order. A deep link skips the walk on purpose
+  // (reviewers and reloads land on any step, as in lesson 2.1), so the order is sent for them here. The
+  // gate's point, that Finish records a real call's evidence, still holds: this is a real call.
   useEffect(() => {
     if (step > ORDER && !call && !busy && !error) void run("order", true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -142,17 +155,34 @@ export function useCrossCall({
     now.current = { step, call, failure, complete };
   });
 
+  const { notYet } = orderButton(network);
+
+  /**
+   * What every pick does first: run the step's action when it has not run ("acted"), and open the gas
+   * split on the gas step. Otherwise returns the call to show a detail of (null: nothing sent yet).
+   */
+  const pickFirst = (): "acted" | CrossCall | null => {
+    const n = now.current;
+    if (n.step === ORDER && !n.call) {
+      order();
+      return "acted";
+    }
+    if (n.step === FAIL && !n.failure) {
+      fail();
+      return "acted";
+    }
+    if (n.step === GAS) setInspected(true);
+    return n.step === FAIL ? n.failure : n.call;
+  };
+
   /** Picking a contract scroll: runs the step's action, or shows what that contract did. */
   const pickContract = (which: "caller" | "callee") => {
-    const n = now.current;
-    if (n.step === ORDER && !n.call) return order();
-    if (n.step === FAIL && !n.failure) return fail();
-    if (n.step === GAS) setInspected(true);
-    const c = n.step === FAIL ? n.failure : n.call;
+    const c = pickFirst();
+    if (c === "acted") return;
     if (!c) {
       setHint(
         which === "callee"
-          ? "Not yet: send the cross-contract order first."
+          ? notYet
           : "Contract A, the caller. It runs first, then waits for the answer in a callback.",
       );
       return;
@@ -165,13 +195,10 @@ export function useCrossCall({
 
   /** Picking a receipt slip: sends the order when there is none yet, else shows that receipt. */
   const pickHop = (i: number) => {
-    const n = now.current;
-    if (n.step === ORDER && !n.call) return order();
-    if (n.step === FAIL && !n.failure) return fail();
-    if (n.step === GAS) setInspected(true);
-    const c = n.step === FAIL ? n.failure : n.call;
-    if (!c || (n.step <= HOP && !n.call)) {
-      setHint("Not yet: send the cross-contract order first.");
+    const c = pickFirst();
+    if (c === "acted") return;
+    if (!c || (now.current.step <= HOP && !now.current.call)) {
+      setHint(notYet);
       return;
     }
     setPicked(i);

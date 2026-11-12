@@ -3,6 +3,7 @@ import type { SceneProps } from "../../../app/types";
 import { SceneAction } from "../../../ui/SceneAction";
 import { Check, HonestTake, type CheckQuestion } from "../../../lesson-kit";
 import Scene2D from "./Scene2D";
+import { orderButton } from "./steps";
 import { CHECK, FAIL, GAS, HONEST, ORDER, useCrossCall } from "./useCrossCall";
 import "./scene.css";
 
@@ -85,12 +86,12 @@ export default function Scene(props: SceneProps) {
       {step === ORDER ? (
         <SceneAction onClick={c.order} disabled={!!c.busy || (!!c.call && !orderDone)} done={orderDone}>
           {orderDone
-            ? "Order completed ✓"
+            ? orderButton(c.network).done
             : c.busy
               ? "Sending…"
               : c.call
                 ? "Receipts hopping…"
-                : "Send cross-contract order"}
+                : orderButton(c.network).press}
         </SceneAction>
       ) : null}
       {step === GAS ? (

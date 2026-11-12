@@ -1,12 +1,14 @@
 import type { LessonManifest } from "../../../app/types";
+import { ORDER_COPY } from "./steps";
 
 // Topic: docs/lessons/stage-2/2.2-topic.md. Lesson script: docs/lessons/stage-2/2.2.md.
 // Template: docs/lesson-template.md.
 // Shape: hook (contracts send receipts) → the receipt hop → do (a cross-contract order) → where the gas
 // went (70 / 30) → do (a failing shop and its callback) → check → honest take. Keep steps.ts in sync.
 // Demo mode runs the call on DemoChain (buyer.demo.testnet → shop.demo.testnet, two shards). Testnet
-// mode opens a recorded real testnet call (recorded.ts): the app cannot place helper contracts on chosen
-// shards, so it does not send one.
+// mode opens a recorded real testnet call (recorded.ts, values copied from the chain, not re-read): a
+// deliberate choice to keep the lesson free and fast, so it sends nothing. Step 3's copy follows the mode
+// through the order* vars (steps.ts ORDER_COPY).
 export default {
   id: "l-2-2-call-across-blocks",
   stage: 2,
@@ -24,6 +26,8 @@ export default {
     gasSpent: "a few",
     burned: "…",
     rebate: "…",
+    // Step 3's words: demo mode by default; the scene swaps in the testnet ones in testnet mode.
+    ...ORDER_COPY.demo,
   },
   steps: [
     {
@@ -40,17 +44,17 @@ export default {
       explainAt: "slip",
     },
     {
-      caption: "Order an item from the shop contract. Watch the receipts hop from block to block.",
+      caption: "{orderTask} Watch the receipts hop from block to block.",
       explain:
-        "You attach 30 Tgas (Tgas: a trillion gas units; about 0.003 NEAR). Contract A reserves the order and sends the order slip. The shop runs it in block #{firstBlock}. In block #{secondBlock} a data receipt brings the answer back to contract A's callback.",
+        "{orderIntro} Contract B runs it in block #{firstBlock}. In block #{secondBlock} a data receipt brings the answer back to contract A's callback.",
       explainAt: "blocks",
-      action: { label: "send the cross-contract order", gate: true },
+      action: { label: "{orderAction}", gate: true },
     },
     {
       caption:
-        "The contracts burnt {gasSpent} Tgas: 70% ({burned} Tgas) was burned for good, 30% ({rebate} Tgas) went to the contracts.",
+        "The contracts burnt {gasSpent} Tgas: about 70% ({burned} Tgas) was burned for good, about 30% ({rebate} Tgas) went to the contracts.",
       explain:
-        "NEAR rewards builders in the protocol itself. Of the gas burnt running a contract's code, 30% is credited to that contract's account. The other 70% is burned. You pay the normal price either way: the split is not an extra charge.",
+        "NEAR rewards builders in the protocol itself. Of the gas burnt running a contract's code, 30% is credited to that contract's account. The other 70% is burned. You pay the normal price either way: the split is not an extra charge. The numbers here are an estimate: the chain does not report the contracts' share.",
       explainAt: "meter",
       action: { label: "inspect the gas rebate", gate: true },
     },

@@ -129,14 +129,19 @@ export interface GasSplit {
   total: bigint;
   /** Gas burnt running the contracts' receipts. */
   contractGas: bigint;
-  /** 70% of contractGas, burned for good. */
+  /** About 70% of contractGas, burned for good (an estimate: see gasSplit). */
   burned: bigint;
-  /** 30% of contractGas, credited to the contracts that ran. */
+  /** About 30% of contractGas, credited to the contracts that ran (an estimate: see gasSplit). */
   rebate: bigint;
   byContract: { accountId: string; gas: bigint; rebate: bigint }[];
 }
 
-/** The 70 / 30 split (topic: 30% of gas burnt by a function call goes to the contract's account). */
+/**
+ * An estimate of the 70 / 30 split. The protocol rule (topic): 30% of the gas burnt running a function
+ * call's code is credited to the contract's account. The chain does not report that share (spikes-seed
+ * "Unverified"), and a receipt's gas_burnt also holds fixed fees the reward leaves out, so 30% of the
+ * whole gas_burnt overstates it a little. Every label shows these numbers as "about".
+ */
 export function gasSplit(c: CrossCall): GasSplit {
   const total = c.hops.reduce((s, h) => s + h.gasBurnt, 0n);
   const by = new Map<string, bigint>();

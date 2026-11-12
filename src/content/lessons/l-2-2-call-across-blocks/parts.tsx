@@ -7,7 +7,7 @@ import { explorerTxUrl } from "../../../chain/ops";
 import { formatTgas } from "../../../chain/units";
 import { contractHops, gasSplit, type CrossCall, type Hop } from "./call";
 import { RECORDED } from "./recorded";
-import { FAIL, GAS, HOOK, HOP, ORDER } from "./steps";
+import { FAIL, GAS, HOOK, HOP, ORDER, orderButton } from "./steps";
 import type { CallState } from "./useCrossCall";
 
 /** Long names cut in the middle, so they fit a label. */
@@ -110,7 +110,7 @@ export function describe(c: CallState): string {
   const base = `Receipts in order: ${list || "none yet"}.`;
   if (c.step === GAS) {
     const g = gasSplit(d);
-    return `${base} The contracts burnt ${formatTgas(g.contractGas)} Tgas: ${formatTgas(g.burned)} burned, ${formatTgas(g.rebate)} to the contracts.`;
+    return `${base} The contracts burnt ${formatTgas(g.contractGas)} Tgas: about ${formatTgas(g.burned)} burned, about ${formatTgas(g.rebate)} to the contracts (an estimate).`;
   }
   return base;
 }
@@ -157,7 +157,7 @@ function Source({ d }: { d: CrossCall }) {
   return (
     <p className="xcc-soft" data-testid="call-source">
       {d.source === "recorded"
-        ? "Testnet mode: a recorded real testnet call. The app cannot place its own contracts on chosen shards, so it opens this one instead of sending a new call."
+        ? "Testnet mode: a real call recorded on testnet. Its numbers match the chain (open the transaction below). The lesson shows it instead of sending a new call, so it stays free and fast."
         : "Testnet mode: an illustration on the recorded call. No transaction was sent and this failure did not happen on chain."}
     </p>
   );
@@ -165,7 +165,7 @@ function Source({ d }: { d: CrossCall }) {
 
 function Receipts({ c }: { c: CallState }) {
   const d = c.drawn;
-  if (!d) return <p className="xcc-soft">{c.busy ? "Sending…" : step2Hint(c.step)}</p>;
+  if (!d) return <p className="xcc-soft">{c.busy ? "Sending…" : pressHint(c)}</p>;
   const hops = c.hops.slice(0, c.revealed);
   return (
     <section aria-label="Receipts in block order">
@@ -205,8 +205,8 @@ function Receipts({ c }: { c: CallState }) {
   );
 }
 
-const step2Hint = (step: number) =>
-  step === FAIL ? "Press Simulate out-of-stock failure." : "Press Send cross-contract order.";
+const pressHint = (c: CallState) =>
+  c.step === FAIL ? "Press Simulate out-of-stock failure." : `Press ${orderButton(c.network).press}.`;
 
 function Gas({ call, inspected }: { call: CrossCall; inspected: boolean }) {
   const g = gasSplit(call);
@@ -218,9 +218,9 @@ function Gas({ call, inspected }: { call: CrossCall; inspected: boolean }) {
         <dd>
           <strong data-testid="gas-contracts">{formatTgas(g.contractGas)} Tgas</strong>
         </dd>
-        <dt>70% burned for good</dt>
+        <dt>About 70% burned for good</dt>
         <dd data-testid="gas-burned">{formatTgas(g.burned)} Tgas</dd>
-        <dt>30% to the contracts</dt>
+        <dt>About 30% to the contracts</dt>
         <dd data-testid="gas-rebate">{formatTgas(g.rebate)} Tgas</dd>
         {inspected
           ? g.byContract.map((b) => (
@@ -235,6 +235,10 @@ function Gas({ call, inspected }: { call: CrossCall; inspected: boolean }) {
         <dt>Whole transaction, with the signer's steps and refunds</dt>
         <dd>{formatTgas(g.total)} Tgas</dd>
       </dl>
+      <p className="xcc-soft" data-testid="gas-estimate">
+        An estimate. The rule pays 30% of the gas spent running a contract's code. The chain does not report
+        that share, and the gas burnt here also counts fixed fees, so the true share is a little smaller.
+      </p>
     </section>
   );
 }

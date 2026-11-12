@@ -191,10 +191,10 @@ function Meter({ c }: { c: CallState }) {
             <rect x={x} y={y} width={w * 0.7} height={h} rx={8} className="xcc-bar-burn" />
             <rect x={x + w * 0.7} y={y} width={w * 0.3} height={h} rx={8} className="xcc-bar-rebate" />
             <text x={x} y={y - 6} className="xcc-svg-label small">
-              {`70% burned: ${formatTgas(g.burned)} Tgas`}
+              {`about 70% burned: ${formatTgas(g.burned)} Tgas`}
             </text>
             <text x={x + w} y={y - 6} textAnchor="end" className="xcc-svg-label small">
-              {`30% to the contracts: ${formatTgas(g.rebate)} Tgas`}
+              {`about 30% to the contracts: ${formatTgas(g.rebate)} Tgas`}
             </text>
           </>
         ) : null}

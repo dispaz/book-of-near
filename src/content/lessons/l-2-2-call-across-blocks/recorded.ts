@@ -1,9 +1,15 @@
 /**
- * A real testnet cross-contract call (spike 4, docs/spikes-seed.md), re-read on 12 Nov 2026 through
- * archival-rpc.testnet.fastnear.com (EXPERIMENTAL_tx_status). fjord calls market.withdraw; market calls
- * usdc.ft_transfer on another shard and waits for the answer in its callback on_withdraw. Shards come from
- * the testnet layout read on 1 Nov 2026 (the transaction status has none). Used in testnet mode: the app
- * cannot place its own helper contracts on chosen shards, so it shows this recorded call instead.
+ * A real testnet cross-contract call (spike 4, docs/spikes-seed.md), tx
+ * HhRTH4KQ9n8WtsGv1VZ7S7UytSZHQxEdTCmyTCa38ULp. fjord calls market.withdraw; market calls usdc.ft_transfer
+ * on another shard and waits for the answer in its callback on_withdraw. The values below were copied from
+ * EXPERIMENTAL_tx_status (archival-rpc.testnet.fastnear.com) on 12 Nov 2026 and match the chain; the app
+ * does not re-read them at run time. Shards come from the testnet layout read on 1 Nov 2026 (the
+ * transaction status has none).
+ *
+ * Why testnet mode shows this recorded call instead of sending one: a deliberate choice to keep the lesson
+ * free and fast. Helper contracts could be named onto chosen shards (spike 4 shows how), but sending a
+ * fresh call would cost the learner gas and a few seconds of waiting, and would need helpers deployed and
+ * kept alive on testnet.
  */
 import { finish, type Hop } from "./call";
 
