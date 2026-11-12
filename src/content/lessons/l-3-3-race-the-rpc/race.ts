@@ -6,15 +6,15 @@
 import { HISTORICAL_BLOCK, rpcEndpoint, type RpcEndpointId } from "../../../chain/rpcEndpoints";
 import type { BlockRef, RpcProbe } from "../../../chain/types";
 
-export type Probe = (endpointId: string, ref?: BlockRef) => Promise<RpcProbe>;
+export type Probe = (endpointId: RpcEndpointId, ref?: BlockRef) => Promise<RpcProbe>;
 
 /** The three regular providers, in the order of the app's fallback list (first is tried first). */
 export const RACE_IDS = ["fastnear", "near-org", "fastnear-2"] as const satisfies readonly RpcEndpointId[];
 /** The provider the learner switches off at step 3: the first in the list. */
 export const BLOCKABLE: RpcEndpointId = "fastnear";
 
-export const nameOf = (id: string) => rpcEndpoint(id as RpcEndpointId).name;
-export const hostOf = (id: string) => rpcEndpoint(id as RpcEndpointId).url.replace(/^https:\/\//, "");
+export const nameOf = (id: RpcEndpointId) => rpcEndpoint(id).name;
+export const hostOf = (id: RpcEndpointId) => rpcEndpoint(id).url.replace(/^https:\/\//, "");
 
 export interface Race {
   results: RpcProbe[];
@@ -37,7 +37,7 @@ export async function race(probe: Probe, onResult?: (p: RpcProbe) => void): Prom
 }
 
 export interface Attempt {
-  endpointId: string;
+  endpointId: RpcEndpointId;
   ok: boolean;
   latencyMs: number;
   status?: number;
@@ -49,7 +49,7 @@ export interface Attempt {
 export interface Failover {
   attempts: Attempt[];
   /** Who answered in the end (null: every provider failed). */
-  answeredBy: string | null;
+  answeredBy: RpcEndpointId | null;
   /** Time until the answer, all tries together. */
   totalMs: number;
   blockHeight?: number;
@@ -61,7 +61,7 @@ export interface Failover {
  */
 export async function failover(
   probe: Probe,
-  blocked: readonly string[],
+  blocked: readonly RpcEndpointId[],
   onAttempt?: (a: Attempt) => void,
 ): Promise<Failover> {
   const attempts: Attempt[] = [];

@@ -7,6 +7,8 @@
  * into them field by field. Amounts are bigint yoctoNEAR, gas is bigint gas units.
  */
 
+import type { RpcEndpointId } from "./rpcEndpoints";
+
 /** Account id, e.g. `alice.testnet` or a 64-hex implicit id. Rules in accountId.ts. */
 export type AccountId = string;
 /** base58 32-byte hash, the format NEAR uses for tx hashes, receipt ids and block hashes. */
@@ -252,7 +254,7 @@ export interface ShardLayout {
 export type RpcProbe =
   | {
       ok: true;
-      endpointId: string;
+      endpointId: RpcEndpointId;
       /** Round trip in milliseconds. */
       latencyMs: number;
       blockHeight: number;
@@ -260,7 +262,7 @@ export type RpcProbe =
     }
   | {
       ok: false;
-      endpointId: string;
+      endpointId: RpcEndpointId;
       latencyMs: number;
       /** UnknownBlock: the node does not keep that block. Unavailable: no answer, a 5xx or a 429. */
       error: "UnknownBlock" | "Unavailable";
@@ -272,6 +274,8 @@ export type RpcProbe =
 export interface ProbeOptions {
   /** Demo mode waits the recorded round trip when "realtime" (default); "instant" answers at once. */
   pace?: "realtime" | "instant";
+  /** Aborting it stops the request (a lesson that unmounts mid-race); the probe then rejects. */
+  signal?: AbortSignal;
 }
 
 // ---------- Errors ----------
@@ -347,7 +351,7 @@ export interface Chain {
   shardLayout(): Promise<ShardLayout>;
   /**
    * Ask ONE RPC endpoint (`RPC_ENDPOINTS` in rpcEndpoints.ts) for a block, with no fallback, and time it.
-   * Never rejects for a node's problem: it resolves `ok: false`. Rejects only for an unknown endpoint id.
+   * Never rejects for a node's problem: it resolves `ok: false`. Rejects only for an unknown endpoint id or an aborted `signal`.
    */
-  probeRpc(endpointId: string, ref?: BlockRef, options?: ProbeOptions): Promise<RpcProbe>;
+  probeRpc(endpointId: RpcEndpointId, ref?: BlockRef, options?: ProbeOptions): Promise<RpcProbe>;
 }

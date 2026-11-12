@@ -3,12 +3,15 @@
  * throws for a node's problem: a refused block, a 5xx, a 429, a timeout or no answer all come back as
  * `ok: false`, so the caller can show them and move on to the next endpoint.
  */
+import type { RpcEndpointId } from "../rpcEndpoints";
 import type { BlockRef, RpcProbe } from "../types";
 
 export interface ProbeDeps {
   fetch?: typeof fetch;
   now?: () => number;
   timeoutMs?: number;
+  /** The caller's abort: an aborted probe rejects (the caller is gone, nobody reads the answer). */
+  signal?: AbortSignal;
 }
 
 const blockParams = (ref: BlockRef) =>
@@ -20,7 +23,7 @@ const blockParams = (ref: BlockRef) =>
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- RPC JSON */
 export async function probeEndpoint(
-  endpointId: string,
+  endpointId: RpcEndpointId,
   url: string,
   ref: BlockRef,
   deps: ProbeDeps = {},
@@ -37,15 +40,17 @@ export async function probeEndpoint(
     status,
     message,
   });
+  const timeout = AbortSignal.timeout(deps.timeoutMs ?? 8_000);
   let res: Response;
   try {
     res = await doFetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "block", params: blockParams(ref) }),
-      signal: AbortSignal.timeout(deps.timeoutMs ?? 8_000),
+      signal: deps.signal ? AbortSignal.any([timeout, deps.signal]) : timeout,
     });
   } catch {
+    deps.signal?.throwIfAborted();
     return down("No answer: the node could not be reached or took too long.");
   }
   const body: any = await res.json().catch(() => null);

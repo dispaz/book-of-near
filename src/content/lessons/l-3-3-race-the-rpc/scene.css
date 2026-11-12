@@ -74,6 +74,34 @@
 .rpc-bar.first {
   fill: var(--accent);
 }
+/* A bar grows from the page when its answer lands (rpc-grow) and eases to a new height when a slower
+   answer rescales the bars (the transition on its scale). Reduced motion: .rpc.still cuts both. */
+.rpc-bar,
+.rpc-grow {
+  transform-box: fill-box;
+  transform-origin: bottom;
+}
+.rpc-bar {
+  vector-effect: non-scaling-stroke;
+  transition: transform 0.6s ease-out;
+}
+.rpc-grow {
+  animation: rpc-grow 0.6s ease-out both;
+}
+@keyframes rpc-grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+.rpc-bar-label {
+  transition: transform 0.6s ease-out;
+  animation: rpc-fade 0.6s ease-out both;
+}
+@keyframes rpc-fade {
+  from {
+    opacity: 0;
+  }
+}
 .rpc-svg-label {
   font: 600 15px var(--ui);
   fill: var(--ink);

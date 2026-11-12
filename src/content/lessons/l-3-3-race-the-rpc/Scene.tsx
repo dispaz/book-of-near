@@ -77,8 +77,14 @@ export default function Scene(props: SceneProps) {
       )}
 
       {step === RACE ? (
-        <SceneAction onClick={r.race} disabled={!!r.busy || !!r.raced} done={!!r.raced}>
-          {r.raced ? "Race finished ✓" : r.busy === "race" ? "Racing…" : "Race the nodes"}
+        <SceneAction onClick={r.race} disabled={!!r.busy || !!r.raced?.winner} done={!!r.raced?.winner}>
+          {r.raced?.winner
+            ? "Race finished ✓"
+            : r.busy === "race"
+              ? "Racing…"
+              : r.canRetry
+                ? "Try the race again"
+                : "Race the nodes"}
         </SceneAction>
       ) : null}
       {step === OUTAGE ? (
@@ -89,14 +95,16 @@ export default function Scene(props: SceneProps) {
       {step === FAILOVER ? (
         <SceneAction
           onClick={r.failover}
-          disabled={!!r.busy || !!r.fo || !r.blocked}
+          disabled={!!r.busy || !!r.fo?.answeredBy || !r.blocked}
           done={!!r.fo?.answeredBy}
         >
           {r.fo?.answeredBy
             ? "Answered via failover ✓"
             : r.busy === "failover"
               ? "Trying providers…"
-              : "Send query via failover"}
+              : r.canRetry
+                ? "Try the query again"
+                : "Send query via failover"}
         </SceneAction>
       ) : null}
       {step === ARCHIVE ? (
@@ -117,7 +125,7 @@ export default function Scene(props: SceneProps) {
       ) : null}
       {step === HONEST ? (
         <HonestTake
-          comparedWith="Ethereum"
+          comparedWith="Ethereum, where apps have long leaned on a few big providers such as Infura and Alchemy: an outage at one of them has taken many apps down at once"
           strengths={[
             "Open public access. Free providers such as FastNEAR allow requests from any website (CORS *), so a browser app can talk to several of them with no API key.",
             "Failover is built in. Libraries such as near-kit take a list of fallback addresses (fallbackRpcUrls) and move on when one fails.",
@@ -125,7 +133,6 @@ export default function Scene(props: SceneProps) {
           weaknesses={[
             "Public endpoints come and go. Lava's and Ankr's public NEAR endpoints have closed, so an app's list needs regular care.",
             "Providers can drift. Two nodes can be a block or so apart for a moment, so two answers to the same question can differ slightly.",
-            "Ethereum apps have long leaned on a few big providers such as Infura and Alchemy; an outage at one of them has taken many apps down at once.",
           ]}
         />
       ) : null}

@@ -5,7 +5,8 @@
  * switched off and pulls its shutter when it does not keep a block. Every object is a pick that runs the
  * step's action or shows a detail. It only draws the shared state from useRace. Loaded lazily.
  */
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
+import type { Mesh } from "three";
 import { Line } from "@react-three/drei";
 import {
   Anchor,
@@ -21,6 +22,7 @@ import {
   spreadBeside,
   spreadFor,
   textBlock,
+  useAnimatedFrame,
   useFreeFrame,
   useInk,
   type Focus,
@@ -121,7 +123,7 @@ export default function Scene3D({
         description={summary ? "The book is open at the RPC page." : describe(r)}
         status={r.busy === "race" ? "Racing…" : r.busy ? "Asking…" : undefined}
       >
-        {summary && !wide ? null : <Figure r={r} wide={wide} />}
+        {summary && !wide ? null : <Figure r={r} wide={wide} reducedMotion={reducedMotion} />}
       </BookScene>
       {/* The facts both views show (HTML), over the right page. */}
       <div className="book-scene-panel rpc-panel" ref={panel}>
@@ -131,7 +133,7 @@ export default function Scene3D({
   );
 }
 
-function Figure({ r, wide }: { r: RaceState; wide: boolean }) {
+function Figure({ r, wide, reducedMotion }: { r: RaceState; wide: boolean; reducedMotion: boolean }) {
   const ids = windowsAt(r.step);
   const bars = barsOf(r);
   return (
@@ -172,6 +174,7 @@ function Figure({ r, wide }: { r: RaceState; wide: boolean }) {
           key={b.id}
           bar={b}
           first={r.raced?.winner?.endpointId === b.id}
+          reducedMotion={reducedMotion}
           onPick={() => r.pickWindow(b.id)}
         />
       ))}
@@ -216,16 +219,51 @@ function Link({ id, look }: { id: RpcEndpointId; look: string }) {
   );
 }
 
-/** A latency bar: a column standing beside its window, as tall as its round trip is long. */
-function LatencyBar({ bar, first, onPick }: { bar: Bar; first: boolean; onPick: () => void }) {
+/**
+ * A latency bar: a column standing beside its window, as tall as its round trip is long. It grows from
+ * the page when its answer lands and eases to a new height when a slower answer rescales the bars; under
+ * reduced motion it stands at its height at once.
+ */
+function LatencyBar({
+  bar,
+  first,
+  reducedMotion,
+  onPick,
+}: {
+  bar: Bar;
+  first: boolean;
+  reducedMotion: boolean;
+  onPick: () => void;
+}) {
   const fill = useInk(first ? ACCENT : COLORS.paper);
   const [x, , z] = WINDOWS[bar.id];
   const h = Math.max(0.06, bar.share * BAR.maxHeight);
+  const column = useRef<Mesh>(null);
+  /** The height drawn now; starts flat on the page. */
+  const now = useRef(reducedMotion ? h : 0.001);
+  const draw = (height: number) => {
+    const m = column.current;
+    if (!m) return;
+    m.scale.y = height;
+    m.position.y = height / 2;
+  };
+  useLayoutEffect(() => {
+    if (reducedMotion) now.current = h;
+    draw(now.current);
+  });
+  useAnimatedFrame((_, dt) => {
+    const k = reducedMotion ? 1 : Math.min(1, dt * 6);
+    now.current += (h - now.current) * k;
+    if (Math.abs(h - now.current) < 0.002) now.current = h;
+    draw(now.current);
+    return now.current !== h;
+  });
   return (
     <group position={[x + BAR.dx, 0, z]}>
       <Pickable label={`Latency bar: ${nameOf(bar.id)}, ${bar.label}`} onPick={onPick} anchor={[0, h / 2, 0]}>
-        <mesh position={[0, h / 2, 0]} material={fill}>
-          <boxGeometry args={[BAR.width, h, BAR.width]} />
+        {/* A unit column, scaled to its height (scale and position are set by the frames above). */}
+        <mesh ref={column} material={fill}>
+          <boxGeometry args={[BAR.width, 1, BAR.width]} />
           <Outline />
         </mesh>
       </Pickable>

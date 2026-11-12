@@ -103,10 +103,11 @@ test.describe(`lesson ${ID}`, () => {
     await expect(page.getByTestId("rpc-row-fastnear-2")).toContainText("81 ms");
     for (const id of ["fastnear", "near-org", "fastnear-2"])
       await expect(page.getByTestId(`bar-${id}`)).toBeVisible();
-    // The tallest bar is the slowest provider.
+    // The tallest bar is the slowest provider, once the bars have grown.
     const h = async (id: string) =>
-      Number(await page.getByTestId(`bar-${id}`).locator("rect").getAttribute("height"));
-    expect(await h("near-org")).toBeGreaterThan(await h("fastnear"));
+      (await page.getByTestId(`bar-${id}`).locator("rect").boundingBox())?.height ?? 0;
+    await expect(page.getByTestId("bar-near-org")).toHaveAttribute("data-share", "1.000");
+    await expect.poll(async () => (await h("near-org")) > 5 * (await h("fastnear")), T).toBe(true);
     await expect(page.getByTestId("rpc-source")).toContainText("recorded once, on 12 Nov 2026");
     // The learner's own numbers reach the next step's words.
     await nextStep(page);
@@ -182,6 +183,28 @@ test.describe(`lesson ${ID}: motion, fallback, switching, phones`, () => {
       const page = await ctx.newPage();
       await seedRoute(page);
       await page.goto(`/lesson/${ID}?view=${view}`);
+      await expect(scene(page)).toHaveClass(/\bstill\b/, T);
+      if (view === "2d") {
+        // The bars stand at their height at once: no grow animation, no transition.
+        await nextStep(page);
+        await raceNodes(page);
+        const running = await page
+          .getByTestId("rpc-scene")
+          .evaluate((el) => el.getAnimations({ subtree: true }).length);
+        expect(running).toBe(0);
+        const scale = await page
+          .getByTestId("bar-near-org")
+          .locator("rect")
+          .evaluate((el) => getComputedStyle(el).transform);
+        expect(scale).toBe("matrix(1, 0, 0, 1, 0, 0)");
+        await page.goto(`/lesson/${ID}?view=${view}&step=5`);
+        await queryHistory(page);
+        // The shutter is down at once.
+        await expect(page.locator("[data-shutter]")).toHaveCount(1);
+        expect(await page.locator("[data-shutter]").evaluate((el) => el.getAnimations().length)).toBe(0);
+        await ctx.close();
+        return;
+      }
       await walkToCheck(page);
       await ctx.close();
     });

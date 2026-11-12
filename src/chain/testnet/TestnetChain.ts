@@ -53,7 +53,7 @@ import {
   type Funder,
   type PracticeStore,
 } from "./practice";
-import { RPC_ENDPOINTS } from "../rpcEndpoints";
+import { rpcEndpoint, type RpcEndpointId } from "../rpcEndpoints";
 import { probeEndpoint } from "./probe";
 import { Rpc, RpcError, RpcUnreachable, TESTNET_ARCHIVAL_RPC_URLS } from "./rpc";
 
@@ -538,10 +538,17 @@ export class TestnetChain implements Chain {
   }
 
   /** One timed request to one endpoint, no fallback (lesson 3.3). The network sets the pace. */
-  async probeRpc(endpointId: string, ref: BlockRef = "final", _options?: ProbeOptions): Promise<RpcProbe> {
-    const endpoint = RPC_ENDPOINTS.find((e) => e.id === endpointId);
-    if (!endpoint) throw new Error(`Unknown RPC endpoint ${endpointId}`);
-    return probeEndpoint(endpointId, endpoint.url, ref, { fetch: this.probeFetch, now: this.now });
+  async probeRpc(
+    endpointId: RpcEndpointId,
+    ref: BlockRef = "final",
+    options: ProbeOptions = {},
+  ): Promise<RpcProbe> {
+    const endpoint = rpcEndpoint(endpointId);
+    return probeEndpoint(endpointId, endpoint.url, ref, {
+      fetch: this.probeFetch,
+      now: this.now,
+      signal: options.signal,
+    });
   }
 
   shardLayout(): Promise<ShardLayout> {

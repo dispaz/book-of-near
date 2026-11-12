@@ -77,19 +77,31 @@ function Figure({ r }: { r: RaceState }) {
       </g>
       <g data-explain={r.step === RACE ? "bars" : undefined}>
         {bars.map((b) => {
-          const h = b.share * BAR.maxHeight * SCALE * 0.6;
+          // Each bar is drawn full height and scaled to its share, so a CSS transition can grow it:
+          // from the page when its answer lands, and to a new height when a slower answer rescales.
+          const full = BAR.maxHeight * SCALE * 0.6;
+          const h = b.share * full;
           const x = px(WINDOWS[b.id][0] + BAR.dx) - 9;
           return (
-            <g key={b.id} data-testid={`bar-${b.id}`}>
-              <rect
-                x={x}
-                y={base - h}
-                width={18}
-                height={h}
-                rx={3}
-                className={`rpc-bar${r.raced?.winner?.endpointId === b.id ? " first" : ""}`}
-              />
-              <text x={x + 9} y={base - h - 6} textAnchor="middle" className="rpc-svg-label small">
+            <g key={b.id} data-testid={`bar-${b.id}`} data-share={b.share.toFixed(3)}>
+              <g className="rpc-grow">
+                <rect
+                  x={x}
+                  y={base - full}
+                  width={18}
+                  height={full}
+                  rx={3}
+                  className={`rpc-bar${r.raced?.winner?.endpointId === b.id ? " first" : ""}`}
+                  style={{ transform: `scaleY(${b.share})` }}
+                />
+              </g>
+              <text
+                x={x + 9}
+                y={base - 6}
+                textAnchor="middle"
+                className="rpc-svg-label small rpc-bar-label"
+                style={{ transform: `translateY(${-h}px)` }}
+              >
                 {b.label}
               </text>
             </g>

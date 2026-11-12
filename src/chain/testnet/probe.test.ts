@@ -61,4 +61,20 @@ describe("probeEndpoint", () => {
     });
     expect(p).toMatchObject({ ok: false, error: "Unavailable" });
   });
+
+  it("passes the caller's signal to fetch and rejects once it is aborted", async () => {
+    const ctl = new AbortController();
+    let seen: AbortSignal | null | undefined;
+    const p = probeEndpoint("fastnear", "https://x", "final", {
+      signal: ctl.signal,
+      fetch: (_url, init) =>
+        new Promise((_, reject) => {
+          seen = init?.signal;
+          init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+        }),
+    });
+    ctl.abort();
+    await expect(p).rejects.toThrow();
+    expect(seen?.aborted).toBe(true);
+  });
 });

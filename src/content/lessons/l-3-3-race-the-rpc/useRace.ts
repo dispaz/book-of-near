@@ -52,11 +52,19 @@ export function useRace({
   const [hint, setHint] = useState<string | null>(null);
   const [passed, setPassed] = useState(false);
 
+  // Requests still in flight when the lesson closes are aborted: nobody is left to read the answers.
+  const abort = useRef<AbortController | null>(null);
+  useEffect(() => {
+    const ctl = new AbortController();
+    abort.current = ctl;
+    return () => ctl.abort();
+  }, []);
+
   const pace = reducedMotion ? "instant" : "realtime";
   const probeWith =
     (instant: boolean) =>
-    (id: string, ref?: BlockRef): Promise<RpcProbe> =>
-      chain.probeRpc(id, ref, { pace: instant ? "instant" : pace });
+    (id: RpcEndpointId, ref?: BlockRef): Promise<RpcProbe> =>
+      chain.probeRpc(id, ref, { pace: instant ? "instant" : pace, signal: abort.current?.signal });
 
   const busyRef = useRef<Busy>(null);
   const guard = async (what: Exclude<Busy, null>, work: () => Promise<void>) => {
@@ -68,6 +76,7 @@ export function useRace({
     try {
       await work();
     } catch {
+      if (abort.current?.signal.aborted) return;
       setError("The request did not go through. Please try again in a moment.");
     } finally {
       busyRef.current = null;
@@ -78,6 +87,7 @@ export function useRace({
   const race = (instant = false) =>
     void guard("race", async () => {
       setAnswers({});
+      setRaced(null);
       const r = await runRace(probeWith(instant), (p) => setAnswers((a) => ({ ...a, [p.endpointId]: p })));
       setRaced(r);
     });
@@ -85,6 +95,7 @@ export function useRace({
   const failover = (instant = false) =>
     void guard("failover", async () => {
       setAttempts([]);
+      setFo(null);
       const f = await runFailover(probeWith(instant), [BLOCKABLE], (a) => setAttempts((l) => [...l, a]));
       setFo(f);
     });
@@ -134,7 +145,7 @@ export function useRace({
 
   const failoverDone = !!fo?.answeredBy;
   useEffect(() => {
-    if (step === RACE) setGate(!!raced);
+    if (step === RACE) setGate(!!raced?.winner);
     if (step === OUTAGE) setGate(blocked);
     if (step === FAILOVER) setGate(failoverDone);
     if (step === ARCHIVE) setGate(!!hist);
@@ -178,13 +189,13 @@ export function useRace({
       setHint(`${nameOf(id)}: ${hostOf(id)}. Not yet: race the nodes at the next step.`);
       return;
     }
-    if (n.step === RACE && !n.raced) return race();
+    if (n.step === RACE && !n.raced?.winner) return race();
     if (n.step === OUTAGE) {
       if (id === BLOCKABLE) return toggleBlock();
       setHint(`${detailOf(id)} Switch FastNEAR off: it is first in your app's list.`);
       return;
     }
-    if (n.step === FAILOVER && !n.fo) {
+    if (n.step === FAILOVER && !n.fo?.answeredBy) {
       if (!n.blocked) {
         setHint("Not yet: switch FastNEAR off first.");
         return;
@@ -203,8 +214,8 @@ export function useRace({
   const pickMailbox = () => {
     const n = now.current;
     setPicked("mailbox");
-    if (n.step === RACE && !n.raced) return race();
-    if (n.step === FAILOVER && !n.fo && n.blocked) return failover();
+    if (n.step === RACE && !n.raced?.winner) return race();
+    if (n.step === FAILOVER && !n.fo?.answeredBy && n.blocked) return failover();
     if (n.step === ARCHIVE && !n.hist) return queryHistory();
     setHint(`Your app's fallback list, in order: ${RACE_IDS.map(hostOf).join(", ")}.`);
   };
@@ -221,6 +232,11 @@ export function useRace({
     if (step === RACE || step === OUTAGE) return raced?.winner?.endpointId === id ? "lit" : "idle";
     return "idle";
   };
+
+  /** Every provider failed (no network, or all of them down): the step's button offers a new try. */
+  const canRetry =
+    !busy && ((step === RACE && !!raced && !raced.winner) || (step === FAILOVER && !!fo && !fo.answeredBy));
+  const noAnswer = canRetry ? "No provider answered. Check your internet connection, then try again." : null;
 
   const state = [
     `race:${raced ? "done" : busy === "race" ? "racing" : "none"}`,
@@ -242,7 +258,8 @@ export function useRace({
     fo,
     hist,
     busy,
-    error,
+    error: error ?? noAnswer,
+    canRetry,
     picked,
     hint,
     passed,

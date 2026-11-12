@@ -16,7 +16,7 @@ import { bytesToHex } from "@noble/hashes/utils.js";
 import { isDirectSubAccount, isImplicitAccountId, isValidAccountId } from "./accountId";
 import { ChainError } from "./errors";
 import { encodeSuccessValue } from "./ops";
-import { HISTORICAL_BLOCK, RECORDED_LATENCY_MS, RPC_ENDPOINTS } from "./rpcEndpoints";
+import { HISTORICAL_BLOCK, RECORDED_LATENCY_MS, rpcEndpoint, type RpcEndpointId } from "./rpcEndpoints";
 import { shardForAccount } from "./shards";
 import type {
   AccessKeyInfo,
@@ -344,11 +344,16 @@ export class DemoChain implements Chain {
    * (RECORDED_LATENCY_MS). The demo history starts at its own genesis, so every demo block is recent;
    * below it, only the archival node knows the one recorded testnet block (HISTORICAL_BLOCK).
    */
-  async probeRpc(endpointId: string, ref: BlockRef = "final", options: ProbeOptions = {}): Promise<RpcProbe> {
-    const endpoint = RPC_ENDPOINTS.find((e) => e.id === endpointId);
-    if (!endpoint) throw new Error(`Unknown RPC endpoint ${endpointId}`);
+  async probeRpc(
+    endpointId: RpcEndpointId,
+    ref: BlockRef = "final",
+    options: ProbeOptions = {},
+  ): Promise<RpcProbe> {
+    const endpoint = rpcEndpoint(endpointId);
     const latencyMs = RECORDED_LATENCY_MS[endpoint.id];
+    options.signal?.throwIfAborted();
     if ((options.pace ?? this.pace) === "realtime") await this.sleep(latencyMs * this.slowdown);
+    options.signal?.throwIfAborted();
     const height = typeof ref === "object" && "height" in ref ? ref.height : null;
     if (height !== null && height < GENESIS_HEIGHT) {
       if (endpoint.archival && height === HISTORICAL_BLOCK.height)

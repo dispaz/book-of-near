@@ -195,8 +195,18 @@
     transform: rotate(360deg);
   }
 }
+/* A counter window's shutter (SvgRpcWindow) slides down from the top of its window. */
+.sk-shutter {
+  animation: sk-shutter-down 0.5s ease-out both;
+}
+@keyframes sk-shutter-down {
+  from {
+    transform: scaleY(0);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .sk-gear.spin {
+  .sk-gear.spin,
+  .sk-shutter {
     animation: none;
   }
 }

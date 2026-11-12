@@ -515,7 +515,8 @@ export function SvgRpcWindow({
   const wh = h * 0.42;
   const wy = y - h * 0.55;
   const down = state === "failed";
-  const pane = look.dashed ? "none" : shut || down ? COLORS.slab : lit ? color : INK;
+  // Behind a shutter the window is dark; the shutter itself slides down over it (sk-shutter).
+  const pane = look.dashed ? "none" : lit && !shut && !down ? color : INK;
   const node = (
     <g>
       {look.dashed ? null : <SvgShadow x={x + 4} y={y + 3} w={size * 1.1} />}
@@ -530,8 +531,10 @@ export function SvgRpcWindow({
         fill={pane}
         data-window={down ? "down" : shut ? "shut" : lit ? "lit" : "idle"}
       />
-      {(shut || down) && !look.dashed
-        ? [-0.25, 0, 0.25].map((f) => (
+      {(shut || down) && !look.dashed ? (
+        <g className="sk-shutter" data-shutter="" style={{ transformOrigin: `${x}px ${wy - wh / 2}px` }}>
+          <rect x={x - ww / 2} y={wy - wh / 2} width={ww} height={wh} {...ink(look)} fill={COLORS.slab} />
+          {[-0.25, 0, 0.25].map((f) => (
             <line
               key={f}
               x1={x - ww * 0.44}
@@ -541,8 +544,9 @@ export function SvgRpcWindow({
               stroke={INK}
               strokeWidth="2"
             />
-          ))
-        : null}
+          ))}
+        </g>
+      ) : null}
       <rect x={x - ww * 0.58} y={wy + wh / 2} width={ww * 1.16} height="6" {...ink(look, CARD)} />
       <Marks look={look} x={x} y={wy} size={wh} />
       <SvgLabel x={x} y={top - awning - 10}>

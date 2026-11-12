@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { DemoChain } from "../../../chain/DemoChain";
+import type { RpcEndpointId } from "../../../chain/rpcEndpoints";
 import type { BlockRef } from "../../../chain/types";
 import { barShare, failover, historical, race, RACE_IDS, varsFor } from "./race";
 
 const chain = () => new DemoChain({ pace: "instant" });
-const probeOf = (c: DemoChain) => (id: string, ref?: BlockRef) => c.probeRpc(id, ref, { pace: "instant" });
+const probeOf = (c: DemoChain) => (id: RpcEndpointId, ref?: BlockRef) =>
+  c.probeRpc(id, ref, { pace: "instant" });
 
 describe("race", () => {
   it("asks the three regular providers at once and picks the fastest answer", async () => {
@@ -37,7 +39,7 @@ describe("failover", () => {
   });
 
   it("moves on when a real node fails too", async () => {
-    const probe = async (id: string) =>
+    const probe = async (id: RpcEndpointId) =>
       id === "near-org"
         ? {
             ok: false as const,

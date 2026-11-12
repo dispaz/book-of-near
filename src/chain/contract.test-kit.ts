@@ -20,7 +20,7 @@ import {
   TX_PHASES,
   transfer,
 } from "./ops";
-import { HISTORICAL_BLOCK, RPC_ENDPOINTS } from "./rpcEndpoints";
+import { HISTORICAL_BLOCK, RPC_ENDPOINTS, type RpcEndpointId } from "./rpcEndpoints";
 import { shardForAccount } from "./shards";
 import type { Chain, PhaseEvent, TxOutcome } from "./types";
 import { parseNear, tgas } from "./units";
@@ -439,7 +439,8 @@ export function runChainContract(makeChain: () => Chain | Promise<Chain>, opts: 
           blockHeight: HISTORICAL_BLOCK.height,
           blockTimestampMs: HISTORICAL_BLOCK.timestampMs,
         });
-        await expect(chain.probeRpc("no-such-node", "final", instant)).rejects.toThrow();
+        // An id from outside the list (a caller that bypassed the type) still rejects.
+        await expect(chain.probeRpc("no-such-node" as RpcEndpointId, "final", instant)).rejects.toThrow();
       },
       t,
     );
