@@ -373,7 +373,12 @@ export class TestnetChain implements Chain {
       throw new ChainError("RelayRefused", "No relayer is set up for testnet in this app yet.");
     let reply: Awaited<ReturnType<typeof postJson>>;
     try {
-      reply = await postJson(this.doFetch, `${this.relayUrl}/relay`, { signedDelegate: signed.payload }, 60_000);
+      reply = await postJson(
+        this.doFetch,
+        `${this.relayUrl}/relay`,
+        { signedDelegate: signed.payload },
+        60_000,
+      );
     } catch {
       throw new ChainError("Network", "The relayer could not be reached.");
     }

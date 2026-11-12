@@ -130,7 +130,9 @@ describe("Borsh meta-transaction (NEP-366) encoding", () => {
   const fields = {
     senderId: "alice.testnet",
     receiverId: "token.alice.testnet",
-    actions: [actions.functionCall("ft_transfer", { receiver_id: "bob.testnet", amount: "50" }, tgas(10), 1n)],
+    actions: [
+      actions.functionCall("ft_transfer", { receiver_id: "bob.testnet", amount: "50" }, tgas(10), 1n),
+    ],
     nonce: 42n,
     maxBlockHeight: 200_000_100n,
     publicKey: key,

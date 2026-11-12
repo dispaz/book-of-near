@@ -32,7 +32,19 @@ import {
 import { STAGE_ACCENTS } from "../../../scene-kit/theme";
 import type { SceneProps } from "../../../app/types";
 import { FRIEND as FRIEND_ID, type Obj } from "./ft";
-import { boxOf, FIGURE, FRIEND, ME, PADLOCK, PARCEL_END, PARCEL_START, partsAt, RELAYER, STAMP } from "./layout3d";
+import {
+  boxOf,
+  FIGURE,
+  FRIEND,
+  ME,
+  PADLOCK,
+  PARCEL_END,
+  PARCEL_START,
+  partsAt,
+  RELAYER,
+  stackBy,
+  STAMP,
+} from "./layout3d";
 import { describe, Facts, pickLabel, short } from "./parts";
 import { coinsFor } from "./Scene2D";
 import { CHECK, GASLESS, HOOK, MINT, REGISTER, TRAP } from "./steps";
@@ -171,38 +183,39 @@ function Figure({ t }: { t: Token }) {
       <React t={t} o="me">
         <Mailbox
           position={ME}
-          size={1.7}
-          name={short(t.parent?.id ?? "your account", 18)}
-          note={t.minted ? `${t.myBalance} ${t.symbol}` : undefined}
+          size={1.6}
+          name={short(t.parent?.id ?? "your account", 16)}
           color={ACCENT}
-          coins={coinsFor(t.myBalance)}
           pickLabel={pickLabel(t, "me")}
           onPick={() => t.pick("me")}
           selected={sel("me")}
         />
       </React>
+      {t.minted ? <TokenStack at={stackBy(ME, 1)} count={t.myBalance} symbol={t.symbol} /> : null}
       {parts.includes("stamp") ? (
         <React t={t} o="stamp">
           <MintStamp t={t} />
         </React>
       ) : null}
-      {t.step === HOOK || t.step === MINT ? <Anchor name="stamp" position={[STAMP[0], 1.1, STAMP[2]]} /> : null}
+      {t.step === HOOK || t.step === MINT ? (
+        <Anchor name="stamp" position={[STAMP[0], 1.1, STAMP[2]]} />
+      ) : null}
       {parts.includes("friend") ? (
         <React t={t} o="friend">
           <Mailbox
             position={FRIEND}
             size={1.5}
             name={FRIEND_ID}
-            note={t.registered ? `${t.friendBalance} ${t.symbol}` : undefined}
             color={ACCENT}
-            coins={coinsFor(t.friendBalance * 5)}
             flag={t.friendBalance > 0}
-            state={t.registered ? "ok" : "pending"}
             pickLabel={pickLabel(t, "friend")}
             onPick={() => t.pick("friend")}
             selected={sel("friend")}
           />
         </React>
+      ) : null}
+      {parts.includes("friend") && t.friendBalance > 0 ? (
+        <TokenStack at={stackBy(FRIEND, -1)} count={t.friendBalance} symbol={t.symbol} />
       ) : null}
       {parts.includes("padlock") ? (
         <React t={t} o="padlock">
@@ -213,14 +226,38 @@ function Figure({ t }: { t: Token }) {
         <Anchor name="padlock" position={[PADLOCK[0], 0.8, PADLOCK[2]]} />
       ) : null}
       {parts.includes("relayer") ? (
-        <Mailbox position={RELAYER} size={1.2} name="relayer" note="pays gas" color={ACCENT} />
+        <Mailbox position={RELAYER} size={1.2} name="relayer" color={ACCENT} />
       ) : null}
       {parts.includes("parcel") ? (
         <React t={t} o="parcel">
           <SignedParcel t={t} />
         </React>
       ) : null}
-      {t.step === GASLESS ? <Anchor name="parcel" position={[PARCEL_START[0], 0.9, PARCEL_START[2]]} /> : null}
+      {t.step === GASLESS ? (
+        <Anchor name="parcel" position={[PARCEL_START[0], 0.9, PARCEL_START[2]]} />
+      ) : null}
+    </group>
+  );
+}
+
+/**
+ * Your token as a short stack of plain coins in the accent (no NEAR mark: another token gets another
+ * face, docs/scene-objects.md), with the amount printed in front.
+ */
+function TokenStack({ at, count, symbol }: { at: Vec3; count: number; symbol: string }) {
+  const ink = useInk(ACCENT);
+  const n = coinsFor(count);
+  return (
+    <group position={at}>
+      {Array.from({ length: n }, (_, i) => (
+        <mesh key={i} position={[0, 0.07 + i * 0.13, 0]} material={ink}>
+          <cylinderGeometry args={[0.3, 0.3, 0.11, 28]} />
+          <Outline />
+        </mesh>
+      ))}
+      <Label position={[0, 0.05, 0.5]} variant="small">
+        {`${count.toLocaleString("en-US")} ${symbol}`}
+      </Label>
     </group>
   );
 }
@@ -251,7 +288,12 @@ function MintStamp({ t }: { t: Token }) {
   });
   return (
     <group position={STAMP}>
-      <Pickable label={pickLabel(t, "stamp")} onPick={() => t.pick("stamp")} anchor={[0, 1.3, 0]} selected={t.picked?.what === "stamp"}>
+      <Pickable
+        label={pickLabel(t, "stamp")}
+        onPick={() => t.pick("stamp")}
+        anchor={[0, 1.3, 0]}
+        selected={t.picked?.what === "stamp"}
+      >
         <group ref={head} position={[0, 0, 0]}>
           <mesh position={[0, 0.85, 0]} material={handle}>
             <cylinderGeometry args={[0.12, 0.16, 0.7, 16]} />
@@ -280,12 +322,21 @@ function Padlock({ t }: { t: Token }) {
   const metal = useInk(COLORS.paper);
   return (
     <group position={PADLOCK}>
-      <Pickable label={pickLabel(t, "padlock")} onPick={() => t.pick("padlock")} anchor={[0, 0.9, 0]} selected={t.picked?.what === "padlock"}>
+      <Pickable
+        label={pickLabel(t, "padlock")}
+        onPick={() => t.pick("padlock")}
+        anchor={[0, 0.9, 0]}
+        selected={t.picked?.what === "padlock"}
+      >
         <mesh position={[0, 0.25, 0]} material={body}>
           <boxGeometry args={[0.5, 0.42, 0.22]} />
           <Outline />
         </mesh>
-        <mesh position={[open ? 0.12 : 0, open ? 0.62 : 0.5, 0]} rotation={[0, open ? 0.9 : 0, 0]} material={metal}>
+        <mesh
+          position={[open ? 0.12 : 0, open ? 0.62 : 0.5, 0]}
+          rotation={[0, open ? 0.9 : 0, 0]}
+          material={metal}
+        >
           <torusGeometry args={[0.15, 0.04, 8, 24, Math.PI]} />
           <Outline />
         </mesh>

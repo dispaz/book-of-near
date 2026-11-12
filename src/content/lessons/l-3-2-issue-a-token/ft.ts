@@ -58,7 +58,8 @@ export interface PickState {
 }
 
 /** What a pick does: run the step's action, say "not yet" with a hint, or show a detail. */
-export type PickResult = { act: "mint" | "send" | "register" | "gasless" } | { notYet: string } | { detail: string };
+export type PickResult =
+  { act: "mint" | "send" | "register" | "gasless" } | { notYet: string } | { detail: string };
 
 /** Which object runs which step's action (the same as the step's button). */
 const ACTS: Partial<Record<Obj, [number, PickResult & { act: string }]>> = {

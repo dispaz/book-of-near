@@ -17,21 +17,29 @@ export function pickLabel(t: Token, o: Obj): string {
     case "me":
       return `Mailbox: your account, ${t.parent ? short(t.parent.id, 30) : "…"}`;
     case "stamp":
-      return t.step === MINT && !t.minted ? `Minting stamp: mint ${t.symbol} tokens` : "Minting stamp: token details";
+      return t.step === MINT && !t.minted
+        ? `Minting stamp: mint ${t.symbol} tokens`
+        : "Minting stamp: token details";
     case "friend":
       return t.step === REGISTER && !t.registered
         ? `Mailbox: ${FRIEND}, pay its storage deposit`
         : `Mailbox: ${FRIEND}`;
     case "padlock":
-      return t.step === TRAP && !t.refused ? `Padlock: send ${SEND_AMOUNT} ${t.symbol} to ${FRIEND}` : "Storage padlock";
+      return t.step === TRAP && !t.refused
+        ? `Padlock: send ${SEND_AMOUNT} ${t.symbol} to ${FRIEND}`
+        : "Storage padlock";
     case "parcel":
-      return t.step === GASLESS && !t.relayed ? "Parcel: sign the gasless transfer" : "Parcel: the signed delegate action";
+      return t.step === GASLESS && !t.relayed
+        ? "Parcel: sign the gasless transfer"
+        : "Parcel: the signed delegate action";
   }
 }
 
 /** One sentence: what the figure shows at this step (screen readers, the 2D group label). */
 export function describe(t: Token): string {
-  const me = t.minted ? `Your mailbox holds ${tokens(t.myBalance, t.symbol)}.` : "Your mailbox has no tokens yet.";
+  const me = t.minted
+    ? `Your mailbox holds ${tokens(t.myBalance, t.symbol)}.`
+    : "Your mailbox has no tokens yet.";
   if (t.step === HOOK || t.step === MINT) return `${me} A minting stamp stands beside it.`;
   const lock = t.registered ? "The padlock on it is open." : "A red padlock hangs on it.";
   const friend = `${FRIEND}'s mailbox holds ${tokens(t.friendBalance, t.symbol)}. ${lock}`;
@@ -83,8 +91,8 @@ function TokenFacts({ t }: { t: Token }) {
         {t.parent?.make ? (
           <>
             {" "}
-            Your practice account is a hex id, so the lesson first makes the short name <code>{t.parent.id}</code>{" "}
-            for it.
+            Your practice account is a hex id, so the lesson first makes the short name{" "}
+            <code>{t.parent.id}</code> for it.
           </>
         ) : null}
       </p>
@@ -120,8 +128,8 @@ function Storage({ t }: { t: Token }) {
   if (!t.registered)
     return (
       <p className="tok-soft">
-        storage_deposit attaches {nearText(t.deposit)} NEAR. The token contract keeps it locked for{" "}
-        {FRIEND}'s balance record.
+        storage_deposit attaches {nearText(t.deposit)} NEAR. The token contract keeps it locked for {FRIEND}'s
+        balance record.
       </p>
     );
   return (
@@ -158,7 +166,10 @@ function Relay({ t }: { t: Token }) {
         {t.relay ? (
           <>
             {" "}
-            · <span data-testid="relay-left">{t.relay.remaining} of {t.relay.cap} left today</span>
+            ·{" "}
+            <span data-testid="relay-left">
+              {t.relay.remaining} of {t.relay.cap} left today
+            </span>
           </>
         ) : null}
       </dd>
@@ -166,7 +177,8 @@ function Relay({ t }: { t: Token }) {
         <>
           <dt>Delivered</dt>
           <dd data-testid="relay-delivered">
-            {t.relayed} × {tokens(SEND_AMOUNT, t.symbol)}, about {t.relay?.gasTgas} Tgas paid by the relayer each time
+            {t.relayed} × {tokens(SEND_AMOUNT, t.symbol)}, about {t.relay?.gasTgas} Tgas paid by the relayer
+            each time
           </dd>
           <dt>Your NEAR</dt>
           <dd data-testid="my-near">

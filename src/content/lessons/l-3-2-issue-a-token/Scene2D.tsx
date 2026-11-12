@@ -9,7 +9,19 @@ import { SvgPickable } from "../../../scene-kit/svg";
 import { SvgMailbox, SvgParcel, SvgStamp } from "../../../scene-kit/svg/objects";
 import { STAGE_ACCENTS } from "../../../scene-kit/theme";
 import { FRIEND as FRIEND_ID } from "./ft";
-import { FIGURE, FRIEND, ME, PADLOCK, PARCEL_END, PARCEL_START, partsAt, RELAYER, STAMP } from "./layout3d";
+import {
+  FIGURE,
+  FRIEND,
+  ME,
+  PADLOCK,
+  PARCEL_END,
+  PARCEL_START,
+  partsAt,
+  RELAYER,
+  stackBy,
+  STAMP,
+} from "./layout3d";
+import type { Vec3 } from "../../../scene-kit/motion";
 import { describe, Facts, pickLabel, short } from "./parts";
 import { CHECK, HOOK, MINT, TRAP } from "./steps";
 import type { Token } from "./useToken";
@@ -25,7 +37,15 @@ const pz = (z: number) => (z - FIGURE.minZ) * SCALE;
 /** Coins drawn beside a mailbox: one per 250 tokens, at most 5, at least 1 while it holds any. */
 export const coinsFor = (n: number) => (n <= 0 ? 0 : Math.max(1, Math.min(5, Math.round(n / 250))));
 
-export default function Scene2D({ t, reducedMotion, mode }: { t: Token; reducedMotion: boolean; mode: SceneProps["mode"] }) {
+export default function Scene2D({
+  t,
+  reducedMotion,
+  mode,
+}: {
+  t: Token;
+  reducedMotion: boolean;
+  mode: SceneProps["mode"];
+}) {
   if (t.step >= CHECK) return null;
   return (
     <div
@@ -55,15 +75,14 @@ function Figure({ t }: { t: Token }) {
       <SvgMailbox
         x={px(ME[0])}
         y={pz(ME[2]) + 50}
-        size={124}
-        name={short(t.parent?.id ?? "your account", 18)}
-        note={t.minted ? `${t.myBalance} ${t.symbol}` : undefined}
+        size={118}
+        name={short(t.parent?.id ?? "your account", 16)}
         color={ACCENT}
-        coins={coinsFor(t.myBalance)}
         pickLabel={pickLabel(t, "me")}
         onPick={() => t.pick("me")}
         selected={sel("me")}
       />
+      {t.minted ? <SvgTokenStack at={stackBy(ME, 1)} count={t.myBalance} symbol={t.symbol} /> : null}
       {parts.includes("stamp") ? (
         <g data-explain={t.step === HOOK || t.step === MINT ? "stamp" : undefined}>
           <SvgPickable
@@ -93,26 +112,19 @@ function Figure({ t }: { t: Token }) {
           y={pz(FRIEND[2]) + 50}
           size={110}
           name={FRIEND_ID}
-          note={t.registered ? `${t.friendBalance} ${t.symbol}` : undefined}
           color={ACCENT}
-          coins={coinsFor(t.friendBalance * 5)}
           flag={t.friendBalance > 0}
-          state={t.registered ? "ok" : "pending"}
           pickLabel={pickLabel(t, "friend")}
           onPick={() => t.pick("friend")}
           selected={sel("friend")}
         />
       ) : null}
+      {parts.includes("friend") && t.friendBalance > 0 ? (
+        <SvgTokenStack at={stackBy(FRIEND, -1)} count={t.friendBalance} symbol={t.symbol} />
+      ) : null}
       {parts.includes("padlock") ? <Padlock t={t} selected={sel("padlock")} /> : null}
       {parts.includes("relayer") ? (
-        <SvgMailbox
-          x={px(RELAYER[0])}
-          y={pz(RELAYER[2]) + 40}
-          size={92}
-          name="relayer"
-          note="pays gas"
-          color={ACCENT}
-        />
+        <SvgMailbox x={px(RELAYER[0])} y={pz(RELAYER[2]) + 40} size={92} name="relayer" color={ACCENT} />
       ) : null}
       {parts.includes("parcel") ? (
         <g data-explain="parcel">
@@ -135,6 +147,31 @@ function Figure({ t }: { t: Token }) {
   );
 }
 
+/** Your token: a short stack of plain accent coins (no NEAR mark) with the amount under it. */
+function SvgTokenStack({ at, count, symbol }: { at: Vec3; count: number; symbol: string }) {
+  const x = px(at[0]);
+  const y = pz(at[2]);
+  return (
+    <g aria-hidden="true">
+      {Array.from({ length: coinsFor(count) }, (_, i) => (
+        <ellipse
+          key={i}
+          cx={x}
+          cy={y - i * 8}
+          rx={20}
+          ry={8}
+          fill={ACCENT}
+          stroke="var(--ink)"
+          strokeWidth={2.5}
+        />
+      ))}
+      <text x={x} y={y + 28} textAnchor="middle" className="tok-svg-label small">
+        {`${count.toLocaleString("en-US")} ${symbol}`}
+      </text>
+    </g>
+  );
+}
+
 /** The storage padlock: red and shut until the friend is registered, then open. */
 function Padlock({ t, selected }: { t: Token; selected: boolean }) {
   const x = px(PADLOCK[0]);
@@ -143,10 +180,19 @@ function Padlock({ t, selected }: { t: Token; selected: boolean }) {
   const red = t.step >= TRAP && !open && !!t.refused;
   return (
     <g data-explain="padlock">
-      <SvgPickable label={pickLabel(t, "padlock")} onPick={() => t.pick("padlock")} selected={selected} focus={[x - 30, y - 44, 60, 80]}>
+      <SvgPickable
+        label={pickLabel(t, "padlock")}
+        onPick={() => t.pick("padlock")}
+        selected={selected}
+        focus={[x - 30, y - 44, 60, 80]}
+      >
         <g className="tok-svg-padlock">
           <path
-            d={open ? `M${x - 12},${y - 6} v-16 a12,12 0 0 1 24,0 v-6` : `M${x - 12},${y - 6} v-12 a12,12 0 0 1 24,0 v12`}
+            d={
+              open
+                ? `M${x - 12},${y - 6} v-16 a12,12 0 0 1 24,0 v-6`
+                : `M${x - 12},${y - 6} v-12 a12,12 0 0 1 24,0 v12`
+            }
             fill="none"
           />
           <rect

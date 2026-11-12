@@ -23,7 +23,8 @@ const key = (id: string) => `b:${id}`;
 
 function amountArg(ctx: DemoContractContext, name = "amount"): bigint {
   const raw = ctx.args[name];
-  if (typeof raw !== "string" || !/^\d+$/.test(raw)) throw new Error(`${name} must be a whole number as a string`);
+  if (typeof raw !== "string" || !/^\d+$/.test(raw))
+    throw new Error(`${name} must be a whole number as a string`);
   const n = BigInt(raw);
   if (n <= 0n) throw new Error("The amount should be a positive number");
   return n;

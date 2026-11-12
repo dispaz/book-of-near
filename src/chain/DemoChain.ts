@@ -815,11 +815,14 @@ export class DemoChain implements Chain {
             // NEP-366: the relayer's receipt reaches the sender's account, which checks the signature and
             // nonce, then sends the inner actions on as if the sender had signed a transaction.
             const d = action.delegate;
-            const bad = (reason: Extract<ActionErrorKind, { type: "DelegateActionInvalid" }>["reason"], m: string) =>
-              fail({ type: "DelegateActionInvalid", reason }, m);
+            const bad = (
+              reason: Extract<ActionErrorKind, { type: "DelegateActionInvalid" }>["reason"],
+              m: string,
+            ) => fail({ type: "DelegateActionInvalid", reason }, m);
             if (d.senderId !== r.receiverId)
               bad("SenderMismatch", "A delegate action must be sent to its own sender's account.");
-            if (BigInt(r.height) > d.maxBlockHeight) bad("Expired", "The signed delegate action has expired.");
+            if (BigInt(r.height) > d.maxBlockHeight)
+              bad("Expired", "The signed delegate action has expired.");
             const a = needAccount();
             const key = a.keys.get(d.publicKey);
             if (!key) return bad("AccessKeyNotFound", `${d.senderId} has no key ${d.publicKey}.`);
@@ -1120,7 +1123,9 @@ export class DemoChain implements Chain {
   private delegateHash(d: Omit<SignedDelegate, "signature" | "payload">): CryptoHash {
     const { senderId, receiverId, actions, nonce, maxBlockHeight, publicKey } = d;
     return base58.encode(
-      this.digest(`delegate|${serialize({ senderId, receiverId, actions, nonce, maxBlockHeight, publicKey })}`),
+      this.digest(
+        `delegate|${serialize({ senderId, receiverId, actions, nonce, maxBlockHeight, publicKey })}`,
+      ),
     );
   }
 

@@ -15,7 +15,13 @@ import { isChainError } from "../../../chain/errors";
 import { actions, callMethod, createNamedAccount } from "../../../chain/ops";
 import { tgas } from "../../../chain/units";
 import type { AccountView, Chain, TxOutcome, TxPhase } from "../../../chain/types";
-import { CONTRACT_FUNDING, gaugeOf, nearText, newParentName, PARENT_FUNDING } from "../l-3-1-deploy-a-contract/contract";
+import {
+  CONTRACT_FUNDING,
+  gaugeOf,
+  nearText,
+  newParentName,
+  PARENT_FUNDING,
+} from "../l-3-1-deploy-a-contract/contract";
 import {
   DEFAULT_SUPPLY,
   DEFAULT_SYMBOL,
@@ -67,9 +73,12 @@ export function useToken({
   const [tokenView, setTokenView] = useState<AccountView | null>(null);
   const [relayed, setRelayed] = useState(0);
   const [relayTx, setRelayTx] = useState<string | null>(null);
-  const [relay, setRelay] = useState<{ remaining: number; cap: number; relayerId: string; gasTgas: string } | null>(
-    null,
-  );
+  const [relay, setRelay] = useState<{
+    remaining: number;
+    cap: number;
+    relayerId: string;
+    gasTgas: string;
+  } | null>(null);
   const [relayRefused, setRelayRefused] = useState<string | null>(null);
   const [myNear, setMyNear] = useState<{ before: bigint; after: bigint } | null>(null);
   const [busy, setBusy] = useState<Busy>(null);
@@ -161,7 +170,13 @@ export function useToken({
       const sym = symbolInput.trim();
       const total = supplyOf(supplyInput);
       if (parent.make && !parentMade) {
-        const made = await createNamedAccount(chain, parent.id, await chain.newKeyPair(), PARENT_FUNDING, send);
+        const made = await createNamedAccount(
+          chain,
+          parent.id,
+          await chain.newKeyPair(),
+          PARENT_FUNDING,
+          send,
+        );
         if (failed(made)) return;
         setParentMade(true);
       }
@@ -176,7 +191,11 @@ export function useToken({
             actions.deployContract(demoContractCode("ft")),
             actions.functionCall(
               "new",
-              { owner_id: parent.id, total_supply: `${total}`, metadata: { symbol: sym, name: sym, decimals: 0 } },
+              {
+                owner_id: parent.id,
+                total_supply: `${total}`,
+                metadata: { symbol: sym, name: sym, decimals: 0 },
+              },
               CALL_GAS,
               0n,
             ),
@@ -207,12 +226,18 @@ export function useToken({
     run("register", async () => {
       if (!parent || !tokenId || !minted || registered || step !== REGISTER) return;
       const before = (await chain.viewAccount(tokenId)).storageUsage;
-      const out = await callMethod(chain, tokenId, "storage_deposit", { account_id: FRIEND }, {
-        ...send,
-        signerId: parent.id,
-        gas: TRANSFER_GAS,
-        deposit: FT_STORAGE_DEPOSIT,
-      });
+      const out = await callMethod(
+        chain,
+        tokenId,
+        "storage_deposit",
+        { account_id: FRIEND },
+        {
+          ...send,
+          signerId: parent.id,
+          gas: TRANSFER_GAS,
+          deposit: FT_STORAGE_DEPOSIT,
+        },
+      );
       if (failed(out)) return;
       const after = (await chain.viewAccount(tokenId)).storageUsage;
       setRegistered({ tx: out.transaction.hash, bytes: after - before });
@@ -232,7 +257,10 @@ export function useToken({
       try {
         const r = await chain.relayDelegate(signed, send);
         if (failed(r.outcome)) return;
-        const gas = r.outcome.receipts.reduce((s, x) => s + x.gasBurnt, r.outcome.transactionOutcome.gasBurnt);
+        const gas = r.outcome.receipts.reduce(
+          (s, x) => s + x.gasBurnt,
+          r.outcome.transactionOutcome.gasBurnt,
+        );
         setRelay({
           remaining: r.remaining,
           cap: r.cap,
@@ -298,7 +326,11 @@ export function useToken({
   else if (busy) status = phase ? `Working… ${phase}` : "Working…";
   else if (step === MINT) status = minted ? "Minted. Press Next." : null;
   else if (step === TRAP)
-    status = !minted ? "Mint your tokens first (step 2)." : refused ? "Refused, as expected. Press Next." : null;
+    status = !minted
+      ? "Mint your tokens first (step 2)."
+      : refused
+        ? "Refused, as expected. Press Next."
+        : null;
   else if (step === REGISTER)
     status = !minted ? "Mint your tokens first (step 2)." : registered ? "Registered. Press Next." : null;
   else if (step === GASLESS)

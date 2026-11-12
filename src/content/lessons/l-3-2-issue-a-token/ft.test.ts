@@ -44,7 +44,9 @@ describe("picks (rule 10a)", () => {
   });
 
   it("says not yet with a hint when an earlier step is missing", () => {
-    expect(pickResult({ ...base, step: TRAP }, "padlock")).toEqual({ notYet: "Mint your tokens first (step 2)." });
+    expect(pickResult({ ...base, step: TRAP }, "padlock")).toEqual({
+      notYet: "Mint your tokens first (step 2).",
+    });
     expect(pickResult({ ...base, step: GASLESS, minted: true }, "parcel")).toMatchObject({
       notYet: expect.stringContaining("Register"),
     });
@@ -52,7 +54,16 @@ describe("picks (rule 10a)", () => {
   });
 
   it("shows a detail after the step is done", () => {
-    const done = { ...base, step: GASLESS, minted: true, refused: true, registered: true, relayed: 1, myBalance: 950, friendBalance: 50 };
+    const done = {
+      ...base,
+      step: GASLESS,
+      minted: true,
+      refused: true,
+      registered: true,
+      relayed: 1,
+      myBalance: 950,
+      friendBalance: 50,
+    };
     expect(pickResult(done, "me")).toMatchObject({ detail: expect.stringContaining("950 BOOK") });
     expect(pickResult(done, "parcel")).toMatchObject({ detail: expect.stringContaining("NEP-366") });
     expect(pickResult(done, "padlock")).toMatchObject({ detail: expect.stringContaining("0.00125") });
@@ -62,8 +73,12 @@ describe("picks (rule 10a)", () => {
 
 describe("evidence", () => {
   it("records the token and the relayed transaction, never keys", () => {
-    expect(evidenceOf({ minted: false, tokenId: null, symbol: "BOOK", supply: 1000, relayTx: null })).toBeNull();
-    expect(evidenceOf({ minted: true, tokenId: "token.x.testnet", symbol: "BOOK", supply: 1000, relayTx: "H" })).toEqual({
+    expect(
+      evidenceOf({ minted: false, tokenId: null, symbol: "BOOK", supply: 1000, relayTx: null }),
+    ).toBeNull();
+    expect(
+      evidenceOf({ minted: true, tokenId: "token.x.testnet", symbol: "BOOK", supply: 1000, relayTx: "H" }),
+    ).toEqual({
       tokenContract: "token.x.testnet",
       tokenSymbol: "BOOK",
       totalSupply: "1000",

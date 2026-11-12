@@ -98,7 +98,12 @@ export async function relay(input: unknown, ip: string, deps: RelayDeps): Promis
     const txHash = await deps.sender.relay(signed);
     return {
       status: 200,
-      body: { txHash, relayerId: deps.sender.relayerId, remaining: Math.max(0, perAccountDaily - used), cap: perAccountDaily },
+      body: {
+        txHash,
+        relayerId: deps.sender.relayerId,
+        remaining: Math.max(0, perAccountDaily - used),
+        cap: perAccountDaily,
+      },
     };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);

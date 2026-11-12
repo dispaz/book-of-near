@@ -10,17 +10,32 @@ import { GASLESS, HOOK, MINT, REGISTER, TRAP } from "./steps";
 export type Target = { kind: "all" } | { kind: Part };
 
 const ALL: Shot<Target> = { caption: "The whole page.", target: { kind: "all" } };
-const close = (kind: Part, caption: string): Shot<Target> => ({ caption: `Close up: ${caption}`, target: { kind } });
+const close = (kind: Part, caption: string): Shot<Target> => ({
+  caption: `Close up: ${caption}`,
+  target: { kind },
+});
 
 /** The tour for a step: the whole figure first, then close-ups. None at the check and honest take. */
 export function tourFor(step: number): Shot<Target>[] {
   switch (step) {
     case HOOK:
-      return [ALL, close("stamp", "the minting stamp, ready to make new tokens."), close("me", "your account.")];
+      return [
+        ALL,
+        close("stamp", "the minting stamp, ready to make new tokens."),
+        close("me", "your account."),
+      ];
     case MINT:
-      return [ALL, close("me", "your account holds the whole supply."), close("stamp", "the token's details.")];
+      return [
+        ALL,
+        close("me", "your account holds the whole supply."),
+        close("stamp", "the token's details."),
+      ];
     case TRAP:
-      return [ALL, close("padlock", "locked: your friend has no balance record."), close("friend", "nothing arrived.")];
+      return [
+        ALL,
+        close("padlock", "locked: your friend has no balance record."),
+        close("friend", "nothing arrived."),
+      ];
     case REGISTER:
       return [ALL, close("padlock", "the storage deposit opens it."), close("friend", "now registered.")];
     case GASLESS:

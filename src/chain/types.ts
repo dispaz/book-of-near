@@ -175,7 +175,10 @@ export type ActionErrorKind =
   | { type: "NotEnoughBalance"; accountId: AccountId; balance: Yocto; cost: Yocto }
   | { type: "FunctionCallError"; message: string }
   /** A delegate action that is expired, signed by the wrong key, reused, or sent to the wrong account. */
-  | { type: "DelegateActionInvalid"; reason: "Expired" | "InvalidSignature" | "InvalidNonce" | "SenderMismatch" | "AccessKeyNotFound" };
+  | {
+      type: "DelegateActionInvalid";
+      reason: "Expired" | "InvalidSignature" | "InvalidNonce" | "SenderMismatch" | "AccessKeyNotFound";
+    };
 
 export type TxExecutionError =
   | { type: "ActionError"; index: number; kind: ActionErrorKind; message: string }

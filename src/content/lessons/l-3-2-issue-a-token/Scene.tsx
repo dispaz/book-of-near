@@ -79,7 +79,12 @@ export default function Scene(props: SceneProps) {
         </SceneAction>
       ) : null}
       {step === TRAP ? (
-        <SceneAction onClick={() => void t.sendToFriend()} disabled={!t.canSend} done={!!t.refused} hint={needMint}>
+        <SceneAction
+          onClick={() => void t.sendToFriend()}
+          disabled={!t.canSend}
+          done={!!t.refused}
+          hint={needMint}
+        >
           {t.refused
             ? "Refused ✓"
             : t.busy === "send"
@@ -94,7 +99,11 @@ export default function Scene(props: SceneProps) {
           done={!!t.registered}
           hint={t.refused ? undefined : "Send to your friend first (step 3)."}
         >
-          {t.registered ? "Registered ✓" : t.busy === "register" ? "Paying…" : "Pay storage deposit for friend"}
+          {t.registered
+            ? "Registered ✓"
+            : t.busy === "register"
+              ? "Paying…"
+              : "Pay storage deposit for friend"}
         </SceneAction>
       ) : null}
       {step === GASLESS ? (

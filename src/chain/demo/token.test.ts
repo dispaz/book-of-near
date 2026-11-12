@@ -51,22 +51,34 @@ describe("demo fungible token (NEP-141 + NEP-145)", () => {
 
   it("refuses a transfer to an unregistered account, then allows it after storage_deposit", async () => {
     const chain = await setup();
-    const refused = await callMethod(chain, TOKEN, "ft_transfer", { receiver_id: FRIEND, amount: "50" }, {
-      ...send,
-      signerId: OWNER,
-      gas: tgas(10),
-      deposit: 1n,
-    });
+    const refused = await callMethod(
+      chain,
+      TOKEN,
+      "ft_transfer",
+      { receiver_id: FRIEND, amount: "50" },
+      {
+        ...send,
+        signerId: OWNER,
+        gas: tgas(10),
+        deposit: 1n,
+      },
+    );
     expect(refused.status.type).toBe("Failure");
     expect(JSON.stringify(refused.status)).toContain(`The account ${FRIEND} is not registered`);
 
     const before = (await chain.viewAccount(TOKEN)).storageUsage;
-    const reg = await callMethod(chain, TOKEN, "storage_deposit", { account_id: FRIEND }, {
-      ...send,
-      signerId: OWNER,
-      gas: tgas(10),
-      deposit: FT_STORAGE_DEPOSIT,
-    });
+    const reg = await callMethod(
+      chain,
+      TOKEN,
+      "storage_deposit",
+      { account_id: FRIEND },
+      {
+        ...send,
+        signerId: OWNER,
+        gas: tgas(10),
+        deposit: FT_STORAGE_DEPOSIT,
+      },
+    );
     expect(reg.status.type).toBe("SuccessValue");
     expect((await chain.viewAccount(TOKEN)).storageUsage).toBeGreaterThan(before);
     expect((await chain.viewCall(TOKEN, "storage_balance_of", { account_id: FRIEND })).result).not.toBeNull();
@@ -76,12 +88,18 @@ describe("demo fungible token (NEP-141 + NEP-145)", () => {
 describe("demo relayer (NEP-366 meta-transactions)", () => {
   async function registered(relayCap?: number) {
     const chain = await setup(relayCap);
-    await callMethod(chain, TOKEN, "storage_deposit", { account_id: FRIEND }, {
-      ...send,
-      signerId: OWNER,
-      gas: tgas(10),
-      deposit: FT_STORAGE_DEPOSIT,
-    });
+    await callMethod(
+      chain,
+      TOKEN,
+      "storage_deposit",
+      { account_id: FRIEND },
+      {
+        ...send,
+        signerId: OWNER,
+        gas: tgas(10),
+        deposit: FT_STORAGE_DEPOSIT,
+      },
+    );
     return chain;
   }
 
