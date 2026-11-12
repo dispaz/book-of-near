@@ -5,7 +5,7 @@ import { seedRoute } from "./lessons/helpers";
 test.beforeEach(({ page }) => seedRoute(page));
 
 test.describe("backlog topic cards", () => {
-  test("every registered stage is in the contents; a stage with only locked cards is tagged", async ({
+  test("every registered stage is in the contents; stage 7 opens with the capstone and keeps its locked card", async ({
     page,
   }) => {
     await page.goto("/");
@@ -18,9 +18,10 @@ test.describe("backlog topic cards", () => {
     }
     await expect(page.getByRole("button", { name: /Shade Agents/ })).toHaveCount(0);
     const stage7 = page.getByRole("region", { name: /Stage 7/ });
-    await expect(stage7).toContainText("Coming later");
+    // The capstone (#26) is ready, so stage 7 is no longer "Coming later".
+    await expect(stage7).not.toContainText("Coming later");
     await expect(stage7.getByRole("button", { name: /Capstone: the honest take/ })).toBeVisible();
-    await expect(stage7.getByRole("link")).toHaveCount(0);
+    await expect(stage7.getByRole("link", { name: /Trace one intent end to end/ })).toHaveCount(1);
   });
 
   test("opening a card shows its summary and comparison note; it closes again", async ({ page }) => {

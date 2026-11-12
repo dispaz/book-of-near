@@ -436,3 +436,13 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Shared helpers: lesson 1.3 imports `shortId` / `nearAmount` from `src/ui/format.ts` directly (the re-export in `batch.ts` is gone); `useBoxSize` was already shared (#70).
 - Decided: 1.3's 3D view stays plain `InkStage` for now and is listed under "Not yet" in `docs/book-scene.md`; the move goes with its object reactions (#61). Unused kit exports (`ActionCard`, `Cross`, `Strike`, `Stamp`, `FATE_FILL`, `FATE_MARK`, `SvgStamp`, `SvgParcelItem`) are kept and documented in `docs/scene-objects.md`.
 - Not demonstrated: an `Expired` replay (demo mode always answers `InvalidNonce`); its text is unit tested only.
+
+## 2026-11-12 · Lesson 7.1: trace one intent end to end (Closes #26)
+
+- `l-7-1-trace-an-intent` is ready: 2D and 3D (book scene) over one state (`useCapstone`). A replay that sends nothing, so demo and testnet mode behave the same.
+- The intent replayed is the learner's own 4.2 swap when progress has one (`realSwapTxHash`; a demo-wallet swap is marked simulated), else a recorded intent built from 4.2's recorded quote (`recorded-demo-intent`, labelled "no trade happened"). A real swap's USDC is said to stay in the NEAR Intents account (intents.near), not on Arbitrum.
+- The trail (`trail.ts`, unit tested) stops at every stage 0 to 4: signed transaction (0.3), named account (1.1), function-call key (1.2), shards and receipts (2.1, recorded shards from 2.1's real testnet trace), Wasm contract and gas (3.1), intent and solver (4.2), Chain Signatures (4.1). Each stop links back to its lesson and uses the learner's own evidence where it exists.
+- Completion record evidence: `capstoneComplete`, `mode`, `txHash`, `intentSource`, `mpcVerified` (true only with the learner's own 4.1 signature), `stagesTraced`, `ownLayers`.
+- Copy changes from the script, for honesty: step 5 says solvers compete but 1Click shows only the winner; check Q3's answer credits the solver and the verifier contract (not MPC) for settlement; the honest take quotes the measured 7 to 14 s for a testnet chain signature and adds "who should care".
+- Picks: mailbox and key authorize at step 2, ribbons replay the hop, the scroll runs, the signing nodes settle at step 5; "not yet" shake + hint before; a detail after.
+- Gate: lint, typecheck, unit tests, the lesson's e2e (12) and the full e2e. Screenshots checked at 1440×900 and 390×844, 2D and 3D, reduced motion and `?webgl=0`.
