@@ -190,11 +190,19 @@ test.describe("phone: result cards are readable", () => {
     page,
   }) => {
     await page.goto("/lesson/l-0-1-blockchain-basics?view=2d&step=2");
-    const h1 = page.locator(".lesson-title h1");
-    const cut = () => h1.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+    // The cut title is a button inside the heading, so a keyboard reaches it too.
+    const heading = page.getByRole("heading", { level: 1 });
+    const toggle = heading.getByRole("button");
+    const cut = () => toggle.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(await cut()).toBe(true);
-    await h1.click();
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(await cut()).toBe(false);
+    await toggle.focus();
+    await page.keyboard.press("Enter");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(await cut()).toBe(true);
     await page.goto("/lesson/l-1-2-function-call-key?view=2d&step=3");
     const what = page.locator(".step-label .your-turn-what");
     await expect(what).toHaveText(/: give the app a key/i);
@@ -255,6 +263,14 @@ for (const phone of PHONES) {
 
 test.describe("desktop is unchanged", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("the lesson title is plain text on wide screens, not a button that does nothing", async ({ page }) => {
+    await page.goto("/lesson/l-1-3-inside-a-transaction?view=2d&step=2");
+    const heading = page.getByRole("heading", { level: 1, name: "Inside a NEAR transaction" });
+    await expect(heading).toBeVisible();
+    await expect(heading.getByRole("button")).toHaveCount(0);
+    expect(await heading.evaluate((el) => getComputedStyle(el).cursor)).not.toBe("pointer");
+  });
 
   test("the docked explanation is not folded on wide screens", async ({ page }) => {
     await page.goto("/lesson/l-1-2-function-call-key?view=2d&step=5");
