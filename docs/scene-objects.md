@@ -6,8 +6,8 @@ mailbox, parcel (+ action cards), stamp, scroll, tagged key, app screen, plus th
 Built for lesson 2.1 (8 Nov 2026): receipt (`ReceiptSlip` / `SvgReceiptSlip`), shard (`ShardRibbon` /
 `SvgShardRibbon`, a flat ribbon with a swallowtail end) and gas refund (`RefundCoin` / `SvgRefundCoin`, a
 coin with ↩: the network delivers a refund as a receipt, but it carries money, not work, so it is never
-drawn as a slip). Not built yet: block, blockchain,
-wallet (key ring), gas, RPC node, validator. Stage 0 still draws the old blocks.
+drawn as a slip). Built for lesson 3.3 (12 Nov 2026): RPC node (`RpcWindow` / `SvgRpcWindow`). Not built yet: block, blockchain,
+wallet (key ring), gas, validator. Stage 0 still draws the old blocks.
 
 ## Why
 
@@ -48,7 +48,7 @@ both views.
 | **Receipt** | A delivery slip that comes with the parcel | What an action becomes when it moves on (Stage 2) | pending, done, failed | `ReceiptSlip` |
 | **Gas refund** | A coin with a return mark (↩) going back to the signer | Unused gas money coming home; delivered as a receipt, but money, not work | — | `RefundCoin` |
 | **Gas / fee** | Small ink drops / a meter | Work costs a little, spent as you go | full / used | — |
-| **RPC node** | A post-office counter window | The door you hand your envelope to | busy, down | 0.3's `RpcNode` |
+| **RPC node** | A post-office counter window: a booth, an awning in the accent, a window and a ledge | The door you hand your envelope to | idle (dark window), `lit` (answering), `shut` (shutter down: it does not keep that block), down (`failed`: red awning, red cross) | `RpcWindow` / `SvgRpcWindow` (lesson 3.3); 0.3's `RpcNode` |
 | **Shard** | A section of the book (a group of pages with its own coloured ribbon) | NEAR splits the chain into parallel parts | — | `ShardSlab` |
 | **Validator** | A small stamping figure at a desk | Checks and stamps pages | — | — |
 | **Person / learner** | 0.1's `Person` figure | Already standard | — | — |

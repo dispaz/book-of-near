@@ -8,6 +8,7 @@
  */
 
 import type { StageClaim } from "../badges/message";
+import type { RpcEndpointId } from "./rpcEndpoints";
 
 /** Account id, e.g. `alice.testnet` or a 64-hex implicit id. Rules in accountId.ts. */
 export type AccountId = string;
@@ -59,7 +60,48 @@ export type Action =
   | { type: "Transfer"; deposit: Yocto }
   | { type: "AddKey"; publicKey: PublicKey; permission: AccessKeyPermission }
   | { type: "DeleteKey"; publicKey: PublicKey }
-  | { type: "DeleteAccount"; beneficiaryId: AccountId };
+  | { type: "DeleteAccount"; beneficiaryId: AccountId }
+  /** A meta-transaction (NEP-366): actions another account signed, carried by a relayer. */
+  | { type: "Delegate"; delegate: SignedDelegate };
+
+// ---------- Meta-transactions (NEP-366) ----------
+
+/** What the caller asks a user to sign off-chain: actions to run as `senderId`, paid for by a relayer. */
+export interface DelegateRequest {
+  /** Defaults to the practice account. */
+  senderId?: AccountId;
+  receiverId: AccountId;
+  /** Plain actions only (no nested Delegate). */
+  actions: Action[];
+  /** Key to sign with; defaults to the sender's full-access key held by the chain. */
+  publicKey?: PublicKey;
+}
+
+/** A `SignedDelegateAction`: the user's signature over a `DelegateAction`. No NEAR is spent to make it. */
+export interface SignedDelegate {
+  senderId: AccountId;
+  receiverId: AccountId;
+  actions: Action[];
+  /** Key nonce + 1, like a transaction's: the delegate action can run only once. */
+  nonce: bigint;
+  /** The delegate action is refused after this block height. */
+  maxBlockHeight: bigint;
+  publicKey: PublicKey;
+  /** `ed25519:<base58>` over sha256(NEP-461 prefix + borsh(DelegateAction)). */
+  signature: string;
+  /** base64 borsh `SignedDelegateAction`: what goes to the relayer. */
+  payload: string;
+}
+
+/** What the demo relayer (DemoChain.relayDelegate, lesson 3.2) did with a signed delegate action. */
+export interface RelayResult {
+  /** The account that signed the outer transaction and paid its gas. */
+  relayerId: AccountId;
+  outcome: TxOutcome;
+  /** Relays this sender may still use on this chain (a reload resets it), and the cap. */
+  remaining: number;
+  cap: number;
+}
 
 // ---------- Transactions ----------
 
@@ -134,7 +176,12 @@ export type ActionErrorKind =
   | { type: "DeleteKeyDoesNotExist"; accountId: AccountId; publicKey: PublicKey }
   | { type: "LackBalanceForState"; accountId: AccountId; amount: Yocto }
   | { type: "NotEnoughBalance"; accountId: AccountId; balance: Yocto; cost: Yocto }
-  | { type: "FunctionCallError"; message: string };
+  | { type: "FunctionCallError"; message: string }
+  /** A delegate action that is expired, signed by the wrong key, reused, or sent to the wrong account. */
+  | {
+      type: "DelegateActionInvalid";
+      reason: "Expired" | "InvalidSignature" | "InvalidNonce" | "SenderMismatch" | "AccessKeyNotFound";
+    };
 
 export type TxExecutionError =
   | { type: "ActionError"; index: number; kind: ActionErrorKind; message: string }
@@ -250,6 +297,34 @@ export interface ShardLayout {
   boundaryAccounts: AccountId[];
 }
 
+/** One question to one RPC endpoint (`Chain.probeRpc`, lesson 3.3): how long it took and what came back. */
+export type RpcProbe =
+  | {
+      ok: true;
+      endpointId: RpcEndpointId;
+      /** Round trip in milliseconds. */
+      latencyMs: number;
+      blockHeight: number;
+      blockTimestampMs: number;
+    }
+  | {
+      ok: false;
+      endpointId: RpcEndpointId;
+      latencyMs: number;
+      /** UnknownBlock: the node does not keep that block. Unavailable: no answer, a 5xx or a 429. */
+      error: "UnknownBlock" | "Unavailable";
+      /** HTTP status when the node answered. */
+      status?: number;
+      message: string;
+    };
+
+export interface ProbeOptions {
+  /** Demo mode waits the recorded round trip when "realtime" (default); "instant" answers at once. */
+  pace?: "realtime" | "instant";
+  /** Aborting it stops the request (a lesson that unmounts mid-race); the probe then rejects. */
+  signal?: AbortSignal;
+}
+
 // ---------- Errors ----------
 
 export type InvalidTxReason =
@@ -276,6 +351,8 @@ export type ChainErrorKind =
   | "UnknownBlock"
   | "UnknownChunk"
   | "ViewFailed"
+  /** The demo relayer would not pay for a meta-transaction (its per-sender cap). */
+  | "RelayRefused"
   | "Network";
 
 // ---------- Badges ----------
@@ -328,6 +405,11 @@ export interface Chain {
   sendSignedTransaction(tx: SignedTransaction, options?: SendOptions): Promise<TxOutcome>;
   /** build + sign + send, reporting every phase. */
   sendTransaction(request: TransactionRequest, options?: SendOptions): Promise<TxOutcome>;
+  /**
+   * Sign a meta-transaction (NEP-366) off-chain. Fills in nonce (key nonce + 1) and max block height.
+   * Local signing, nothing is sent and no NEAR is spent.
+   */
+  signDelegate(request: DelegateRequest): Promise<SignedDelegate>;
   /** Look up a past transaction (RPC `tx`). Rejects with "UnknownTransaction". */
   getTransaction(hash: CryptoHash, senderId: AccountId): Promise<TxOutcome>;
 
@@ -344,4 +426,9 @@ export interface Chain {
   /** Stage badges an account holds, lowest stage first. Any account, no login. */
   badgesOf(accountId: AccountId): Promise<StageBadge[]>;
   hasBadge(accountId: AccountId, stage: number): Promise<boolean>;
+  /**
+   * Ask ONE RPC endpoint (`RPC_ENDPOINTS` in rpcEndpoints.ts) for a block, with no fallback, and time it.
+   * Never rejects for a node's problem: it resolves `ok: false`. Rejects only for an unknown endpoint id or an aborted `signal`.
+   */
+  probeRpc(endpointId: RpcEndpointId, ref?: BlockRef, options?: ProbeOptions): Promise<RpcProbe>;
 }

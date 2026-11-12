@@ -225,5 +225,7 @@ export function describeAction(a: Action): string {
       return `DeleteAccount → ${a.beneficiaryId}`;
     case "FunctionCall":
       return `FunctionCall ${a.methodName}${a.deposit > 0n ? ` with ${near(a.deposit)} NEAR` : ""}`;
+    case "Delegate":
+      return `Delegate from ${a.delegate.senderId}`;
   }
 }

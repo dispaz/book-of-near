@@ -20,6 +20,12 @@ import type {
 } from "./types";
 import { tgas } from "./units";
 
+/**
+ * A meta-transaction (NEP-366) stays valid for this many blocks after it is signed, about 2 to 4
+ * minutes. Both chains use it; 200 is near-kit's default `blockHeightOffset`.
+ */
+export const DELEGATE_VALIDITY_BLOCKS = 200;
+
 export const TX_PHASES: readonly TxPhase[] = [
   "built",
   "signed",

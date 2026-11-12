@@ -69,7 +69,7 @@ export const STAGE_RULES: StageRule[] = [
   },
   {
     stage: 3,
-    lessons: ["l-3-1-deploy-a-contract"],
+    lessons: ["l-3-1-deploy-a-contract", "l-3-2-issue-a-token", "l-3-3-race-the-rpc"],
     evidence: [
       {
         lessonId: "l-3-1-deploy-a-contract",

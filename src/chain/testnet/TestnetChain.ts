@@ -13,7 +13,10 @@ import { ChainError } from "../errors";
 import { readHasBadge, readStageBadges, sendStageClaim } from "../badges";
 import { TESTNET_BADGE_CONTRACT } from "../../badges/config";
 import type { StageClaim } from "../../badges/message";
+import { DELEGATE_VALIDITY_BLOCKS } from "../ops";
 import type {
+  DelegateRequest,
+  SignedDelegate,
   AccessKeyInfo,
   AccountId,
   AccountView,
@@ -25,7 +28,9 @@ import type {
   PhaseEvent,
   PhaseTimings,
   PracticeAccount,
+  ProbeOptions,
   PublicKey,
+  RpcProbe,
   SendOptions,
   StageBadge,
   ShardId,
@@ -36,7 +41,13 @@ import type {
   UnsignedTransaction,
   ViewCallResult,
 } from "../types";
-import { serializeSignedTransaction, transactionDigest, transactionHash } from "./borsh";
+import {
+  delegateDigest,
+  serializeSignedDelegate,
+  serializeSignedTransaction,
+  transactionDigest,
+  transactionHash,
+} from "./borsh";
 import { KeyStore } from "./keys";
 import {
   blockHashesOf,
@@ -55,6 +66,8 @@ import {
   type Funder,
   type PracticeStore,
 } from "./practice";
+import { rpcEndpoint, type RpcEndpointId } from "../rpcEndpoints";
+import { probeEndpoint } from "./probe";
 import { Rpc, RpcError, RpcUnreachable, TESTNET_ARCHIVAL_RPC_URLS } from "./rpc";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- RPC JSON */
@@ -75,6 +88,8 @@ export interface TestnetChainOptions {
   /** How long to wait for a new account to show up at final finality. */
   accountWaitMs?: number;
   now?: () => number;
+  /** The fetch `probeRpc` uses (tests pass a fake). */
+  probeFetch?: typeof fetch;
 }
 
 export class TestnetChain implements Chain {
@@ -85,6 +100,7 @@ export class TestnetChain implements Chain {
   private readonly funders: Funder[];
   private readonly keys = new KeyStore();
   private readonly now: () => number;
+  private readonly probeFetch: typeof fetch | undefined;
   private readonly accountWaitMs: number;
   private readonly returnAccountId: AccountId | undefined;
   private practice: Promise<PracticeAccount> | null = null;
@@ -100,6 +116,7 @@ export class TestnetChain implements Chain {
     this.store = opts.store ?? memoryPracticeStore();
     this.funders = opts.funders ?? [];
     this.now = opts.now ?? (() => performance.now());
+    this.probeFetch = opts.probeFetch;
     this.accountWaitMs = opts.accountWaitMs ?? 20_000;
     this.returnAccountId = opts.returnAccountId?.trim() || undefined;
     this.badgeContract = opts.badgeContract ?? TESTNET_BADGE_CONTRACT;
@@ -351,6 +368,29 @@ export class TestnetChain implements Chain {
     return { ...tx, hash: transactionHash(tx), signature };
   }
 
+  async signDelegate(request: DelegateRequest): Promise<SignedDelegate> {
+    if (request.actions.some((a) => a.type === "Delegate"))
+      throw new ChainError("InvalidTransaction", "A delegate action cannot hold another one.");
+    const tx = await this.buildTransaction({
+      signerId: request.senderId,
+      receiverId: request.receiverId,
+      actions: request.actions,
+      publicKey: request.publicKey,
+    });
+    const head = await this.block("final");
+    const fields = {
+      senderId: tx.signerId,
+      receiverId: tx.receiverId,
+      actions: tx.actions,
+      nonce: tx.nonce,
+      maxBlockHeight: BigInt(head.height + DELEGATE_VALIDITY_BLOCKS),
+      publicKey: tx.publicKey,
+    };
+    const signature = await this.keys.sign(tx.publicKey, delegateDigest(fields));
+    const payload = base64.encode(serializeSignedDelegate({ ...fields, signature }));
+    return { ...fields, signature, payload };
+  }
+
   async sendTransaction(request: TransactionRequest, options: SendOptions = {}): Promise<TxOutcome> {
     const unsigned = await this.buildTransaction(request);
     const clockStart = this.now();
@@ -554,6 +594,20 @@ export class TestnetChain implements Chain {
       // RPC lists the receipts this chunk sends out; the demo lists the ones it applies.
       receipts: (c.receipts as Json[]).map((r) => r.receipt_id),
     };
+  }
+
+  /** One timed request to one endpoint, no fallback (lesson 3.3). The network sets the pace. */
+  async probeRpc(
+    endpointId: RpcEndpointId,
+    ref: BlockRef = "final",
+    options: ProbeOptions = {},
+  ): Promise<RpcProbe> {
+    const endpoint = rpcEndpoint(endpointId);
+    return probeEndpoint(endpointId, endpoint.url, ref, {
+      fetch: this.probeFetch,
+      now: this.now,
+      signal: options.signal,
+    });
   }
 
   shardLayout(): Promise<ShardLayout> {
