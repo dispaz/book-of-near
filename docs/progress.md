@@ -368,3 +368,10 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - 3.1 fix: on a second visit the counter is found already deployed and the completion record lost all its evidence (it needed this visit's deploy hash). `evidenceOf` in `contract.ts` now keeps the contract and the callback hash; unit-tested.
 - 4.1 matched: the derived address equals the contract's `derived_public_key` (the `public_key` view needs no `domain_id`); the sign answer `{ scheme, big_r.affine_point, s.scalar, recovery_id }` parses as coded and recovers to the derived address. Nothing sent to Sepolia.
 - 4.1 fix: real signing took 6.7 to 13.9 s from send to final (copy said 4 to 6 s). The countdown now starts at about 10 s on testnet (`expectedSignMs`, 5.5 s stays for the demo signer) and the honest take says 7 to 14 s.
+
+## 2026-11-12 · Lesson scripts: reactions tables for clickable 3D objects (Refs #54)
+
+- Added "Reactions (3D objects)" section and table to all 14 lesson scripts across stages 0 to 4 (`0.1`, `0.2`, `0.3`, `1.1`, `1.2`, `1.3`, `2.1`, `2.2`, `3.1`, `3.2`, `3.3`, `4.1`, `4.2`, `4.3`) following rule 10a in `docs/book-scene.md` and the 3D Pop-Up Book Standard in `CLAUDE.md`.
+- For built lessons (0.1, 0.2, 0.3, 1.1, 1.2, 1.3, 2.1, 3.1, 4.1), every `Pickable` target and `pickLabel` in `Scene3D.tsx` / `objects3d.tsx` was mapped directly to a reaction row with object-specific pick animation, plain-English "not yet" hint, and demo-mode detail value after the step.
+- For unbuilt lessons (2.2, 3.2, 3.3, 4.2, 4.3), reactions tables were specified from their scene objects and topic files before implementation.
+- Added reduced motion fallback descriptions under each table (outlines, colour shifts, and instant end states replacing motion). Docs only: no application code changed.
