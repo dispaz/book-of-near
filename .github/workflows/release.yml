@@ -24,7 +24,7 @@ jobs:
   checks:
     name: Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -45,12 +45,12 @@ jobs:
         run: npm run typecheck && npm test
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
-      # No GPU on the runner: WebGL runs in software (SwiftShader). Scenes render on demand (#44), so the 3D
-      # tests run too; two workers on the runner's four cores. If software WebGL ever gets too slow again,
-      # E2E_NO_3D: "1" leaves the 3D tests out (see playwright.config.ts).
-      - name: E2E with 3D in software WebGL (demo mode, production build)
-        timeout-minutes: 45
+      # No GPU on the runner: WebGL off, 3D tests left out (E2E_NO_3D, see playwright.config.ts).
+      # 3D in software WebGL runs in the non-blocking e2e-3d-software job below; the full suite with 3D on a
+      # GPU stays the local gate on a Mac.
+      - name: E2E without 3D (demo mode, production build)
         env:
+          E2E_NO_3D: "1"
           E2E_WORKERS: "2"
         run: npx playwright test
       - uses: actions/upload-artifact@v4
@@ -59,6 +59,36 @@ jobs:
           name: playwright-traces
           path: test-results/
           retention-days: 7
+
+  # The full e2e suite, 3D included, in software WebGL (SwiftShader), now that scenes render on demand (#44).
+  # NON-BLOCKING: continue-on-error, and deploy needs `checks` only, so this job never holds up a release.
+  # It collects evidence for #44: make it blocking (move the step into `checks`, drop E2E_NO_3D there) after
+  # about 3 clean runs on a GitHub runner.
+  e2e-3d-software:
+    name: E2E with 3D in software WebGL (non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: E2E with 3D in software WebGL (demo mode, production build)
+        env:
+          E2E_WORKERS: "2"
+        run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-3d-software
+          path: test-results/ # failure screenshots, plus traces of retried tests
+          retention-days: 7
+          if-no-files-found: ignore
 
   deploy:
     name: Deploy and tag

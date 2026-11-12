@@ -40,9 +40,10 @@ const workers =
       ? Number(envWorkers)
       : envWorkers;
 
-// E2E_NO_3D=1 (opt-in): WebGL is switched off, so lessons fall back to 2D, and the tests that need the 3D
-// scene are left out. Release CI ran this way until scenes rendered on demand (#44); it now runs the full
-// suite in software WebGL. Use it for a quick 2D-only run, or to unblock CI if software WebGL regresses.
+// E2E_NO_3D=1: WebGL is switched off, so lessons fall back to 2D, and the tests that need the 3D scene are
+// left out. The blocking release CI e2e runs this way; the full suite in software WebGL runs in the
+// non-blocking `e2e-3d-software` job until it has a few clean runs (#44). The full suite, 3D included,
+// stays the local gate on a machine with a GPU.
 const no3d = process.env.E2E_NO_3D === "1";
 
 const port = process.env.BASE_URL ? undefined : previewPort();
