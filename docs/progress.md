@@ -436,3 +436,10 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Shared helpers: lesson 1.3 imports `shortId` / `nearAmount` from `src/ui/format.ts` directly (the re-export in `batch.ts` is gone); `useBoxSize` was already shared (#70).
 - Decided: 1.3's 3D view stays plain `InkStage` for now and is listed under "Not yet" in `docs/book-scene.md`; the move goes with its object reactions (#61). Unused kit exports (`ActionCard`, `Cross`, `Strike`, `Stamp`, `FATE_FILL`, `FATE_MARK`, `SvgStamp`, `SvgParcelItem`) are kept and documented in `docs/scene-objects.md`.
 - Not demonstrated: an `Expired` replay (demo mode always answers `InvalidNonce`); its text is unit tested only.
+
+## 2026-11-12 · Lesson 4.3: Old bridge vs the NEAR way (Closes #25)
+
+- New lesson `l-4-3-old-bridge-vs-near` (7 steps from `docs/lessons/stage-4/4.3.md`): hook, the two timelines side by side, the wrapped token (an IOU) vs native USDC, a simulated vault exploit, confidential intents, check, honest take. 2D and 3D (pop-up `BookScene`) draw one state (`useBridgeCompare`).
+- Timelines (`compare.ts`, unit tested): the old bridge's 6 steps and the intent's 2 play tick by tick (all at once under reduced motion). Every figure carries its source: bridge times and fees are estimates tagged "est."; the intent's delivery time and fee (the USD spread, in minus out) come from the 1Click quote, tagged "recorded quote" in demo mode or "live quote" in testnet mode (a dry quote through `src/chain/intents.ts`, recorded on failure). A quote without USD prices falls back to an "est." label, never a made-up number.
+- Scene objects: bridge vault (safe, cracks and drains) and confidential shield (+ dome) are lesson-local; rows added to `docs/scene-objects.md`. Picks: own reaction per object (vault rattles, slip and coin flip/spin, mailbox hops, shield pulses), "not yet" shake + hint, detail after. Hover lift / press squash are not done (the kit's `Pickable` does not expose hover yet).
+- `e2e/backlog-cards.spec.ts`: the "being written" planned-card test now uses lesson 7.1, since 4.3 is ready.
