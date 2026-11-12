@@ -57,6 +57,9 @@ formatTgas(totalGasBurnt(out)); // "0.45"
 | `block(ref)` | `BlockView` | `ref`: `"final"`, `"optimistic"`, `{ height }` or `{ hash }`. Includes one chunk header per shard. |
 | `chunk(ref, shardId)` | `ChunkView` | The transactions and receipts in one shard's chunk. |
 | `shardLayout()` | `{ shardIds, boundaryAccounts }` | Use `shardForAccount` to place an account. |
+| `badgeContractId()` | `AccountId` | The badge contract (`src/badges/config.ts`). Demo: `badges.book-of-near.testnet`, a simulated contract with the same rules (`src/chain/demo/badges.ts`). |
+| `claimBadge(claim, options)` | `TxOutcome` | `claim_stage` from the practice account with a claim signed by the claim key (the Worker on testnet, the public demo key in demo mode: `src/badges/claimFlow.ts`). A refusal (expired, already claimed, previous stage missing) is a Failure status. |
+| `badgesOf(id)` / `hasBadge(id, stage)` | `StageBadge[]` / `boolean` | View calls on any account, no login (My book and the checker). |
 
 `ops.ts` wraps the common cases: `transfer`, `createSubAccount` (CreateAccount + Transfer + AddKey in one transaction), `createNamedAccount` (top-level `.testnet` name through the `testnet` registrar; verified on testnet by #4 and #7), `createImplicitAccount`, `addKey`, `deleteKey`, `deployContract`, `callMethod`. For a batch, pass several actions to `chain.sendTransaction`.
 

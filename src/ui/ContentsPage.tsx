@@ -5,6 +5,8 @@ import { useProgress } from "../progress";
 import { isOpen, isOptionalStage, ROUTE_INFO, startLesson } from "../progress/routes";
 import "../progress/progress.css";
 import { LockedCard } from "./TopicCard";
+import { ClaimBadge } from "../badges/ClaimBadge";
+import { ruleFor } from "../badges/rules";
 
 const TickIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true" className="chip-icon tick">
@@ -41,6 +43,12 @@ export function ContentsPage() {
           ) : null}
           <Link className="pill" to="/start">
             Change my path
+          </Link>
+          <Link className="pill" to="/my-book">
+            My book
+          </Link>
+          <Link className="pill" to="/check">
+            Badge checker
           </Link>
           {route && route !== "newcomer" && !stage0Done ? (
             <Link className="pill" to="/test-out">
@@ -115,6 +123,9 @@ export function ContentsPage() {
                     );
                   })}
                 </ul>
+                {ruleFor(s.id) && open.length > 0 && finished > 0 ? (
+                  <ClaimBadge stage={s.id} accent={s.accent} />
+                ) : null}
               </section>
             );
           })}

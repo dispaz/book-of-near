@@ -104,9 +104,17 @@ To rotate the claim key: generate a pair, `set_claim_key` as the owner (old sign
 
 For mainnet repeat with a mainnet account and a different claim key (out of scope for the hackathon, #29).
 
+## The app side (issue #68)
+
+- **Rules in one place:** `src/badges/rules.ts` lists each stage's required lessons (only lessons that exist; a test keeps the list equal to the open lessons) and the evidence keys checked. Stage 0: 0.3's `txHash`. Stage 1: 1.1's `txHash` + `accountId` and 1.2's `addKeyTxHash` + `txHash`. Stage 2: 2.1's `txHash`. Stage 3: 3.1's `txHash` + `contractId`. Stage 4: 4.1's `mpcTxHash`. A tested-out lesson counts as finished, but an evidence lesson still needs its evidence.
+- **Worker `POST /claim`** (`worker/src/claim.ts`): rate-limited per IP, per account and in total; checks the evidence on testnet with RPC `tx` (the transaction exists, succeeded and was sent by the learner, by the name the learner made in 1.1, or for 3.1 by the contract's parent; 1.1 must be the learner's own `create_account` for that name; 1.2 must add and delete a key; 3.1 must deploy to the named contract; 4.1 must call `v1.signer-prod.testnet`). Then it signs `stage_message` with a 5-minute expiry it chooses itself.
+- **Chain interface:** `claimBadge`, `badgesOf`, `hasBadge`, `badgeContractId` (`docs/chain.md`). DemoChain runs a simulated badge contract with the same rules (one per stage, previous stage, signature, expiry against block time, no deposit). Demo claims are signed in the browser with a public demo key; demo badges are kept in localStorage (`bon:demo-badges:v1`) so a reload keeps them.
+- **UI:** the claim card at the end of each stage on the contents page and under "Lesson done" on a stage's last lesson (not yet / ready / claiming / claimed / failed); `/my-book` (the shelf); `/check?account=...` (anyone's badges, no login).
+- **Art:** `npm run badges:art` (`scripts/badges-art.mjs`) writes `public/badges/stage-<n>.svg` and `art.json` (base64 sha256 per file); `node scripts/deploy-badge.mjs art` sends `set_art`. Dev preview: `npm run dev`, then `/badges-preview`.
+- **No nonce in the claim:** the contract's message has none. A replayed claim is refused because the stage is already claimed, and an unused claim dies after 5 minutes.
+
 ## Not done here
 
 - Day rollover of the daily cap: the sandbox clock is wall-clock time, so a new UTC day cannot be reached in a test. The logic (`day != self.day` resets the counter) is covered only by reading.
-- The badge images (separate art ticket) and the Worker's claim signer (uses the message format above).
-- The Chain-interface and DemoChain side of claiming (demo-mode parity belongs with the badge flow tickets).
 - The optional transferable collector twin of the final badge.
+- The final badge (exam route, rarity) in the app: #28, #29.

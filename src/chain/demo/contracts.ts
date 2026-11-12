@@ -15,6 +15,8 @@ export interface DemoContractContext {
   deposit: Yocto;
   args: Record<string, unknown>;
   blockHeight: number;
+  /** Time of the block, milliseconds since 1970 (NEAR's `env::block_timestamp_ms`). */
+  blockTimestampMs: number;
   /** Contract state (string key → string value). Writes throw in a view call. */
   get(key: string): string | undefined;
   set(key: string, value: string): void;

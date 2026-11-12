@@ -1,0 +1,27 @@
+[
+  {
+    "key": "stage-0",
+    "media": "stage-0.svg",
+    "sha256": "3OPXEPFNiHGbQA6OdLOGC3QlQlbomwkdzdbtZ5n4bFY="
+  },
+  {
+    "key": "stage-1",
+    "media": "stage-1.svg",
+    "sha256": "hcY+yp1N9voRr6DxGsGjp5hOe1VijmfiLelrrQ0J/Eg="
+  },
+  {
+    "key": "stage-2",
+    "media": "stage-2.svg",
+    "sha256": "i6zraOgwdoCce2kCiMmmnnB0wZ55R0Q/vv5HJid/CeI="
+  },
+  {
+    "key": "stage-3",
+    "media": "stage-3.svg",
+    "sha256": "d9kF8i0gIunmLw3EbDlpy6e5X0wYbldC6YwVIdZLiaI="
+  },
+  {
+    "key": "stage-4",
+    "media": "stage-4.svg",
+    "sha256": "KxtMqE2RzyjM/VLvYrrOcNHuZmjEd1f4rGk08e6mIZY="
+  }
+]

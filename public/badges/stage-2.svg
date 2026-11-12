@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Book of NEAR, stage 2 badge: Nightshade">
+  <title>Book of NEAR: Stage 2 (Nightshade)</title>
+  <circle cx="256" cy="256" r="240" fill="#f2f1e9" stroke="#16141f" stroke-width="12"/>
+  <circle cx="256" cy="256" r="214" fill="none" stroke="#ff5fa2" stroke-width="10"/>
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#16141f" stroke-width="4" stroke-dasharray="1 14" stroke-linecap="round"/>
+  <path d="M256 106 A130 130 0 0 1 380 196 L300 214 L256 160 Z" transform="translate(8 -8)" fill="#ff5fa2" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M380 196 A130 130 0 0 1 300 352 L282 278 L300 214 Z" transform="translate(12 6)" fill="#ff5fa2" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M300 352 A130 130 0 0 1 140 300 L216 262 L282 278 Z" transform="translate(-2 14)" fill="#ff5fa2" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M140 300 A130 130 0 0 1 256 106 L256 160 L216 262 Z" transform="translate(-12 -4)" fill="#ff5fa2" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
+  <circle cx="226" cy="200" r="12" fill="#f2f1e9" stroke="#16141f" stroke-width="7" stroke-linejoin="round"/>
+  <circle cx="318" cy="262" r="9" fill="#f2f1e9" stroke="#16141f" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M126 132 l8 18 l18 8 l-18 8 l-8 18 l-8 -18 l-18 -8 l18 -8 z" fill="#fffdf7" stroke="#16141f" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M398 330 l6 13 l13 6 l-13 6 l-6 13 l-6 -13 l-13 -6 l13 -6 z" fill="#fffdf7" stroke="#16141f" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M120 392 h272 l-18 30 l18 30 h-272 l18 -30 z" fill="#fffdf7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
+  <text x="256" y="434" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="40" font-weight="700" letter-spacing="4" fill="#16141f">STAGE 2</text>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Book of NEAR, stage 4 badge: Any Chain">
+  <title>Book of NEAR: Stage 4 (Any Chain)</title>
+  <circle cx="256" cy="256" r="240" fill="#f2f1e9" stroke="#16141f" stroke-width="12"/>
+  <circle cx="256" cy="256" r="214" fill="none" stroke="#9a70f7" stroke-width="10"/>
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#16141f" stroke-width="4" stroke-dasharray="1 14" stroke-linecap="round"/>
+  <circle cx="196" cy="200" r="66" fill="none" stroke="#16141f" stroke-width="30"/>
+  <circle cx="196" cy="200" r="66" fill="none" stroke="#fffdf7" stroke-width="12"/>
+  <circle cx="316" cy="200" r="66" fill="none" stroke="#16141f" stroke-width="30"/>
+  <circle cx="316" cy="200" r="66" fill="none" stroke="#9a70f7" stroke-width="12"/>
+  <circle cx="256" cy="296" r="66" fill="none" stroke="#16141f" stroke-width="30"/>
+  <circle cx="256" cy="296" r="66" fill="none" stroke="#fffdf7" stroke-width="12"/>
+  <path d="M370 240 A66 66 0 0 1 310 266" fill="none" stroke="#16141f" stroke-width="30"/>
+  <path d="M370 240 A66 66 0 0 1 310 266" fill="none" stroke="#9a70f7" stroke-width="12"/>
+  <path d="M120 392 h272 l-18 30 l18 30 h-272 l18 -30 z" fill="#fffdf7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
+  <text x="256" y="434" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="40" font-weight="700" letter-spacing="4" fill="#16141f">STAGE 4</text>
+</svg>

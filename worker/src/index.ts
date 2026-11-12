@@ -2,9 +2,11 @@
  * Book of NEAR Worker. Routes:
  *   POST /faucet   fund a testnet practice account (faucet.ts)
  *   POST /intents/quote  1Click quote proxy for lesson 4.2 (intents.ts)
+ *   POST /claim    sign a stage badge claim after checking its evidence on testnet (claim.ts)
  *   GET  /health   { ok, faucet }
- * Secrets (never in the repo): FAUCET_ACCOUNT_ID, FAUCET_PRIVATE_KEY, optional ONECLICK_JWT. See README.md.
+ * Secrets (never in the repo): FAUCET_ACCOUNT_ID, FAUCET_PRIVATE_KEY, CLAIM_SIGNING_KEY, optional ONECLICK_JWT. See README.md.
  */
+import { claim, rpcLookup, type TxLookup } from "./claim";
 import { faucet, type FaucetSender } from "./faucet";
 import { MAX_QUOTE_BODY_BYTES, quote, type Fetch } from "./intents";
 import { kvCounters, memoryCounters, takeSlot, type CounterStore, type KvLike } from "./limits";
@@ -25,6 +27,14 @@ export interface Env {
   /** Quotes per IP address per UTC day (default 20), and in total per UTC day (default 400). */
   QUOTE_PER_IP_DAILY?: string;
   QUOTE_GLOBAL_DAILY?: string;
+  /** The badge claim key's secret, `ed25519:<base58>` (Worker secret). Without it /claim answers 503. */
+  CLAIM_SIGNING_KEY?: string;
+  /** The badge contract the claims are for (wrangler.toml var). */
+  BADGE_CONTRACT_ID?: string;
+  /** Signed claims per IP address (default 20), per account (default 10) and in total (default 500) per UTC day. */
+  CLAIM_PER_IP_DAILY?: string;
+  CLAIM_PER_ACCOUNT_DAILY?: string;
+  CLAIM_GLOBAL_DAILY?: string;
 }
 
 export interface Overrides {
@@ -33,6 +43,8 @@ export interface Overrides {
   now?: () => Date;
   /** The fetch used to reach 1Click (tests). */
   fetch?: Fetch;
+  /** Testnet transaction lookup for badge claims (tests). */
+  lookup?: TxLookup;
 }
 
 const LOCALHOST = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
@@ -166,6 +178,65 @@ export async function handle(request: Request, env: Env, o: Overrides = {}): Pro
         origin,
       );
     const reply = await quote(body, { apiKey: env.ONECLICK_JWT, fetch: o.fetch, now });
+    return json(reply.status, reply.body, origin);
+  }
+  if (url.pathname === "/claim" && request.method === "POST") {
+    if (!env.CLAIM_SIGNING_KEY || !env.BADGE_CONTRACT_ID)
+      return json(503, { error: "Badge claims are not set up yet." }, origin);
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return json(400, { error: "Send JSON." }, origin);
+    }
+    const dev = env.ALLOW_LOCALHOST === "1";
+    const counters =
+      o.counters ??
+      (env.FAUCET_LIMITS
+        ? kvCounters(env.FAUCET_LIMITS)
+        : dev
+          ? (fallbackCounters ??= memoryCounters())
+          : null);
+    if (!counters) return json(503, { error: "Badge claims are not set up yet." }, origin);
+    const ip = request.headers.get("cf-connecting-ip") ?? (dev ? "local" : null);
+    if (!ip) return json(400, { error: "Unknown client address." }, origin);
+    const now = o.now?.() ?? new Date();
+    const global = limitFrom(env.CLAIM_GLOBAL_DAILY, 500);
+    // Slots are taken before the evidence is checked, so refused claims count too.
+    const byIp = await takeSlot(
+      counters,
+      { perIpDaily: limitFrom(env.CLAIM_PER_IP_DAILY, 20), globalDaily: global },
+      ip,
+      now,
+      "claim",
+    );
+    const account = (body as { accountId?: unknown } | null)?.accountId;
+    const byAccount = byIp.ok
+      ? await takeSlot(
+          counters,
+          { perIpDaily: limitFrom(env.CLAIM_PER_ACCOUNT_DAILY, 10), globalDaily: Number.MAX_SAFE_INTEGER },
+          String(account ?? "?").slice(0, 64),
+          now,
+          "claim-account",
+        )
+      : byIp;
+    if (!byAccount.ok)
+      return json(
+        429,
+        {
+          error:
+            byAccount.reason === "global"
+              ? "The app has signed today's badge claims. Try again tomorrow."
+              : "Too many claims today. Try again tomorrow.",
+        },
+        origin,
+      );
+    const reply = await claim(body, {
+      contractId: env.BADGE_CONTRACT_ID,
+      signingKey: env.CLAIM_SIGNING_KEY,
+      lookup: o.lookup ?? rpcLookup(),
+      now,
+    });
     return json(reply.status, reply.body, origin);
   }
   return json(404, { error: "Not found." }, origin);

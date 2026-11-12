@@ -1,0 +1,241 @@
+/**
+ * POST /claim: the badge claim signer (issue #68, docs/badge-contract.md "Worker requirements").
+ * Checks a stage's evidence on testnet (the lessons' transaction hashes, signed by the learner or by
+ * the name the learner made in lesson 1.1), then signs a short-lived claim in the contract's format.
+ * The client never chooses the expiry. Required lessons and evidence keys: src/badges/rules.ts.
+ */
+import { CLAIM_TTL_MS, stageMessage } from "../../src/badges/message";
+import { lessonNumber, ruleFor } from "../../src/badges/rules";
+import { b58decode, b64encode, b64urlEncode } from "./bytes";
+
+export interface TxAction {
+  type: string;
+  methodName?: string;
+  args?: Record<string, unknown>;
+}
+
+/** A testnet transaction, as the claim check needs it. */
+export interface TxInfo {
+  signerId: string;
+  receiverId: string;
+  /** The transaction's final status is a success. */
+  ok: boolean;
+  actions: TxAction[];
+}
+
+export interface TxLookup {
+  /** The transaction `hash` sent by `senderId`, or null when that account sent no such transaction. */
+  tx(hash: string, senderId: string): Promise<TxInfo | null>;
+}
+
+export interface ClaimDeps {
+  contractId: string;
+  /** `ed25519:<base58 of the 64-byte secret key>` (Worker secret CLAIM_SIGNING_KEY). */
+  signingKey: string;
+  lookup: TxLookup;
+  now: Date;
+}
+
+export interface Reply {
+  status: number;
+  body: unknown;
+}
+
+const ACCOUNT = /^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/;
+const isAccount = (v: unknown): v is string =>
+  typeof v === "string" && v.length >= 2 && v.length <= 64 && ACCOUNT.test(v);
+/** The signer contract of lesson 4.1 (Chain Signatures on testnet). */
+const MPC_SIGNER = "v1.signer-prod.testnet";
+
+type Evidence = Record<string, Record<string, string>>;
+
+class Refused extends Error {}
+
+const refuse = (text: string): never => {
+  throw new Refused(text);
+};
+
+/** The first sender in `senders` that really sent `hash`, or a refusal naming the lesson. */
+async function findTx(lookup: TxLookup, hash: string, senders: string[], lessonId: string): Promise<TxInfo> {
+  for (const s of new Set(senders)) {
+    const t = await lookup.tx(hash, s).catch(() => null);
+    if (t && t.signerId === s) {
+      if (!t.ok) refuse(`The transaction from lesson ${lessonNumber(lessonId)} failed on testnet.`);
+      return t;
+    }
+  }
+  return refuse(
+    `The transaction from lesson ${lessonNumber(lessonId)} was not found on testnet from your account.`,
+  );
+}
+
+/** Lesson 1.1: the learner's own `create_account` call that made the name. Returns the name. */
+async function verifiedName(lookup: TxLookup, account: string, ev: Evidence): Promise<string | null> {
+  const e = ev["l-1-1-claim-your-name"];
+  if (!e?.txHash || !isAccount(e.accountId)) return null;
+  const t = await findTx(lookup, e.txHash, [account], "l-1-1-claim-your-name");
+  const made = t.actions.some(
+    (a) => a.methodName === "create_account" && a.args?.new_account_id === e.accountId,
+  );
+  if (!made) refuse("The name from lesson 1.1 was not made by your account.");
+  return e.accountId!;
+}
+
+const parentOf = (id: string) => id.slice(id.indexOf(".") + 1);
+
+async function checkStage(stage: number, account: string, ev: Evidence, lookup: TxLookup) {
+  const named = stage >= 1 ? await verifiedName(lookup, account, ev) : null;
+  const mine = named ? [account, named] : [account];
+  switch (stage) {
+    case 0:
+      await findTx(lookup, ev["l-0-3-send-a-transaction"]!.txHash!, mine, "l-0-3-send-a-transaction");
+      return;
+    case 1: {
+      if (!named) refuse("Claim your name in lesson 1.1.");
+      const e = ev["l-1-2-function-call-key"]!;
+      const add = await findTx(lookup, e.addKeyTxHash!, mine, "l-1-2-function-call-key");
+      const del = await findTx(lookup, e.txHash!, mine, "l-1-2-function-call-key");
+      if (!add.actions.some((a) => a.type === "AddKey") || !del.actions.some((a) => a.type === "DeleteKey"))
+        refuse("Lesson 1.2's transactions do not add and delete a key.");
+      return;
+    }
+    case 2:
+      await findTx(lookup, ev["l-2-1-follow-across-shards"]!.txHash!, mine, "l-2-1-follow-across-shards");
+      return;
+    case 3: {
+      const e = ev["l-3-1-deploy-a-contract"]!;
+      const t = await findTx(
+        lookup,
+        e.txHash!,
+        [...mine, parentOf(e.contractId!)],
+        "l-3-1-deploy-a-contract",
+      );
+      if (t.receiverId !== e.contractId || !t.actions.some((a) => a.type === "DeployContract"))
+        refuse("Lesson 3.1's transaction does not deploy your contract.");
+      return;
+    }
+    case 4: {
+      const t = await findTx(
+        lookup,
+        ev["l-4-1-one-account-every-chain"]!.mpcTxHash!,
+        mine,
+        "l-4-1-one-account-every-chain",
+      );
+      if (t.receiverId !== MPC_SIGNER) refuse("Lesson 4.1's transaction is not a chain-signature request.");
+      return;
+    }
+  }
+}
+
+/** Sign `text` with a NEAR `ed25519:` secret key through WebCrypto (Workers and Node 22 have Ed25519). */
+export async function signText(secretKey: string, text: string): Promise<string> {
+  const raw = b58decode(secretKey.replace(/^ed25519:/, ""));
+  if (raw.length !== 64) throw new Error("CLAIM_SIGNING_KEY must be a 64-byte ed25519 secret key");
+  const key = await crypto.subtle.importKey(
+    "jwk",
+    { kty: "OKP", crv: "Ed25519", d: b64urlEncode(raw.slice(0, 32)), x: b64urlEncode(raw.slice(32)) },
+    { name: "Ed25519" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("Ed25519", key, new TextEncoder().encode(text));
+  return b64encode(new Uint8Array(sig));
+}
+
+export async function claim(input: unknown, deps: ClaimDeps): Promise<Reply> {
+  const bad = (error: string): Reply => ({ status: 400, body: { error } });
+  if (!input || typeof input !== "object") return bad("Send JSON with accountId, stage and evidence.");
+  const { accountId, stage, evidence } = input as {
+    accountId?: unknown;
+    stage?: unknown;
+    evidence?: unknown;
+  };
+  if (!isAccount(accountId)) return bad("That is not a NEAR account id.");
+  const rule = typeof stage === "number" ? ruleFor(stage) : undefined;
+  if (!rule) return bad("Unknown stage.");
+  const ev: Evidence = evidence && typeof evidence === "object" ? (evidence as Evidence) : {};
+
+  for (const need of rule.evidence) {
+    const rec = ev[need.lessonId];
+    if (!need.keys.every((k) => typeof rec?.[k] === "string" && rec[k]!.length > 0))
+      return { status: 403, body: { error: need.todo, lessonId: need.lessonId } };
+  }
+  try {
+    await checkStage(rule.stage, accountId, ev, deps.lookup);
+  } catch (e) {
+    if (e instanceof Refused) return { status: 403, body: { error: e.message } };
+    return { status: 502, body: { error: "Testnet could not be reached. Try again in a minute." } };
+  }
+  const expiresAtMs = deps.now.getTime() + CLAIM_TTL_MS;
+  const signature = await signText(
+    deps.signingKey,
+    stageMessage(deps.contractId, accountId, rule.stage, expiresAtMs),
+  );
+  return {
+    status: 200,
+    body: { contractId: deps.contractId, accountId, stage: rule.stage, expiresAtMs, signature },
+  };
+}
+
+/** Transaction lookup through testnet RPC (`tx`), regular node first, then archival. */
+export function rpcLookup(
+  urls = ["https://rpc.testnet.fastnear.com", "https://archival-rpc.testnet.fastnear.com"],
+  fetchFn: typeof fetch = fetch,
+): TxLookup {
+  return {
+    async tx(hash, senderId) {
+      let lastError: unknown = null;
+      for (const url of urls) {
+        try {
+          const res = await fetchFn(url, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: "claim",
+              method: "tx",
+              params: { tx_hash: hash, sender_account_id: senderId, wait_until: "FINAL" },
+            }),
+          });
+          const json = (await res.json()) as { result?: RpcTx; error?: { cause?: { name?: string } } };
+          if (json.result) return toTxInfo(json.result);
+          const cause = json.error?.cause?.name;
+          if (cause !== "UNKNOWN_TRANSACTION" && cause !== "INVALID_TRANSACTION")
+            throw new Error(cause ?? "rpc");
+        } catch (e) {
+          lastError = e;
+          continue;
+        }
+      }
+      if (lastError) throw lastError;
+      return null;
+    },
+  };
+}
+
+interface RpcTx {
+  status: Record<string, unknown>;
+  transaction: { signer_id: string; receiver_id: string; actions: (string | Record<string, unknown>)[] };
+}
+
+function toTxInfo(r: RpcTx): TxInfo {
+  const actions: TxAction[] = r.transaction.actions.map((a) => {
+    if (typeof a === "string") return { type: a };
+    const [type, body] = Object.entries(a)[0] ?? ["Unknown", {}];
+    if (type !== "FunctionCall") return { type };
+    const fc = body as { method_name?: string; args?: string };
+    let args: Record<string, unknown> | undefined;
+    try {
+      args = JSON.parse(atob(fc.args ?? "")) as Record<string, unknown>;
+    } catch {
+      args = undefined;
+    }
+    return { type, methodName: fc.method_name, args };
+  });
+  return {
+    signerId: r.transaction.signer_id,
+    receiverId: r.transaction.receiver_id,
+    ok: !("Failure" in r.status),
+    actions,
+  };
+}

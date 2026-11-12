@@ -15,6 +15,10 @@ import { base58, base64 } from "@scure/base";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import { isDirectSubAccount, isImplicitAccountId, isValidAccountId } from "./accountId";
 import { ChainError } from "./errors";
+import { readHasBadge, readStageBadges, sendStageClaim } from "./badges";
+import { DEMO_BADGE_CONTRACT } from "../badges/config";
+import type { StageClaim } from "../badges/message";
+import { badgeContract, seedBadgeState, type DemoBadgeSeed } from "./demo/badges";
 import { encodeSuccessValue } from "./ops";
 import { shardForAccount } from "./shards";
 import type {
@@ -41,6 +45,7 @@ import type {
   PublicKey,
   ReceiptView,
   SendOptions,
+  StageBadge,
   ShardId,
   ShardLayout,
   SignedTransaction,
@@ -87,6 +92,8 @@ export const FINALITY_BLOCKS = 2;
 /** Demo chain starts here, so the first transaction lands in #200000001 (0.3 demo data). */
 export const GENESIS_HEIGHT = 200_000_000;
 const GENESIS_TIME_MS = Date.UTC(2026, 10, 1);
+/** Simulated block time: one block every BLOCK_MS from the demo genesis. */
+const blockTimeMs = (height: number) => GENESIS_TIME_MS + (height - GENESIS_HEIGHT) * BLOCK_MS;
 /** A transaction's block hash must be at most this many blocks old (NEAR: 86400). */
 const TX_VALIDITY_BLOCKS = 86_400;
 const CHUNK_GAS_LIMIT = tgas(1000);
@@ -127,6 +134,8 @@ export interface DemoChainOptions {
   practicePublicKey?: PublicKey;
   /** Extra accounts at genesis. */
   accounts?: DemoGenesisAccount[];
+  /** Stage badges to start with (claimed on an earlier visit), oldest first. */
+  badges?: DemoBadgeSeed[];
   /** Extra simulated contracts, installed when their code is deployed. */
   contracts?: { code: Uint8Array; contract: DemoContract }[];
   /** Override the timer (tests). */
@@ -233,6 +242,7 @@ export class DemoChain implements Chain {
     this.install(demoContractCode("mpc-signer"), mpcSignerContract);
     this.install(demoContractCode("shop"), shopContract);
     this.install(demoContractCode("buyer"), buyerContract);
+    this.install(demoContractCode("badges"), badgeContract());
     for (const c of options.contracts ?? []) this.install(c.code, c.contract);
 
     const publicKey = options.practicePublicKey ?? DEMO_PRACTICE_PUBLIC_KEY;
@@ -246,8 +256,31 @@ export class DemoChain implements Chain {
     // Lesson 2.2's cross-contract call: a buyer contract and a shop, on different demo shards.
     this.genesisAccount(DEMO_BUYER, parseNear("10"), undefined, demoContractCode("buyer"));
     this.genesisAccount(DEMO_SHOP, parseNear("10"), undefined, demoContractCode("shop"));
+    // The badge contract (contracts/badge rules, demo claim key): stage badges in demo mode.
+    this.genesisAccount(DEMO_BADGE_CONTRACT, parseNear("10"), undefined, demoContractCode("badges"));
+    // Badges claimed on an earlier visit (the app keeps them in localStorage: src/badges/demoLedger.ts).
+    const badgeState = this.accounts.get(DEMO_BADGE_CONTRACT)!.state;
+    seedBadgeState((k, v) => badgeState.set(k, v), options.badges ?? []);
     for (const a of options.accounts ?? []) this.genesisAccount(a.accountId, a.balance, undefined, a.code);
     this.makeBlock(GENESIS_HEIGHT);
+  }
+
+  // ---------- Badges ----------
+
+  async badgeContractId(): Promise<AccountId> {
+    return DEMO_BADGE_CONTRACT;
+  }
+
+  claimBadge(claim: StageClaim, options?: SendOptions): Promise<TxOutcome> {
+    return sendStageClaim(this, DEMO_BADGE_CONTRACT, claim, options);
+  }
+
+  badgesOf(accountId: AccountId): Promise<StageBadge[]> {
+    return readStageBadges(this, DEMO_BADGE_CONTRACT, accountId);
+  }
+
+  hasBadge(accountId: AccountId, stage: number): Promise<boolean> {
+    return readHasBadge(this, DEMO_BADGE_CONTRACT, accountId, stage);
   }
 
   // ---------- Reads ----------
@@ -306,6 +339,7 @@ export class DemoChain implements Chain {
       deposit: 0n,
       args: structuredClone(args),
       blockHeight: this.head,
+      blockTimestampMs: blockTimeMs(this.head),
       get: (k) => a.state.get(k),
       set: () => {
         throw new Error("ProhibitedInView: a view call cannot change state");
@@ -342,7 +376,7 @@ export class DemoChain implements Chain {
       height,
       hash: this.blockHash(height),
       prevHash: this.blockHash(height - 1),
-      timestampMs: GENESIS_TIME_MS + (height - GENESIS_HEIGHT) * BLOCK_MS,
+      timestampMs: blockTimeMs(height),
       author: `demo-validator-${height % 4}.pool.testnet`,
       chunks: DEMO_SHARD_LAYOUT.shardIds.map((s) => this.chunkHeader(height, s)),
     };
@@ -759,6 +793,7 @@ export class DemoChain implements Chain {
               deposit: action.deposit,
               args: structuredClone(action.args),
               blockHeight: r.height,
+              blockTimestampMs: blockTimeMs(r.height),
               promiseResult: r.promiseResult,
               get: (k) => a.state.get(k),
               set: (k, v) => void a.state.set(k, v),

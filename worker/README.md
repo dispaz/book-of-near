@@ -43,7 +43,8 @@ Verified on 1 Nov 2026: `wrangler dev` (4.149.0) runs locally **without** a Clou
    Top it up from https://near-faucet.io if needed. 10 NEAR covers about 20 learners at 0.5 NEAR.
 3. `npx wrangler kv namespace create FAUCET_LIMITS` and paste the id into `wrangler.toml`.
 4. Set `ALLOWED_ORIGINS` in `wrangler.toml` to the app's real origin(s).
-5. `npx wrangler secret put FAUCET_ACCOUNT_ID` and `npx wrangler secret put FAUCET_PRIVATE_KEY` (the `ed25519:...` private key). Optional: `npx wrangler secret put ONECLICK_JWT` (a 1Click API key, so quotes carry no unkeyed app fee; the bearer header is from 1Click's docs, not yet checked with a real key).
+5. Badge claims (`POST /claim`): `npx wrangler secret put CLAIM_SIGNING_KEY` (the claim key from `worker/.dev.vars`, see `docs/badge-contract.md`); `BADGE_CONTRACT_ID` and the claim limits are vars in `wrangler.toml`. Body `{ accountId, stage, evidence: { <lessonId>: { txHash, ... } } }`; answers `{ contractId, accountId, stage, expiresAtMs, signature }` or `{ error }` (403 evidence missing or not on testnet, 429 limit).
+6. `npx wrangler secret put FAUCET_ACCOUNT_ID` and `npx wrangler secret put FAUCET_PRIVATE_KEY` (the `ed25519:...` private key). Optional: `npx wrangler secret put ONECLICK_JWT` (a 1Click API key, so quotes carry no unkeyed app fee; the bearer header is from 1Click's docs, not yet checked with a real key).
 6. `npx wrangler deploy`, then build the app with `VITE_WORKER_URL=https://<worker>.workers.dev` and, optionally, `VITE_RETURN_ACCOUNT_ID=<faucet account>` so lesson transfers go back to the faucet.
 
 Never commit `.dev.vars` or any key. The repo ships `.dev.vars.example` only.

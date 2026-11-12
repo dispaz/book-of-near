@@ -10,6 +10,9 @@
 import { base64 } from "@scure/base";
 import { isValidAccountId } from "../accountId";
 import { ChainError } from "../errors";
+import { readHasBadge, readStageBadges, sendStageClaim } from "../badges";
+import { TESTNET_BADGE_CONTRACT } from "../../badges/config";
+import type { StageClaim } from "../../badges/message";
 import type {
   AccessKeyInfo,
   AccountId,
@@ -24,6 +27,7 @@ import type {
   PracticeAccount,
   PublicKey,
   SendOptions,
+  StageBadge,
   ShardId,
   ShardLayout,
   SignedTransaction,
@@ -66,6 +70,8 @@ export interface TestnetChainOptions {
   funders?: Funder[];
   /** The app's account that receives practice transfers (VITE_RETURN_ACCOUNT_ID). */
   returnAccountId?: AccountId;
+  /** The badge contract (default: src/badges/config.ts). */
+  badgeContract?: AccountId;
   /** How long to wait for a new account to show up at final finality. */
   accountWaitMs?: number;
   now?: () => number;
@@ -96,6 +102,27 @@ export class TestnetChain implements Chain {
     this.now = opts.now ?? (() => performance.now());
     this.accountWaitMs = opts.accountWaitMs ?? 20_000;
     this.returnAccountId = opts.returnAccountId?.trim() || undefined;
+    this.badgeContract = opts.badgeContract ?? TESTNET_BADGE_CONTRACT;
+  }
+
+  // ---------- Badges (contracts/badge) ----------
+
+  private readonly badgeContract: AccountId;
+
+  async badgeContractId(): Promise<AccountId> {
+    return this.badgeContract;
+  }
+
+  claimBadge(claim: StageClaim, options?: SendOptions): Promise<TxOutcome> {
+    return sendStageClaim(this, this.badgeContract, claim, options);
+  }
+
+  badgesOf(accountId: AccountId): Promise<StageBadge[]> {
+    return readStageBadges(this, this.badgeContract, accountId);
+  }
+
+  hasBadge(accountId: AccountId, stage: number): Promise<boolean> {
+    return readHasBadge(this, this.badgeContract, accountId, stage);
   }
 
   async returnAccount(): Promise<AccountId> {

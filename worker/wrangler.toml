@@ -17,6 +17,12 @@ GLOBAL_DAILY = "50"
 # KV keys, so keep QUOTE_GLOBAL_DAILY low enough for the KV write quota.
 QUOTE_PER_IP_DAILY = "20"
 QUOTE_GLOBAL_DAILY = "400"
+# Badge claims (POST /claim): the testnet badge contract (docs/badge-contract.md) and the claim limits per
+# IP address, per account and in total per UTC day. The claim key itself is the secret CLAIM_SIGNING_KEY.
+BADGE_CONTRACT_ID = "badges.bon-badges-mwe57oab.testnet"
+CLAIM_PER_IP_DAILY = "20"
+CLAIM_PER_ACCOUNT_DAILY = "10"
+CLAIM_GLOBAL_DAILY = "500"
 
 # Counters for the rate limits. Create the namespace once with
 #   npx wrangler kv namespace create FAUCET_LIMITS

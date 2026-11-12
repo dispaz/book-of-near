@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, createHashRouter, RouterProvider } from "react-router";
 import "@fontsource/newsreader/500.css";
@@ -16,6 +16,9 @@ import { TestOut } from "./progress/TestOut";
 import { ChainProvider } from "./chain/ChainContext";
 import { MainnetWalletProvider } from "./chain/mainnet";
 import { WalletPage } from "./ui/WalletPage";
+import { CheckerPage, MyBookPage } from "./badges/BadgePages";
+
+const ArtPreview = import.meta.env.DEV ? lazy(() => import("./badges/ArtPreviewPage")) : () => null;
 
 // The claude.ai review copy (`npm run build:artifact`) is served as one page, so it routes on the hash.
 const createRouter = import.meta.env.MODE === "artifact" ? createHashRouter : createBrowserRouter;
@@ -25,6 +28,21 @@ const router = createRouter([
   { path: "/start", element: <OpeningQuiz /> },
   { path: "/test-out", element: <TestOut /> },
   { path: "/wallet", element: <WalletPage /> },
+  { path: "/my-book", element: <MyBookPage /> },
+  { path: "/check", element: <CheckerPage /> },
+  // Dev only: the badge art for review (npm run badges:art). Left out of production builds.
+  ...(import.meta.env.DEV
+    ? [
+        {
+          path: "/badges-preview",
+          element: (
+            <Suspense fallback={null}>
+              <ArtPreview />
+            </Suspense>
+          ),
+        },
+      ]
+    : []),
   { path: "/lesson/:id", element: <LessonPage /> },
   { path: "*", element: <ContentsPage /> },
 ]);

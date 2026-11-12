@@ -4,6 +4,8 @@ import { registry } from "../app/registry";
 import type { ChainMode, LessonManifest } from "../app/types";
 import { progress, useProgress } from ".";
 import { nextLesson } from "./routes";
+import { ClaimBadge } from "../badges/ClaimBadge";
+import { ruleFor } from "../badges/rules";
 import "./progress.css";
 
 /** Remembers the lesson and step the learner has open, for "Continue where you left off". */
@@ -64,6 +66,9 @@ export function FinishLesson({
           Back to contents
         </Link>
       </div>
+      {ruleFor(lesson.stage)?.lessons.at(-1) === lesson.id ? (
+        <ClaimBadge stage={lesson.stage} accent={registry.stageOf(lesson.id)?.accent} />
+      ) : null}
     </div>
   );
 }
