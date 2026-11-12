@@ -20,6 +20,7 @@ import {
   TX_PHASES,
   transfer,
 } from "./ops";
+import { HISTORICAL_BLOCK, RPC_ENDPOINTS } from "./rpcEndpoints";
 import { shardForAccount } from "./shards";
 import type { Chain, PhaseEvent, TxOutcome } from "./types";
 import { parseNear, tgas } from "./units";
@@ -412,6 +413,33 @@ export function runChainContract(makeChain: () => Chain | Promise<Chain>, opts: 
           "InvalidSignature",
         );
         await expectChainError(chain.getTransaction(signed2.hash, me.accountId), "UnknownTransaction");
+      },
+      t,
+    );
+
+    it(
+      "times one RPC endpoint at a time; only the archival node keeps old blocks",
+      async () => {
+        const chain = await makeChain();
+        const head = await chain.block("final");
+        for (const e of RPC_ENDPOINTS) {
+          const p = await chain.probeRpc(e.id, "final", instant);
+          expect(p).toMatchObject({ ok: true, endpointId: e.id });
+          if (!p.ok) continue;
+          expect(p.latencyMs).toBeGreaterThanOrEqual(0);
+          expect(p.blockHeight).toBeGreaterThan(head.height - 1_000);
+        }
+        const old = { height: HISTORICAL_BLOCK.height };
+        expect(await chain.probeRpc("fastnear", old, instant)).toMatchObject({
+          ok: false,
+          error: "UnknownBlock",
+        });
+        expect(await chain.probeRpc("archival", old, instant)).toMatchObject({
+          ok: true,
+          blockHeight: HISTORICAL_BLOCK.height,
+          blockTimestampMs: HISTORICAL_BLOCK.timestampMs,
+        });
+        await expect(chain.probeRpc("no-such-node", "final", instant)).rejects.toThrow();
       },
       t,
     );

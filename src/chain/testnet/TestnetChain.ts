@@ -22,7 +22,9 @@ import type {
   PhaseEvent,
   PhaseTimings,
   PracticeAccount,
+  ProbeOptions,
   PublicKey,
+  RpcProbe,
   SendOptions,
   ShardId,
   ShardLayout,
@@ -51,6 +53,8 @@ import {
   type Funder,
   type PracticeStore,
 } from "./practice";
+import { RPC_ENDPOINTS } from "../rpcEndpoints";
+import { probeEndpoint } from "./probe";
 import { Rpc, RpcError, RpcUnreachable, TESTNET_ARCHIVAL_RPC_URLS } from "./rpc";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- RPC JSON */
@@ -69,6 +73,8 @@ export interface TestnetChainOptions {
   /** How long to wait for a new account to show up at final finality. */
   accountWaitMs?: number;
   now?: () => number;
+  /** The fetch `probeRpc` uses (tests pass a fake). */
+  probeFetch?: typeof fetch;
 }
 
 export class TestnetChain implements Chain {
@@ -79,6 +85,7 @@ export class TestnetChain implements Chain {
   private readonly funders: Funder[];
   private readonly keys = new KeyStore();
   private readonly now: () => number;
+  private readonly probeFetch: typeof fetch | undefined;
   private readonly accountWaitMs: number;
   private readonly returnAccountId: AccountId | undefined;
   private practice: Promise<PracticeAccount> | null = null;
@@ -94,6 +101,7 @@ export class TestnetChain implements Chain {
     this.store = opts.store ?? memoryPracticeStore();
     this.funders = opts.funders ?? [];
     this.now = opts.now ?? (() => performance.now());
+    this.probeFetch = opts.probeFetch;
     this.accountWaitMs = opts.accountWaitMs ?? 20_000;
     this.returnAccountId = opts.returnAccountId?.trim() || undefined;
   }
@@ -527,6 +535,13 @@ export class TestnetChain implements Chain {
       // RPC lists the receipts this chunk sends out; the demo lists the ones it applies.
       receipts: (c.receipts as Json[]).map((r) => r.receipt_id),
     };
+  }
+
+  /** One timed request to one endpoint, no fallback (lesson 3.3). The network sets the pace. */
+  async probeRpc(endpointId: string, ref: BlockRef = "final", _options?: ProbeOptions): Promise<RpcProbe> {
+    const endpoint = RPC_ENDPOINTS.find((e) => e.id === endpointId);
+    if (!endpoint) throw new Error(`Unknown RPC endpoint ${endpointId}`);
+    return probeEndpoint(endpointId, endpoint.url, ref, { fetch: this.probeFetch, now: this.now });
   }
 
   shardLayout(): Promise<ShardLayout> {

@@ -29,6 +29,7 @@ import {
   lookOf,
   mailboxDims,
   parcelDims,
+  rpcWindowDims,
   ribbonNotch,
   ribbonOutline,
   screenDims,
@@ -627,6 +628,79 @@ export function AppScreen({
     <group position={position}>
       {dashed ? null : <SoftShadow position={[0, 0, 0.2]} size={[size * 1.3, size * 0.7]} />}
       {maybePickable(pick, name, y, body)}
+    </group>
+  );
+}
+
+// ---------- RPC node: a counter window ----------
+
+/**
+ * An RPC node: a post-office counter booth, an awning in the accent on top, a window in front and a ledge
+ * under it. `lit` lights the window (it is answering), `shut` pulls its shutter down (it does not keep
+ * what was asked, or it is closed). `state="failed"` is a node that is down: red awning, a red cross.
+ */
+export function RpcWindow({
+  position = [0, 0, 0],
+  name,
+  note,
+  size = 1.4,
+  color = COLORS.blue,
+  state = "ok",
+  lit = false,
+  shut = false,
+  ...pick
+}: ObjectProps & { name: string; note?: string; size?: number; lit?: boolean; shut?: boolean }) {
+  const d = rpcWindowDims(size);
+  const look = lookOf(state, color);
+  const dashed = look.dashed;
+  const down = state === "failed";
+  const front = d.depth / 2;
+  const pane = shut || down ? COLORS.slab : lit ? color : INK;
+  const body = (
+    <SelectRing selected={!!pick.selected} radius={size * 0.6} color={color}>
+      {/* Booth. */}
+      <Part fill={partFill(look, COLORS.paper)} dashed={dashed} position={[0, d.height / 2, 0]}>
+        <boxGeometry args={[d.width, d.height, d.depth]} />
+      </Part>
+      {/* Awning: the provider's colour band. */}
+      <Part fill={look.fill} dashed={dashed} position={[0, d.height + d.awning / 2, 0.06]}>
+        <boxGeometry args={[d.width * 1.08, d.awning, d.depth + 0.12]} />
+      </Part>
+      {/* Window: dark when idle, lit in the accent while answering, a grey shutter when shut or down. */}
+      <Part fill={dashed ? null : pane} dashed={dashed} position={[0, d.windowY, front + 0.012]}>
+        <boxGeometry args={[d.windowW, d.windowH, 0.02]} />
+      </Part>
+      {(shut || down) && !dashed
+        ? [-0.25, 0, 0.25].map((f) => (
+            <Part
+              key={f}
+              fill={INK}
+              dashed={false}
+              edges={false}
+              position={[0, d.windowY + d.windowH * f, front + 0.026]}
+            >
+              <boxGeometry args={[d.windowW * 0.92, 0.02, 0.01]} />
+            </Part>
+          ))
+        : null}
+      {/* Ledge under the window. */}
+      <Part
+        fill={partFill(look, COLORS.paper)}
+        dashed={dashed}
+        position={[0, d.windowY - d.windowH / 2 - 0.03, front + 0.1]}
+      >
+        <boxGeometry args={[d.windowW * 1.15, 0.06, 0.22]} />
+      </Part>
+      <StateMarks look={look} at={[0, d.windowY, front + 0.08]} size={d.windowH * 1.1} />
+      <NameLabel height={d.total + 0.6} depth={d.depth}>
+        {note ? `${name} · ${note}` : name}
+      </NameLabel>
+    </SelectRing>
+  );
+  return (
+    <group position={position}>
+      {dashed ? null : <SoftShadow position={[0, 0, 0.2]} size={[size * 1.2, size * 0.8]} />}
+      {maybePickable(pick, name, d.windowY, body)}
     </group>
   );
 }
