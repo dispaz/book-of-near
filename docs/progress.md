@@ -405,3 +405,12 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Branch `issue-23-platform-merge`: `origin/platform` merged into current `main`. Only `docs/progress.md` conflicted (all entries kept). `src/chain/mainnet/wallet.css` overlay now uses `color-mix(var(--ink))` instead of a hard-coded rgba (palette test).
 - Gate: lint (0 errors), typecheck, `npm test` (538 passed), Worker tests (13), `npm run test:badge` (19 sandbox tests), `e2e/wallet.spec.ts` and the full e2e suite (249 passed, 5 skipped).
 - #12 stays open: its testnet mint is issue #68. Real wallet sign-in and a real mainnet signature are still untested (needs a person with a mainnet wallet).
+
+## 2026-11-12 · Lesson 1.2 review notes fixed (Closes #15)
+
+- Reload: restore-on-reload moved out of `useKeyLesson.ts` into `resume.ts` (`findResumableKey`). When the lesson adds the key it remembers, in this browser, the starting allowance and the add hash (`rememberKey`, forgotten on delete; storage blocked is handled). A key picked up after a reload is recorded with `keyResumed: "yes"`, plus `addKeyTxHash` when remembered.
+- Step 6 caption is now `{keyLeft}` (`keyLeftLine`): "It still had X NEAR of its Y NEAR allowance.", or "It still had X NEAR of allowance left." when the start is unknown, so one number never shows twice. Gauges use `gaugeFrom` (the start, or what the key had when picked up). Script `1.2.md` updated.
+- 3D on phones and tablets: `layoutFor(width, height)` in `layout3d.ts` picks the arrangement from the 3D window, not the viewport. A tall or square window (phones) gets two rows, so the picture is about 1.5× larger; narrow windows get short labels (< 820 px) and short names (< 640 px: "you", "registrar", "attacker"). One-row registrar moved right (x 2.9 → 3.3) so the counter's label is clear.
+- Shared helpers: `src/ui/format.ts` (`shortId`, `nearAmount`) replaces the copies in l-1-2 `key.ts`, l-1-3 `batch.ts` and l-0-3 `tx.ts` (`short`). Lesson 1.2 now uses the scene-kit `useBoxSize` (#70). `scene-kit/svg/objects.tsx`'s `short` cuts text, a different job.
+- Not done here: the 3D view is still plain `InkStage`, not a `BookScene` (deferred on purpose in the review; with #60).
+- Gate: lint (0 errors), typecheck, unit tests, badge tests, e2e for wallet and lessons 0.3, 1.2, 1.3 (a full e2e run before the rebase on main: 244 passed, 4 load flakes in 3.1 and 4.1 that passed on a rerun). Screenshots checked at 390×844, 820×1180, 1024×768 and 1440×900, 2D and 3D, reduced motion and `?webgl=0`.

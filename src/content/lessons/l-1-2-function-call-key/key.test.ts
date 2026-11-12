@@ -4,6 +4,7 @@ import {
   ATTEMPT_LABEL,
   appLine,
   keyGoneShown,
+  keyLeftLine,
   readAllowance,
   refusedKinds,
   type Attempt,
@@ -80,5 +81,15 @@ describe("attempts", () => {
       keyGoneShown([attempt("count", false, 2, { afterDelete: true, reason: "AccessKeyNotFound" })]),
     ).toBe(true);
     expect(keyGoneShown([attempt("count", false, 2, { afterDelete: true, reason: "Other" })])).toBe(false);
+  });
+});
+
+describe("what the key still had, in the delete step's caption", () => {
+  it("names what was left and the allowance it started with", () => {
+    expect(keyLeftLine("0.0953", "0.2")).toBe("It still had 0.0953 NEAR of its 0.2 NEAR allowance.");
+  });
+
+  it("does not repeat one number when the starting allowance is unknown (key picked up after a reload)", () => {
+    expect(keyLeftLine("0.0953", null)).toBe("It still had 0.0953 NEAR of allowance left.");
   });
 });

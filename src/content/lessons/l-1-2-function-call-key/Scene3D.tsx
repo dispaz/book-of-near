@@ -5,7 +5,7 @@
  * or stopped with a red cross and the chain's reason. It only draws the shared state from useKeyLesson.
  * Loaded lazily from Scene.tsx, so the 2D view never downloads three.js.
  */
-import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useRef, useState } from "react";
 import {
   Anchor,
   AppScreen,
@@ -22,10 +22,10 @@ import {
   frameCamera,
   gaugeShare,
   inset,
+  useBoxSize,
 } from "../../../scene-kit";
-import { useMediaQuery } from "../../../ui/hooks";
 import { ATTEMPT_LABEL, ATTEMPT_SHORT, near, REASON_TEXT, short } from "./key";
-import { APP, APP_KEY, COUNTER, HOME, MY_KEY, OBJ, OTHER, THIEF, parcelAt, shot } from "./layout3d";
+import { OBJ, layoutFor } from "./layout3d";
 import { ADD, HOOK, LIMIT, type Lesson } from "./useKeyLesson";
 
 type Pick = "app" | "home" | "counter" | "thief" | "other";
@@ -47,20 +47,25 @@ export default function Scene3D({
   flat: boolean;
   reducedMotion: boolean;
 }) {
-  const { step, keyState, aim, attempts, left, initial, counter, me, busy } = lesson;
+  const { step, keyState, aim, attempts, left, initial, gaugeFrom, counter, me, busy } = lesson;
   const [picked, setPicked] = useState<Pick | null>(null);
-  const phone = useMediaQuery("(max-width: 899px)");
   const box = useRef<HTMLDivElement>(null);
   const size = useBoxSize(box);
   const frame = inset({ left: 0, top: 0, right: size.width, bottom: size.height }, { top: size.status });
-  const view = frameCamera(shot(phone), frame, size.width, size.height, 0.92, { nearFit: true });
+  // Two rows in a tall or square window (phones), short labels in a narrow one (layout3d.ts).
+  const L = layoutFor(frame.right - frame.left, frame.bottom - frame.top);
+  const { APP, APP_KEY, COUNTER, HOME, MY_KEY, OTHER, THIEF, HINT } = L;
+  const compact = L.shortLabels;
+  const view = frameCamera(L.shot, frame, size.width, size.height, 0.92, { nearFit: !L.tall });
 
   const last = attempts[attempts.length - 1];
   const revoked = keyState === "revoked";
   const refusedNow = !!last && !last.ok && !!last.reason;
   const allowance =
-    keyState === "active" && left !== null && initial !== null
-      ? `${near(left)} of ${near(initial)} NEAR`
+    keyState === "active" && left !== null
+      ? initial !== null
+        ? `${near(left)} of ${near(initial)} NEAR`
+        : `${near(left)} NEAR left`
       : revoked
         ? "deleted"
         : "";
@@ -112,12 +117,18 @@ export default function Scene3D({
           pickLabel="The Counter app"
           {...pick("app")}
         />
-        <Mailbox position={HOME} size={OBJ} name="your account" pickLabel="Your account" {...pick("home")} />
+        <Mailbox
+          position={HOME}
+          size={OBJ}
+          name={L.shortNames ? "you" : "your account"}
+          pickLabel="Your account"
+          {...pick("home")}
+        />
         <Anchor name="account" position={[HOME[0], OBJ * 0.55, HOME[2]]} />
         {/* Your full-access key: plain, opens everything. */}
         <Key position={MY_KEY} rotation={[0, 0.25, -0.15]} />
-        <Label position={[MY_KEY[0], MY_KEY[1] + 0.6, MY_KEY[2]]} variant="small">
-          {phone ? "your key" : "your key · full access"}
+        <Label position={L.MY_KEY_LABEL} variant="small">
+          {compact ? "your key" : "your key · full access"}
         </Label>
 
         {step > HOOK ? (
@@ -138,14 +149,14 @@ export default function Scene3D({
           position={THIEF}
           size={OBJ}
           color={COLORS.red}
-          name="attacker.testnet"
+          name={L.shortNames ? "attacker" : "attacker.testnet"}
           pickLabel="The attacker's account"
           {...pick("thief")}
         />
         <Scroll
           position={OTHER}
           size={OBJ * 0.85}
-          name="testnet registrar"
+          name={L.shortNames ? "registrar" : "testnet registrar"}
           pickLabel="Another contract: the testnet registrar"
           {...pick("other")}
         />
@@ -156,7 +167,7 @@ export default function Scene3D({
           <TaggedKey
             position={APP_KEY}
             tag="counter only"
-            share={keyState === "active" ? gaugeShare(left, initial) : keyState === "none" ? 1 : 0}
+            share={keyState === "active" ? gaugeShare(left, gaugeFrom) : keyState === "none" ? 1 : 0}
             state={revoked ? "gone" : "ok"}
           />
         ) : null}
@@ -167,7 +178,7 @@ export default function Scene3D({
               ? "a function-call key"
               : revoked
                 ? "app's key · deleted"
-                : phone
+                : compact
                   ? allowance
                   : `app's key · ${allowance}`}
           </Label>
@@ -175,7 +186,7 @@ export default function Scene3D({
 
         {/* The latest try: a parcel stamped with the app's key, at what it aimed at. */}
         {last ? (
-          <Traveller to={parcelAt(aim)} arc={2.6} duration={0.9} color={COLORS.gold}>
+          <Traveller to={L.parcelAt(aim)} arc={2.6} duration={0.9} color={COLORS.gold}>
             <Parcel
               size={0.8}
               stamped
@@ -189,13 +200,13 @@ export default function Scene3D({
           </Traveller>
         ) : null}
         {refusedNow ? (
-          <Label position={[0.6, 0.05, 3.3]} variant="hint">
+          <Label position={HINT} variant="hint">
             {REASON_TEXT[last.reason!] ?? last.message}
           </Label>
         ) : null}
 
         {picked ? (
-          <Label position={[0, 0.05, 3.3]} variant="hint">
+          <Label position={[HINT[0] - (L.tall ? 0 : 0.6), HINT[1], HINT[2]]} variant="hint">
             {PICK_TEXT[picked]}
           </Label>
         ) : null}
@@ -207,30 +218,4 @@ export default function Scene3D({
       </InkStage>
     </div>
   );
-}
-
-/** The size of the 3D window and the height of its status line, kept up to date as the layout changes. */
-function useBoxSize(ref: RefObject<HTMLElement | null>) {
-  const [size, setSize] = useState({ width: 640, height: 400, status: 40 });
-  const measure = useRef<() => void>(() => undefined);
-  measure.current = () => {
-    const el = ref.current;
-    if (!el) return;
-    const width = el.clientWidth || 640;
-    const height = el.clientHeight || 400;
-    const s = el.querySelector<HTMLElement>(".sk-status");
-    const status = s?.textContent ? s.offsetTop + s.offsetHeight + 6 : 12;
-    setSize((p) =>
-      p.width === width && p.height === height && p.status === status ? p : { width, height, status },
-    );
-  };
-  useLayoutEffect(() => measure.current());
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(() => measure.current());
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [ref]);
-  return size;
 }
