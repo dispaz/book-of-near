@@ -59,26 +59,54 @@ The contract trusts whoever holds the claim key, so the Worker that signs must:
 
 Operators must deploy with the single-step `with-init-call new` below. `new` has no access check of its own, so a deploy followed by a separate `new` call could be front-run.
 
-## Deploy (testnet)
+## Testnet deployment (issue #68)
 
-_The CLI commands below were written from memory of the `near` CLI and have not been run by me; check them against `near --help` before relying on them._
+Deployed on 12 Nov 2026 with `scripts/deploy-badge.mjs`:
 
-No secrets go in the repo. Keys live in your credentials store and in Worker secrets.
+| What | Value |
+| --- | --- |
+| Contract | `badges.bon-badges-mwe57oab.testnet` |
+| Owner | `bon-badges-mwe57oab.testnet` (made with NEAR's public testnet helper) |
+| Create + deploy + `new` (one transaction) | `3WJ3Rgw2ca7wXpVxJF3jyu9pmx3DUL98pvRsqBHKbwwp` |
+| `set_stage_count(5)` | `GWm7Q9sLuEra2x7mPWvdAAYae7tfTRjDRm5sCBF1GE13` |
+| `set_daily_cap(200)` | `82AcSkp2M9PdthmjaSPKyNN7vy6WeZCZgRJKFSD23oVa` |
+| `set_claim_key` | `634pxtxMFQSVfV7CVA4THzKiZMCbMTfM6zwHUPzCwH1h` |
+| `set_base_uri(https://book-of-near.pages.dev/badges)` | `HdCxMF5q7QY6AhFQx9V1nPAzJMeCkKa4tzyjURjbSUca` |
 
-1. Make the contract account, a sub-account of an account you own, with enough NEAR for the code (about 2.6 NEAR for ~257 KB) plus a float for badge storage (say 5 NEAR more):
-   `near account create-account fund-myself badges.<you>.testnet '8 NEAR' autogenerate-new-keypair save-to-keychain sign-as <you>.testnet network-config testnet sign-with-keychain send`
-2. Make the claim key pair (keep the secret as a Worker secret, `CLAIM_SIGNING_KEY`). Any ed25519 key works; `node -e` with `@noble/curves` can print one. Only the public key goes on chain.
-3. Deploy and initialise:
-   `near contract deploy badges.<you>.testnet use-file contracts/badge/target/badge.wasm with-init-call new json-args '{"owner_id":"<you>.testnet","claim_key":"ed25519:<public key>","stage_count":5}' prepaid-gas '30 Tgas' attached-deposit '0 NEAR' network-config testnet sign-with-keychain send`
-4. Configure as the owner: `set_route` for each exam route, `set_base_uri` (the app's static host, for example `https://book-of-near.pages.dev/badges`), and `set_art` for `stage-0` to `stage-4` and `final-common`, `final-rare`, `final-epic`, `final-legendary` (the media path under `base_uri` and the base64 sha256 of the image).
-5. Check: claim once from a funded learner account, then open the token on the testnet explorer. The image shows when `base_uri/media` is publicly reachable.
+The contract id is config, not code: `src/badges/config.ts` reads `VITE_BADGE_CONTRACT_ID` and falls back to the id above; the Worker reads `BADGE_CONTRACT_ID` from `wrangler.toml`.
 
-For mainnet repeat with a mainnet account and a different claim key.
+The owner key, the contract account's key and the claim key pair are in `worker/.dev.vars` (git-ignored) of the checkout that ran the script: `BADGE_OWNER_ID`, `BADGE_OWNER_PRIVATE_KEY`, `BADGE_CONTRACT_PRIVATE_KEY`, `CLAIM_SIGNING_KEY`, `CLAIM_PUBLIC_KEY`, `BADGE_CONTRACT_ID`.
+
+### The script
+
+```
+npm run build:badge
+node scripts/deploy-badge.mjs deploy     # owner account (helper, 10 NEAR) + badges.<owner> (8 NEAR) + deploy + new, then the settings
+node scripts/deploy-badge.mjs settings   # re-apply stage count, daily cap, claim key, base URI
+node scripts/deploy-badge.mjs art        # set_art for every entry of public/badges/art.json (npm run badges:art writes it)
+```
+
+`deploy` makes the sub-account, funds it, adds its key, deploys the wasm and calls `new` in ONE transaction, so `new` cannot be front-run. It refuses to run again once `BADGE_CONTRACT_ID` is in the vars file. Secrets go to the vars file only; the script prints account ids and transaction hashes.
+
+### Owner steps (not run by the agent)
+
+Production Worker secrets and the Worker deploy are the owner's:
+
+```
+cd worker
+npx wrangler secret put CLAIM_SIGNING_KEY      # paste CLAIM_SIGNING_KEY from worker/.dev.vars (ed25519:<base58 64 bytes>)
+npx wrangler deploy                            # BADGE_CONTRACT_ID and the claim limits are plain vars in wrangler.toml
+```
+
+For local dev, `worker/.dev.vars` already holds `CLAIM_SIGNING_KEY` and `BADGE_CONTRACT_ID`; add `ALLOW_LOCALHOST=1` and run `npm run dev` in `worker/`, with `VITE_WORKER_URL=http://localhost:8787` in `.env.local`.
+
+To rotate the claim key: generate a pair, `set_claim_key` as the owner (old signatures stop working at once), then `wrangler secret put CLAIM_SIGNING_KEY`.
+
+For mainnet repeat with a mainnet account and a different claim key (out of scope for the hackathon, #29).
 
 ## Not done here
 
 - Day rollover of the daily cap: the sandbox clock is wall-clock time, so a new UTC day cannot be reached in a test. The logic (`day != self.day` resets the counter) is covered only by reading.
-- Testnet deployment, since it needs your accounts and funds (steps above).
 - The badge images (separate art ticket) and the Worker's claim signer (uses the message format above).
 - The Chain-interface and DemoChain side of claiming (demo-mode parity belongs with the badge flow tickets).
 - The optional transferable collector twin of the final badge.
