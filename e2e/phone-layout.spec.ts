@@ -262,41 +262,37 @@ test.describe("desktop is unchanged", () => {
     await expect(page.getByRole("button", { name: "Read more" })).toHaveCount(0);
   });
 
-  test(
-    "the margin note's arrow goes around the scene's objects and labels",
-    { tag: "@3d" },
-    async ({ page }) => {
-      // Lesson 1.1, 3D, step 3: the note points at the new name on the right, past "you" and the
-      // registrar and their labels. The arrow must not run through them.
-      slow3d();
-      await page.goto("/lesson/l-1-1-claim-your-name?view=3d&step=3");
-      const arrow = page.locator(".note-arrow path").nth(1);
-      await expect(arrow).toBeAttached({ timeout: LOAD_3D });
-      await page.waitForTimeout(1500);
-      const crossings = await arrow.evaluate((path: SVGPathElement) => {
-        const svg = path.ownerSVGElement!.getBoundingClientRect();
-        const target = document.querySelector('[data-explain="name-box"]')!;
-        const others = [...document.querySelectorAll("[data-explain]")]
-          .filter((o) => o !== target)
-          .map((o) => o.getBoundingClientRect());
-        const len = path.getTotalLength();
-        const hits: string[] = [];
-        for (let i = 2; i < 18; i++) {
-          const p = path.getPointAtLength((len * i) / 20);
-          const x = svg.left + p.x;
-          const y = svg.top + p.y;
-          // Each 3D object is marked by a small anchor at its centre; the cubes are about 70px across.
-          const near = (r: DOMRect) =>
-            Math.abs(x - (r.left + r.right) / 2) < 36 && Math.abs(y - (r.top + r.bottom) / 2) < 36;
-          if (others.some(near)) hits.push(`object at ${Math.round(x)},${Math.round(y)}`);
-          const hit = document.elementFromPoint(x, y);
-          const text = [...(hit?.childNodes ?? [])].some((n) => n.nodeType === 3 && n.textContent!.trim());
-          if (text)
-            hits.push(`"${hit!.textContent!.trim().slice(0, 20)}" at ${Math.round(x)},${Math.round(y)}`);
-        }
-        return hits;
-      });
-      expect(crossings).toEqual([]);
-    },
-  );
+  test("the margin note's arrow goes around the scene's objects and labels", async ({ page }) => {
+    // Lesson 1.1, 2D, step 3: the note points at the new name on the right, past "you" and the
+    // registrar cards. The arrow must not run through them. (Its 3D view is a book scene now, where
+    // wide screens print the words on the page and draw no margin note.)
+    await page.goto("/lesson/l-1-1-claim-your-name?view=2d&step=3");
+    const arrow = page.locator(".note-arrow path").nth(1);
+    await expect(arrow).toBeAttached({ timeout: LOAD_3D });
+    await page.waitForTimeout(1500);
+    const crossings = await arrow.evaluate((path: SVGPathElement) => {
+      const svg = path.ownerSVGElement!.getBoundingClientRect();
+      const target = document.querySelector('[data-explain="name-box"]')!;
+      const others = [...document.querySelectorAll("[data-explain]")]
+        .filter((o) => o !== target)
+        .map((o) => o.getBoundingClientRect());
+      const len = path.getTotalLength();
+      const hits: string[] = [];
+      for (let i = 2; i < 18; i++) {
+        const p = path.getPointAtLength((len * i) / 20);
+        const x = svg.left + p.x;
+        const y = svg.top + p.y;
+        // The other cards ("you", the registrar) are marked with data-explain: the arrow must not
+        // cross any of them, anywhere on the card.
+        const inside = (r: DOMRect) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+        if (others.some(inside)) hits.push(`card at ${Math.round(x)},${Math.round(y)}`);
+        const hit = document.elementFromPoint(x, y);
+        const text = [...(hit?.childNodes ?? [])].some((n) => n.nodeType === 3 && n.textContent!.trim());
+        if (text)
+          hits.push(`"${hit!.textContent!.trim().slice(0, 20)}" at ${Math.round(x)},${Math.round(y)}`);
+      }
+      return hits;
+    });
+    expect(crossings).toEqual([]);
+  });
 });

@@ -21,6 +21,52 @@
     display: none;
   }
 }
+/* 3D: the step's facts in the book scene's panel, over the right page. */
+.cn-panel {
+  font-family: var(--ui);
+  color: var(--ink);
+}
+.cn-panel p {
+  margin: 0;
+}
+.cn-panel .stx-detail {
+  max-height: min(30vh, 250px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.cn-panel .stx-detail dl {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+@media (max-width: 600px) {
+  .cn-panel .stx-detail {
+    max-height: min(24vh, 180px);
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+}
+/* The scene objects' small twins (ObjectIcon) on the cards and the arrow, as in the 3D view. */
+.cn-cast .stx-acct-role,
+.cn-compare .stx-acct-role {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cn-cast .stx-arrow svg.sk-icon {
+  width: 20px;
+  height: 20px;
+  stroke: none;
+  animation: none;
+}
+@media (max-width: 899px) {
+  .cn-cast .stx-acct-role {
+    gap: 3px;
+  }
+  .cn-cast .stx-acct-role .sk-icon,
+  .cn-cast .stx-arrow svg.sk-icon {
+    width: 14px;
+    height: 14px;
+  }
+}
 .cn-ghost {
   border-style: dashed;
   background: transparent;

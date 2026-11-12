@@ -1,16 +1,17 @@
 /**
- * Where things stand in the 3D view of lesson 1.1, and what the camera frames at each step (world
- * units; y is up). Pure, so it is unit tested and never pulls three.js into the 2D view.
+ * Where things stand in lesson 1.1's figure, on the right page of the book (world units; y is up). Pure,
+ * so it is unit tested and never pulls three.js into the 2D view.
  *
- * Steps 1 to 4 show a row: you, the registrar, the new account. The compare step shows only the
- * named account and its hex twin, side by side.
+ * Steps 1 to 4 (and the check) show a row: you, the registrar, the new account. The compare step shows
+ * only the named account and its hex twin, side by side.
  */
-import { focusOf as kitFocus, type Box, type Focus } from "../../../scene-kit/framing";
+import type { Box } from "../../../scene-kit/framing";
 import type { Vec3 } from "../../../scene-kit/motion";
 import { mailboxDims, scrollDims } from "../../../scene-kit/objects";
 import { COMPARE, HOOK } from "./useClaim";
 
-export const SIZE = 1.3;
+/** The size every object is drawn at. */
+export const OBJ = 1.75;
 export const ME: Vec3 = [-3.1, 0, 0];
 export const REGISTRAR: Vec3 = [0, 0, 0];
 export const NEW_ACCOUNT: Vec3 = [3.1, 0, 0];
@@ -18,14 +19,25 @@ export const NEW_ACCOUNT: Vec3 = [3.1, 0, 0];
 export const NAMED: Vec3 = [-2, 0, 0];
 export const HEX: Vec3 = [2, 0, 0];
 
-// Each block with the labels around it. Name tags in front are wider than the block (about 2.6 units).
-const box = (p: Vec3): Box => [p[0] - 1.4, p[0] + 1.4, p[2] - 0.8, p[2] + 1.3, 2.6];
+/** The ground box (x, z) that holds every step's objects and labels. */
+export const FIGURE = { minX: -4.6, maxX: 4.6, minZ: -1.2, maxZ: 2.2 } as const;
 
-/** Seen from the front, aimed a little low, at the blocks rather than their tags. */
-const focusOf = (boxes: Box[], elevation: number): Focus => kitFocus(boxes, elevation, 0, 0.3);
+export type Part = "me" | "registrar" | "new" | "named" | "hex";
 
-/** The size the objects are drawn at (mailboxes and scrolls are slimmer than the old blocks). */
-export const OBJ = SIZE * 1.35;
+const AT: Record<Part, Vec3> = { me: ME, registrar: REGISTRAR, new: NEW_ACCOUNT, named: NAMED, hex: HEX };
+
+/** Which parts a step draws. */
+export function partsAt(step: number): Part[] {
+  if (step === HOOK) return ["me"];
+  if (step === COMPARE) return ["named", "hex"];
+  return ["me", "registrar", "new"];
+}
+
+/** Each object with the labels around it: [minX, maxX, minZ, maxZ, height]. Name tags in front. */
+export function boxOf(part: Part): Box {
+  const [x, , z] = AT[part];
+  return [x - 1.4, x + 1.4, z - 0.8, z + 1.9, 2.6];
+}
 
 type Sending = { busy: boolean; created: boolean };
 
@@ -44,11 +56,4 @@ export function coinAt({ busy, created }: Sending): Vec3 | null {
   if (created) return [NEW_ACCOUNT[0] + BESIDE, 0.07, NEW_ACCOUNT[2] + 0.5];
   if (busy) return [REGISTRAR[0], SCROLL_TOP + 0.25, REGISTRAR[2]];
   return null;
-}
-
-export function shotFor(step: number, phone: boolean): Focus {
-  const elevation = phone ? 52 : 36;
-  if (step === HOOK) return focusOf([box(ME)], elevation);
-  if (step === COMPARE) return focusOf([box(NAMED), box(HEX)], elevation);
-  return focusOf([box(ME), box(REGISTRAR), box(NEW_ACCOUNT)], elevation);
 }

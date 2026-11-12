@@ -6,7 +6,7 @@
  * signer with the chain's reason. It only draws the shared state from useTxLesson. Loaded lazily
  * from Scene.tsx, so the 2D view never downloads three.js.
  */
-import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useRef } from "react";
 import {
   Anchor,
   COLORS,
@@ -20,6 +20,7 @@ import {
   frameCamera,
   inset,
   type ParcelItem,
+  useBoxSize,
 } from "../../../scene-kit";
 import { useMediaQuery } from "../../../ui/hooks";
 import { FATE_TEXT, SHORT_NAME, short } from "./batch";
@@ -210,30 +211,4 @@ export default function Scene3D({
       </InkStage>
     </div>
   );
-}
-
-/** The size of the 3D window and the height of its status line, kept up to date as the layout changes. */
-function useBoxSize(ref: RefObject<HTMLElement | null>) {
-  const [size, setSize] = useState({ width: 640, height: 400, status: 40 });
-  const measure = useRef<() => void>(() => undefined);
-  measure.current = () => {
-    const el = ref.current;
-    if (!el) return;
-    const width = el.clientWidth || 640;
-    const height = el.clientHeight || 400;
-    const s = el.querySelector<HTMLElement>(".sk-status");
-    const status = s?.textContent ? s.offsetTop + s.offsetHeight + 6 : 12;
-    setSize((p) =>
-      p.width === width && p.height === height && p.status === status ? p : { width, height, status },
-    );
-  };
-  useLayoutEffect(() => measure.current());
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(() => measure.current());
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [ref]);
-  return size;
 }

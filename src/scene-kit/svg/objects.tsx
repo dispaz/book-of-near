@@ -895,6 +895,7 @@ export function ObjectIcon({ kind, size = 22, color }: { kind: IconKind; size?: 
   return (
     <svg
       className="sk-icon"
+      data-object={kind}
       viewBox="0 0 24 24"
       width={size}
       height={size}

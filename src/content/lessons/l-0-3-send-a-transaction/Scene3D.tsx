@@ -4,7 +4,7 @@
  * the shared state from useTransaction: every move follows a real phase event from the chain.
  * Loaded lazily from Scene.tsx, so the 2D view never downloads three.js.
  */
-import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Line } from "@react-three/drei";
 import type { Group } from "three";
 import {
@@ -27,6 +27,7 @@ import {
   useStage,
   type Vec3,
   useAnimatedFrame,
+  useBoxSize,
 } from "../../../scene-kit";
 import { useMediaQuery } from "../../../ui/hooks";
 import { duration, near, short, TRANSFER_FEE } from "./tx";
@@ -237,36 +238,6 @@ export default function Scene3D({
       </InkStage>
     </div>
   );
-}
-
-/**
- * The size of the 3D window and the height of its status line (one or two lines), kept up to date as
- * the layout or the status changes. The picture is fitted below the status line.
- */
-function useBoxSize(ref: RefObject<HTMLElement | null>) {
-  const [size, setSize] = useState({ width: 640, height: 400, status: 40 });
-  const measure = useRef<() => void>(() => undefined);
-  measure.current = () => {
-    const el = ref.current;
-    if (!el) return;
-    const width = el.clientWidth || 640;
-    const height = el.clientHeight || 400;
-    const s = el.querySelector<HTMLElement>(".sk-status");
-    const status = s?.textContent ? s.offsetTop + s.offsetHeight + 6 : 12;
-    setSize((p) =>
-      p.width === width && p.height === height && p.status === status ? p : { width, height, status },
-    );
-  };
-  // After every render (the status text may have changed), and whenever the window resizes.
-  useLayoutEffect(() => measure.current());
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(() => measure.current());
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [ref]);
-  return size;
 }
 
 /** "≈ 4.98955 NEAR" while gas is held, the plain balance otherwise (same as the 2D cards). */
