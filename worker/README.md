@@ -1,12 +1,13 @@
 # Book of NEAR Worker
 
-A Cloudflare Worker. Today it runs the **testnet faucet** (issue #7); the badge claim signer, exam grader and intents proxy come later.
+A Cloudflare Worker. It runs the **testnet faucet** (issue #7) and the **1Click quote proxy** for lesson 4.2 (issue #24); the badge claim signer and exam grader come later.
 
 ## Routes
 
 | Route | What it does |
 | --- | --- |
 | `POST /faucet` `{ publicKey, accountId? }` | Funds a learner's practice account with `FAUCET_AMOUNT` NEAR (default 0.5) from the faucet account. Without `accountId` it funds the implicit account of `publicKey` (64 hex characters). With `accountId: "name.testnet"` it creates that name through `testnet.create_account`. Returns `{ accountId, txHash, amount }`. |
+| `POST /intents/quote` `{ dry, swapType, slippageTolerance, originAsset, depositType, destinationAsset, amount, refundTo, refundType, recipient, recipientType, deadline }` | Forwards a quote request to `https://1click.chaindefuser.com/v0/quote` and returns its answer and status. Only `nep141:wrap.near` (NEAR) in; unknown fields are dropped. A non-dry quote (a real swap) above 0.25 NEAR is refused with 400. With the optional `ONECLICK_JWT` secret it is sent as `Authorization: Bearer …` (the key never reaches the browser); without it 1Click still answers and adds an app fee. Checked against live 1Click with `wrangler dev` on 12 Nov 2026. |
 | `GET /health` | `{ ok: true, faucet: <secrets configured?> }` |
 
 Errors are JSON `{ error }` in plain English: 400 bad input, 403 origin not allowed, 409 account exists, 429 daily limit, 502 testnet unreachable, 503 no secrets set.
@@ -41,7 +42,7 @@ Verified on 1 Nov 2026: `wrangler dev` (4.149.0) runs locally **without** a Clou
    Top it up from https://near-faucet.io if needed. 10 NEAR covers about 20 learners at 0.5 NEAR.
 3. `npx wrangler kv namespace create FAUCET_LIMITS` and paste the id into `wrangler.toml`.
 4. Set `ALLOWED_ORIGINS` in `wrangler.toml` to the app's real origin(s).
-5. `npx wrangler secret put FAUCET_ACCOUNT_ID` and `npx wrangler secret put FAUCET_PRIVATE_KEY` (the `ed25519:...` private key).
+5. `npx wrangler secret put FAUCET_ACCOUNT_ID` and `npx wrangler secret put FAUCET_PRIVATE_KEY` (the `ed25519:...` private key). Optional: `npx wrangler secret put ONECLICK_JWT` (a 1Click API key, so quotes carry no unkeyed app fee; the bearer header is from 1Click's docs, not yet checked with a real key).
 6. `npx wrangler deploy`, then build the app with `VITE_WORKER_URL=https://<worker>.workers.dev` and, optionally, `VITE_RETURN_ACCOUNT_ID=<faucet account>` so lesson transfers go back to the faucet.
 
 Never commit `.dev.vars` or any key. The repo ships `.dev.vars.example` only.

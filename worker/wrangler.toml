@@ -1,5 +1,5 @@
-# Book of NEAR Worker: the testnet faucet (issue #7). Later: badge claim signer, exam grader,
-# intents proxy. Secrets are NEVER in this file: see README.md (`wrangler secret put ...`).
+# Book of NEAR Worker: the testnet faucet (issue #7) and the 1Click quote proxy (#24). Later: badge claim signer, exam grader.
+# Secrets are NEVER in this file: see README.md (`wrangler secret put ...`).
 name = "book-of-near-worker"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"

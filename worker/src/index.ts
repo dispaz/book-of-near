@@ -1,10 +1,12 @@
 /**
  * Book of NEAR Worker. Routes:
  *   POST /faucet   fund a testnet practice account (faucet.ts)
+ *   POST /intents/quote  1Click quote proxy for lesson 4.2 (intents.ts)
  *   GET  /health   { ok, faucet }
- * Secrets (never in the repo): FAUCET_ACCOUNT_ID, FAUCET_PRIVATE_KEY. See README.md.
+ * Secrets (never in the repo): FAUCET_ACCOUNT_ID, FAUCET_PRIVATE_KEY, optional ONECLICK_JWT. See README.md.
  */
 import { faucet, type FaucetSender } from "./faucet";
+import { quote, type Fetch } from "./intents";
 import { kvCounters, memoryCounters, type CounterStore, type KvLike } from "./limits";
 import { nearSender } from "./near";
 
@@ -18,12 +20,16 @@ export interface Env {
   FAUCET_AMOUNT?: string;
   PER_IP_DAILY?: string;
   GLOBAL_DAILY?: string;
+  /** Optional 1Click API key (a JWT), sent as a bearer token. Without it quotes still work, with an app fee. */
+  ONECLICK_JWT?: string;
 }
 
 export interface Overrides {
   sender?: FaucetSender | null;
   counters?: CounterStore;
   now?: () => Date;
+  /** The fetch used to reach 1Click (tests). */
+  fetch?: Fetch;
 }
 
 const LOCALHOST = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
@@ -109,6 +115,16 @@ export async function handle(request: Request, env: Env, o: Overrides = {}): Pro
       amount: env.FAUCET_AMOUNT ?? "0.5",
       now: o.now,
     });
+    return json(reply.status, reply.body, origin);
+  }
+  if (url.pathname === "/intents/quote" && request.method === "POST") {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return json(400, { error: "Send JSON." }, origin);
+    }
+    const reply = await quote(body, { apiKey: env.ONECLICK_JWT, fetch: o.fetch });
     return json(reply.status, reply.body, origin);
   }
   return json(404, { error: "Not found." }, origin);
