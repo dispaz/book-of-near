@@ -1,0 +1,4 @@
+# Newer Rust emits Wasm features NEAR's runtime rejects (PrepareError::Deserialization).
+[toolchain]
+channel = "1.86.0"
+targets = ["wasm32-unknown-unknown"]
