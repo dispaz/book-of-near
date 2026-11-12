@@ -1,0 +1,185 @@
+/* Lesson 2.2: a call across blocks. One state, a flat page (2D) or the pop-up book (3D). */
+.xcc {
+  position: absolute;
+  top: var(--head-h, 112px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--bar-reserve, 88px) + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .xcc {
+    top: var(--head-h, 104px);
+    left: 448px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    gap: 12px;
+  }
+}
+.xcc p,
+.xcc-panel p {
+  margin: 0;
+}
+.xcc code,
+.xcc-panel code {
+  font:
+    600 13px ui-monospace,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- flat page ---------- */
+.xcc-2d {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 6px;
+}
+.xcc-2d svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 46vh;
+}
+.xcc-link {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  fill: none;
+}
+.xcc-link.dashed {
+  stroke-dasharray: 7 5;
+}
+.xcc-bar {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.xcc-bar-burn {
+  fill: var(--mute);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.xcc-bar-rebate {
+  fill: var(--accent);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.xcc-svg-label {
+  font: 600 15px var(--ui);
+  fill: var(--ink);
+}
+.xcc-svg-label.small {
+  font-size: 13px;
+}
+.xcc-svg-label.soft {
+  fill: var(--mute);
+}
+
+/* ---------- the facts (both views) ---------- */
+.xcc-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--ink);
+  border-top: 5px solid var(--accent);
+  border-radius: 12px;
+  background: var(--glass);
+  font: 500 15px/1.4 var(--serif);
+  color: var(--ink);
+}
+.xcc-facts:empty {
+  display: none;
+}
+.xcc-soft {
+  color: var(--mute);
+}
+.xcc-hint {
+  font: 600 14px/1.4 var(--ui);
+}
+.xcc-warn {
+  font: 600 15px/1.4 var(--ui);
+  color: color-mix(in srgb, var(--red) 60%, var(--ink));
+}
+.xcc-list {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  align-items: baseline;
+}
+.xcc-list .xcc-sub {
+  display: contents;
+}
+.xcc-list dt {
+  font: 700 12px var(--ui);
+  color: var(--mute);
+}
+.xcc-list dd {
+  margin: 0;
+  min-width: 0;
+}
+.xcc-receipts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.xcc-receipts li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  align-items: baseline;
+}
+.xcc-receipts li.picked {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.xcc-receipts li.failed {
+  color: color-mix(in srgb, var(--red) 70%, var(--ink));
+}
+.xcc-block {
+  font: 700 13px var(--ui);
+}
+.xcc-note {
+  flex-basis: 100%;
+  font-size: 14px;
+  color: var(--mute);
+}
+
+/* ---------- 3D: the facts in the book scene's panel ---------- */
+.xcc-panel .xcc-facts.compact {
+  max-height: min(30vh, 250px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (min-width: 1100px) {
+  .xcc-panel .xcc-facts.compact {
+    max-height: min(27vh, 236px);
+  }
+}
+
+@media (max-width: 600px) {
+  .xcc-facts {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+}
+
+/* Reduced motion: end states only (the global CSS already cuts transitions). */
+.xcc.still * {
+  animation: none !important;
+  transition: none !important;
+}

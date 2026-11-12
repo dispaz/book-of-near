@@ -62,6 +62,7 @@ import {
   type PromiseResult,
 } from "./demo/contracts";
 import { mpcSignerContract } from "./demo/mpcSigner";
+import { buyerContract, DEMO_BUYER, DEMO_SHOP, shopContract } from "./demo/shop";
 import { SIGNER_CONTRACT } from "./chainSigMath";
 import {
   attachedGas,
@@ -230,6 +231,8 @@ export class DemoChain implements Chain {
     this.contracts.set(COUNTER_WASM_SHA256, counterContract);
     this.install(demoContractCode("registrar"), registrarContract);
     this.install(demoContractCode("mpc-signer"), mpcSignerContract);
+    this.install(demoContractCode("shop"), shopContract);
+    this.install(demoContractCode("buyer"), buyerContract);
     for (const c of options.contracts ?? []) this.install(c.code, c.contract);
 
     const publicKey = options.practicePublicKey ?? DEMO_PRACTICE_PUBLIC_KEY;
@@ -240,6 +243,9 @@ export class DemoChain implements Chain {
     this.genesisAccount(DEMO_RETURN_ACCOUNT, parseNear("100"));
     // The chain-signature signer (lesson 4.1), a demo stand-in for v1.signer-prod.testnet.
     this.genesisAccount(SIGNER_CONTRACT, parseNear("100"), undefined, demoContractCode("mpc-signer"));
+    // Lesson 2.2's cross-contract call: a buyer contract and a shop, on different demo shards.
+    this.genesisAccount(DEMO_BUYER, parseNear("10"), undefined, demoContractCode("buyer"));
+    this.genesisAccount(DEMO_SHOP, parseNear("10"), undefined, demoContractCode("shop"));
     for (const a of options.accounts ?? []) this.genesisAccount(a.accountId, a.balance, undefined, a.code);
     this.makeBlock(GENESIS_HEIGHT);
   }
