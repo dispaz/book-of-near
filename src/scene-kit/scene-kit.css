@@ -107,6 +107,13 @@
   box-shadow: 3px 3px 0 var(--ink);
   pointer-events: none;
 }
+/* Empty until a pick, but kept in the layout so screen readers hear the text when it arrives. */
+.sk-pick-note:empty {
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: none;
+}
 .sk-pick-note.hint {
   border-style: dashed;
 }

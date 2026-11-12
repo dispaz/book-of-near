@@ -35,23 +35,27 @@ export interface ReactionPose {
   shake: number;
 }
 
-export const REST_POSE: ReactionPose = { lift: 0, sx: 1, sy: 1, sz: 1, shake: 0 };
+export const REST_POSE: Readonly<ReactionPose> = Object.freeze({ lift: 0, sx: 1, sy: 1, sz: 1, shake: 0 });
 
-/** The pose for this frame. Under reduced motion the object never moves (the outline still shows). */
-export function reactionPose({ hover, press, nope, reducedMotion }: ReactionInput): ReactionPose {
-  if (reducedMotion) return REST_POSE;
+/**
+ * The pose for this frame, written into `out` (pass a reused object from a frame loop: no allocation
+ * per frame). Under reduced motion the object never moves (the outline still shows).
+ */
+export function reactionPose(
+  { hover, press, nope, reducedMotion }: ReactionInput,
+  out: ReactionPose = { ...REST_POSE },
+): ReactionPose {
+  if (reducedMotion) return Object.assign(out, REST_POSE);
   const squash = 0.14 * press;
-  const shake =
+  out.lift = HOVER_LIFT * hover * (1 - press);
+  out.sx = 1 + squash * 0.5;
+  out.sy = 1 - squash;
+  out.sz = 1 + squash * 0.5;
+  out.shake =
     nope >= 0 && nope < NOPE_SECONDS
       ? 0.12 * Math.sin((nope / NOPE_SECONDS) * Math.PI * 6) * (1 - nope / NOPE_SECONDS)
       : 0;
-  return {
-    lift: HOVER_LIFT * hover * (1 - press),
-    sx: 1 + squash * 0.5,
-    sy: 1 - squash,
-    sz: 1 + squash * 0.5,
-    shake,
-  };
+  return out;
 }
 
 /** Moves `value` toward `target` by `dt / seconds` of the way from 0 to 1, landing on it exactly. */
@@ -60,11 +64,18 @@ export function approach(value: number, target: number, dt: number, seconds: num
   return value < target ? Math.min(target, value + step) : Math.max(target, value - step);
 }
 
-/** The default pick animation: a hop with a twist. `playing` is false once it has landed. */
-export function hopPose(t: number): { lift: number; turn: number; playing: boolean } {
-  if (t >= HOP_SECONDS) return { lift: 0, turn: 0, playing: false };
+export type HopPose = { lift: number; turn: number; playing: boolean };
+
+/**
+ * The default pick animation: a hop with a twist, written into `out`. `playing` is false once it has
+ * landed.
+ */
+export function hopPose(t: number, out: HopPose = { lift: 0, turn: 0, playing: false }): HopPose {
   const u = t / HOP_SECONDS;
-  return { lift: 0.45 * Math.sin(u * Math.PI), turn: 0.35 * Math.sin(u * 2 * Math.PI), playing: true };
+  out.playing = t < HOP_SECONDS;
+  out.lift = out.playing ? 0.45 * Math.sin(u * Math.PI) : 0;
+  out.turn = out.playing ? 0.35 * Math.sin(u * 2 * Math.PI) : 0;
+  return out;
 }
 
 export type PickNote = { kind: "hint" | "detail"; text: string };

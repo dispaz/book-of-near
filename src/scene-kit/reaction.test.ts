@@ -40,6 +40,15 @@ describe("reactionPose", () => {
     const p = reactionPose({ hover: 1, press: 1, nope: 0.1, reducedMotion: true });
     expect(p).toEqual(REST_POSE);
   });
+
+  it("writes into the pose it is given (no allocation per frame) and never into REST_POSE", () => {
+    const out = { ...REST_POSE };
+    expect(reactionPose({ ...rest, hover: 1 }, out)).toBe(out);
+    expect(out.lift).toBeGreaterThan(0);
+    expect(reactionPose({ ...rest, reducedMotion: true }, out)).toBe(out);
+    expect(out).toEqual(REST_POSE);
+    expect(REST_POSE).toEqual({ lift: 0, sx: 1, sy: 1, sz: 1, shake: 0 });
+  });
 });
 
 describe("approach", () => {
@@ -55,6 +64,12 @@ describe("hopPose (the default pick animation)", () => {
     const h = hopPose(HOP_SECONDS / 2);
     expect(h.playing).toBe(true);
     expect(h.lift).toBeGreaterThan(0.1);
+  });
+
+  it("writes into the hop it is given", () => {
+    const out = { lift: 0, turn: 0, playing: false };
+    expect(hopPose(HOP_SECONDS / 2, out)).toBe(out);
+    expect(out.playing).toBe(true);
   });
 
   it("settles at the end", () => {

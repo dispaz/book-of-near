@@ -150,14 +150,20 @@ export function Overlay({ store }: { store: OverlayStore }) {
                 data-pick={item.playing ? "playing" : "idle"}
                 data-hint={item.note?.kind === "hint" ? item.note.text : undefined}
                 data-detail={item.note?.kind === "detail" ? item.note.text : undefined}
+                aria-describedby={`${id}-note`}
               >
                 <span>{item.label}</span>
               </button>
-              {item.note ? (
-                <p className={`sk-pick-note ${item.note.kind}`} role="status">
-                  {item.note.text}
-                </p>
-              ) : null}
+              {/* Always mounted and empty until a pick: a live region that appears already filled may
+                  not be read out, so only its text changes. */}
+              <p
+                id={`${id}-note`}
+                className={`sk-pick-note${item.note ? ` ${item.note.kind}` : ""}`}
+                role="status"
+                aria-live="polite"
+              >
+                {item.note?.text ?? ""}
+              </p>
             </>
           )}
         </div>

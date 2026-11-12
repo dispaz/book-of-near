@@ -16,8 +16,12 @@ import {
   pickNote,
   PRESS_SECONDS,
   reactionPose,
+  REST_POSE,
+  type HopPose,
   type PickNote,
+  type ReactionPose,
 } from "./reaction";
+import { trackPress } from "./pressTracker";
 
 const noRaycast = () => undefined;
 
@@ -73,7 +77,6 @@ export function Pickable({
 }: Omit<PickProps, "pickLabel"> & { label: string; anchor?: Vec3; children: ReactNode }) {
   const { reducedMotion, accent } = useStage();
   const ref = useRef<Object3D>(null);
-  const outer = useRef<Group>(null);
   const inner = useRef<Group>(null);
   const ring = useRef<Group>(null);
   const [pointerOver, setPointerOver] = useState(false);
@@ -82,8 +85,16 @@ export function Pickable({
   const [playing, setPlaying] = useState(false);
   const [note, setNote] = useState<PickNote | null>(null);
   const hover = pointerOver || focused;
-  /** Progress of each reaction, advanced in the frame loop. */
-  const sim = useRef({ hover: 0, press: 0, nope: -1, pick: -1 });
+  /** Progress of each reaction, advanced in the frame loop, and the poses it writes into. */
+  const sim = useRef({
+    hover: 0,
+    press: 0,
+    nope: -1,
+    pick: -1,
+    reducedMotion: false,
+    pose: { ...REST_POSE } as ReactionPose,
+    hop: { lift: 0, turn: 0, playing: false } as HopPose,
+  });
   /** The furthest the pointer went from where this press began (px): the camera rig counts the same. */
   const travel = useRef(0);
 
@@ -121,11 +132,18 @@ export function Pickable({
     };
   }, [pointerOver, disabledHint]);
 
-  // The accent ring under the object, sized from the object's bounds when the first hover begins.
+  // The accent ring under the object, measured again at each hover start: objects grow and change
+  // between steps (a ledger gains lines, a gauge fills).
   const [ringAt, setRingAt] = useState<RingAt | null>(null);
   useLayoutEffect(() => {
-    if (hover && !ringAt && inner.current && outer.current) setRingAt(ringFor(inner.current, outer.current));
-  }, [hover, ringAt]);
+    if (!hover || !inner.current) return;
+    const next = ringFor(inner.current);
+    setRingAt((prev) => (prev && sameRing(prev, next) ? prev : next));
+  }, [hover]);
+
+  // A press in progress follows the pointer on the window; drop those listeners if we unmount mid-press.
+  const stopPress = useRef<(() => void) | null>(null);
+  useEffect(() => () => stopPress.current?.(), []);
 
   useAnimatedFrame((_, dt) => {
     const s = sim.current;
@@ -133,23 +151,20 @@ export function Pickable({
     if (!g) return false;
     const hoverTo = hover ? 1 : 0;
     const pressTo = pressing && !disabledHint ? 1 : 0;
+    s.reducedMotion = reducedMotion;
     s.hover = reducedMotion ? hoverTo : approach(s.hover, hoverTo, dt, HOVER_SECONDS);
     s.press = reducedMotion ? pressTo : approach(s.press, pressTo, dt, PRESS_SECONDS);
     if (s.nope >= 0) s.nope = s.nope + dt >= NOPE_SECONDS ? -1 : s.nope + dt;
-    const p = reactionPose({ hover: s.hover, press: s.press, nope: s.nope, reducedMotion });
-    const rest = () => {
-      g.position.set(p.shake, p.lift, 0);
-      g.rotation.set(0, 0, 0);
-      g.scale.set(p.sx, p.sy, p.sz);
-    };
-    rest();
+    // Reused objects: nothing is allocated per frame.
+    const p = reactionPose(s, s.pose);
+    restPose(g, p);
     let moving = s.hover !== hoverTo || s.press !== pressTo || s.nope >= 0;
     if (s.pick >= 0) {
       s.pick += dt;
       let still: boolean;
       if (pickMotion) still = pickMotion(g, s.pick);
       else {
-        const h = hopPose(s.pick);
+        const h = hopPose(s.pick, s.hop);
         g.position.y += h.lift;
         g.rotation.y += h.turn;
         still = h.playing;
@@ -157,7 +172,7 @@ export function Pickable({
       if (still) moving = true;
       else {
         s.pick = -1;
-        rest();
+        restPose(g, p);
         setPlaying(false);
       }
     }
@@ -171,28 +186,22 @@ export function Pickable({
 
   return (
     <group
-      ref={outer}
       onPointerDown={(e: ThreeEvent<PointerEvent>) => {
         // Follow the whole press, not just where it ends: out 7 px and back is a drag (the camera rig
         // takes it as a camera move), never also a pick.
-        const { clientX: x0, clientY: y0, pointerId: id } = e.nativeEvent;
         travel.current = 0;
         setPressing(true);
-        const move = (ev: PointerEvent) => {
-          if (ev.pointerId !== id) return;
-          travel.current = Math.max(travel.current, Math.hypot(ev.clientX - x0, ev.clientY - y0));
-          if (!isClick(travel.current)) setPressing(false);
-        };
-        const up = (ev: PointerEvent) => {
-          if (ev.pointerId !== id) return;
-          setPressing(false);
-          window.removeEventListener("pointermove", move, true);
-          window.removeEventListener("pointerup", up, true);
-          window.removeEventListener("pointercancel", up, true);
-        };
-        window.addEventListener("pointermove", move, true);
-        window.addEventListener("pointerup", up, true);
-        window.addEventListener("pointercancel", up, true);
+        stopPress.current?.();
+        stopPress.current = trackPress(window, e.nativeEvent, {
+          move: (px) => {
+            travel.current = px;
+            if (!isClick(px)) setPressing(false);
+          },
+          end: () => {
+            stopPress.current = null;
+            setPressing(false);
+          },
+        });
       }}
       onClick={(e: ThreeEvent<MouseEvent>) => {
         if (!isClick(Math.max(e.delta, travel.current))) return;
@@ -223,15 +232,30 @@ export function Pickable({
   );
 }
 
+/** Writes the hover / press / shake pose onto the object group. */
+function restPose(g: Object3D, p: ReactionPose) {
+  g.position.set(p.shake, p.lift, 0);
+  g.rotation.set(0, 0, 0);
+  g.scale.set(p.sx, p.sy, p.sz);
+}
+
 type RingAt = { r: number; x: number; y: number; z: number };
+const sameRing = (a: RingAt, b: RingAt) =>
+  Math.abs(a.r - b.r) < 0.01 &&
+  Math.abs(a.x - b.x) < 0.01 &&
+  Math.abs(a.y - b.y) < 0.01 &&
+  Math.abs(a.z - b.z) < 0.01;
 const bounds = new Box3();
 const inverse = new Matrix4();
 
-/** A ring around the object's footprint, local to `outer` (a unit ring if the bounds make no sense). */
-function ringFor(object: Object3D, outer: Object3D): RingAt {
-  outer.updateWorldMatrix(true, true);
+/**
+ * A ring around the object's footprint, in the object group's own space (its rest pose, so a lift, squash
+ * or hop in progress does not skew it; a unit ring if the bounds make no sense).
+ */
+function ringFor(object: Object3D): RingAt {
+  object.updateWorldMatrix(true, true);
   bounds.setFromObject(object);
-  bounds.applyMatrix4(inverse.copy(outer.matrixWorld).invert());
+  bounds.applyMatrix4(inverse.copy(object.matrixWorld).invert());
   const r = Math.max(bounds.max.x - bounds.min.x, bounds.max.z - bounds.min.z) / 2 + 0.12;
   if (bounds.isEmpty() || !Number.isFinite(r)) return { r: 1, x: 0, y: 0.03, z: 0 };
   return {
