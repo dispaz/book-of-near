@@ -7,6 +7,7 @@ import {
   availableOf,
   bytesText,
   contractIdFor,
+  evidenceOf,
   gaugeOf,
   nearText,
   newParentName,
@@ -71,5 +72,28 @@ describe("the Wasm file", () => {
     expect(f.size).toBeLessThan(4096);
     expect(f.isWasm).toBe(true);
     expect(f.header).toBe("00 61 73 6d 01 00 00 00");
+  });
+});
+
+describe("evidenceOf: what the completion record keeps", () => {
+  const id = "counter.bon-abc.testnet";
+  it("is nothing until the contract is deployed", () => {
+    expect(evidenceOf({ deployed: false, contractId: id, deployTx: null, callbackTx: null })).toBeNull();
+    expect(evidenceOf({ deployed: true, contractId: null, deployTx: "D", callbackTx: null })).toBeNull();
+  });
+  it("carries the deploy and callback hashes", () => {
+    expect(evidenceOf({ deployed: true, contractId: id, deployTx: "D", callbackTx: "C" })).toEqual({
+      contractId: id,
+      txHash: "D",
+      callbackTxHash: "C",
+    });
+  });
+  // Found on testnet: a named practice account keeps its counter, so a second visit finds it deployed
+  // with no deploy hash in this visit. The record must still keep the contract and the new callback.
+  it("still reports a contract found from an earlier visit", () => {
+    expect(evidenceOf({ deployed: true, contractId: id, deployTx: null, callbackTx: "C" })).toEqual({
+      contractId: id,
+      callbackTxHash: "C",
+    });
   });
 });

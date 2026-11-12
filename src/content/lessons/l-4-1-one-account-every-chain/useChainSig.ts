@@ -26,6 +26,7 @@ import {
   finaleRunner,
   isWaiting,
   sharesLit,
+  expectedSignMs,
   shortHex,
   shortName,
   signAnim,
@@ -251,7 +252,8 @@ export function useChainSig({
   };
 
   const elapsed = isWaiting(phase) ? Math.max(0, now - waitStart) : 0;
-  const lit = reducedMotion && phase === "waiting" ? 0 : sharesLit(phase, elapsed);
+  const expectedMs = expectedSignMs(network);
+  const lit = reducedMotion && phase === "waiting" ? 0 : sharesLit(phase, elapsed, expectedMs);
   const anim = signAnim(phase, finale);
   const state = [
     `path:${path}`,
@@ -277,6 +279,7 @@ export function useChainSig({
     prepare,
     phase,
     elapsed,
+    expectedMs,
     lit,
     anim,
     result,

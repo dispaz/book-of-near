@@ -146,7 +146,7 @@ export default function Scene(props: SceneProps) {
             "Zero-bridge native assets: The signed transaction executes directly on Ethereum; no wrapped token honeypots.",
           ]}
           weaknesses={[
-            "MPC signing latency: Threshold consensus requires 4 to 6 seconds to coordinate node shares, slower than local private key signing.",
+            "MPC signing latency: The signing nodes need several seconds to agree on a signature (7 to 14 seconds on testnet in our runs, from sending the request to a final answer), slower than signing with a local private key.",
             "Foreign gas bootstrapping: A newly derived address requires ETH (or a gas relayer) before its signed transactions can broadcast.",
             "Validator threshold trust: Security relies on the cryptographic assumption that a threshold majority of MPC validators remain honest.",
             "Compared with: Cross-chain Bridges (vulnerable to smart contract hacks) and Account Abstraction (ERC-4337) (EVM-only; needs a contract wallet deployed on each chain).",
