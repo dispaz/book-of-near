@@ -89,6 +89,37 @@
   padding: 3px 9px;
   border-radius: 999px;
 }
+/* A pick's note (rule 10a): the "not yet" hint or the detail, a slip just above the object. */
+.sk-pick-note {
+  position: absolute;
+  left: 0;
+  bottom: 34px;
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: 240px;
+  width: max-content;
+  padding: 5px 11px;
+  font: 600 14px/1.25 var(--ui);
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 3px 3px 0 var(--ink);
+  pointer-events: none;
+}
+/* Empty until a pick, but kept in the layout so screen readers hear the text when it arrives. */
+.sk-pick-note:empty {
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: none;
+}
+.sk-pick-note.hint {
+  border-style: dashed;
+}
+.sk-pick-note.detail {
+  background: color-mix(in srgb, var(--accent, var(--blue)) 18%, var(--paper));
+}
 
 .sk-status {
   position: absolute;

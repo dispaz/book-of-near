@@ -1,7 +1,27 @@
 import type { SceneProps } from "../../../app/types";
 import { SceneAction } from "../../../ui/SceneAction";
-import { AccountBlock, COLORS, Coin, InkStage, Label, Traveller, type CameraView } from "../../../scene-kit";
+import {
+  AccountBlock,
+  COLORS,
+  Coin,
+  easeInOut,
+  InkStage,
+  Label,
+  Pickable,
+  Traveller,
+  type CameraView,
+  type PickMotion,
+} from "../../../scene-kit";
 import { NAMES, useDemo, type Who } from "./demo";
+
+/** The coin's own pick animation: a flip in the air, like a coin toss. */
+const FLIP_SECONDS = 0.7;
+const flip: PickMotion = (coin, t) => {
+  const u = Math.min(1, t / FLIP_SECONDS);
+  coin.position.y += 0.9 * Math.sin(u * Math.PI);
+  coin.rotation.x += 2 * Math.PI * easeInOut(u);
+  return u < 1;
+};
 
 const X: Record<Who, number> = { ana: -3, ben: 3 };
 const BLOCK = 1.7;
@@ -40,7 +60,10 @@ export default function Scene({ step, setGate, flat, reducedMotion }: SceneProps
           />
         ))}
         <Traveller to={[X[demo.holder], BLOCK + 0.1, 0]} arc={2.6} onArrive={demo.onArrive}>
-          <Coin />
+          {/* Rule 10a: "not yet" until Ben holds it, then a flip of its own and a detail. */}
+          <Pickable label="The coin" anchor={[0, 0.5, 0]} pickMotion={flip} {...demo.coinPick}>
+            <Coin />
+          </Pickable>
         </Traveller>
         {step === 1 ? (
           <Label position={[0, 0.3, 2.2]} variant="hint">

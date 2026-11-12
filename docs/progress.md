@@ -479,3 +479,12 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Script/topic corrections, verified 12 Nov 2026: DRPC has no testnet endpoint, so the third window is FastNEAR's second address; block #1,000,000 does not exist on testnet (genesis 42,376,888), so the archive step asks for #100,000,000 (2022-09-12); latencies are the recorded ones, not the script's ~140/220/290 ms.
 - Kit: the RPC node object, `RpcWindow` / `SvgRpcWindow` (counter booth: lit, shut, down), row in `docs/scene-objects.md`. Picks run the step's action (race, toggle FastNEAR, failover, history) or show a detail; "not yet" hints. Hover lift / press squash / shake not done (the kit's `Pickable` has no hover yet).
 - Gate: lint, typecheck, unit, the lesson's e2e (16) and the full e2e. Screenshots checked at 1440×900 and 390×844, 2D and 3D, reduced motion and `?webgl=0`.
+
+## 2026-11-13 · Kit: clickable 3D objects react (Refs #54)
+
+- `Pickable` (now `src/scene-kit/Pickable.tsx`; pure maths in `reaction.ts`, unit tested) gives every pickable object rule 10a's reactions with no lesson code: hover or keyboard focus on its pick button lifts it and rings it in the stage accent (read from the page's `--accent`), a press squashes it, a pick plays a short hop with a twist. All motion runs through `useAnimatedFrame` and settles; under reduced motion only the ring shows.
+- New optional `PickProps` (existing lessons work unchanged): `disabledHint` ("not yet": a shake and a one-line slip, `onPick` not called), `detail` (a slip after a pick, for exploring once the step is done), `pickMotion` (`(object, t) => stillPlaying`, the object's own pick animation in place of the hop).
+- Test hooks on the pick button: `data-hover`, `data-pick="playing|idle"`, `data-hint`, `data-detail`. Helpers in `e2e/lessons/helpers.ts`: `expectFocusMarksHover`, `expectPickPlaysAndSettles`, `expectNotYetHint`, `expectPickDetail`, plus `countDrawnFrames` / `drawnFrames` / `expectSettled` moved there from `render-on-demand.spec.ts`.
+- Proven on the scene kit demo (`e2e/scene-kit.spec.ts`, "3d reactions"): the coin says "not yet" until Ben holds it, then flips (its own `pickMotion`) and shows a detail; the blocks hop.
+- `npm run new-lesson -- … --book` scaffolds a `REACTIONS` table in `Scene3D.tsx` and a reactions e2e test (checked by scaffolding a throwaway lesson and running its spec); `docs/lesson-template.md` has the script's "Reactions" table shape. Docs: `docs/book-scene.md` rule 10a, `docs/scene-kit.md`.
+- Per-lesson retrofits stay in #56–#64.

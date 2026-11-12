@@ -322,6 +322,19 @@ const DESCRIPTION = [
   "Placeholder: what the 3D scene shows at the honest take.",
 ];
 
+/**
+ * How each clickable object reacts (docs/book-scene.md rule 10a): copy the "Reactions" table of the
+ * lesson script (object → pick animation → not-yet hint → detail). TODO(author): one entry per object;
+ * give an object its own \`pickMotion\` (the kit's hop plays when it has none).
+ */
+const REACTIONS = {
+  block: {
+    label: "The block",
+    notYet: "Not yet: try it first.",
+    detail: "Placeholder: a short fact about the block, once the step is done.",
+  },
+};
+
 /** What the camera keeps in view at a step: the figure, with its labels. */
 function focusFor(_step: number): Focus {
   const box: Box = [FIGURE.minX, FIGURE.maxX, FIGURE.minZ, FIGURE.maxZ, 2.6];
@@ -384,7 +397,14 @@ export default function Scene3D({
         status={done ? "Done" : undefined}
       >
         {/* Phones: the quiz and the honest take fill the screen, as in 2D. */}
-        {summary && !wide ? null : <AccountBlock name={done ? "Done" : "Not yet"} coins={done ? 3 : 0} />}
+        {summary && !wide ? null : (
+          <AccountBlock
+            name={done ? "Done" : "Not yet"}
+            coins={done ? 3 : 0}
+            pickLabel={REACTIONS.block.label}
+            {...(done ? { detail: REACTIONS.block.detail } : { disabledHint: REACTIONS.block.notYet })}
+          />
+        )}
       </BookScene>
       {/* The scene's own forms and results, over the right page (scene-kit.css places it). */}
       <div className="book-scene-panel" ref={panel} />
@@ -483,6 +503,26 @@ function bookSpecTests() {
       await expect(page.locator(".book-page")).toHaveCSS("display", "contents");
       await ctx.close();
     });
+
+    // Rule 10a: every clickable object reacts. TODO(author): one block per row of the script's
+    // "Reactions" table (the names and words come from REACTIONS in Scene3D.tsx).
+    test("3d objects react: focus marks hover, an early pick says not yet, a pick after the step shows its detail", async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.addInitScript(countDrawnFrames);
+      await page.goto(\`/lesson/\${ID}?view=3d&step=3\`);
+      const stage = page.locator(".book-scene .sk-stage");
+      await expect(stage).toHaveAttribute("data-camera", "still", { timeout: LOAD_3D });
+      await expectFocusMarksHover(page, "The block");
+      await expectNotYetHint(page, "The block", "Not yet: try it first.");
+      await page.getByRole("button", { name: "Try it" }).click();
+      await expect(page.locator("[data-scene-state]").first()).toHaveAttribute("data-scene-state", "done", {
+        timeout: 10_000,
+      });
+      await expectPickDetail(page, "The block", /Placeholder/);
+      await expectPickPlaysAndSettles(page, "The block");
+    });
   });
 `;
 }
@@ -491,8 +531,11 @@ export function renderSpec({ id, stage, title, chain, book }) {
   const evidence = chain
     ? `, evidence: { txHash: expect.stringMatching(/^[1-9A-HJ-NP-Za-km-z]{43,44}$/) }`
     : "";
+  const helpers = book
+    ? "answerCheck, completionOf, countDrawnFrames, expectFocusMarksHover, expectNotYetHint, expectPickDetail, expectPickPlaysAndSettles, LOAD_3D, nextStep, seedRoute, slow3d"
+    : "answerCheck, completionOf, nextStep, seedRoute";
   return `import { expect, test } from "@playwright/test";
-import { answerCheck, completionOf, ${book ? "LOAD_3D, " : ""}nextStep, seedRoute${book ? ", slow3d" : ""} } from "./helpers";
+import { ${helpers} } from "./helpers";
 
 // Scaffolded by \`npm run new-lesson\`. Walks the lesson in demo mode (no wallet, no network).
 const ID = ${q(id)};
@@ -601,7 +644,7 @@ async function main() {
     for (const f of res.files) console.log(`  ${f.slice(root.length + 1)}`);
     console.log(`
 Next:
-  1. Write or read the script in ${scriptPath({ ...opts, order: res.order })} (shape: docs/lesson-template.md).
+  1. Write or read the script in ${scriptPath({ ...opts, order: res.order })} (shape: docs/lesson-template.md${opts.book ? ', with its "Reactions" table' : ""}).
   2. Turn the test.fixme in e2e/lessons/${opts.id}.spec.ts into a real, failing assertion, then build the scene.
   3. Open /lesson/${opts.id} in demo mode (npm run dev) and run npx playwright test e2e/lessons/${opts.id}.spec.ts.`);
   } catch (e) {

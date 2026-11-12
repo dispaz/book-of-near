@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { IntroContext } from "../app/intro";
 import { CameraControls } from "./CameraControls";
@@ -10,7 +10,7 @@ import { Overlay, OverlayContext, OverlayStore, OverlaySync } from "./overlay";
 import type { DeskBox } from "./book";
 import type { CameraView } from "./motion";
 import { ROOM, type CameraBox } from "./roomLayout";
-import { PAGE } from "./theme";
+import { COLORS, PAGE } from "./theme";
 import "./scene-kit.css";
 
 export interface InkStageProps {
@@ -90,8 +90,14 @@ export function InkStage({
     return () => clearTimeout(id);
   }, [pressed]);
   const looksFlat = flat || pressed;
-  const settings = useMemo(() => ({ reducedMotion, flat }), [reducedMotion, flat]);
   const wrap = useRef<HTMLDivElement>(null);
+  // The stage accent comes from the lesson page's `--accent` (hover rings, rule 10a).
+  const [accent, setAccent] = useState<string>(COLORS.blue);
+  useLayoutEffect(() => {
+    const v = wrap.current ? getComputedStyle(wrap.current).getPropertyValue("--accent").trim() : "";
+    if (/^#[0-9a-f]{3,8}$/i.test(v)) setAccent(v);
+  }, []);
+  const settings = useMemo(() => ({ reducedMotion, flat, accent }), [reducedMotion, flat, accent]);
   const pop = usePopDriver({ page, grow: growing, reducedMotion, wrap });
   const [userView, setUserView] = useState(false);
   const [resets, setResets] = useState(0);

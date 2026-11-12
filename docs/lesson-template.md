@@ -102,6 +102,25 @@ Every lesson is set in an open book lying on a wooden desk with a felt mat:
 - Opening a later step by URL skips the cover. `localStorage["bon:cover"] = "off"` turns the cover off
   (the e2e config does this; `e2e/book.spec.ts` tests the cover).
 
+### Reactions table (every book lesson's script)
+
+Each clickable 3D object reacts (`docs/book-scene.md` rule 10a). The script lists them in a "Reactions"
+section; the scene copies the words (`REACTIONS` in a `--book` scaffold's `Scene3D.tsx`) and the e2e spec
+checks each row with the reaction helpers in `e2e/lessons/helpers.ts`.
+
+```md
+## Reactions (3D objects)
+
+| Object | Step(s) | Hover / focus | Pick (its own animation, and what it shows) | Not yet (hint) | Detail after the step |
+| --- | --- | --- | --- | --- | --- |
+| Mailbox (`Mailbox`: Ben) | 3, 4 | Lift + accent outline | The flap opens and the balance slip slides out. | Send the coins first | Balance: 8 NEAR. |
+
+Under reduced motion, objects do not move; the result appears at once with the accent outline.
+```
+
+In code: `disabledHint` on the steps where the object can't be used yet, `detail` once its step is done,
+and `pickMotion` for its own animation (the kit's hop when left out).
+
 ## Two views: 2D and 3D
 
 Almost every lesson offers both views (`views: ["2d", "3d"]` in the manifest). The lesson page shows a 2D / 3D switch, remembers the choice and passes `view` to the scene. Rules:

@@ -1,5 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LOAD_3D, slow3d } from "./lessons/helpers";
+import {
+  countDrawnFrames,
+  expectFocusMarksHover,
+  expectNotYetHint,
+  expectPickDetail,
+  expectPickPlaysAndSettles,
+  LOAD_3D,
+  pickButton,
+  slow3d,
+} from "./lessons/helpers";
 
 const DEMO = "/lesson/scene-kit-demo";
 
@@ -119,6 +128,63 @@ test.describe("scene kit demo (3D)", () => {
     await expect(state(page)).toHaveAttribute("data-scene-state", /view=flat/);
     await flat.click();
     await expect(state(page)).toHaveAttribute("data-scene-state", /view=3d/);
+  });
+
+  // Rule 10a (issue #54): clickable objects react. The demo proves the kit; lessons opt in (#56–#64).
+  test("3d reactions: keyboard focus on a pick button marks its object hovered", async ({ page }) => {
+    await page.goto(DEMO);
+    await expect(page.locator(".sk-stage canvas")).toBeVisible({ timeout: LOAD_3D });
+    await expectFocusMarksHover(page, "Ben's account");
+  });
+
+  test("3d reactions: a pick plays the object's animation, draws frames, then settles", async ({ page }) => {
+    await page.addInitScript(countDrawnFrames);
+    await page.goto(DEMO);
+    const stage = page.locator(".sk-stage");
+    await expect(stage).toHaveAttribute("data-camera", "still", { timeout: LOAD_3D });
+    await expectPickPlaysAndSettles(page, "Ben's account");
+    await expect(state(page)).toHaveAttribute("data-scene-state", /selected=ben/);
+  });
+
+  test("3d reactions: an early pick says 'not yet' and changes nothing", async ({ page }) => {
+    await page.goto(DEMO);
+    await expect(page.locator(".sk-stage canvas")).toBeVisible({ timeout: LOAD_3D });
+    await expectNotYetHint(page, "The coin", "Not yet: send the coin to Ben first.");
+    await expect(state(page)).toHaveAttribute("data-scene-state", /coin=ana/);
+  });
+
+  test("3d reactions: after the step, a pick flips the coin and shows its detail", async ({ page }) => {
+    await page.addInitScript(countDrawnFrames);
+    await page.goto(`${DEMO}?step=4`);
+    await expect(page.locator(".sk-stage")).toHaveAttribute("data-camera", "still", { timeout: LOAD_3D });
+    await expect(state(page)).toHaveAttribute("data-scene-state", /coin=ben/);
+    await expectPickDetail(page, "The coin", "One coin. Ben's account holds it now.");
+    await expectPickPlaysAndSettles(page, "The coin");
+  });
+
+  test("3d reactions under reduced motion: hover still marks, a pick plays no motion", async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({ reducedMotion: "reduce" });
+    const page = await ctx.newPage();
+    await page.goto(`${DEMO}?step=4`);
+    await expect(page.locator(".sk-stage canvas")).toBeVisible({ timeout: LOAD_3D });
+    await expectFocusMarksHover(page, "Ben's account");
+    const coin = pickButton(page, "The coin");
+    await expect(state(page)).toHaveAttribute("data-scene-state", /coin=ben/);
+    await coin.evaluate((el) => {
+      const w = window as unknown as { __pickSeen: string[] };
+      w.__pickSeen = [];
+      new MutationObserver(() => w.__pickSeen.push(el.getAttribute("data-pick") ?? "")).observe(el, {
+        attributes: true,
+        attributeFilter: ["data-pick"],
+      });
+    });
+    await coin.press("Enter");
+    await expect(coin).toHaveAttribute("data-detail", "One coin. Ben's account holds it now.");
+    const seen = await page.evaluate(() => (window as unknown as { __pickSeen: string[] }).__pickSeen);
+    expect(seen).not.toContain("playing");
+    await ctx.close();
   });
 
   test("with reduced motion the coin jumps straight to Ben", async ({ browser }) => {
