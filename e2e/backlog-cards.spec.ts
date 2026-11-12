@@ -5,7 +5,7 @@ import { seedRoute } from "./lessons/helpers";
 test.beforeEach(({ page }) => seedRoute(page));
 
 test.describe("backlog topic cards", () => {
-  test("every registered stage is in the contents; a stage with only locked cards is tagged", async ({
+  test("every registered stage is in the contents; stage 7 opens with the capstone and keeps its locked card", async ({
     page,
   }) => {
     await page.goto("/");
@@ -18,9 +18,10 @@ test.describe("backlog topic cards", () => {
     }
     await expect(page.getByRole("button", { name: /Shade Agents/ })).toHaveCount(0);
     const stage7 = page.getByRole("region", { name: /Stage 7/ });
-    await expect(stage7).toContainText("Coming later");
+    // The capstone (#26) is ready, so stage 7 is no longer "Coming later".
+    await expect(stage7).not.toContainText("Coming later");
     await expect(stage7.getByRole("button", { name: /Capstone: the honest take/ })).toBeVisible();
-    await expect(stage7.getByRole("link")).toHaveCount(0);
+    await expect(stage7.getByRole("link", { name: /Trace one intent end to end/ })).toHaveCount(1);
   });
 
   test("opening a card shows its summary and comparison note; it closes again", async ({ page }) => {
@@ -53,14 +54,8 @@ test.describe("backlog topic cards", () => {
     await expect(details).toContainText(/optional/i);
   });
 
-  test("a planned lesson with a summary shows its being-written state", async ({ page }) => {
-    await page.goto("/");
-    const stage7 = page.getByRole("region", { name: /Stage 7/ });
-    const card = stage7.getByRole("button", { name: /Trace one intent end to end/ });
-    await card.click();
-    const details = stage7.getByRole("region", { name: "Trace one intent end to end" });
-    await expect(details).toContainText(/being written/);
-  });
+  // A planned lesson's "being written" state is unit tested (src/ui/TopicCard.test.tsx): every planned
+  // lesson left in the contents (3.2, 3.3) is being built, so none stays planned long enough to pin here.
 
   test("a card has its own page with the same text", async ({ page }) => {
     await page.goto("/lesson/topic-2-dynamic-resharding");

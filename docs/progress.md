@@ -444,6 +444,17 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Tests: `call.test.ts` (receipt order, shards, 70 / 30 split, failure, recorded call), `tour.test.ts`, e2e `e2e/lessons/l-2-2-call-across-blocks.spec.ts` (walks in 2D and 3D, receipts and gas, failure, picks, reduced motion, phones, no WebGL, view switch, print + tour); added to `render-on-demand.spec.ts`.
 - Not done: the rule 10a kit reactions (hover lift, press squash, shake) are kit work (#54); picks here give a "not yet" hint and a detail line. The testnet-mode walk was not run against the live network.
 
+## 2026-11-12 · Lesson 7.1: trace one intent end to end (Closes #26)
+
+- `l-7-1-trace-an-intent` is ready: 2D and 3D (book scene) over one state (`useCapstone`). A replay that sends nothing, so demo and testnet mode behave the same.
+- The intent replayed is the learner's own 4.2 swap when progress has one (`realSwapTxHash`; a demo-wallet swap is marked simulated), else a recorded intent built from 4.2's recorded quote (`recorded-demo-intent`, labelled "no trade happened"). A real swap's USDC is said to stay in the NEAR Intents account (intents.near), not on Arbitrum.
+- The trail (`trail.ts`, unit tested) stops at every stage 0 to 4: signed transaction (0.3), named account (1.1), function-call key (1.2), shards and receipts (2.1, recorded shards from 2.1's real testnet trace), Wasm contract and gas (3.1), intent and solver (4.2), Chain Signatures (4.1). Each stop links back to its lesson and uses the learner's own evidence where it exists.
+- Completion record evidence: `capstoneComplete`, `mode`, `txHash`, `intentSource`, `mpcVerified` (true only with the learner's own 4.1 signature), `stagesTraced`, `ownLayers`.
+- Copy changes from the script, for honesty: step 5 says solvers compete but 1Click shows only the winner; check Q3's answer credits the solver and the verifier contract (not MPC) for settlement; the honest take quotes the measured 7 to 14 s for a testnet chain signature and adds "who should care".
+- Picks: mailbox and key authorize at step 2, ribbons replay the hop, the scroll runs, the signing nodes settle at step 5; "not yet" shake + hint before; a detail after.
+- Gate: lint, typecheck, unit tests, the lesson's e2e (12) and the full e2e. Screenshots checked at 1440×900 and 390×844, 2D and 3D, reduced motion and `?webgl=0`.
+- Review fixes: settlement plays solver → done (a 1Click swap kept in intents.near has no MPC signature); the signing nodes are a side note and "where the USDC lands" starts the settlement. "Without user-facing bridges" (the USDC is bridged `omft.near`). Opening past step 5 fills the view but reports no evidence. A repeat verifier pick restarts the gear turn. `7.1.md` matches the code; topic says 30% to the contract's account and 7–14 s signing. No "Next: the final exam" pointer: there is no exam route yet. After #76: `backlog-cards`' being-written test moved to `src/ui/TopicCard.test.tsx` (no lesson stays planned to pin it on); `progress.spec` uses the "Dynamic resharding" card.
+
 ## 2026-11-12 · Lesson 4.3: Old bridge vs the NEAR way (Closes #25)
 
 - New lesson `l-4-3-old-bridge-vs-near` (7 steps from `docs/lessons/stage-4/4.3.md`): hook, the two timelines side by side, the wrapped token (an IOU) vs native USDC, a simulated vault exploit, confidential intents, check, honest take. 2D and 3D (pop-up `BookScene`) draw one state (`useBridgeCompare`).
