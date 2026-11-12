@@ -6,7 +6,8 @@ import { accountIdProblem } from "../../../chain/accountId";
 import { isChainError } from "../../../chain/errors";
 import { actions } from "../../../chain/ops";
 import type { Action, PublicKey, TxOutcome } from "../../../chain/types";
-import { formatNear, parseNear } from "../../../chain/units";
+import { parseNear } from "../../../chain/units";
+import { nearAmount as near, shortId as short } from "../../../ui/format";
 
 /** What the practice account sends the workshop account through the registrar (script, section 6). */
 export const WORKSHOP_DEPOSIT = parseNear("0.1");
@@ -207,13 +208,8 @@ export function balanceProblem(
   return `${who} has too little NEAR left for this. ${fix}`;
 }
 
-/** "0.0194" style: up to 4 decimals. */
-export const near = (x: bigint) => formatNear(x, 4);
-
-/** Short form of a long id or hash: "cf4342…c3c5". */
-export function short(id: string, head = 6, tail = 4): string {
-  return id.length > head + tail + 1 ? `${id.slice(0, head)}…${id.slice(-tail)}` : id;
-}
+// Shared formatters (src/ui/format.ts), under the names this lesson uses.
+export { nearAmount as near, shortId as short } from "../../../ui/format";
 
 /** One action in plain words, for the transaction's field list. */
 export function describeAction(a: Action): string {
