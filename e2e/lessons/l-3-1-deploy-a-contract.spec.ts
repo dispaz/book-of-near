@@ -1,5 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LOAD_3D, answerCheck, completionOf, nextStep, seedRoute, slow3d } from "./helpers";
+import {
+  LOAD_3D,
+  answerCheck,
+  completionOf,
+  nextStep,
+  seedPracticeAccount,
+  seedRoute,
+  slow3d,
+} from "./helpers";
 
 // Walks lesson 3.1 in demo mode (no wallet, no network), in both views.
 const ID = "l-3-1-deploy-a-contract";
@@ -257,4 +265,61 @@ test.describe(`lesson ${ID}: 3D book scene`, () => {
     await expect(page.locator(".book-page")).toHaveCSS("display", "contents");
     await ctx.close();
   });
+});
+
+// Opt-in: needs the real testnet. TESTNET=1 TESTNET_STORE=/path/outside/repo.json npx playwright test --grep @testnet
+// TESTNET_STORE holds a saved throwaway practice key (see src/chain/testnet/testnet.test.ts). A named practice
+// account keeps its counter between runs, so a second run finds it deployed and walks on from there.
+// Use --workers=1: tests that share one practice key must not send at the same time (nonces clash).
+test("@testnet deploys the real counter, fails with a callback and resets", async ({ page }) => {
+  test.skip(!process.env.TESTNET, "set TESTNET=1 to run against the real testnet");
+  test.setTimeout(300_000);
+  const L = { timeout: 90_000 };
+  const live = (re: RegExp) => expect(scene(page)).toHaveAttribute("data-scene-state", re, L);
+  await seedPracticeAccount(page);
+  await page.goto(`/lesson/${ID}?mode=testnet&view=2d`);
+  await expect(page.getByTestId("mode-pill")).toHaveText("Testnet", L);
+  await live(/network:testnet/);
+  await nextStep(page);
+  await nextStep(page); // → deploy
+  if (!/deployed:yes/.test((await scene(page).getAttribute("data-scene-state")) ?? "")) {
+    await page.getByRole("button", { name: "Deploy counter contract", exact: true }).click();
+    await live(/deployed:yes/);
+  }
+  await expect(page.getByTestId("storage-bytes")).toHaveText(/^\d{1,3}(,\d{3})* bytes$/, L);
+  console.log(`[3.1 testnet] at deploy: ${await page.getByTestId("storage-bytes").textContent()}`);
+  await nextStep(page); // → call and read
+  await page.getByRole("button", { name: "Increment", exact: true }).click();
+  await live(/busy:no/);
+  await page.getByRole("button", { name: "Read the count", exact: true }).click();
+  await expect(next(page)).toBeEnabled(L);
+  await nextStep(page); // → the failing callback
+  await page.getByRole("button", { name: "Call fail with a callback", exact: true }).click();
+  await live(/callback:failed/);
+  const receipts = page.getByTestId("callback-receipts").locator("li");
+  await expect(receipts).toHaveCount(3);
+  await expect(receipts.nth(0)).toContainText("call_other");
+  await expect(receipts.nth(1)).toContainText("fail");
+  await expect(receipts.nth(2)).toContainText("on_other_done");
+  await expect(page.getByTestId("last-result")).toHaveText("failed");
+  await nextStep(page); // → clear
+  await page.getByRole("button", { name: "Reset and clear state", exact: true }).click();
+  await live(/cleared:yes/);
+  await expect(page.getByTestId("refund")).toContainText("NEAR");
+  console.log(`[3.1 testnet] refund: ${await page.getByTestId("refund").textContent()}`);
+  await expect(page.getByTestId("count-read")).toHaveText("0");
+  await nextStep(page); // → check
+  await answerCheck(page, ANSWERS);
+  await nextStep(page); // → honest take
+  await page.getByRole("button", { name: "Finish lesson" }).click();
+  await expect(page.getByText("Lesson done")).toBeVisible();
+  const record = await completionOf(page, ID);
+  expect(record).toMatchObject({
+    mode: "testnet",
+    evidence: {
+      contractId: expect.stringMatching(/^counter\.[a-z0-9-]+\.testnet$/),
+      callbackTxHash: expect.stringMatching(/^[1-9A-HJ-NP-Za-km-z]{43,44}$/),
+    },
+  });
+  console.log(`[3.1 testnet] evidence: ${JSON.stringify(record)}`);
 });

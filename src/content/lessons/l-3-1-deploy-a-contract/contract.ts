@@ -77,3 +77,21 @@ export function wasmFacts(bytes: Uint8Array): { size: number; header: string; is
     isWasm: head.slice(0, 4).join("") === "0061736d",
   };
 }
+
+/**
+ * Evidence for the completion record: the contract's name and the hashes this visit has, never keys.
+ * A contract found from an earlier visit has no deploy hash here, but still counts.
+ */
+export function evidenceOf(v: {
+  deployed: boolean;
+  contractId: AccountId | null;
+  deployTx: string | null;
+  callbackTx: string | null;
+}): Record<string, string> | null {
+  if (!v.deployed || !v.contractId) return null;
+  return {
+    contractId: v.contractId,
+    ...(v.deployTx ? { txHash: v.deployTx } : {}),
+    ...(v.callbackTx ? { callbackTxHash: v.callbackTx } : {}),
+  };
+}

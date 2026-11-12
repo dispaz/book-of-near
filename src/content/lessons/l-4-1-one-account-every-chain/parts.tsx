@@ -210,7 +210,7 @@ function SignStatus({ cs }: { cs: ChainSig }) {
     cs.phase === "sending"
       ? "Sending your request to NEAR…"
       : cs.phase === "waiting"
-        ? `Waiting for the signing network… ${secondsLeft(cs.elapsed) > 0 ? `about ${secondsLeft(cs.elapsed)} s left` : "any moment now"}`
+        ? `Waiting for the signing network… ${secondsLeft(cs.elapsed, cs.expectedMs) > 0 ? `about ${secondsLeft(cs.elapsed, cs.expectedMs)} s left` : "any moment now"}`
         : cs.phase === "answered" && cs.result
           ? `Signed. The answer came ${cs.result.waitBlocks} blocks after your request, ${secs(cs.result.ms)} in all.`
           : cs.phase === "failed"

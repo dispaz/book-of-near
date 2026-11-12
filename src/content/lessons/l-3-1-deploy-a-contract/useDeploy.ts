@@ -18,6 +18,7 @@ import {
   CALLBACK_GAS,
   CONTRACT_FUNDING,
   contractIdFor,
+  evidenceOf,
   gaugeOf,
   nearText,
   newParentName,
@@ -168,13 +169,9 @@ export function useDeploy({
   const evidenceRef = useRef(reportEvidence);
   evidenceRef.current = reportEvidence;
   useEffect(() => {
-    if (!deployTx || !contractId) return;
-    evidenceRef.current?.({
-      txHash: deployTx,
-      contractId,
-      ...(callbackTx ? { callbackTxHash: callbackTx } : {}),
-    });
-  }, [deployTx, contractId, callbackTx]);
+    const ev = evidenceOf({ deployed, contractId, deployTx, callbackTx });
+    if (ev) evidenceRef.current?.(ev);
+  }, [deployed, deployTx, contractId, callbackTx]);
 
   async function refresh(id: string) {
     const v = await chain.viewAccount(id);
