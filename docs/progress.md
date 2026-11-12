@@ -371,7 +371,7 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 
 ## 2026-11-12 · Lesson scripts: reactions tables for clickable 3D objects (Refs #54)
 
-- Added "Reactions (3D objects)" section and table to all 14 lesson scripts across stages 0 to 4 (`0.1`, `0.2`, `0.3`, `1.1`, `1.2`, `1.3`, `2.1`, `2.2`, `3.1`, `3.2`, `3.3`, `4.1`, `4.2`, `4.3`) following rule 10a in `docs/book-scene.md` and the 3D Pop-Up Book Standard in `CLAUDE.md`.
+- Added "Reactions (3D objects)" section and table to all lesson scripts across stages 0 to 7 (`0.1`, `0.2`, `0.3`, `1.1`, `1.2`, `1.3`, `2.1`, `2.2`, `3.1`, `3.2`, `3.3`, `4.1`, `4.2`, `4.3`, `5.1`, `5.2`, `6.1`, `6.2`, `7.1`, `7.2`) following rule 10a in `docs/book-scene.md` and the 3D Pop-Up Book Standard in `CLAUDE.md`.
 - For built lessons (0.1, 0.2, 0.3, 1.1, 1.2, 1.3, 2.1, 3.1, 4.1), every `Pickable` target and `pickLabel` in `Scene3D.tsx` / `objects3d.tsx` was mapped directly to a reaction row with object-specific pick animation, plain-English "not yet" hint, and demo-mode detail value after the step.
-- For unbuilt lessons (2.2, 3.2, 3.3, 4.2, 4.3), reactions tables were specified from their scene objects and topic files before implementation.
+- For unbuilt lessons (2.2, 3.2, 3.3, 4.2, 4.3, 5.1, 5.2, 6.1, 6.2, 7.1, 7.2), reactions tables were specified from their scene objects and topic files before implementation.
 - Added reduced motion fallback descriptions under each table (outlines, colour shifts, and instant end states replacing motion). Docs only: no application code changed.
