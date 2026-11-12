@@ -254,15 +254,24 @@ export function swapOffer(state: WalletState): FundsResult {
 
 export type CapCheck = { ok: true } | { ok: false; message: string };
 
-/** Refuses any real swap above the cap: more than REAL_SWAP_CAP NEAR, or a quote worth more than $1. */
-export function capCheck(amount: bigint, amountInUsd: number | null): CapCheck {
+/**
+ * Refuses any real swap above the cap: more than REAL_SWAP_CAP NEAR, or a quote worth more than $1.
+ * Leave `amountInUsd` out before there is a quote; a live quote with no dollar value (`null`) is refused,
+ * because the $1 cap could not be checked.
+ */
+export function capCheck(amount: bigint, amountInUsd?: number | null): CapCheck {
   if (amount <= 0n) return { ok: false, message: "The swap amount must be more than 0." };
   if (amount > REAL_SWAP_CAP)
     return {
       ok: false,
       message: `Refused: ${formatNear(amount, 4)} NEAR is above this lesson's cap of ${formatNear(REAL_SWAP_CAP, 2)} NEAR.`,
     };
-  if (amountInUsd !== null && amountInUsd > REAL_SWAP_CAP_USD)
+  if (amountInUsd === null)
+    return {
+      ok: false,
+      message: `Refused: the quote has no dollar value, so the $${REAL_SWAP_CAP_USD} cap cannot be checked. Nothing was sent.`,
+    };
+  if (amountInUsd !== undefined && amountInUsd > REAL_SWAP_CAP_USD)
     return {
       ok: false,
       message: `Refused: the quote is worth $${amountInUsd.toFixed(2)}, above this lesson's cap of $${REAL_SWAP_CAP_USD}.`,
@@ -276,7 +285,7 @@ export function capCheck(amount: bigint, amountInUsd: number | null): CapCheck {
  */
 export function tinySwapRequest(depositAddress: string, amount = REAL_SWAP_AMOUNT): SigningRequest {
   return {
-    summary: `Swap ${formatNear(amount, 4)} NEAR for USDC on Arbitrum through NEAR Intents. The NEAR goes to the 1Click deposit address ${depositAddress}; the USDC is kept for you in NEAR Intents (${VERIFIER_CONTRACT}).`,
+    summary: `Swap ${formatNear(amount, 4)} NEAR for USDC, kept in your NEAR Intents account (not sent to Arbitrum). The NEAR goes to the 1Click deposit address ${depositAddress}; the USDC stays in ${VERIFIER_CONTRACT} until you withdraw it.`,
     receiverId: "wrap.near",
     actions: [
       { type: "FunctionCall", methodName: "near_deposit", args: {}, gas: 10n * 10n ** 12n, deposit: amount },
@@ -327,7 +336,7 @@ export async function runTinySwap({
   const funds = checkFunds(wallet, { amount: amount + STORAGE_DEPOSIT });
   if (funds.kind !== "enough" || wallet.status !== "connected")
     return { kind: "not-offered", message: funds.message };
-  const before = capCheck(amount, null);
+  const before = capCheck(amount);
   if (!before.ok) return { kind: "refused", message: before.message };
   let q: IntentQuote;
   try {

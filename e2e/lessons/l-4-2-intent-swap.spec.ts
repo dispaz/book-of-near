@@ -146,10 +146,15 @@ test.describe(`lesson ${ID}`, () => {
     // The demo wallet has 25 simulated NEAR: offered.
     await dock(page).getByRole("button", { name: "Connect the demo wallet" }).click();
     await expect(offer).toHaveAttribute("data-offer", "offered");
+    // Before the button: the real swap's USDC stays in NEAR Intents, not on Arbitrum.
+    await expect(page.getByTestId("swap-where")).toHaveText(
+      "The USDC stays in your NEAR Intents account (intents.near), not on Arbitrum. You withdraw it separately.",
+    );
     await page.getByTestId("swap-real").click();
     // The wallet seam shows the amount and waits for Confirm.
     const dialog = page.getByRole("dialog", { name: "Please check this before you continue" });
     await expect(page.getByTestId("signing-amount")).toContainText("wrap.near");
+    await expect(dialog).toContainText("kept in your NEAR Intents account (not sent to Arbitrum)");
     await dialog.getByRole("button", { name: "Confirm and open my wallet" }).click();
     await expect(page.getByTestId("swap-outcome")).toHaveAttribute("data-outcome", "done");
     await expect(page.getByTestId("swap-outcome")).toContainText("No real money moved");

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import {
   capCheck,
   dryQuoteBody,
@@ -18,6 +18,27 @@ import {
   type IntentQuote,
 } from "./intents";
 import { parseNear } from "./units";
+import * as worker from "../../worker/src/intents";
+import type { Fetch } from "./intents";
+
+describe("the app and the Worker agree", () => {
+  it("on the cap, the assets and the Fetch type", () => {
+    expect(worker.REAL_SWAP_CAP_YOCTO).toBe(REAL_SWAP_CAP);
+    expect(worker.WNEAR).toBe(WNEAR_ASSET);
+    expect(worker.USDC_ARB).toBe(USDC_ARB_ASSET);
+    expectTypeOf<worker.Fetch>().toEqualTypeOf<Fetch>();
+  });
+
+  it("on the dry and real quote bodies: the Worker accepts what the app sends", () => {
+    const now = new Date("2026-11-12T10:00:00.000Z");
+    const f = vi.fn(async () => new Response("{}", { status: 201 }));
+    return Promise.all(
+      [dryQuoteBody(now), realQuoteBody("learner.near", now)].map(async (b) => {
+        expect((await worker.quote(b, { fetch: f, now })).status).toBe(201);
+      }),
+    );
+  });
+});
 import type { WalletState } from "./mainnet/types";
 
 const NOW = new Date("2026-11-12T10:00:00.000Z");
@@ -169,12 +190,28 @@ describe("the tiny real swap", () => {
 
   it("is refused above the cap, in NEAR or in dollars", () => {
     expect(capCheck(REAL_SWAP_AMOUNT, 0.4)).toEqual({ ok: true });
-    expect(capCheck(REAL_SWAP_CAP + 1n, null).ok).toBe(false);
+    expect(capCheck(REAL_SWAP_CAP + 1n).ok).toBe(false);
     expect(capCheck(REAL_SWAP_AMOUNT, 1.01)).toMatchObject({
       ok: false,
       message: expect.stringMatching(/\$1/),
     });
-    expect(capCheck(0n, null).ok).toBe(false);
+    expect(capCheck(0n).ok).toBe(false);
+  });
+
+  it("refuses a live quote with no dollar value, since the $1 cap cannot be checked", () => {
+    expect(capCheck(REAL_SWAP_AMOUNT)).toEqual({ ok: true });
+    expect(capCheck(REAL_SWAP_AMOUNT, null)).toMatchObject({
+      ok: false,
+      message: expect.stringMatching(/no dollar value/i),
+    });
+  });
+
+  it("tells the wallet the USDC stays in NEAR Intents, not on Arbitrum", () => {
+    const r = tinySwapRequest("abc123");
+    expect(r.summary).toMatch(
+      /^Swap 0\.1 NEAR for USDC, kept in your NEAR Intents account \(not sent to Arbitrum\)/,
+    );
+    expect(r.summary).toContain("intents.near");
   });
 
   it("is one transaction to wrap.near: wrap, register the deposit address, send", () => {
@@ -215,6 +252,10 @@ describe("the tiny real swap", () => {
     // The live quote says it is worth more than $1: refused before signing.
     const pricey = vi.fn(async () => ({ ...liveReal, amountInUsd: 2.5 }));
     expect((await runTinySwap({ wallet: connected("5"), quote: pricey, sign })).kind).toBe("refused");
+    expect(sign).not.toHaveBeenCalled();
+    // A quote with no dollar value is refused too: the $1 cap is never skipped.
+    const unpriced = vi.fn(async () => ({ ...liveReal, amountInUsd: null }));
+    expect((await runTinySwap({ wallet: connected("5"), quote: unpriced, sign })).kind).toBe("refused");
     expect(sign).not.toHaveBeenCalled();
   });
 

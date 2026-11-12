@@ -6,8 +6,8 @@
  * Secrets (never in the repo): FAUCET_ACCOUNT_ID, FAUCET_PRIVATE_KEY, optional ONECLICK_JWT. See README.md.
  */
 import { faucet, type FaucetSender } from "./faucet";
-import { quote, type Fetch } from "./intents";
-import { kvCounters, memoryCounters, type CounterStore, type KvLike } from "./limits";
+import { MAX_QUOTE_BODY_BYTES, quote, type Fetch } from "./intents";
+import { kvCounters, memoryCounters, takeSlot, type CounterStore, type KvLike } from "./limits";
 import { nearSender } from "./near";
 
 export interface Env {
@@ -22,6 +22,9 @@ export interface Env {
   GLOBAL_DAILY?: string;
   /** Optional 1Click API key (a JWT), sent as a bearer token. Without it quotes still work, with an app fee. */
   ONECLICK_JWT?: string;
+  /** Quotes per IP address per UTC day (default 20), and in total per UTC day (default 400). */
+  QUOTE_PER_IP_DAILY?: string;
+  QUOTE_GLOBAL_DAILY?: string;
 }
 
 export interface Overrides {
@@ -118,13 +121,51 @@ export async function handle(request: Request, env: Env, o: Overrides = {}): Pro
     return json(reply.status, reply.body, origin);
   }
   if (url.pathname === "/intents/quote" && request.method === "POST") {
+    const tooBig = () => json(413, { error: "The quote request is too big." }, origin);
+    if (Number(request.headers.get("content-length") ?? 0) > MAX_QUOTE_BODY_BYTES) return tooBig();
+    const text = await request.text();
+    if (new TextEncoder().encode(text).length > MAX_QUOTE_BODY_BYTES) return tooBig();
     let body: unknown;
     try {
-      body = await request.json();
+      body = JSON.parse(text);
     } catch {
       return json(400, { error: "Send JSON." }, origin);
     }
-    const reply = await quote(body, { apiKey: env.ONECLICK_JWT, fetch: o.fetch });
+    const dev = env.ALLOW_LOCALHOST === "1";
+    const counters =
+      o.counters ??
+      (env.FAUCET_LIMITS
+        ? kvCounters(env.FAUCET_LIMITS)
+        : dev
+          ? (fallbackCounters ??= memoryCounters())
+          : null);
+    if (!counters) return json(503, { error: "Quotes are not set up yet." }, origin);
+    const ip = request.headers.get("cf-connecting-ip") ?? (dev ? "local" : null);
+    if (!ip) return json(400, { error: "Unknown client address." }, origin);
+    const now = o.now?.() ?? new Date();
+    // A slot is taken before the request is checked or sent, so refused requests count too.
+    const slot = await takeSlot(
+      counters,
+      {
+        perIpDaily: limitFrom(env.QUOTE_PER_IP_DAILY, 20),
+        globalDaily: limitFrom(env.QUOTE_GLOBAL_DAILY, 400),
+      },
+      ip,
+      now,
+      "quote",
+    );
+    if (!slot.ok)
+      return json(
+        429,
+        {
+          error:
+            slot.reason === "ip"
+              ? "Too many quotes from this address today. Try again tomorrow."
+              : "The app has used today's quotes. Try again tomorrow.",
+        },
+        origin,
+      );
+    const reply = await quote(body, { apiKey: env.ONECLICK_JWT, fetch: o.fetch, now });
     return json(reply.status, reply.body, origin);
   }
   return json(404, { error: "Not found." }, origin);

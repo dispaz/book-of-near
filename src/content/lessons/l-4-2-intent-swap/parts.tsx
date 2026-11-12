@@ -183,6 +183,14 @@ export function FinishPanel({ m }: { m: IntentSwap }) {
           ? `Offered. ${offer.message}`
           : `Not offered: ${offer.kind === "no-wallet" ? "no wallet is connected." : offer.message.replace(" You can use the free testnet edition instead.", "")} Finish on the dry-run quote instead.`}
       </p>
+      {/* Shown until the swap has an outcome; the "Sent" outcome repeats it. One line at a time keeps the
+          dock's height steady, so the margin note above it does not jump. */}
+      {offer.kind === "enough" && rs.status !== "ended" ? (
+        <p data-testid="swap-where">
+          The USDC stays in your NEAR Intents account ({VERIFIER_CONTRACT}), not on Arbitrum. You withdraw it
+          separately.
+        </p>
+      ) : null}
       {offer.kind === "enough" ? (
         <button
           type="button"
@@ -204,7 +212,7 @@ export function FinishPanel({ m }: { m: IntentSwap }) {
         >
           {rs.outcome.kind === "done"
             ? rs.real
-              ? `Sent. Transaction ${rs.outcome.txHash}. Your USDC is kept for you in NEAR Intents (${VERIFIER_CONTRACT}).`
+              ? `Sent. Transaction ${rs.outcome.txHash}. Your USDC is kept in your NEAR Intents account (${VERIFIER_CONTRACT}), not on Arbitrum.`
               : `Simulated with the demo wallet (${rs.outcome.txHash}). No real money moved, so this counts as a dry run.`
             : rs.outcome.kind === "declined"
               ? "You cancelled. Nothing was sent."

@@ -52,7 +52,7 @@ export default {
       caption:
         "Finish safely on the dry-run quote, or try a tiny real swap if you have a funded mainnet wallet.",
       explain:
-        "A dry-run quote is a real, signed price with no deposit, so no money moves. If your connected mainnet wallet can pay, the app also offers an optional tiny real swap, capped at $1. Otherwise you finish on the quote and spend nothing.",
+        "A dry-run quote is a real, signed price with no deposit, so no money moves. If your connected mainnet wallet can pay, the app also offers an optional tiny real swap, capped at $1. That swap does not go to Arbitrum: the USDC stays in your NEAR Intents account (intents.near), and you withdraw it separately. Otherwise you finish on the quote and spend nothing.",
       explainAt: "destination",
       action: { label: "choose how to finish", gate: true },
     },

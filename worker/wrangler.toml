@@ -13,6 +13,10 @@ FAUCET_AMOUNT = "0.5"
 # Rate limits: accounts per IP address per UTC day, and accounts per UTC day in total.
 PER_IP_DAILY = "3"
 GLOBAL_DAILY = "50"
+# 1Click quotes (POST /intents/quote) per IP address per UTC day, and in total. Each quote writes two
+# KV keys, so keep QUOTE_GLOBAL_DAILY low enough for the KV write quota.
+QUOTE_PER_IP_DAILY = "20"
+QUOTE_GLOBAL_DAILY = "400"
 
 # Counters for the rate limits. Create the namespace once with
 #   npx wrangler kv namespace create FAUCET_LIMITS

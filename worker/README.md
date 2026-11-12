@@ -7,7 +7,7 @@ A Cloudflare Worker. It runs the **testnet faucet** (issue #7) and the **1Click 
 | Route | What it does |
 | --- | --- |
 | `POST /faucet` `{ publicKey, accountId? }` | Funds a learner's practice account with `FAUCET_AMOUNT` NEAR (default 0.5) from the faucet account. Without `accountId` it funds the implicit account of `publicKey` (64 hex characters). With `accountId: "name.testnet"` it creates that name through `testnet.create_account`. Returns `{ accountId, txHash, amount }`. |
-| `POST /intents/quote` `{ dry, swapType, slippageTolerance, originAsset, depositType, destinationAsset, amount, refundTo, refundType, recipient, recipientType, deadline }` | Forwards a quote request to `https://1click.chaindefuser.com/v0/quote` and returns its answer and status. Only `nep141:wrap.near` (NEAR) in; unknown fields are dropped. A non-dry quote (a real swap) above 0.25 NEAR is refused with 400. With the optional `ONECLICK_JWT` secret it is sent as `Authorization: Bearer …` (the key never reaches the browser); without it 1Click still answers and adds an app fee. Checked against live 1Click with `wrangler dev` on 12 Nov 2026. |
+| `POST /intents/quote` `{ dry, swapType, slippageTolerance, originAsset, depositType, destinationAsset, amount, refundTo, refundType, recipient, recipientType, deadline }` | Forwards a quote request to `https://1click.chaindefuser.com/v0/quote` and returns its answer and status. Only an `EXACT_INPUT` swap of `nep141:wrap.near` (NEAR) into USDC on Arbitrum; slippage 0 to 300 bps; deadline within the next 30 minutes; body at most 4 KB (413); unknown fields are dropped. A non-dry quote (a real swap) above 0.25 NEAR is refused with 400. With the optional `ONECLICK_JWT` secret it is sent as `Authorization: Bearer …` (the key never reaches the browser); without it 1Click still answers and adds an app fee. Checked against live 1Click with `wrangler dev` on 12 Nov 2026. |
 | `GET /health` | `{ ok: true, faucet: <secrets configured?> }` |
 
 Errors are JSON `{ error }` in plain English: 400 bad input, 403 origin not allowed, 409 account exists, 429 daily limit, 502 testnet unreachable, 503 no secrets set.
@@ -16,6 +16,7 @@ Errors are JSON `{ error }` in plain English: 400 bad input, 403 origin not allo
 
 - `PER_IP_DAILY` accounts per IP address per UTC day (default 3), keyed on `cf-connecting-ip`.
 - `GLOBAL_DAILY` accounts per UTC day in total (default 50, so at most 25 NEAR a day at 0.5 NEAR).
+- `QUOTE_PER_IP_DAILY` / `QUOTE_GLOBAL_DAILY`: 1Click quotes per IP address and in total per UTC day (defaults 20 and 400), counted apart from the faucet under a `quote:` key prefix.
 - A slot is taken **before** the account is created, so failed and repeated attempts count too.
 - Counters live in the `FAUCET_LIMITS` KV namespace. KV is eventually consistent across Cloudflare locations; the global cap may overshoot by a few accounts in a burst from many places. Use a Durable Object if that ever matters.
 - CORS: only `ALLOWED_ORIGINS` (comma list in `wrangler.toml`). `http://localhost:<any port>` is allowed only when `ALLOW_LOCALHOST=1` (set in `.dev.vars` for local dev, never in production). Other browser origins get 403. Missing or mistyped limits fall back to the defaults.
