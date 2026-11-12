@@ -12,6 +12,14 @@ Source: https://nearhackathon.com/HACKATHON.md, read on 12 Nov 2026. The organiz
 | 18 Nov 23:59 | Results |
 | 25 Nov | Keep the hosted demo up until at least now (18 Nov is the minimum) |
 
+## Order of work (owner's decision, 12 Nov)
+
+1. Finish every stage's lessons first (#14, #15, #16, #18, #20, #21, #24, #25, #26).
+2. Then the alignment tasks: badges (#68), README and submission pack (#33), the submission umbrella (#66).
+3. The demo video (#65) comes last, once the app is final.
+
+The order is enforced with GitHub "blocked by" links: #66 waits for the lesson issues, #65 also waits for #33 and #68.
+
 ## What judges get
 
 - **Claude Code and Codex screen first:** they check the README runs as written, verify the features, and write a report with a preliminary score. Humans decide. A low AI score alone cannot reject a project.
