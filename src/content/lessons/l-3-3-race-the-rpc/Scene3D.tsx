@@ -97,7 +97,7 @@ export default function Scene3D({
   return (
     <div
       ref={root}
-      className={`book-scene rpc-book${summary ? " summary" : ""}`}
+      className={`book-scene rpc-book${summary ? " summary" : ""}${reducedMotion ? " still" : ""}`}
       data-testid="rpc-scene"
       data-scene-state={r.state}
       data-view="3d"

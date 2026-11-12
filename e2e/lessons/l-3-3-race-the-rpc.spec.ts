@@ -184,28 +184,34 @@ test.describe(`lesson ${ID}: motion, fallback, switching, phones`, () => {
       await seedRoute(page);
       await page.goto(`/lesson/${ID}?view=${view}`);
       await expect(scene(page)).toHaveClass(/\bstill\b/, T);
-      if (view === "2d") {
-        // The bars stand at their height at once: no grow animation, no transition.
-        await nextStep(page);
-        await raceNodes(page);
-        const running = await page
-          .getByTestId("rpc-scene")
-          .evaluate((el) => el.getAnimations({ subtree: true }).length);
-        expect(running).toBe(0);
-        const scale = await page
-          .getByTestId("bar-near-org")
-          .locator("rect")
-          .evaluate((el) => getComputedStyle(el).transform);
-        expect(scale).toBe("matrix(1, 0, 0, 1, 0, 0)");
-        await page.goto(`/lesson/${ID}?view=${view}&step=5`);
-        await queryHistory(page);
-        // The shutter is down at once.
-        await expect(page.locator("[data-shutter]")).toHaveCount(1);
-        expect(await page.locator("[data-shutter]").evaluate((el) => el.getAnimations().length)).toBe(0);
+      if (view === "3d") {
+        await walkToCheck(page);
         await ctx.close();
         return;
       }
-      await walkToCheck(page);
+      // 2D: every move shows its end state at once (no grow animation, no transition, no sliding).
+      const noMotion = async () =>
+        expect(await scene(page).evaluate((el) => el.getAnimations({ subtree: true }).length)).toBe(0);
+      await nextStep(page);
+      await raceNodes(page);
+      await noMotion();
+      // The slowest bar stands at full height at once.
+      expect(
+        await page
+          .getByTestId("bar-near-org")
+          .locator("rect")
+          .evaluate((el) => getComputedStyle(el).transform),
+      ).toBe("matrix(1, 0, 0, 1, 0, 0)");
+      await nextStep(page);
+      await disableFastnear(page);
+      await nextStep(page);
+      await sendFailover(page);
+      await nextStep(page);
+      await queryHistory(page);
+      // FastNEAR's shutter is down at once.
+      await expect(page.locator("[data-shutter]")).toHaveCount(1);
+      await noMotion();
+      await nextStep(page);
       await ctx.close();
     });
 
