@@ -2,6 +2,8 @@
 
 Read `.scratch/book-of-near-mvp/spec.md` for the product, `GLOSSARY.md` for terms, and your GitHub issue (`gh issue view <n> --comments`) for the task. Tickets live in GitHub Issues on `dispaz/book-of-near`; issue number = ticket number. `.scratch/book-of-near-mvp/issues/` and `tickets.md` are a read-only backup from before the migration: don't read tickets from them or update them.
 
+**Deadline: 14 Nov 2026 23:59 UTC** (repo public, form sent). Submission rules and checklist: `docs/hackathon.md`. Re-read https://nearhackathon.com/HACKATHON.md before submitting.
+
 ## Hard rules
 - **No code before 1 Nov 2026 00:00 UTC.** Code must be written inside the hackathon window. Before that, only docs and tickets.
 - **Everything on chain goes through the `Chain` interface** (TestnetChain and DemoChain). Lessons never call RPC, wallets or SDKs directly.
