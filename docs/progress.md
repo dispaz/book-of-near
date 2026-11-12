@@ -414,3 +414,13 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Shared helpers: `src/ui/format.ts` (`shortId`, `nearAmount`) replaces the copies in l-1-2 `key.ts`, l-1-3 `batch.ts` and l-0-3 `tx.ts` (`short`). Lesson 1.2 now uses the scene-kit `useBoxSize` (#70). `scene-kit/svg/objects.tsx`'s `short` cuts text, a different job.
 - Not done here: the 3D view is still plain `InkStage`, not a `BookScene` (deferred on purpose in the review; with #60).
 - Gate: lint (0 errors), typecheck, unit tests, badge tests, e2e for wallet and lessons 0.3, 1.2, 1.3 (a full e2e run before the rebase on main: 244 passed, 4 load flakes in 3.1 and 4.1 that passed on a rerun). Screenshots checked at 390×844, 820×1180, 1024×768 and 1440×900, 2D and 3D, reduced motion and `?webgl=0`.
+
+## 2026-11-12 · Lesson 1.3 review notes fixed (Closes #16)
+
+- Replay: the words under a refused copy come from `replayWhy` (`replay.ts`). "Its nonce is used" only for `InvalidNonce`; `Expired` says the copy is too old (its block hash is past its deadline); any other reason shows the chain's own message. The 3D label and scene description follow the same reason (`replayShort`).
+- Lesson title (shared `LessonPage`): on phones the cut title is a `<button aria-expanded>` inside the `<h1>`, so Tab + Enter opens it too; on wider screens the `<h1>` is plain text with no click handler.
+- `useTxLesson.ts` (601 → 500 lines): restore-on-reload moved to `resume.ts` (`findWorkshop`, `rememberWorkshop`), sending a copy again to `replay.ts` (`sendAgain`). Both unit tested against `DemoChain`.
+- 2D cards carry the scene objects' icons (`ObjectIcon`): the transaction and the replay log a parcel, the signer a mailbox, the receiver a scroll when it is called (the registrar) or a mailbox, the result card a mailbox.
+- Shared helpers: lesson 1.3 imports `shortId` / `nearAmount` from `src/ui/format.ts` directly (the re-export in `batch.ts` is gone); `useBoxSize` was already shared (#70).
+- Decided: 1.3's 3D view stays plain `InkStage` for now and is listed under "Not yet" in `docs/book-scene.md`; the move goes with its object reactions (#61). Unused kit exports (`ActionCard`, `Cross`, `Strike`, `Stamp`, `FATE_FILL`, `FATE_MARK`, `SvgStamp`, `SvgParcelItem`) are kept and documented in `docs/scene-objects.md`.
+- Not demonstrated: an `Expired` replay (demo mode always answers `InvalidNonce`); its text is unit tested only.
