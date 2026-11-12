@@ -37,7 +37,7 @@ export function tourFor(step: number): Shot<Target>[] {
     case GAS:
       return [
         ALL,
-        close("meter", "70% of the contracts' gas is burned, 30% goes to the contracts."),
+        close("meter", "About 70% of the contracts' gas is burned, about 30% goes to the contracts."),
         close("blocks", "each receipt burnt its own gas."),
       ];
     case FAIL:
