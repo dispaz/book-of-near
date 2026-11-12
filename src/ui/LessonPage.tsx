@@ -285,13 +285,22 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
           </Link>{" "}
           · Stage {stage.id} · {stage.name}
         </p>
-        {/* Phones cut the title to one line; a tap shows it whole (see ink.css). */}
-        <h1
-          title={lesson.title}
-          data-full={fullTitle ? "" : undefined}
-          onClick={() => setFullTitle((f) => !f)}
-        >
-          {lesson.title}
+        {/* Phones cut the title to one line; a tap (or Enter) on its button shows it whole (see ink.css).
+            Wider screens show it whole, as plain text. */}
+        <h1 title={lesson.title}>
+          {phone ? (
+            <button
+              type="button"
+              className="title-toggle"
+              aria-expanded={fullTitle}
+              data-full={fullTitle ? "" : undefined}
+              onClick={() => setFullTitle((f) => !f)}
+            >
+              {lesson.title}
+            </button>
+          ) : (
+            lesson.title
+          )}
         </h1>
       </header>
 

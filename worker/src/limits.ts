@@ -55,12 +55,20 @@ function serialised<T>(fn: () => Promise<T>): Promise<T> {
 /**
  * Take one slot for `ip` today, or refuse. The slot is taken before the account is created,
  * so failed attempts count too: hammering the endpoint can never drain the faucet.
+ * `scope` keeps another endpoint's counters apart (the faucet uses none, so its keys are unchanged).
  */
-export function takeSlot(store: CounterStore, limits: Limits, ip: string, now: Date): Promise<LimitResult> {
+export function takeSlot(
+  store: CounterStore,
+  limits: Limits,
+  ip: string,
+  now: Date,
+  scope = "",
+): Promise<LimitResult> {
   return serialised(async () => {
     const day = now.toISOString().slice(0, 10);
-    const ipKey = `ip:${day}:${ip}`;
-    const allKey = `all:${day}`;
+    const prefix = scope ? `${scope}:` : "";
+    const ipKey = `${prefix}ip:${day}:${ip}`;
+    const allKey = `${prefix}all:${day}`;
     const [mine, all] = await Promise.all([store.get(ipKey), store.get(allKey)]);
     if (mine >= limits.perIpDaily) return { ok: false, reason: "ip" } as const;
     if (all >= limits.globalDaily) return { ok: false, reason: "global" } as const;

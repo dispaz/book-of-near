@@ -221,5 +221,5 @@ Lower-level pieces (`BookBackdrop`, `PrintOnPage`, `PopUp`, `homography`) are de
 | Lesson | Book scene |
 | --- | --- |
 | 0.1 How a blockchain works | Yes (the reference) |
-| 0.2, 0.3, 1.2 | Not yet: plain `InkStage` on paper. Move them over one by one. |
+| 0.2, 0.3, 1.2, 1.3 | Not yet: plain `InkStage` on paper. Move them over one by one (1.3 with its object reactions, issue #61). |
 | 1.1, 2.1, 2.2, 3.1, 4.1 | Yes |

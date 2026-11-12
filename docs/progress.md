@@ -406,6 +406,18 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Gate: lint (0 errors), typecheck, `npm test` (538 passed), Worker tests (13), `npm run test:badge` (19 sandbox tests), `e2e/wallet.spec.ts` and the full e2e suite (249 passed, 5 skipped).
 - #12 stays open: its testnet mint is issue #68. Real wallet sign-in and a real mainnet signature are still untested (needs a person with a mainnet wallet).
 
+## 2026-11-12 · Lesson 4.2: Swap across chains with an intent (#24)
+- `src/chain/intents.ts`: the only way to 1Click. Quote bodies (dry, and the real swap's non-dry one kept in NEAR Intents for the learner's own account), `parseQuote` (plain-English errors), `RECORDED_QUOTE` (script numbers, 1Click shape), `requestQuote` (Worker `$VITE_WORKER_URL/intents/quote` first, else 1Click direct without a key), `swapOffer` (= `checkFunds`), `capCheck` (0.25 NEAR and $1), `tinySwapRequest` (one wrap.near transaction: `near_deposit`, `storage_deposit`, `ft_transfer`) and `runTinySwap` (funds → cap → quote → cap on USD → `sign` through the wallet seam).
+- Worker `POST /intents/quote` (`worker/src/intents.ts`): NEAR in only, non-dry refused above 0.25 NEAR, optional `ONECLICK_JWT` secret as a bearer token. Checked live with `wrangler dev` and the app in testnet mode (`quote:worker`, 5 NEAR → 17.09 USDC, 21 s).
+- Lesson `l-4-2-intent-swap` (2D + 3D book scene, one state in `useIntentSwap`): quote (recorded in demo, live dry in testnet mode, recorded fallback with a notice), inspect, solver fill (lock → deliver → settle), finish on the dry quote or the optional tiny swap. Picks act, give the script's "not yet" hints and details after the step; the not-yet shake is lesson-level (kit reactions are #54). Completion evidence: quote numbers, `quoteSource`, `dryQuoteVerified`, `realSwapExecuted` (true only with the learner's own wallet), `finishedOn`.
+- Found: 1Click now refuses the `0x…dEaD` recipient in a dry quote ("recipient is not valid"); the lesson uses `0x1111…1111`. 1Click timed out (25 s) for a while on 12 Nov, hence the recorded fallback.
+- Not verified: a real tiny swap on mainnet (needs a person with a funded wallet), the deposit flow for a NEAR-origin swap (wrap + `ft_transfer` to the deposit address), and the bearer header with a real 1Click key.
+
+## 2026-11-12 · Lesson 4.2 review fixes (#24)
+- Real swap copy: the finish panel, step 5 explain (script `docs/lessons/stage-4/4.2.md` and manifest), the wallet confirm text and the "Sent" outcome now say the USDC stays in the learner's NEAR Intents account (intents.near), not on Arbitrum, and is withdrawn separately.
+- `capCheck` refuses a live quote with no dollar value (the $1 cap is never skipped silently).
+- Worker `/intents/quote`: per-IP and global daily quote limits (`QUOTE_PER_IP_DAILY` 20, `QUOTE_GLOBAL_DAILY` 400, `quote:` key prefix apart from the faucet), body capped at 4 KB (413), and every field checked: `EXACT_INPUT` only (so the 0.25 NEAR cap bounds the NEAR going in), wNEAR → USDC on Arbitrum only, slippage 0..300 bps, deadline within 30 minutes, fixed deposit/refund types. An app unit test checks the Worker's cap, asset ids and `Fetch` type match the app's and that it accepts the app's quote bodies.
+
 ## 2026-11-12 · Lesson 1.2 review notes fixed (Closes #15)
 
 - Reload: restore-on-reload moved out of `useKeyLesson.ts` into `resume.ts` (`findResumableKey`). When the lesson adds the key it remembers, in this browser, the starting allowance and the add hash (`rememberKey`, forgotten on delete; storage blocked is handled). A key picked up after a reload is recorded with `keyResumed: "yes"`, plus `addKeyTxHash` when remembered.
@@ -415,8 +427,19 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Not done here: the 3D view is still plain `InkStage`, not a `BookScene` (deferred on purpose in the review; with #60).
 - Gate: lint (0 errors), typecheck, unit tests, badge tests, e2e for wallet and lessons 0.3, 1.2, 1.3 (a full e2e run before the rebase on main: 244 passed, 4 load flakes in 3.1 and 4.1 that passed on a rerun). Screenshots checked at 390×844, 820×1180, 1024×768 and 1440×900, 2D and 3D, reduced motion and `?webgl=0`.
 
+## 2026-11-12 · Lesson 1.3 review notes fixed (Closes #16)
+
+- Replay: the words under a refused copy come from `replayWhy` (`replay.ts`). "Its nonce is used" only for `InvalidNonce`; `Expired` says the copy is too old (its block hash is past its deadline); any other reason shows the chain's own message. The 3D label and scene description follow the same reason (`replayShort`).
+- Lesson title (shared `LessonPage`): on phones the cut title is a `<button aria-expanded>` inside the `<h1>`, so Tab + Enter opens it too; on wider screens the `<h1>` is plain text with no click handler.
+- `useTxLesson.ts` (601 → 500 lines): restore-on-reload moved to `resume.ts` (`findWorkshop`, `rememberWorkshop`), sending a copy again to `replay.ts` (`sendAgain`). Both unit tested against `DemoChain`.
+- 2D cards carry the scene objects' icons (`ObjectIcon`): the transaction and the replay log a parcel, the signer a mailbox, the receiver a scroll when it is called (the registrar) or a mailbox, the result card a mailbox.
+- Shared helpers: lesson 1.3 imports `shortId` / `nearAmount` from `src/ui/format.ts` directly (the re-export in `batch.ts` is gone); `useBoxSize` was already shared (#70).
+- Decided: 1.3's 3D view stays plain `InkStage` for now and is listed under "Not yet" in `docs/book-scene.md`; the move goes with its object reactions (#61). Unused kit exports (`ActionCard`, `Cross`, `Strike`, `Stamp`, `FATE_FILL`, `FATE_MARK`, `SvgStamp`, `SvgParcelItem`) are kept and documented in `docs/scene-objects.md`.
+- Not demonstrated: an `Expired` replay (demo mode always answers `InvalidNonce`); its text is unit tested only.
+
 ## 2026-11-12 · #18 Lesson 2.2: A call that takes several blocks
 - New lesson `l-2-2-call-across-blocks` (2D + 3D book scene, one state in `useCrossCall`). Demo mode sends a real DemoChain transaction to `buyer.demo.testnet` (demo shard 2), whose `order` calls `shop.demo.testnet` (demo shard 4) with an `on_order_completed` callback (`src/chain/demo/shop.ts`, genesis accounts in `DemoChain`). The figure and the facts list the transaction and each receipt in block order; the gas step splits the contracts' burnt gas 70 / 30, per contract; the failure step makes the shop panic and the callback undo the reservation.
-- Testnet mode: the app cannot place helper contracts on chosen shards, so it opens a recorded real testnet call (`recorded.ts`: market → usdc → `on_withdraw`, shards 9 / 4 / 5, re-read from archival RPC on 12 Nov 2026) and marks its failure step as an illustration. No transaction is sent.
+- Testnet mode: opens a recorded real testnet call (`recorded.ts`: market → usdc → `on_withdraw`, shards 9 / 4 / 5, values copied from archival RPC on 12 Nov 2026, not re-read at run time) and marks its failure step as an illustration. No transaction is sent: a deliberate choice to keep the lesson free and fast (spike 4 shows helpers could be named onto chosen shards). Step 3's words follow the mode.
+- Review fixes: the 70 / 30 split is labelled "about" (an estimate from the protocol rule; the chain does not report the share); a call that lands after a page turn shows whole instead of replaying its hops (`useCrossCall.test.tsx`).
 - Tests: `call.test.ts` (receipt order, shards, 70 / 30 split, failure, recorded call), `tour.test.ts`, e2e `e2e/lessons/l-2-2-call-across-blocks.spec.ts` (walks in 2D and 3D, receipts and gas, failure, picks, reduced motion, phones, no WebGL, view switch, print + tour); added to `render-on-demand.spec.ts`.
 - Not done: the rule 10a kit reactions (hover lift, press squash, shake) are kit work (#54); picks here give a "not yet" hint and a detail line. The testnet-mode walk was not run against the live network.

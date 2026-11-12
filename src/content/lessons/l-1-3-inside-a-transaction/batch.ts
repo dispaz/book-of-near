@@ -208,9 +208,6 @@ export function balanceProblem(
   return `${who} has too little NEAR left for this. ${fix}`;
 }
 
-// Shared formatters (src/ui/format.ts), under the names this lesson uses.
-export { nearAmount as near, shortId as short } from "../../../ui/format";
-
 /** One action in plain words, for the transaction's field list. */
 export function describeAction(a: Action): string {
   switch (a.type) {

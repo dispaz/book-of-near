@@ -8,15 +8,8 @@ import type { SceneProps } from "../../../app/types";
 import { useChain, useChainMode } from "../../../chain/ChainContext";
 import { isChainError } from "../../../chain/errors";
 import { createNamedAccount } from "../../../chain/ops";
-import type {
-  AccessKeyInfo,
-  InvalidTxReason,
-  PracticeAccount,
-  PublicKey,
-  SignedTransaction,
-  TxOutcome,
-  TxPhase,
-} from "../../../chain/types";
+import type { PracticeAccount, SignedTransaction, TxOutcome, TxPhase } from "../../../chain/types";
+import { nearAmount as near } from "../../../ui/format";
 import {
   DEFAULT_AMOUNT_TEXT,
   DEFAULT_LABEL,
@@ -25,22 +18,22 @@ import {
   comesBack,
   deposited,
   labelCandidates,
-  readRemembered,
-  type Remembered,
   fates,
   hasAllKinds,
   isRollback,
   keysNeeded,
   move,
-  near,
   readAmount,
   readLabel,
   toActions,
-  workshopLabel,
   type Fate,
   type Item,
   type ItemKind,
 } from "./batch";
+import { sendAgain, type Replay } from "./replay";
+import { findWorkshop, rememberWorkshop } from "./resume";
+
+export type { Replay } from "./replay";
 
 // Step numbers (0-based) from manifest.ts.
 export const HOOK = 0;
@@ -78,19 +71,6 @@ export interface Sent {
   receiverBalance: bigint | null;
 }
 
-/** An old signed transaction sent again. */
-export interface Replay {
-  n: number;
-  which: "worked" | "failed";
-  /** True when the chain would not run it again (the expected case). */
-  notRun: boolean;
-  /** The chain's reason, when it gives one. */
-  reason: InvalidTxReason | null;
-  message: string;
-  txNonce: bigint;
-  keyNonce: bigint | null;
-}
-
 export interface Workshop {
   id: string;
   /** The transaction that made it; null when it was made on an earlier visit and cannot be read back. */
@@ -105,7 +85,6 @@ export interface LessonError {
   demo: boolean;
 }
 
-const WORKSHOP_TRIES = 6;
 const initialItems: Item[] = [];
 
 /** Friendly words for the phases of a transaction, for the status line. */
@@ -117,29 +96,6 @@ const PHASE_TEXT: Record<TxPhase, string> = {
   executed: "Running the actions…",
   final: "Final.",
 };
-
-/** Where the lesson remembers the workshop transaction id, so a later visit can show it again. */
-const storeKey = (network: string) => `bon:l-1-3:workshop:${network}`;
-function remember(network: string, value: { id: string; txHash: string }) {
-  try {
-    localStorage.setItem(storeKey(network), JSON.stringify(value));
-  } catch {
-    // Private mode or blocked storage: the lesson still works, it just cannot show the old transaction.
-  }
-}
-function recall(network: string): Remembered | null {
-  try {
-    return readRemembered(localStorage.getItem(storeKey(network)));
-  } catch {
-    return null;
-  }
-}
-
-/** True when `keys` belong to a workshop account the lesson made: our key is its one full-access key. */
-function onlyOurs(keys: AccessKeyInfo[], publicKey: PublicKey): boolean {
-  const full = keys.filter((k) => k.permission.type === "FullAccess");
-  return full.length === 1 && full[0]!.publicKey === publicKey;
-}
 
 export function useTxLesson({
   step,
@@ -171,9 +127,7 @@ export function useTxLesson({
   const [passed, setPassed] = useState(false);
   const prefilled = useRef(false);
 
-  // The practice account, then a workshop account from an earlier visit. The workshop account holds the
-  // practice account's own key, which this app keeps, so it can be used again after a reload; no new
-  // account (and no new deposit) is needed.
+  // The practice account, then a workshop account from an earlier visit (resume.ts).
   useEffect(() => {
     let live = true;
     (async () => {
@@ -181,37 +135,12 @@ export function useTxLesson({
         const acc = await chain.practiceAccount();
         if (!live) return;
         setMe(acc);
-        // The account remembered in this browser first, then the names the lesson would have made.
-        const stored = recall(chain.network);
-        const named = Array.from(
-          { length: WORKSHOP_TRIES },
-          (_, i) => `${workshopLabel(acc.accountId, i + 1)}.testnet`,
-        );
-        const candidates = stored ? [stored.id, ...named.filter((n) => n !== stored.id)] : named;
-        let free: string | null = null;
-        for (const id of candidates) {
-          if (!(await chain.accountExists(id))) {
-            // Only the lesson's own names can be made; stop at the first free one.
-            if (named.includes(id)) {
-              free = id;
-              break;
-            }
-            continue;
-          }
-          // Reuse it only when our key is its one full-access key: then nobody else controls it.
-          const keys = await chain.listKeys(id).catch(() => []);
-          if (!onlyOurs(keys, acc.publicKey)) continue;
-          const outcome =
-            stored?.id === id
-              ? await chain.getTransaction(stored.txHash, acc.accountId).catch(() => null)
-              : null;
-          const view = await chain.viewAccount(id);
-          if (!live) return;
-          setWorkshopBalance(view.amount);
-          setWorkshop({ id, outcome, reused: true });
-          return;
-        }
-        if (live) setFreeId(free);
+        const { found, freeId: free } = await findWorkshop(chain, acc);
+        if (!live) return;
+        if (found) {
+          setWorkshopBalance(found.balance);
+          setWorkshop({ id: found.id, outcome: found.outcome, reused: true });
+        } else setFreeId(free);
       } catch (e) {
         if (live) setError({ text: message(e), demo: false });
       } finally {
@@ -360,7 +289,7 @@ export function useTxLesson({
         setError({ text: `The registrar did not make ${id} with your key. Please try again.`, demo: false });
         return;
       }
-      remember(chain.network, { id, txHash: out.transaction.hash });
+      rememberWorkshop(chain.network, { id, txHash: out.transaction.hash });
       setWorkshopBalance((await chain.viewAccount(id)).amount);
       setWorkshop({ id, outcome: out, reused: false });
     } catch (e) {
@@ -450,41 +379,11 @@ export function useTxLesson({
     if (!old || !workshop || busy) return;
     setBusy("replay");
     setError(null);
-    const n = replays.length + 1;
-    const keyNonce = async () =>
-      (await chain.listKeys(workshop.id).catch(() => [])).find((k) => k.publicKey === old.signed.publicKey)
-        ?.nonce ?? null;
     try {
-      await chain.sendSignedTransaction(old.signed, { pace });
-      // Not expected: the chain ran the copy.
-      setReplays((r) => [
-        ...r,
-        {
-          n,
-          which,
-          notRun: false,
-          reason: null,
-          message: "The chain ran the copy.",
-          txNonce: old.signed.nonce,
-          keyNonce: null,
-        },
-      ]);
+      const r = await sendAgain(chain, old.signed, { n: replays.length + 1, which, pace });
+      setReplays((list) => [...list, r]);
     } catch (e) {
-      if (isChainError(e) && e.kind === "InvalidTransaction") {
-        const now = await keyNonce();
-        setReplays((r) => [
-          ...r,
-          {
-            n,
-            which,
-            notRun: true,
-            reason: e.reason ?? null,
-            message: e.message,
-            txNonce: old.signed.nonce,
-            keyNonce: now,
-          },
-        ]);
-      } else setError({ text: message(e), demo: false });
+      setError({ text: message(e), demo: false });
     } finally {
       setBusy(null);
     }
