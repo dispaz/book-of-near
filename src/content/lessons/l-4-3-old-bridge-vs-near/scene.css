@@ -1,0 +1,325 @@
+/* Lesson 4.3: old bridge vs the NEAR way. One state, a flat page (2D) or the pop-up book (3D). */
+.blc {
+  position: absolute;
+  top: var(--head-h, 112px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--bar-reserve, 88px) + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .blc {
+    top: var(--head-h, 104px);
+    left: 448px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    gap: 12px;
+  }
+}
+.blc p,
+.blc-panel p {
+  margin: 0;
+}
+
+/* ---------- flat page ---------- */
+.blc-2d {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 6px;
+}
+.blc-2d svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 40vh;
+}
+.blc-svg-track {
+  font: 700 15px var(--ui);
+  fill: var(--ink);
+}
+.blc-svg-track.mid {
+  text-anchor: middle;
+}
+.blc-svg-name {
+  font: 700 14px var(--ui);
+  fill: var(--ink);
+  text-anchor: middle;
+}
+.blc-svg-note {
+  font: 600 13px var(--ui);
+  fill: var(--mute);
+}
+.blc-svg-note.mid {
+  text-anchor: middle;
+}
+.blc-tile {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+  transition: fill 0.3s;
+}
+.blc-tile.lit {
+  fill: var(--accent);
+  stroke-dasharray: none;
+}
+.blc-move {
+  transition: transform 0.9s ease-in-out;
+}
+.blc-obj {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+/* Each object's own pick reaction, and a "not yet" shake. Two names each, so a second click replays it. */
+.blc-shake0 {
+  animation: blc-shake0 0.45s ease-out;
+}
+.blc-shake1 {
+  animation: blc-shake1 0.45s ease-out;
+}
+.blc-pick-vault0 {
+  animation: blc-rattle0 0.5s ease-out;
+}
+.blc-pick-vault1 {
+  animation: blc-rattle1 0.5s ease-out;
+}
+.blc-pick-slip0 {
+  animation: blc-flip0 0.6s ease-in-out;
+}
+.blc-pick-slip1 {
+  animation: blc-flip1 0.6s ease-in-out;
+}
+.blc-pick-coin0 {
+  animation: blc-flip0 0.6s ease-in-out;
+}
+.blc-pick-coin1 {
+  animation: blc-flip1 0.6s ease-in-out;
+}
+.blc-pick-mailbox0,
+.blc-pick-shield0 {
+  animation: blc-hop0 0.5s ease-out;
+}
+.blc-pick-mailbox1,
+.blc-pick-shield1 {
+  animation: blc-hop1 0.5s ease-out;
+}
+@keyframes blc-shake0 {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+@keyframes blc-shake1 {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+@keyframes blc-rattle0 {
+  25% {
+    transform: rotate(-4deg);
+  }
+  75% {
+    transform: rotate(4deg);
+  }
+}
+@keyframes blc-rattle1 {
+  25% {
+    transform: rotate(-4deg);
+  }
+  75% {
+    transform: rotate(4deg);
+  }
+}
+@keyframes blc-flip0 {
+  50% {
+    transform: scaleX(-1);
+  }
+}
+@keyframes blc-flip1 {
+  50% {
+    transform: scaleX(-1);
+  }
+}
+@keyframes blc-hop0 {
+  40% {
+    transform: translateY(-8px) scale(1.06);
+  }
+}
+@keyframes blc-hop1 {
+  40% {
+    transform: translateY(-8px) scale(1.06);
+  }
+}
+.blc.still .blc-move,
+.blc.still .blc-tile {
+  transition: none;
+}
+.blc.still .blc-obj {
+  animation: none;
+}
+
+/* ---------- the two timelines (both views) ---------- */
+.blc-timelines {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.blc-track {
+  border: 1.5px solid var(--ink);
+  border-radius: 10px;
+  background: var(--card);
+  padding: 6px 8px;
+  min-width: 0;
+}
+.blc-track h3 {
+  margin: 0 0 4px;
+  font: 700 14px var(--ui);
+}
+.blc-track ol {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13px;
+}
+.blc-track li {
+  opacity: 0.45;
+  transition: opacity 0.3s;
+}
+.blc-track li.lit {
+  opacity: 1;
+}
+.blc-track li.lit::marker {
+  color: var(--accent);
+  font-weight: 700;
+}
+.blc-label {
+  display: block;
+  font-weight: 600;
+}
+.blc-figs {
+  display: block;
+  color: var(--mute);
+}
+.blc-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 4px;
+  border-radius: 6px;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.blc-tag.estimate {
+  border-style: dashed;
+}
+.blc-tag.recorded,
+.blc-tag.live {
+  background: var(--accent);
+}
+.blc-total {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 2px 8px;
+  margin: 6px 0 0;
+  padding-top: 4px;
+  border-top: 1.5px solid var(--ink);
+  font-size: 13px;
+}
+.blc-total dt {
+  font-weight: 700;
+}
+.blc-total dd {
+  margin: 0;
+}
+.blc.still .blc-track li,
+.blc-panel.still .blc-track li {
+  transition: none;
+}
+
+/* ---------- facts (both views) ---------- */
+.blc-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: 500 14px var(--ui);
+}
+.blc-dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 2px 12px;
+  margin: 0;
+}
+.blc-dl dt {
+  font-weight: 700;
+}
+.blc-dl dd {
+  margin: 0;
+  min-width: 0;
+}
+.blc-status {
+  padding: 4px 8px;
+  border-left: 4px solid var(--accent);
+  background: var(--card);
+  font-weight: 600;
+}
+.blc-status.done {
+  border-left-color: var(--red);
+}
+.blc-note {
+  color: var(--mute);
+  font-size: 13px;
+}
+.blc-note.not-yet {
+  color: var(--ink);
+  border-left: 4px solid var(--accent);
+  padding-left: 6px;
+}
+.blc-warn {
+  padding: 4px 8px;
+  border-left: 4px solid var(--red);
+  background: var(--card);
+  color: var(--red);
+  font-weight: 600;
+}
+
+/* ---------- 3D: the facts in the book scene's panel ---------- */
+.blc-panel .blc-facts.compact {
+  max-height: min(34vh, 300px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .blc-move,
+  .blc-tile,
+  .blc-track li {
+    transition: none;
+  }
+  .blc-obj {
+    animation: none !important;
+  }
+}

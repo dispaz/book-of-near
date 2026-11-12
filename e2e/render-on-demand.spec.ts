@@ -18,6 +18,7 @@ const LESSONS = [
   "l-3-3-race-the-rpc",
   "l-4-1-one-account-every-chain",
   "l-4-2-intent-swap",
+  "l-7-1-trace-an-intent",
 ];
 
 test.beforeEach(() => slow3d());
