@@ -61,11 +61,11 @@ test.describe("contents and progress", () => {
   test("planned lessons show as locked cards with their stage", async ({ page }) => {
     await seedRoute(page, "newcomer");
     await page.goto("/");
-    const stage2 = page.getByRole("region", { name: /Stage 2/ });
-    const locked = stage2.locator(".lesson-chip.locked", { hasText: "A call that takes several blocks" });
+    const stage7 = page.getByRole("region", { name: /Stage 7/ });
+    const locked = stage7.locator(".lesson-chip.locked", { hasText: "Trace one intent end to end" });
     await expect(locked).toBeVisible();
     await expect(locked).toContainText("Coming soon");
-    await expect(stage2.getByRole("link", { name: /A call that takes several blocks/ })).toHaveCount(0);
+    await expect(stage7.getByRole("link", { name: /Trace one intent end to end/ })).toHaveCount(0);
     for (const n of [0, 1, 2, 3, 4, 7]) {
       await expect(page.getByRole("region", { name: new RegExp(`Stage ${n}`) })).toBeVisible();
     }

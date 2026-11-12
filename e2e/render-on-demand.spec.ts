@@ -13,6 +13,7 @@ const LESSONS = [
   "l-1-2-function-call-key",
   "l-1-3-inside-a-transaction",
   "l-2-1-follow-across-shards",
+  "l-2-2-call-across-blocks",
   "l-3-1-deploy-a-contract",
   "l-4-1-one-account-every-chain",
   "l-4-2-intent-swap",
