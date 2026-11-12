@@ -1,0 +1,176 @@
+/* Lesson 7.1: trace one intent end to end. One state, a flat page (2D) or the pop-up book (3D). */
+.cap {
+  position: absolute;
+  top: var(--head-h, 112px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--bar-reserve, 88px) + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .cap {
+    top: var(--head-h, 104px);
+    left: 448px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    gap: 12px;
+  }
+}
+.cap p,
+.cap-panel p {
+  margin: 0;
+}
+
+/* ---------- flat page ---------- */
+.cap-2d {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 6px;
+}
+.cap-2d svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 46vh;
+}
+.cap-move {
+  transition: transform 0.7s ease-in-out;
+}
+.cap-busy {
+  animation: cap-work 0.5s ease-in-out infinite alternate;
+}
+@keyframes cap-work {
+  to {
+    transform: translateY(-3px);
+  }
+}
+/* "Not yet": a short shake. Two names, so a second early click plays it again. */
+.cap-shake0 {
+  animation: cap-shake0 0.45s ease-out;
+}
+.cap-shake1 {
+  animation: cap-shake1 0.45s ease-out;
+}
+@keyframes cap-shake0 {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+@keyframes cap-shake1 {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+.cap.still .cap-move {
+  transition: none;
+}
+.cap.still .cap-busy,
+.cap.still .cap-shake0,
+.cap.still .cap-shake1 {
+  animation: none;
+}
+
+/* ---------- facts (both views) ---------- */
+.cap-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: 500 14px var(--ui);
+}
+.cap-dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 2px 12px;
+  margin: 0;
+}
+.cap-dl dt {
+  font-weight: 700;
+}
+.cap-dl dd {
+  margin: 0;
+  min-width: 0;
+}
+.cap-source,
+.cap-status {
+  padding: 4px 8px;
+  border-left: 4px solid var(--accent);
+  background: var(--card);
+  font-weight: 600;
+}
+.cap-status.done {
+  border-left-color: var(--green);
+}
+.cap-trail {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+.cap-stage {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mute);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.cap-back {
+  color: var(--ink);
+  font-weight: 600;
+}
+.cap-note {
+  color: var(--mute);
+  font-size: 13px;
+}
+.cap-note.not-yet {
+  color: var(--ink);
+  border-left: 4px solid var(--accent);
+  padding-left: 6px;
+}
+
+/* ---------- 3D: the facts in the book scene's panel ---------- */
+.cap-panel .cap-facts.compact {
+  max-height: min(30vh, 250px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+@media (min-width: 1100px) {
+  .cap-panel .cap-facts.compact {
+    max-height: min(27vh, 236px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cap-move {
+    transition: none;
+  }
+  .cap-busy,
+  .cap-shake0,
+  .cap-shake1 {
+    animation: none;
+  }
+}
