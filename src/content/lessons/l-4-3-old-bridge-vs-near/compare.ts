@@ -70,8 +70,8 @@ function deliveryTime(q: IntentQuote): Figure {
 function spreadFee(q: IntentQuote): Figure {
   const s = spreadUsd(q);
   return s === null
-    ? est("a small spread, in the price")
-    : { text: `about $${s.toFixed(2)} spread`, source: quoteSource(q) };
+    ? est("a small spread + fees, in the price")
+    : { text: `about $${s.toFixed(2)} spread + fees`, source: quoteSource(q) };
 }
 
 /** The NEAR way: two steps. The delivery time and the solver's spread come from the quote. */

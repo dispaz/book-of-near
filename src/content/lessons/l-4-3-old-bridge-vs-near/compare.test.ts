@@ -44,7 +44,7 @@ describe("the two timelines", () => {
     const steps = intentSteps(RECORDED_QUOTE);
     expect(steps).toHaveLength(2);
     expect(steps[1]!.time).toEqual({ text: "about 27 s", source: "recorded" });
-    expect(steps[1]!.fee).toEqual({ text: "about $0.09 spread", source: "recorded" });
+    expect(steps[1]!.fee).toEqual({ text: "about $0.09 spread + fees", source: "recorded" });
     // Signing is not in the quote: an estimate, labelled.
     expect(steps[0]!.time.source).toBe("estimate");
     expect(intentTotal(RECORDED_QUOTE).time).toEqual({ text: "about 27 s", source: "recorded" });
@@ -53,7 +53,7 @@ describe("the two timelines", () => {
   it("a live quote is labelled live, with its own numbers", () => {
     const steps = intentSteps(live);
     expect(steps[1]!.time).toEqual({ text: "about 31 s", source: "live" });
-    expect(steps[1]!.fee).toEqual({ text: "about $0.50 spread", source: "live" });
+    expect(steps[1]!.fee).toEqual({ text: "about $0.50 spread + fees", source: "live" });
   });
 
   it("without USD prices the fee is an estimate, never a made-up number", () => {

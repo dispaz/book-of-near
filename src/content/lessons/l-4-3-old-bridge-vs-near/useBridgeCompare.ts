@@ -13,6 +13,7 @@ import {
   exploitDone,
   intentTotal,
   pickResult,
+  sourceTag,
   PLAY_TICK_MS,
   PLAY_TICKS,
   type ExploitPhase,
@@ -118,7 +119,10 @@ export function useBridgeCompare({
 
   // The learner's own numbers in later text.
   useEffect(() => {
-    if (quote) setVars?.({ intentTime: intentTotal(quote).time.text });
+    if (quote) {
+      const t = intentTotal(quote).time;
+      setVars?.({ intentTime: `${t.text}, ${sourceTag(t.source)}` });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quote]);
 

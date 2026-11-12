@@ -112,7 +112,7 @@ export default function Scene(props: SceneProps) {
       ) : null}
       {step === HONEST ? (
         <HonestTake
-          comparedWith="Ethereum"
+          comparedWith="classic lock-and-mint bridges"
           // docs/lessons/stage-4/4.3.md, section 4.
           strengths={[
             "No shared honeypot for you: you never deposit into a big pool of locked coins that draws attackers.",
@@ -120,11 +120,10 @@ export default function Scene(props: SceneProps) {
             "Order privacy: confidential intents hide the size of a trade, so bots cannot front-run it.",
           ]}
           weaknesses={[
-            "Solver spread: market makers charge a small spread or fee for holding money on many chains. In this lesson's quote that is the gap between the USD value in and out.",
+            "Solver spread: market makers charge a small spread or fee for holding money on many chains. In this lesson's quote, the gap between the USD value in and out covers that spread and 1Click's fees.",
             "Thin markets: for rarely traded tokens only a few solvers may quote, so spreads can be wider, or there may be no quote at all.",
             "Not risk-free: intents still depend on active solvers and on the verifier contract that settles them.",
             "Bridges are not all alike: this lesson compares the classic lock-and-mint design, and its bridge times are estimates that vary by bridge and chain.",
-            "Compared with: classic bridges on Ethereum such as Wormhole, Multichain and Ronin (big collateral pools, wrapped tokens that can lose their peg, slow finality).",
           ]}
         />
       ) : null}

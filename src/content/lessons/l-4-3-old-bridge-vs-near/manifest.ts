@@ -16,7 +16,7 @@ export default {
   views: ["2d", "3d"],
   summary: "Compare a classic token bridge with NEAR's approach.",
   vars: {
-    intentTime: "about 27 s",
+    intentTime: "about 27 s, recorded quote",
   },
   steps: [
     {

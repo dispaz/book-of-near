@@ -5,7 +5,8 @@ import "./lessonKit.css";
 export type Claim = string | { text: string; unverified?: boolean };
 
 /** The chain NEAR is compared with, or "not different" when NEAR behaves like most chains here. */
-export type ComparedWith = "Ethereum" | "Solana" | "Cosmos" | "Bitcoin" | "not different";
+/** Free text is allowed when the comparison is with a design, not a chain (e.g. "classic lock-and-mint bridges"). */
+export type ComparedWith = "Ethereum" | "Solana" | "Cosmos" | "Bitcoin" | "not different" | (string & {});
 
 const listFormat = new Intl.ListFormat("en", { type: "conjunction" });
 

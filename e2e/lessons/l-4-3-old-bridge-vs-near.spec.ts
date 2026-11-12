@@ -3,7 +3,7 @@ import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3d, slow3d
 
 // Walks lesson 4.3 in demo mode (no wallet, no network): play the old bridge and the intent side by side
 // (bridge figures are labelled estimates, the intent's time and fee come from the recorded 1Click quote:
-// 27 s, a $0.09 spread), inspect the wrapped token, simulate the vault exploit, close the shield.
+// 27 s, $0.09 spread + fees), inspect the wrapped token, simulate the vault exploit, close the shield.
 const ID = "l-4-3-old-bridge-vs-near";
 const TITLE = "Old bridge vs the NEAR way";
 const STAGE = 4;
@@ -48,10 +48,10 @@ async function walk(page: Page) {
   );
   await expect(page.getByTestId("timeline-bridge-total")).toContainText("about 20 min");
   await expect(page.getByTestId("timeline-intent-total")).toContainText("about 27 s recorded quote");
-  await expect(page.getByTestId("timeline-intent-total")).toContainText("about $0.09 spread");
+  await expect(page.getByTestId("timeline-intent-total")).toContainText("about $0.09 spread + fees");
   await expect(page.getByTestId("quote-source")).toContainText("recorded 1Click quote");
   // The learner's number reaches the caption.
-  await expect(page.getByTestId("caption")).toContainText("2 for an intent (about 27 s)");
+  await expect(page.getByTestId("caption")).toContainText("2 for an intent (about 27 s, recorded quote)");
 
   await go(page, "what a wrapped token really is");
   await dock(page).getByRole("button", { name: "Inspect asset backing" }).click();
@@ -96,7 +96,7 @@ for (const view of ["2d", "3d"] as const)
           bridgeSteps: "6",
           intentSteps: "2",
           intentTime: "about 27 s",
-          intentFee: "about $0.09 spread",
+          intentFee: "about $0.09 spread + fees",
           quoteSource: "recorded",
           exploitSimulated: "true",
           protectedByNativeDelivery: "true",
