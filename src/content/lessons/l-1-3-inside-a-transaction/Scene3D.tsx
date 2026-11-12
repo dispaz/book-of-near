@@ -23,7 +23,9 @@ import {
   useBoxSize,
 } from "../../../scene-kit";
 import { useMediaQuery } from "../../../ui/hooks";
-import { FATE_TEXT, SHORT_NAME, short } from "./batch";
+import { shortId as short } from "../../../ui/format";
+import { FATE_TEXT, SHORT_NAME } from "./batch";
+import { replayShort } from "./replay";
 import { MADE, MAX_ITEMS, OBJ, PARCEL, RECEIVER, SIGNER, SIZE, parcelAt, shot } from "./layout3d";
 import { BREAK, BUILD, HOOK, OPEN, REPLAY, type Lesson } from "./useTxLesson";
 
@@ -79,6 +81,8 @@ export default function Scene3D({
     }));
   else slabs = items.map((it) => ({ key: `b${it.id}`, text: SHORT_NAME[it.kind], fate: "idle" as const }));
   const replayed = step === REPLAY && notRun.length > 0;
+  // The chain's reason for the latest copy it would not run, in a few words.
+  const why = replayShort(notRun[notRun.length - 1]?.reason ?? null);
   const sent = (step === OPEN && !!workshop) || sentNow || (step === REPLAY && !replayed);
   // Signed (stamped) once it has been sent, or at the replay step, where it is the old signed copy.
   const signed = sent || step === REPLAY;
@@ -100,7 +104,7 @@ export default function Scene3D({
           .join(", ")}.`
       : "The transaction has no actions yet.",
     failed ? `${failed.receiver} was rolled back: it was not created.` : "",
-    replayed ? "The copy did not run again: its nonce is used." : "",
+    replayed ? `The copy did not run again: ${why}.` : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -205,7 +209,7 @@ export default function Scene3D({
             position={[parcelAt(false)[0], 0.05, parcelAt(false)[2] + PARCEL * 0.9 + 0.85]}
             variant="hint"
           >
-            {"copy not run again: its nonce is used"}
+            {`copy not run again: ${why}`}
           </Label>
         ) : null}
       </InkStage>
