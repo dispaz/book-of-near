@@ -54,14 +54,8 @@ test.describe("backlog topic cards", () => {
     await expect(details).toContainText(/optional/i);
   });
 
-  test("a planned lesson with a summary shows its being-written state", async ({ page }) => {
-    await page.goto("/");
-    const stage4 = page.getByRole("region", { name: /Stage 4/ });
-    const card = stage4.getByRole("button", { name: /Old bridge vs the NEAR way/ });
-    await card.click();
-    const details = stage4.getByRole("region", { name: "Old bridge vs the NEAR way" });
-    await expect(details).toContainText(/being written/);
-  });
+  // A planned lesson's "being written" state is unit tested (src/ui/TopicCard.test.tsx): every planned
+  // lesson left in the contents (3.2, 3.3) is being built, so none stays planned long enough to pin here.
 
   test("a card has its own page with the same text", async ({ page }) => {
     await page.goto("/lesson/topic-2-dynamic-resharding");
