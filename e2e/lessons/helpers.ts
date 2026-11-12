@@ -35,11 +35,24 @@ export async function seedRoute(page: Page, route = "newcomer") {
   }, route);
 }
 
-/** Presses Next in the stage bar. */
+/**
+ * Presses Next in the stage bar and waits until the step number has gone up. Without that wait, a click
+ * that did not move the lesson on surfaced one step later as a confusing gate failure (a still-open gate
+ * on what the test thought was the next step); now it fails here, naming the step.
+ */
 export async function nextStep(page: Page) {
   const next = page.getByRole("button", { name: "Next step" });
+  const dots = page.getByRole("navigation", { name: "Lesson steps" }).getByRole("list");
   await expect(next).toBeEnabled();
+  const label = (await dots.getAttribute("aria-label")) ?? "";
+  const [, now, count] = /^Step (\d+) of (\d+)$/.exec(label) ?? [];
   await next.click();
+  if (now && count) {
+    await expect(dots, `Next did not move on from step ${now}`).toHaveAttribute(
+      "aria-label",
+      `Step ${Number(now) + 1} of ${count}`,
+    );
+  }
 }
 
 /** Picks one answer per question (in order) in the lesson's Check, then checks them. */

@@ -75,3 +75,40 @@ for (const id of LESSONS) {
     expect((await drawn(page)) - a).toBe(0);
   });
 }
+
+// The other half of the guard: an animation a click starts must draw (a scene that only drew on renders
+// would freeze mid-move), and must then let the canvas rest again (no endless redraw loop).
+test("a triggered 3d animation draws frames and then settles", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await seedRoute(page);
+  await page.addInitScript(countDrawnFrames);
+  await page.goto("/lesson/l-0-1-blockchain-basics?view=3d&step=2");
+  const stage = page.locator(".sk-stage").first();
+  await expect(stage).toHaveAttribute("data-camera", "still", { timeout: LOAD_3D });
+  await expect(stage).not.toHaveAttribute("data-pop", /./, { timeout: LOAD_3D });
+  await expectSettled(page);
+
+  const before = await drawn(page);
+  await page.locator(".action-slot").getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page.getByTestId("balance-Ben")).toHaveText("8");
+  // The new block and its slip move over many frames, not one.
+  await expect.poll(async () => (await drawn(page)) - before, { timeout: 5_000 }).toBeGreaterThan(5);
+  await expectSettled(page);
+});
+
+/** Waits until a whole second passes without a drawn frame, then checks the next two stay empty too. */
+async function expectSettled(page: Page) {
+  await expect
+    .poll(
+      async () => {
+        const a = await drawn(page);
+        await page.waitForTimeout(1000);
+        return (await drawn(page)) - a;
+      },
+      { timeout: 15_000, intervals: [0] },
+    )
+    .toBe(0);
+  const a = await drawn(page);
+  await page.waitForTimeout(2000);
+  expect((await drawn(page)) - a).toBe(0);
+}

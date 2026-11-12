@@ -1,9 +1,8 @@
 import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { IntroContext } from "../app/intro";
 import { CameraControls } from "./CameraControls";
 import { CameraRig } from "./CameraRig";
-import { useFrameOnRender } from "./frames";
 import { recallView } from "./viewMemory";
 import { PopClock, PopContext, PopGroup, usePopDriver } from "./PopUp";
 import { StageContext } from "./context";
@@ -173,6 +172,9 @@ export function InkStage({
 
 /** Inside the canvas: one frame after every render of the stage (new step, new props), as a safety net. */
 function DrawOnRender() {
-  useFrameOnRender();
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    invalidate();
+  });
   return null;
 }

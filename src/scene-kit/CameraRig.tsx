@@ -10,7 +10,6 @@ import {
   EASE_SECONDS,
   fitView,
   isCameraGesture,
-  MAX_FRAME_STEP,
   ORBIT,
   orbitLimits,
   smoothDamp,
@@ -100,8 +99,9 @@ export function CameraRig({
 }) {
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
-  // Through a ref, so markMoving stays a function of refs only (the canvas draws on demand).
-  const invalidate = useRef(useThree((s) => s.invalidate));
+  // The canvas draws on demand. invalidate is held in a ref so markMoving stays a function of refs only.
+  const invalidate = useThree((s) => s.invalidate);
+  const invalidateRef = useRef(invalidate);
   // OrbitControls listens on R3F's event target (or the canvas): watch the same element for gestures.
   const surface = useThree((s) => (s.events.connected as HTMLElement | undefined) ?? s.gl.domElement);
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
@@ -137,7 +137,7 @@ export function CameraRig({
    */
   const markMoving = () => {
     stillFrames.current = 0;
-    invalidate.current();
+    invalidateRef.current();
     if (motion.current === "moving") return;
     motion.current = "moving";
     reportMotion.current?.("moving");
@@ -282,7 +282,7 @@ export function CameraRig({
   useAnimatedFrame((_, delta) => {
     const c = controls.current;
     if (!c) return false;
-    const dt = Math.min(delta, MAX_FRAME_STEP);
+    const dt = delta; // already capped at MAX_FRAME_STEP by useAnimatedFrame
     // drei updates the controls once a frame (its own useFrame at priority -1, drei 10.7
     // core/OrbitControls.js) and the rig once more below: per update, this factor keeps the coasting
     // after a drag the same at any frame rate (see dampingFor).

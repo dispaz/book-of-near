@@ -38,14 +38,6 @@ export function useAnimatedFrame(callback: AnimatedFrame, priority = 0) {
   }, priority);
 }
 
-/** Asks for one frame after every render of the calling component (a safety net for imperative edits). */
-export function useFrameOnRender() {
-  const invalidate = useThree((s) => s.invalidate);
-  useEffect(() => {
-    invalidate();
-  });
-}
-
 /**
  * How long an attention cue (a bob or pulse on the thing to click next) moves before it rests in a pose
  * that still reads as "here". A cue that never stops would keep an idle page drawing forever.

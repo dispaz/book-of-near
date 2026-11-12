@@ -22,9 +22,8 @@ export function ViewOffset({ frame, reducedMotion }: { frame: Frame; reducedMoti
     let vx = 0;
     let vy = 0;
     if (c && !reducedMotion) {
-      const dt = delta;
-      [x, vx] = smoothDamp(c.x, goal.x, c.vx, EASE_SECONDS, dt);
-      [y, vy] = smoothDamp(c.y, goal.y, c.vy, EASE_SECONDS, dt);
+      [x, vx] = smoothDamp(c.x, goal.x, c.vx, EASE_SECONDS, delta);
+      [y, vy] = smoothDamp(c.y, goal.y, c.vy, EASE_SECONDS, delta);
       // Land once within a quarter pixel and barely moving.
       if (Math.abs(goal.x - x) < 0.25 && Math.abs(vx) < 1) [x, vx] = [goal.x, 0];
       if (Math.abs(goal.y - y) < 0.25 && Math.abs(vy) < 1) [y, vy] = [goal.y, 0];
