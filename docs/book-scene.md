@@ -105,6 +105,23 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
     Every object must be interactable throughout the lesson via `Pickable` (with accessible button overlays for
     keyboards, screen readers, and automated E2E tests). Picking objects should execute or advance the step's
     action (e.g. picking a key signs, picking a mailbox checks balances, picking a parcel sends, picking a scroll executes code).
+10a. **Clickable objects react to the learner.** A cursor change is not enough. Every `Pickable` object
+    gives feedback at each stage of an interaction, so the learner can tell what can be clicked and what a
+    click did:
+    - **Hover and keyboard focus:** the object lifts a little off the page and its outline thickens in the
+      stage accent. Focusing its pick button (Tab) shows the same thing as hovering it with a mouse.
+    - **Press:** a short squash on pointer down that springs back on release.
+    - **Pick:** an animation that belongs to the object and shows what the click did: a notebook opens,
+      a key turns, a parcel flies, a coin flips, a scroll unrolls. A pick never changes state silently.
+    - **Not yet:** an object that can't be used at this step gives a small "no" shake and a one-line hint
+      (for example "Send coins first") instead of ignoring the click.
+    - **After the step is done:** objects stay pickable for exploring. Picking one shows a detail (a
+      close-up, a value, a short fact) rather than doing nothing.
+    - **Reduced motion:** no lift, squash or shake. The outline and colour still change, and the pick's
+      result appears without animation.
+    - **Render on demand:** every reaction runs through `useAnimatedFrame` and settles (rule 12).
+    Build these into `Pickable` in the kit, so a lesson gets hover, focus, press and "not yet" for free and
+    supplies only its pick animation and its detail.
 11. **The learner may move the camera.** Orbit (drag), zoom (wheel, pinch) and pan (right drag,
     shift / ctrl / cmd + drag, two-finger drag). In a book scene the pan slides across the desk and the
     camera's target is held inside the open book's footprint (`bookFootprint(spread)`: both pages plus a
@@ -168,6 +185,9 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
   step ends the tour and prints the words again.
 - E2E at 390 × 760, 3D: no `data-spread`; `.book-page` is `display: contents` (docked).
 - Unit: `tourFor` (every step but the quiz has shots; targets exist at that step).
+- E2E, objects react (rule 10a): focusing a pick button marks its object as hovered; picking an object
+  plays its reaction (frames are drawn, then the canvas settles); picking an object too early shows its
+  "not yet" hint; after the step is done, picking an object shows its detail.
 - The lesson's normal walk, reduced-motion and `?webgl=0` tests, in 2D and 3D.
 
 `--book` scaffolds the print, tour and phone e2e tests and the `tourFor` unit test; the author adds the
