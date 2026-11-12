@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useThree } from "@react-three/fiber";
+import { useAnimatedFrame } from "./frames";
 import { viewOffset, type Frame } from "./framing";
-import { EASE_SECONDS, MAX_FRAME_STEP, smoothDamp } from "./motion";
+import { EASE_SECONDS, smoothDamp } from "./motion";
 
 /**
  * Shifts the picture so the camera's target sits in the middle of `frame`, the free part of the canvas
@@ -14,25 +15,26 @@ export function ViewOffset({ frame, reducedMotion }: { frame: Frame; reducedMoti
   const size = useThree((s) => s.size);
   const cur = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null);
   const goal = viewOffset(frame, size.width, size.height);
-  useFrame((_, delta) => {
+  useAnimatedFrame((_, delta) => {
     const c = cur.current;
     let x = goal.x;
     let y = goal.y;
     let vx = 0;
     let vy = 0;
     if (c && !reducedMotion) {
-      const dt = Math.min(delta, MAX_FRAME_STEP);
-      [x, vx] = smoothDamp(c.x, goal.x, c.vx, EASE_SECONDS, dt);
-      [y, vy] = smoothDamp(c.y, goal.y, c.vy, EASE_SECONDS, dt);
+      [x, vx] = smoothDamp(c.x, goal.x, c.vx, EASE_SECONDS, delta);
+      [y, vy] = smoothDamp(c.y, goal.y, c.vy, EASE_SECONDS, delta);
       // Land once within a quarter pixel and barely moving.
       if (Math.abs(goal.x - x) < 0.25 && Math.abs(vx) < 1) [x, vx] = [goal.x, 0];
       if (Math.abs(goal.y - y) < 0.25 && Math.abs(vy) < 1) [y, vy] = [goal.y, 0];
     }
     const v = (camera as { view?: { offsetX: number; offsetY: number; fullWidth: number } | null }).view;
     cur.current = { x, y, vx, vy };
-    if (v && v.offsetX === x && v.offsetY === y && v.fullWidth === size.width) return;
+    if (v && v.offsetX === x && v.offsetY === y && v.fullWidth === size.width) return false;
     if ("setViewOffset" in camera)
       camera.setViewOffset(size.width, size.height, x, y, size.width, size.height);
+    // Still gliding: ask for the next frame (the canvas draws on demand).
+    return x !== goal.x || y !== goal.y;
   });
   useEffect(
     () => () => {

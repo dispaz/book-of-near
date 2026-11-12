@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
-import { useFrame } from "@react-three/fiber";
 import { AdditiveBlending, type Group, type Sprite, type SpriteMaterial } from "three";
-import { arcPoint, easeInOut, MAX_FRAME_STEP as MAX_STEP, type Vec3 } from "./motion";
+import { arcPoint, easeInOut, type Vec3 } from "./motion";
+import { useAnimatedFrame } from "./frames";
 import { glowTexture } from "./materials";
 import { useStage } from "./context";
 import { COLORS } from "./theme";
@@ -65,14 +65,15 @@ export function Traveller({
     hop.current = { from: [g.position.x, g.position.y, g.position.z], to: target, elapsed: 0 };
   }, [x, y, z, reducedMotion]);
 
-  useFrame(({ clock }, delta) => {
+  // Asks for frames while it hops or its trail catches up (the canvas draws on demand).
+  useAnimatedFrame(({ clock }, delta) => {
     const g = group.current;
-    if (!g) return;
+    if (!g) return false;
     const h = hop.current;
     if (h) {
-      // Advance by the frame time, capped at MAX_STEP: a slow or stalled frame (busy phone, background
-      // tab) slows the hop down instead of skipping it, so the learner always sees the coin travel.
-      h.elapsed += Math.min(delta, MAX_STEP);
+      // Advance by the frame time (useAnimatedFrame caps it at MAX_FRAME_STEP): a slow or stalled frame
+      // (busy phone, background tab) slows the hop down instead of skipping it, so the coin always travels.
+      h.elapsed += delta;
       const u = Math.min(1, h.elapsed / duration);
       g.position.set(...arcPoint(h.from, h.to, arc, easeInOut(u)));
       if (u >= 1) {
@@ -83,7 +84,7 @@ export function Traveller({
     // Each trail dot chases the one before it; dots that have caught up are hidden.
     // The chase rates are per 60 Hz frame, scaled by the frame time so fast screens do not shorten the trail.
     const dots = trail.current;
-    const per = (k: number) => (reducedMotion ? 1 : 1 - Math.pow(1 - k, Math.min(delta, MAX_STEP) * 60));
+    const per = (k: number) => (reducedMotion ? 1 : 1 - Math.pow(1 - k, delta * 60));
     dots[0]?.position.lerp(g.position, per(0.5));
     for (let i = 1; i < dots.length; i++) {
       const prev = dots[i - 1];
@@ -101,6 +102,7 @@ export function Traveller({
           : 0.75 + 0.25 * Math.sin(clock.elapsedTime * 5.5);
       glowSprite.scale.setScalar(moving ? 2.6 : 1.9);
     }
+    return !!hop.current || dots.some((d) => !!d?.visible);
   });
 
   return (

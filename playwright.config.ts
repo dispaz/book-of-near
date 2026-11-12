@@ -21,8 +21,8 @@ function previewPort(): number {
 
 /**
  * WebGL for the 3D scenes. Headless Chromium draws WebGL in software (SwiftShader) unless told to use the
- * GPU. In software, an idle 3D lesson page keeps 2 to 6 CPU cores busy (the scene redraws every frame), so
- * a few parallel 3D tests starve the machine and their waits time out (issue #36). On macOS, ANGLE's Metal
+ * GPU. Scenes render on demand (#44), so an idle 3D page costs nothing, but every glide, pop-up and page
+ * turn is drawn on the CPU in software (before #44 an idle page kept 2 to 7 cores busy, issue #36). On macOS, ANGLE's Metal
  * backend uses the real GPU: about 0.3 of a core and 60 fps for the same page. E2E_GL=swiftshader forces
  * software WebGL (what CI without a GPU gets) to reproduce a CI run on a Mac.
  */
@@ -40,9 +40,10 @@ const workers =
       ? Number(envWorkers)
       : envWorkers;
 
-// E2E_NO_3D=1 (release CI, no GPU): WebGL is switched off, so lessons fall back to 2D, and the tests that
-// need the 3D scene are left out. Software WebGL on CI is too slow for them until scenes render on demand
-// (#44). The full suite, 3D included, stays the local gate on a machine with a GPU.
+// E2E_NO_3D=1: WebGL is switched off, so lessons fall back to 2D, and the tests that need the 3D scene are
+// left out. The blocking release CI e2e runs this way; the full suite in software WebGL runs in the
+// non-blocking `e2e-3d-software` job until it has a few clean runs (#44). The full suite, 3D included,
+// stays the local gate on a machine with a GPU.
 const no3d = process.env.E2E_NO_3D === "1";
 
 const port = process.env.BASE_URL ? undefined : previewPort();

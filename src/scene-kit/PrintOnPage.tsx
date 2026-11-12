@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useThree } from "@react-three/fiber";
 import { Vector3 } from "three";
 import type { TextBlock } from "./book";
+import { useAnimatedFrame } from "./frames";
 import { homography, matrix3d, type Quad } from "./homography";
 
 const STYLES = ["transform", "width", "height", "--print-k"] as const;
@@ -36,7 +37,12 @@ export function PrintOnPage({
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
   const v = useMemo(() => new Vector3(), []);
-  const st = useRef({ w: 0, h: 0, k: 1, n: 0, inView: null as boolean | null });
+  // `fit`: frames still to draw while the words are fitted (the canvas draws on demand); `fresh`: a
+  // render happened (new words?), so fit again on the next frame.
+  const st = useRef({ w: 0, h: 0, k: 1, n: 0, fit: 0, fresh: true, inView: null as boolean | null });
+  useEffect(() => {
+    st.current.fresh = true;
+  });
   // Not placing (or gone): give the element back its normal layout.
   useEffect(() => {
     if (!el || place) return;
@@ -49,7 +55,7 @@ export function PrintOnPage({
     },
     [el],
   );
-  useFrame(() => {
+  useAnimatedFrame(() => {
     const s = st.current;
     const proj = (x: number, z: number): [number, number] | null => {
       v.set(x, 0, z).project(camera);
@@ -66,8 +72,10 @@ export function PrintOnPage({
       s.inView = inView;
       onInView(inView);
     }
-    if (!el || !place || q.some((p) => !p)) return;
-    if (s.n++ % 12 === 0 || !s.w) {
+    if (!el || !place || q.some((p) => !p)) return false;
+    if (s.n++ % 12 === 0 || !s.w || s.fresh) {
+      s.fresh = false;
+      const before = `${s.w} ${s.k}`;
       // As many CSS pixels wide as the block is across its middle on screen.
       const zm = (z0 + z1) / 2;
       const a = proj(x0, zm)!;
@@ -83,8 +91,12 @@ export function PrintOnPage({
       if (el.scrollHeight > el.clientHeight + 2 && s.k > 0.72) s.k = +(s.k - 0.04).toFixed(2);
       else if (el.scrollHeight < el.clientHeight * 0.82 && s.k < 1) s.k = +(s.k + 0.04).toFixed(2);
       el.style.setProperty("--print-k", String(s.k));
+      // Changed: keep drawing until the next check (12 frames on) finds the fit settled.
+      if (`${s.w} ${s.k}` !== before) s.fit = 13;
     }
     el.style.transform = matrix3d(homography(s.w, s.h, q as Quad));
+    if (s.fit > 0) s.fit--;
+    return s.fit > 0;
   });
   return null;
 }

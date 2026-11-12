@@ -8,7 +8,6 @@
  * lazily from Scene.tsx.
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useFrame } from "@react-three/fiber";
 import { Line } from "@react-three/drei";
 import type { Group } from "three";
 import {
@@ -31,6 +30,7 @@ import {
   useStage,
   type Focus,
   type Vec3,
+  useAnimatedFrame,
 } from "../../../scene-kit";
 import type { SceneProps } from "../../../app/types";
 import {
@@ -204,15 +204,16 @@ function GrowIn({ at, children }: { at: Vec3; children: ReactNode }) {
   const { reducedMotion } = useStage();
   const g = useRef<Group>(null);
   const t0 = useRef<number | null>(reducedMotion ? -1 : null);
-  useFrame(({ clock }) => {
+  useAnimatedFrame(({ clock }) => {
     const n = g.current;
-    if (!n || t0.current === -1) return;
+    if (!n || t0.current === -1) return false;
     t0.current ??= clock.elapsedTime;
     const u = Math.min(1, (clock.elapsedTime - t0.current) / 0.7);
     // Ease out with a little overshoot, like paper popping up.
     const s = u >= 1 ? 1 : 1 + 1.4 * Math.pow(u - 1, 3) + 0.4 * Math.pow(u - 1, 2);
     n.scale.set(Math.max(0.05, s), Math.max(0.05, s), Math.max(0.05, s));
     if (u >= 1) t0.current = -1;
+    return u < 1;
   });
   return (
     // Scaled about `at` (where the child stands on the page), so it grows in place.

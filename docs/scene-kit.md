@@ -85,5 +85,12 @@ Most lessons offer a 2D and a 3D view of one shared state (see `docs/lesson-temp
 - No WebGL (or `?webgl=0`): the lesson page shows the manifest `fallback` (SVG kit). Without one it shows
   the captions as text. The stage-bar captions and "Read as text" are the same in every mode.
 - A scene that throws shows the fallback too (`SceneBoundary`).
+- **Animations must request frames (`frameloop="demand"`).** `InkStage`'s canvas draws on demand: an
+  idle scene draws nothing (in software WebGL a 60 fps idle scene kept several cores busy, #44). Use
+  `useAnimatedFrame(cb)` (`frames.ts`) for anything that moves: `cb` returns `true` while it still moves
+  and the next frame is requested; it also asks for one frame after each render of its component, and
+  caps `delta` at `MAX_FRAME_STEP`. Plain `useFrame` only for followers. React prop changes on three
+  objects, resizes and orbit gestures ask for frames on their own; an in-place texture redraw calls
+  `invalidate()`. Cues stop after `CUE_SECONDS`. Measure with `node scripts/perf-idle-3d.mjs`.
 - Reduced motion: no tweening anywhere. Camera, travellers and state jump to their end states; the
   hint pulse stops. The 3D scene still shows (it is static), and the text version stays available.

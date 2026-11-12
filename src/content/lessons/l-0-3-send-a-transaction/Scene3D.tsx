@@ -5,7 +5,6 @@
  * Loaded lazily from Scene.tsx, so the 2D view never downloads three.js.
  */
 import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import { useFrame } from "@react-three/fiber";
 import { Line } from "@react-three/drei";
 import type { Group } from "three";
 import {
@@ -27,6 +26,7 @@ import {
   useInk,
   useStage,
   type Vec3,
+  useAnimatedFrame,
 } from "../../../scene-kit";
 import { useMediaQuery } from "../../../ui/hooks";
 import { duration, near, short, TRANSFER_FEE } from "./tx";
@@ -511,10 +511,11 @@ function Drop({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     if (g.current) g.current.position.y = reducedMotion ? 0 : 2.4;
   }, [reducedMotion]);
-  useFrame((_, dt) => {
+  useAnimatedFrame((_, dt) => {
     const o = g.current;
-    if (!o || o.position.y <= 0) return;
+    if (!o || o.position.y <= 0) return false;
     o.position.y = Math.max(0, o.position.y - dt * 6);
+    return o.position.y > 0;
   });
   return <group ref={g}>{children}</group>;
 }
@@ -526,10 +527,11 @@ function Pop({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     g.current?.scale.setScalar(reducedMotion ? 1 : 0.01);
   }, [reducedMotion]);
-  useFrame((_, dt) => {
+  useAnimatedFrame((_, dt) => {
     const o = g.current;
-    if (!o || o.scale.x >= 1) return;
+    if (!o || o.scale.x >= 1) return false;
     o.scale.setScalar(Math.min(1, o.scale.x + dt * 4));
+    return o.scale.x < 1;
   });
   return <group ref={g}>{children}</group>;
 }

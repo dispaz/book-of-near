@@ -15,6 +15,7 @@ export {
   type TextBlock,
 } from "./book";
 export { PrintOnPage } from "./PrintOnPage";
+export { CUE_SECONDS, useAnimatedFrame, type AnimatedFrame } from "./frames";
 export {
   BookScene,
   TourControls,
