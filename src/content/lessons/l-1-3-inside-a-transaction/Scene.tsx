@@ -5,16 +5,11 @@ import { ActionSlot, SceneAction } from "../../../ui/SceneAction";
 import { Check, HonestTake, type CheckQuestion } from "../../../lesson-kit";
 import { useChain } from "../../../chain/ChainContext";
 import type { SignedTransaction } from "../../../chain/types";
-import {
-  FATE_TEXT,
-  ITEM_NAME,
-  SHORT_NAME,
-  describeAction,
-  itemText,
-  near,
-  short,
-  type ItemKind,
-} from "./batch";
+import { ObjectIcon } from "../../../scene-kit/svg/objects";
+import { COLORS } from "../../../scene-kit/theme";
+import { nearAmount as near, shortId as short } from "../../../ui/format";
+import { FATE_TEXT, ITEM_NAME, SHORT_NAME, describeAction, itemText, type ItemKind } from "./batch";
+import { replayWhy } from "./replay";
 import {
   BREAK,
   BUILD,
@@ -218,6 +213,7 @@ function TxCard({ lesson, marks }: { lesson: Lesson; marks: boolean }) {
   return (
     <section className="tl-card tl-tx" aria-label="The transaction" {...mark(marks, name)}>
       <p className="tl-role">
+        <ObjectIcon kind="parcel" size={18} />{" "}
         {step <= OPEN ? "A transaction" : step === REPLAY ? "Your first batch" : "Your batch"}
       </p>
       {step === REPLAY && lesson.worked ? (
@@ -268,12 +264,19 @@ function Sketch() {
 }
 
 function Fields({ tx }: { tx: SignedTransaction }) {
+  // A receiver that is called (the registrar) is a contract: a scroll. A plain account is a mailbox.
+  const called = tx.actions.some((a) => a.type === "FunctionCall");
   return (
     <dl className="tl-fields" data-testid="tx-fields">
       <dt>Signer</dt>
-      <dd title={tx.signerId}>{short(tx.signerId, 14, 8)}</dd>
+      <dd title={tx.signerId}>
+        <ObjectIcon kind="mailbox" size={18} /> {short(tx.signerId, 14, 8)}
+      </dd>
       <dt>Receiver</dt>
-      <dd title={tx.receiverId}>{short(tx.receiverId, 18, 10)}</dd>
+      <dd title={tx.receiverId}>
+        <ObjectIcon kind={called ? "scroll" : "mailbox"} size={18} color={called ? undefined : COLORS.blue} />{" "}
+        {short(tx.receiverId, 18, 10)}
+      </dd>
       <dt>Actions</dt>
       <dd>
         <ol className="tl-acts">
@@ -308,7 +311,9 @@ function Result({ sent, marks }: { sent: Sent | null; marks: boolean }) {
       data-testid="tx-result"
       {...mark(marks, "result")}
     >
-      <p className="tl-role">What the chain did</p>
+      <p className="tl-role">
+        <ObjectIcon kind="mailbox" size={18} color={COLORS.blue} /> What the chain did
+      </p>
       {!sent ? (
         <p className="tl-dim">Nothing sent yet.</p>
       ) : (
@@ -360,7 +365,9 @@ function ReplayLog({ lesson, marks }: { lesson: Lesson; marks: boolean }) {
       data-testid="replay-log"
       {...mark(marks, "replay")}
     >
-      <p className="tl-role">Sent again, unchanged</p>
+      <p className="tl-role">
+        <ObjectIcon kind="parcel" size={18} /> Sent again, unchanged
+      </p>
       {lesson.replays.length === 0 ? <p className="tl-dim">Nothing sent again yet.</p> : null}
       <ol>
         {[...lesson.replays].reverse().map((r) => (
@@ -370,9 +377,7 @@ function ReplayLog({ lesson, marks }: { lesson: Lesson; marks: boolean }) {
             {r.notRun ? (
               <span className="tl-why">
                 {r.reason ? <code>{r.reason} </code> : null}
-                The chain will not run it again: its nonce is used.
-                {r.keyNonce !== null ? ` The key's nonce is now ${r.keyNonce.toString()}.` : ""} Nothing ran,
-                and nothing was charged.
+                {replayWhy(r)}
               </span>
             ) : (
               <span className="tl-why">{r.message}</span>
