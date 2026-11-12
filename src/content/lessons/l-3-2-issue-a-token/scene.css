@@ -1,0 +1,240 @@
+/* Lesson 3.2: issue your own token (same layout as lesson 3.1). One state, a flat page (2D) or the pop-up book (3D). */
+.tok {
+  position: absolute;
+  top: var(--head-h, 112px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--bar-reserve, 88px) + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .tok {
+    top: var(--head-h, 104px);
+    left: 448px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    gap: 12px;
+  }
+}
+.tok p,
+.tok-panel p {
+  margin: 0;
+}
+.tok code,
+.tok-panel code {
+  font:
+    600 13px ui-monospace,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- flat page ---------- */
+.tok-2d {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 6px;
+}
+.tok-2d svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 46vh;
+}
+.tok-link {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.tok-link.dashed {
+  stroke-dasharray: 7 5;
+}
+.tok-bar {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.tok-bar.dashed {
+  stroke-dasharray: 7 5;
+}
+.tok-bar-lock {
+  fill: var(--accent);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.tok-svg-label {
+  font: 600 15px var(--ui);
+  fill: var(--ink);
+}
+.tok-svg-label.small {
+  font-size: 13px;
+}
+
+/* ---------- the facts (both views) ---------- */
+.tok-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--ink);
+  border-top: 5px solid var(--accent);
+  border-radius: 12px;
+  background: var(--glass);
+  font: 500 15px/1.4 var(--serif);
+  color: var(--ink);
+}
+.tok-facts:empty {
+  display: none;
+}
+.tok-soft {
+  color: var(--mute);
+}
+.tok-warn {
+  font: 600 15px/1.4 var(--ui);
+  color: color-mix(in srgb, var(--red) 60%, var(--ink));
+}
+.tok-list {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  align-items: baseline;
+}
+.tok-list dt {
+  font: 700 12px var(--ui);
+  color: var(--mute);
+}
+.tok-list dd {
+  margin: 0;
+  min-width: 0;
+}
+.tok-gauge {
+  height: 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--card);
+  overflow: hidden;
+}
+.tok-gauge-lock {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-right: 1.5px solid var(--ink);
+}
+.tok-storage {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tok-receipts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tok-receipts li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  align-items: baseline;
+}
+.tok-receipts .tok-mark {
+  font: 700 15px var(--ui);
+}
+.tok-receipts li.ok .tok-mark {
+  color: color-mix(in srgb, var(--green) 75%, var(--ink));
+}
+.tok-receipts li.failed .tok-mark {
+  color: color-mix(in srgb, var(--red) 80%, var(--ink));
+}
+.tok-note {
+  font-size: 14px;
+  color: var(--mute);
+}
+
+/* ---------- 3D: the facts in the book scene's panel ---------- */
+.tok-panel .tok-facts.compact {
+  max-height: min(30vh, 250px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (min-width: 1100px) {
+  .tok-panel .tok-facts.compact {
+    max-height: min(27vh, 236px);
+  }
+}
+
+@media (max-width: 600px) {
+  .tok-facts {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+}
+
+/* ---------- the mint form (docked above the lesson card) ---------- */
+.tok-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 14px;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  font: 600 15px var(--ui);
+}
+.tok-form label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tok-form input {
+  width: 6.5em;
+  padding: 6px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: #fff;
+  font: 600 15px var(--ui);
+  color: var(--ink);
+}
+.tok-form input:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 1px;
+}
+.tok-form-error {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--red);
+  font: 600 13px var(--ui);
+}
+.tok-hint {
+  font: 600 14px/1.4 var(--ui);
+  border-left: 4px solid var(--accent);
+  padding-left: 8px;
+}
+.tok-hint.notyet {
+  border-left-color: var(--red);
+}
+.tok-svg-padlock rect,
+.tok-svg-padlock path {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+
+/* Reduced motion: end states only (the global CSS already cuts transitions). */
+.tok.still * {
+  animation: none !important;
+  transition: none !important;
+}

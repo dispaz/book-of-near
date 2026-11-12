@@ -10,7 +10,10 @@
 import { base64 } from "@scure/base";
 import { isValidAccountId } from "../accountId";
 import { ChainError } from "../errors";
+import { DELEGATE_VALIDITY_BLOCKS } from "../ops";
 import type {
+  DelegateRequest,
+  SignedDelegate,
   AccessKeyInfo,
   AccountId,
   AccountView,
@@ -34,7 +37,13 @@ import type {
   UnsignedTransaction,
   ViewCallResult,
 } from "../types";
-import { serializeSignedTransaction, transactionDigest, transactionHash } from "./borsh";
+import {
+  delegateDigest,
+  serializeSignedDelegate,
+  serializeSignedTransaction,
+  transactionDigest,
+  transactionHash,
+} from "./borsh";
 import { KeyStore } from "./keys";
 import {
   blockHashesOf,
@@ -330,6 +339,29 @@ export class TestnetChain implements Chain {
     const digest = transactionDigest(tx);
     const signature = await this.keys.sign(tx.publicKey, digest);
     return { ...tx, hash: transactionHash(tx), signature };
+  }
+
+  async signDelegate(request: DelegateRequest): Promise<SignedDelegate> {
+    if (request.actions.some((a) => a.type === "Delegate"))
+      throw new ChainError("InvalidTransaction", "A delegate action cannot hold another one.");
+    const tx = await this.buildTransaction({
+      signerId: request.senderId,
+      receiverId: request.receiverId,
+      actions: request.actions,
+      publicKey: request.publicKey,
+    });
+    const head = await this.block("final");
+    const fields = {
+      senderId: tx.signerId,
+      receiverId: tx.receiverId,
+      actions: tx.actions,
+      nonce: tx.nonce,
+      maxBlockHeight: BigInt(head.height + DELEGATE_VALIDITY_BLOCKS),
+      publicKey: tx.publicKey,
+    };
+    const signature = await this.keys.sign(tx.publicKey, delegateDigest(fields));
+    const payload = base64.encode(serializeSignedDelegate({ ...fields, signature }));
+    return { ...fields, signature, payload };
   }
 
   async sendTransaction(request: TransactionRequest, options: SendOptions = {}): Promise<TxOutcome> {

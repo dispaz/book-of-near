@@ -25,6 +25,7 @@ const ADD_CALL_KEY: Fee = { send: 102_217_625_000n, exec: 102_217_625_000n };
 const ADD_CALL_KEY_PER_BYTE: Fee = { send: 1_925_331n, exec: 1_925_331n };
 const DELETE_KEY: Fee = { send: 94_946_625_000n, exec: 94_946_625_000n };
 const DELETE_ACCOUNT: Fee = { send: 147_489_000_000n, exec: 147_489_000_000n };
+const DELEGATE: Fee = { send: 200_000_000_000n, exec: 200_000_000_000n };
 
 /** Gas price DemoChain uses: 0.0001 NEAR per Tgas, NEAR's documented floor. */
 export const GAS_PRICE = 100_000_000n;
@@ -69,6 +70,10 @@ export function actionFee(action: Action): Fee {
       return DELETE_KEY;
     case "DeleteAccount":
       return DELETE_ACCOUNT;
+    case "Delegate":
+      // The relayer's transaction also pays to send the inner receipt (its exec and attached gas are
+      // held through attachedGas below).
+      return { send: DELEGATE.send + sendGas(action.delegate.actions), exec: DELEGATE.exec };
   }
 }
 
@@ -84,12 +89,27 @@ export function execGas(actions: Action[]): Gas {
 
 /** Gas attached to function calls, available to contract code. */
 export function attachedGas(actions: Action[]): Gas {
-  return actions.reduce((s, a) => s + (a.type === "FunctionCall" ? a.gas : 0n), 0n);
+  return actions.reduce(
+    (s, a) =>
+      s +
+      (a.type === "FunctionCall"
+        ? a.gas
+        : a.type === "Delegate"
+          ? execGas(a.delegate.actions) + attachedGas(a.delegate.actions)
+          : 0n),
+    0n,
+  );
 }
 
 export function deposits(actions: Action[]): bigint {
   return actions.reduce(
-    (s, a) => s + (a.type === "Transfer" || a.type === "FunctionCall" ? a.deposit : 0n),
+    (s, a) =>
+      s +
+      (a.type === "Transfer" || a.type === "FunctionCall"
+        ? a.deposit
+        : a.type === "Delegate"
+          ? deposits(a.delegate.actions)
+          : 0n),
     0n,
   );
 }
