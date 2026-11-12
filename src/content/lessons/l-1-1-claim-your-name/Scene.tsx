@@ -2,6 +2,7 @@ import { lazy, Suspense, useContext, useEffect, useRef, type ReactNode } from "r
 import { createPortal } from "react-dom";
 import type { SceneProps } from "../../../app/types";
 import { ActionSlot, SceneAction } from "../../../ui/SceneAction";
+import { ObjectIcon } from "../../../scene-kit/svg/objects";
 import { Check, HonestTake, type CheckQuestion } from "../../../lesson-kit";
 import { useChain } from "../../../chain/ChainContext";
 import { near, short, type KindError } from "../l-0-3-send-a-transaction/tx";
@@ -10,7 +11,7 @@ import { CHECK, COMPARE, CONCEPT, CREATE, HONEST, HOOK, PICK, useClaim, type Cla
 import "../l-0-3-send-a-transaction/scene.css";
 import "./name.css";
 
-/** The 3D view, loaded only when the learner picks 3D, so 2D never downloads three.js. */
+/** The 3D view (a pop-up book scene), loaded only when the learner picks 3D, so 2D never downloads three.js. */
 const Scene3D = lazy(() => import("./Scene3D"));
 
 const QUESTIONS: CheckQuestion[] = [
@@ -60,7 +61,7 @@ export default function Scene(props: SceneProps) {
 
 /**
  * One state (useClaim) drawn two ways. The facts, the status, the docked controls, the check and the
- * honest take are shared; the picture of the three accounts is flat cards (2D) or the 3D scene.
+ * honest take are shared; the picture of the three accounts is flat cards (2D) or the pop-up book (3D).
  */
 function ClaimScene({
   step,
@@ -76,51 +77,51 @@ function ClaimScene({
   const claim = useClaim({ step, goTo, setGate, reducedMotion, setVars, reportEvidence });
   const { created, error, status } = claim;
   const summary = step >= CHECK;
-  // The check and honest-take steps open a quiz window / text page over the scene, so 3D falls back to
-  // the one-line summary there (same as lesson 0.3) instead of drawing a scene that sits under the window.
-  const three = view === "3d" && !summary;
-
-  const cast = <Cast claim={claim} flat={!three} />;
 
   return (
     <>
-      <div
-        className={`stx cn scroll-fade-narrow${reducedMotion ? " still" : ""}${summary ? " summary" : ""}${three ? " three" : ""}`}
-        data-testid="name-scene"
-        data-scene-state={claim.state}
-        data-view={view}
-        data-mode={mode}
-        role="group"
-        aria-label="Claiming a name on NEAR testnet"
-      >
-        {summary ? (
-          created ? (
-            <p className="stx-sum">
-              Your account: <code>{created.id}</code>
+      {view === "3d" ? (
+        <Suspense fallback={<p className="visually-hidden">Loading the 3D view…</p>}>
+          {/* The book draws the accounts; the facts of the step sit over its right page, and the cards
+              stay readable as text. */}
+          <Scene3D
+            claim={claim}
+            flat={flat}
+            reducedMotion={reducedMotion}
+            mode={mode}
+            panel={<Detail claim={claim} flat={false} />}
+            hidden={<Cast claim={claim} flat={false} />}
+          />
+        </Suspense>
+      ) : (
+        <div
+          className={`stx cn scroll-fade-narrow${reducedMotion ? " still" : ""}${summary ? " summary" : ""}`}
+          data-testid="name-scene"
+          data-scene-state={claim.state}
+          data-view={view}
+          data-mode={mode}
+          role="group"
+          aria-label="Claiming a name on NEAR testnet"
+        >
+          {summary ? (
+            created ? (
+              <p className="stx-sum">
+                Your account: <code>{created.id}</code>
+              </p>
+            ) : null
+          ) : (
+            <Cast claim={claim} flat />
+          )}
+
+          {summary ? null : status ? (
+            <p className="stx-status" aria-live="polite" data-testid="scene-status">
+              {status}
             </p>
-          ) : null
-        ) : three ? (
-          <>
-            <div className="stx-3d" data-testid="name-3d">
-              <Suspense fallback={<p className="stx-3d-loading">Loading the 3D scene…</p>}>
-                <Scene3D claim={claim} flat={flat} reducedMotion={reducedMotion} />
-              </Suspense>
-            </div>
-            {/* The 3D scene draws the accounts; the same facts stay readable as text. */}
-            <div className="visually-hidden">{cast}</div>
-          </>
-        ) : (
-          cast
-        )}
+          ) : null}
 
-        {summary ? null : status && !three ? (
-          <p className="stx-status" aria-live="polite" data-testid="scene-status">
-            {status}
-          </p>
-        ) : null}
-
-        {summary ? null : <Detail claim={claim} flat={!three} />}
-      </div>
+          {summary ? null : <Detail claim={claim} flat />}
+        </div>
+      )}
 
       {error ? (
         <ErrorBox
@@ -185,7 +186,9 @@ function Cast({ claim, flat }: { claim: Claim; flat: boolean }) {
   return (
     <div className={`cn-cast${showOthers ? "" : " one"}`}>
       <section className="stx-acct" aria-label="Your practice account" data-explain={mark("account")}>
-        <p className="stx-acct-role">You · practice account</p>
+        <p className="stx-acct-role">
+          <ObjectIcon kind="mailbox" /> You · practice account
+        </p>
         <p className="stx-acct-id" title={me?.accountId}>
           {me ? short(me.accountId, 6, 4) : "…"}
         </p>
@@ -195,9 +198,15 @@ function Cast({ claim, flat }: { claim: Claim; flat: boolean }) {
       </section>
       {showOthers ? (
         <>
-          <Arrow label={step >= CREATE ? "0.1 NEAR + key" : ""} on={claim.busy || !!created} />
+          <Arrow
+            label={step >= CREATE ? "0.1 NEAR + key" : ""}
+            parcel={step >= CREATE}
+            on={claim.busy || !!created}
+          />
           <section className="stx-acct" aria-label="The registrar" data-explain={mark("registrar")}>
-            <p className="stx-acct-role">Registrar</p>
+            <p className="stx-acct-role">
+              <ObjectIcon kind="scroll" /> Registrar
+            </p>
             <p className="stx-acct-id">{claim.registrar}</p>
             <p className="stx-acct-bal">
               <span className="stx-note">makes {SUFFIX} names</span>
@@ -209,7 +218,9 @@ function Cast({ claim, flat }: { claim: Claim; flat: boolean }) {
             aria-label="The new account"
             data-explain={mark("name-box")}
           >
-            <p className="stx-acct-role">{created ? "Your new account" : "New account"}</p>
+            <p className="stx-acct-role">
+              <ObjectIcon kind="mailbox" /> {created ? "Your new account" : "New account"}
+            </p>
             <p className="stx-acct-id" title={newLabel}>
               {newLabel}
             </p>
@@ -227,9 +238,11 @@ function Cast({ claim, flat }: { claim: Claim; flat: boolean }) {
   );
 }
 
-function Arrow({ label, on }: { label: string; on: boolean }) {
+/** An arrow between two cards. With `parcel`, the create transaction (a stamped parcel) rides on it. */
+function Arrow({ label, on, parcel = false }: { label: string; on: boolean; parcel?: boolean }) {
   return (
     <div className={`stx-arrow${on ? " moving" : ""}`} aria-hidden="true">
+      {parcel ? <ObjectIcon kind="parcel" size={20} /> : null}
       <svg viewBox="0 0 60 24">
         <path d="M4 12 H52 M44 5 L53 12 L44 19" />
       </svg>
@@ -351,7 +364,9 @@ function Detail({ claim, flat }: { claim: Claim; flat: boolean }) {
         <p className="stx-detail-title">The same key, two possible ids</p>
         <div className="cn-compare">
           <section className="stx-acct" aria-label="Named account" data-testid="compare-named">
-            <p className="stx-acct-role">Named · exists</p>
+            <p className="stx-acct-role">
+              <ObjectIcon kind="mailbox" /> Named · exists
+            </p>
             <p className="stx-acct-id" title={created.id}>
               {created.id}
             </p>
@@ -360,7 +375,9 @@ function Detail({ claim, flat }: { claim: Claim; flat: boolean }) {
             </p>
           </section>
           <section className="stx-acct cn-ghost" aria-label="Hex account" data-testid="compare-hex">
-            <p className="stx-acct-role">Hex · not created</p>
+            <p className="stx-acct-role">
+              <ObjectIcon kind="mailbox" /> Hex · not created
+            </p>
             <p className="stx-acct-id" title={created.hexId}>
               {short(created.hexId, 10, 6)}
             </p>

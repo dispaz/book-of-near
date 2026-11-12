@@ -16,6 +16,7 @@ export {
 } from "./book";
 export { PrintOnPage } from "./PrintOnPage";
 export { CUE_SECONDS, useAnimatedFrame, type AnimatedFrame } from "./frames";
+export { useBoxSize } from "./useBoxSize";
 export {
   BookScene,
   TourControls,
