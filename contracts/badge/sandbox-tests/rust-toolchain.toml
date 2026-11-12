@@ -1,0 +1,3 @@
+# The tests are native code and can use current stable Rust (the contract itself is pinned one level up).
+[toolchain]
+channel = "stable"
