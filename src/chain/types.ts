@@ -7,6 +7,8 @@
  * into them field by field. Amounts are bigint yoctoNEAR, gas is bigint gas units.
  */
 
+import type { RpcEndpointId } from "./rpcEndpoints";
+
 /** Account id, e.g. `alice.testnet` or a 64-hex implicit id. Rules in accountId.ts. */
 export type AccountId = string;
 /** base58 32-byte hash, the format NEAR uses for tx hashes, receipt ids and block hashes. */
@@ -294,6 +296,34 @@ export interface ShardLayout {
   boundaryAccounts: AccountId[];
 }
 
+/** One question to one RPC endpoint (`Chain.probeRpc`, lesson 3.3): how long it took and what came back. */
+export type RpcProbe =
+  | {
+      ok: true;
+      endpointId: RpcEndpointId;
+      /** Round trip in milliseconds. */
+      latencyMs: number;
+      blockHeight: number;
+      blockTimestampMs: number;
+    }
+  | {
+      ok: false;
+      endpointId: RpcEndpointId;
+      latencyMs: number;
+      /** UnknownBlock: the node does not keep that block. Unavailable: no answer, a 5xx or a 429. */
+      error: "UnknownBlock" | "Unavailable";
+      /** HTTP status when the node answered. */
+      status?: number;
+      message: string;
+    };
+
+export interface ProbeOptions {
+  /** Demo mode waits the recorded round trip when "realtime" (default); "instant" answers at once. */
+  pace?: "realtime" | "instant";
+  /** Aborting it stops the request (a lesson that unmounts mid-race); the probe then rejects. */
+  signal?: AbortSignal;
+}
+
 // ---------- Errors ----------
 
 export type InvalidTxReason =
@@ -377,4 +407,9 @@ export interface Chain {
   block(ref?: BlockRef): Promise<BlockView>;
   chunk(block: BlockRef, shardId: ShardId): Promise<ChunkView>;
   shardLayout(): Promise<ShardLayout>;
+  /**
+   * Ask ONE RPC endpoint (`RPC_ENDPOINTS` in rpcEndpoints.ts) for a block, with no fallback, and time it.
+   * Never rejects for a node's problem: it resolves `ok: false`. Rejects only for an unknown endpoint id or an aborted `signal`.
+   */
+  probeRpc(endpointId: RpcEndpointId, ref?: BlockRef, options?: ProbeOptions): Promise<RpcProbe>;
 }

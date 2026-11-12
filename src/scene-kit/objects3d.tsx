@@ -29,6 +29,7 @@ import {
   lookOf,
   mailboxDims,
   parcelDims,
+  rpcWindowDims,
   ribbonNotch,
   ribbonOutline,
   screenDims,
@@ -627,6 +628,110 @@ export function AppScreen({
     <group position={position}>
       {dashed ? null : <SoftShadow position={[0, 0, 0.2]} size={[size * 1.3, size * 0.7]} />}
       {maybePickable(pick, name, y, body)}
+    </group>
+  );
+}
+
+// ---------- RPC node: a counter window ----------
+
+/**
+ * An RPC node: a post-office counter booth, an awning in the accent on top, a window in front and a ledge
+ * under it. `lit` lights the window (it is answering), `shut` pulls its shutter down (it does not keep
+ * what was asked, or it is closed). `state="failed"` is a node that is down: red awning, a red cross.
+ */
+export function RpcWindow({
+  position = [0, 0, 0],
+  name,
+  note,
+  size = 1.4,
+  color = COLORS.blue,
+  state = "ok",
+  lit = false,
+  shut = false,
+  ...pick
+}: ObjectProps & { name: string; note?: string; size?: number; lit?: boolean; shut?: boolean }) {
+  const d = rpcWindowDims(size);
+  const look = lookOf(state, color);
+  const dashed = look.dashed;
+  const down = state === "failed";
+  const front = d.depth / 2;
+  // Behind a shutter the window is dark; the shutter itself slides down over it.
+  const pane = lit && !shut && !down ? color : INK;
+  const body = (
+    <SelectRing selected={!!pick.selected} radius={size * 0.6} color={color}>
+      {/* Booth. */}
+      <Part fill={partFill(look, COLORS.paper)} dashed={dashed} position={[0, d.height / 2, 0]}>
+        <boxGeometry args={[d.width, d.height, d.depth]} />
+      </Part>
+      {/* Awning: the provider's colour band. */}
+      <Part fill={look.fill} dashed={dashed} position={[0, d.height + d.awning / 2, 0.06]}>
+        <boxGeometry args={[d.width * 1.08, d.awning, d.depth + 0.12]} />
+      </Part>
+      {/* Window: dark when idle, lit in the accent while answering, a grey shutter when shut or down. */}
+      <Part fill={dashed ? null : pane} dashed={dashed} position={[0, d.windowY, front + 0.012]}>
+        <boxGeometry args={[d.windowW, d.windowH, 0.02]} />
+      </Part>
+      {(shut || down) && !dashed ? (
+        <Shutter top={d.windowY + d.windowH / 2} width={d.windowW} height={d.windowH} z={front + 0.026} />
+      ) : null}
+      {/* Ledge under the window. */}
+      <Part
+        fill={partFill(look, COLORS.paper)}
+        dashed={dashed}
+        position={[0, d.windowY - d.windowH / 2 - 0.03, front + 0.1]}
+      >
+        <boxGeometry args={[d.windowW * 1.15, 0.06, 0.22]} />
+      </Part>
+      <StateMarks look={look} at={[0, d.windowY, front + 0.08]} size={d.windowH * 1.1} />
+      <NameLabel height={d.total + 0.6} depth={d.depth}>
+        {note ? `${name} · ${note}` : name}
+      </NameLabel>
+    </SelectRing>
+  );
+  return (
+    <group position={position}>
+      {dashed ? null : <SoftShadow position={[0, 0, 0.2]} size={[size * 1.2, size * 0.8]} />}
+      {maybePickable(pick, name, d.windowY, body)}
+    </group>
+  );
+}
+
+/**
+ * A counter window's shutter: a grey roller blind with three slats. It slides down from the top of the
+ * window when it appears; under reduced motion it is down at once.
+ */
+function Shutter({ top, width, height, z }: { top: number; width: number; height: number; z: number }) {
+  const { reducedMotion } = useStage();
+  const roll = useRef<Group>(null);
+  // Rolled up when it appears (down at once under reduced motion); the frames below unroll it.
+  useLayoutEffect(() => {
+    if (roll.current) roll.current.scale.y = reducedMotion ? 1 : 0.001;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when it appears
+  }, []);
+  useLayoutEffect(() => {
+    if (reducedMotion && roll.current) roll.current.scale.y = 1;
+  }, [reducedMotion]);
+  useAnimatedFrame((_, dt) => {
+    const g = roll.current;
+    if (!g) return false;
+    const k = reducedMotion ? 1 : Math.min(1, dt * 7);
+    g.scale.y += (1 - g.scale.y) * k;
+    if (1 - g.scale.y < 0.002) {
+      g.scale.y = 1;
+      return false;
+    }
+    return true;
+  });
+  return (
+    <group ref={roll} position={[0, top, z]}>
+      <Part fill={COLORS.slab} dashed={false} position={[0, -height / 2, 0]}>
+        <boxGeometry args={[width, height, 0.02]} />
+      </Part>
+      {[-0.25, 0, 0.25].map((f) => (
+        <Part key={f} fill={INK} dashed={false} edges={false} position={[0, -height / 2 + height * f, 0.014]}>
+          <boxGeometry args={[width * 0.92, 0.02, 0.01]} />
+        </Part>
+      ))}
     </group>
   );
 }

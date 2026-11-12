@@ -52,6 +52,10 @@ export const OBJECTS = {
     shape: "page row",
     note: "a short row of linked block pages; another chain, another page edge",
   },
+  rpcNode: {
+    shape: "counter window",
+    note: "an RPC node: the door your app hands its questions and transactions to",
+  },
   chainArea: {
     shape: "marked area",
     note: "another chain's ground on the page: a tinted area in a dashed border, its chain along the back",
@@ -108,6 +112,25 @@ export function screenDims(size: number) {
   const height = size * 0.62;
   const stand = size * 0.3;
   return { width, height, stand, total: stand + height };
+}
+
+/** An RPC node: a post-office counter booth with a window, an awning on top and a ledge in front. */
+export function rpcWindowDims(size: number) {
+  const width = size * 0.9;
+  const height = size * 0.95;
+  const depth = size * 0.55;
+  const awning = size * 0.12;
+  return {
+    width,
+    height,
+    depth,
+    awning,
+    /** The window: its middle height and its size. */
+    windowY: height * 0.55,
+    windowW: width * 0.62,
+    windowH: height * 0.42,
+    total: height + awning,
+  };
 }
 
 /** A receipt: a small delivery slip standing up, its top right corner folded over. */

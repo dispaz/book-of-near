@@ -15,6 +15,7 @@ const LESSONS = [
   "l-2-1-follow-across-shards",
   "l-2-2-call-across-blocks",
   "l-3-1-deploy-a-contract",
+  "l-3-3-race-the-rpc",
   "l-4-1-one-account-every-chain",
   "l-4-2-intent-swap",
   "l-7-1-trace-an-intent",

@@ -16,6 +16,7 @@ import { bytesToHex } from "@noble/hashes/utils.js";
 import { isDirectSubAccount, isImplicitAccountId, isValidAccountId } from "./accountId";
 import { ChainError } from "./errors";
 import { encodeSuccessValue } from "./ops";
+import { HISTORICAL_BLOCK, RECORDED_LATENCY_MS, rpcEndpoint, type RpcEndpointId } from "./rpcEndpoints";
 import { shardForAccount } from "./shards";
 import type {
   DelegateRequest,
@@ -41,6 +42,8 @@ import type {
   PhaseEvent,
   PhaseTimings,
   PracticeAccount,
+  ProbeOptions,
+  RpcProbe,
   PublicKey,
   ReceiptView,
   SendOptions,
@@ -360,6 +363,55 @@ export class DemoChain implements Chain {
     const pk = `ed25519:${base58.encode(bytes)}`;
     this.keyStore.add(pk);
     return pk;
+  }
+
+  /**
+   * Demo twin of a single RPC request: answers after the round trip recorded for that endpoint
+   * (RECORDED_LATENCY_MS). The demo history starts at its own genesis, so every demo block is recent;
+   * below it, only the archival node knows the one recorded testnet block (HISTORICAL_BLOCK).
+   */
+  async probeRpc(
+    endpointId: RpcEndpointId,
+    ref: BlockRef = "final",
+    options: ProbeOptions = {},
+  ): Promise<RpcProbe> {
+    const endpoint = rpcEndpoint(endpointId);
+    const latencyMs = RECORDED_LATENCY_MS[endpoint.id];
+    options.signal?.throwIfAborted();
+    if ((options.pace ?? this.pace) === "realtime") await this.sleep(latencyMs * this.slowdown);
+    options.signal?.throwIfAborted();
+    const height = typeof ref === "object" && "height" in ref ? ref.height : null;
+    if (height !== null && height < GENESIS_HEIGHT) {
+      if (endpoint.archival && height === HISTORICAL_BLOCK.height)
+        return {
+          ok: true,
+          endpointId,
+          latencyMs,
+          blockHeight: height,
+          blockTimestampMs: HISTORICAL_BLOCK.timestampMs,
+        };
+      return {
+        ok: false,
+        endpointId,
+        latencyMs,
+        error: "UnknownBlock",
+        status: 422,
+        message: `Block #${height.toLocaleString("en-US")} is not kept on this node.`,
+      };
+    }
+    try {
+      const b = await this.block(ref);
+      return { ok: true, endpointId, latencyMs, blockHeight: b.height, blockTimestampMs: b.timestampMs };
+    } catch {
+      return {
+        ok: false,
+        endpointId,
+        latencyMs,
+        error: "UnknownBlock",
+        status: 422,
+        message: "That block is not known.",
+      };
+    }
   }
 
   async block(ref: BlockRef = "final"): Promise<BlockView> {

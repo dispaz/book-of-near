@@ -491,6 +491,72 @@ export function SvgAppScreen({
   return pick(p, name, [x - w / 2 - 10, top - 34, w + 20, h + stand + 40], node);
 }
 
+// ---------- RPC node: a counter window ----------
+
+/** An RPC node (2D twin of `RpcWindow`): a counter booth, an awning, a window, a ledge. (x, y) is its base. */
+export function SvgRpcWindow({
+  x,
+  y,
+  name,
+  note,
+  size = 90,
+  color = COLORS.blue,
+  state = "ok",
+  lit = false,
+  shut = false,
+  ...p
+}: SvgObjectProps & { name: string; note?: string; size?: number; lit?: boolean; shut?: boolean }) {
+  const look = lookOf(state, color);
+  const w = size * 0.9;
+  const h = size * 0.95;
+  const awning = size * 0.14;
+  const top = y - h;
+  const ww = w * 0.62;
+  const wh = h * 0.42;
+  const wy = y - h * 0.55;
+  const down = state === "failed";
+  // Behind a shutter the window is dark; the shutter itself slides down over it (sk-shutter).
+  const pane = look.dashed ? "none" : lit && !shut && !down ? color : INK;
+  const node = (
+    <g>
+      {look.dashed ? null : <SvgShadow x={x + 4} y={y + 3} w={size * 1.1} />}
+      <rect x={x - w / 2} y={top} width={w} height={h} {...ink(look, CARD)} />
+      <rect x={x - w * 0.54} y={top - awning} width={w * 1.08} height={awning} rx="3" {...ink(look)} />
+      <rect
+        x={x - ww / 2}
+        y={wy - wh / 2}
+        width={ww}
+        height={wh}
+        {...ink(look)}
+        fill={pane}
+        data-window={down ? "down" : shut ? "shut" : lit ? "lit" : "idle"}
+      />
+      {(shut || down) && !look.dashed ? (
+        <g className="sk-shutter" data-shutter="" style={{ transformOrigin: `${x}px ${wy - wh / 2}px` }}>
+          <rect x={x - ww / 2} y={wy - wh / 2} width={ww} height={wh} {...ink(look)} fill={COLORS.slab} />
+          {[-0.25, 0, 0.25].map((f) => (
+            <line
+              key={f}
+              x1={x - ww * 0.44}
+              x2={x + ww * 0.44}
+              y1={wy + wh * f}
+              y2={wy + wh * f}
+              stroke={INK}
+              strokeWidth="2"
+            />
+          ))}
+        </g>
+      ) : null}
+      <rect x={x - ww * 0.58} y={wy + wh / 2} width={ww * 1.16} height="6" {...ink(look, CARD)} />
+      <Marks look={look} x={x} y={wy} size={wh} />
+      <SvgLabel x={x} y={top - awning - 10}>
+        {note ? `${name} · ${note}` : name}
+      </SvgLabel>
+    </g>
+  );
+  return pick(p, name, [x - w / 2 - 10, top - awning - 32, w + 20, h + awning + 40], node);
+}
+
 // ---------- receipt: a delivery slip ----------
 
 /** A receipt (2D twin of `ReceiptSlip`): a slip, an accent stripe, a folded corner. (x, y) is its base. */
