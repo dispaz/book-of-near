@@ -15,7 +15,7 @@ const dock = (page: Page) => page.locator(".action-slot");
 
 async function expectView(page: Page, view: "2d" | "3d") {
   await expect(page.getByTestId("name-scene")).toHaveAttribute("data-view", view, { timeout: LOAD_3D });
-  await expect(page.locator(".stx-3d canvas")).toHaveCount(view === "3d" ? 1 : 0, { timeout: LOAD_3D });
+  await expect(page.locator(".book-scene canvas")).toHaveCount(view === "3d" ? 1 : 0, { timeout: LOAD_3D });
 }
 
 /** Picks a name, creates it and compares it. Leaves the lesson on the Check step. */
@@ -127,5 +127,110 @@ test.describe(`lesson ${ID}`, () => {
       timeout: 30_000,
     });
     await expect(dock(page).getByRole("button", { name: /Created/ })).toBeDisabled();
+  });
+
+  test("the 2D cards draw the same objects as the 3D view: mailboxes, the registrar's scroll, a parcel", async ({
+    page,
+  }) => {
+    await page.goto(`/lesson/${ID}?view=2d`);
+    const icon = (name: string) => page.getByRole("region", { name }).locator(".sk-icon");
+    await expect(icon("Your practice account")).toHaveAttribute("data-object", "mailbox");
+    await nextStep(page);
+    await expect(icon("The registrar")).toHaveAttribute("data-object", "scroll");
+    await expect(icon("The new account")).toHaveAttribute("data-object", "mailbox");
+    await nextStep(page);
+    await page.getByRole("textbox", { name: "Account name" }).fill("icons-2d");
+    await nextStep(page);
+    await expect(page.locator(".stx-arrow .sk-icon").first()).toHaveAttribute("data-object", "parcel");
+    await dock(page).getByRole("button", { name: "Create icons-2d.testnet" }).click();
+    await expect(page.getByTestId("new-account-id")).toHaveText("icons-2d.testnet", { timeout: 30_000 });
+    await nextStep(page);
+    await expect(page.getByTestId("compare-named").locator(".sk-icon")).toHaveAttribute(
+      "data-object",
+      "mailbox",
+    );
+    await expect(page.getByTestId("compare-hex").locator(".sk-icon")).toHaveAttribute(
+      "data-object",
+      "mailbox",
+    );
+  });
+
+  test("in 3D, picking the registrar creates the name", { tag: "@3d" }, async ({ page }) => {
+    slow3d();
+    await page.goto(`/lesson/${ID}?view=3d`);
+    await expect(page.locator(".book-scene .sk-stage")).toBeVisible({ timeout: LOAD_3D });
+    await nextStep(page);
+    await nextStep(page);
+    await page.getByRole("textbox", { name: "Account name" }).fill("picked-3d");
+    await expect(page.getByTestId("name-feedback")).toHaveText("picked-3d.testnet is free.");
+    await nextStep(page);
+    await page.getByRole("button", { name: "Ask the registrar to create your name" }).press("Enter");
+    await expect(page.getByTestId("name-scene")).toHaveAttribute("data-scene-state", /created:yes/, {
+      timeout: 30_000,
+    });
+  });
+});
+
+test.describe(`lesson ${ID}: motion and fallback`, () => {
+  for (const view of ["2d", "3d"] as const)
+    test(`works with reduced motion in the ${view} view`, async ({ browser }) => {
+      slow3d(view === "3d");
+      const ctx = await browser.newContext({ reducedMotion: "reduce" });
+      const page = await ctx.newPage();
+      await seedRoute(page);
+      await page.goto(`/lesson/${ID}?view=${view}`);
+      await expectView(page, view);
+      await walk(page, `still-${view}`);
+      await ctx.close();
+    });
+
+  test("without WebGL the lesson runs in 2D with no switch", async ({ page }) => {
+    await page.goto(`/lesson/${ID}?webgl=0&view=3d`);
+    await expect(page.getByTestId("name-scene")).toHaveAttribute("data-view", "2d");
+    await expect(page.getByRole("group", { name: "Scene view" })).toHaveCount(0);
+    await expect(page.locator("canvas")).toHaveCount(0);
+    await walk(page, "no-webgl");
+  });
+});
+
+test.describe(`lesson ${ID}: 3D book scene`, () => {
+  test.beforeEach(() => slow3d());
+
+  test("wide screens print the step on the left page; the tour moves the camera and docks the words", async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    await seedRoute(page);
+    await page.goto(`/lesson/${ID}?view=3d&step=2`);
+    await expect(page.locator(".book-scene .sk-stage")).toBeVisible({ timeout: LOAD_3D });
+    await expect(page.locator("main.lesson")).toHaveAttribute("data-spread", "");
+    await expect(page.locator(".book-page")).toHaveCSS("transform", /matrix3d/);
+
+    const caption = page.getByTestId("tour-caption");
+    await expect(caption).toHaveText(/^Fig\. 2/);
+    await page.getByRole("button", { name: "Play the tour" }).click();
+    await expect(caption).not.toHaveText(/^Fig\. 2/);
+    // While the tour runs, the words go back to their docked place: still readable.
+    await expect(page.locator("main.lesson")).not.toHaveAttribute("data-spread", /.*/);
+    await expect(page.getByTestId("caption")).toBeVisible();
+    // A new step ends the tour and prints the words again; the printed name box still works.
+    await nextStep(page);
+    await expect(caption).toHaveText(/^Fig\. 3/);
+    await expect(page.locator("main.lesson")).toHaveAttribute("data-spread", "", { timeout: 10_000 });
+    await page.getByRole("textbox", { name: "Account name" }).fill("printed");
+    await expect(page.getByTestId("name-feedback")).toHaveText("printed.testnet is free.");
+    await ctx.close();
+  });
+
+  test("phones keep the step's words docked, not printed on the page", async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 760 } });
+    const page = await ctx.newPage();
+    await seedRoute(page);
+    await page.goto(`/lesson/${ID}?view=3d&step=2`);
+    await expect(page.locator(".book-scene .sk-stage")).toBeVisible({ timeout: LOAD_3D });
+    await expect(page.locator("main.lesson")).not.toHaveAttribute("data-spread", /.*/);
+    await expect(page.locator(".book-page")).toHaveCSS("display", "contents");
+    await ctx.close();
   });
 });

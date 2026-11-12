@@ -380,6 +380,15 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - For built lessons (0.1, 0.2, 0.3, 1.1, 1.2, 1.3, 2.1, 3.1, 4.1), every `Pickable` target and `pickLabel` in `Scene3D.tsx` / `objects3d.tsx` was mapped directly to a reaction row with object-specific pick animation, plain-English "not yet" hint, and demo-mode detail value after the step.
 - For unbuilt lessons (2.2, 3.2, 3.3, 4.2, 4.3, 5.1, 5.2, 6.1, 6.2, 7.1, 7.2), reactions tables were specified from their scene objects and topic files before implementation.
 - Added reduced motion fallback descriptions under each table (outlines, colour shifts, and instant end states replacing motion). Docs only: no application code changed.
+
+## 2026-11-12 · Lesson 1.1 review notes fixed (Closes #14)
+
+- 3D view is now a pop-up book scene (`BookScene`): the row (your mailbox, the `testnet` scroll, the new mailbox) and the compare pair stand on the right page; wide screens print the step on the left page; the step's facts sit in the book's panel; a camera tour per step (`tour.ts`, unit tested). `layout3d.ts` reworked for the book (figure box, parts per step; the old `SIZE * 1.35` scale is gone). The compare step keeps the row's framing so the page edge is not cut.
+- 2D cards now carry the scene objects' twins (`ObjectIcon`): mailboxes for accounts, a scroll for the registrar, a parcel on the create arrow. `ObjectIcon` gets a `data-object` attribute for tests.
+- `useBoxSize` moved to `src/scene-kit/useBoxSize.ts` (unit tested); 0.3 and 1.3 use it, 1.1 no longer needs it. 1.2 still has its copy (left to #15 to avoid clashing edits).
+- Issue body and script 1.1 wording: blocks → mailboxes / scroll. `docs/book-scene.md` lists 1.1 as on the standard.
+- New e2e: book print + tour, phone docked, 3D registrar pick creates, reduced motion (2D, 3D), no-WebGL fallback, 2D object icons. Not done here: the rule 10a reactions (hover lift, press, not yet) are kit work under #54.
+
 ## 2026-11-05 · #23 Mainnet wallet connection and funds check
 - New seam `src/chain/mainnet/` (documented in `docs/chain.md`, no `Chain` change): `MainnetWallet` interface with `DemoWallet` (simulated `demo-learner.near`, 25 NEAR) and `NearConnectWallet` (`@hot-labs/near-connect` 0.12.0 + mainnet RPC `view_account`, lazy, injected connector so tests never touch a real wallet).
 - `checkFunds` gives `enough` / `not-enough` / `no-wallet` (the last two name the testnet fallback). `signWithConfirmation` is the only signing path: it checks the request, shows summary, receiver and total NEAR in a dialog, and asks the wallet only after "Confirm".
@@ -408,3 +417,12 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Real swap copy: the finish panel, step 5 explain (script `docs/lessons/stage-4/4.2.md` and manifest), the wallet confirm text and the "Sent" outcome now say the USDC stays in the learner's NEAR Intents account (intents.near), not on Arbitrum, and is withdrawn separately.
 - `capCheck` refuses a live quote with no dollar value (the $1 cap is never skipped silently).
 - Worker `/intents/quote`: per-IP and global daily quote limits (`QUOTE_PER_IP_DAILY` 20, `QUOTE_GLOBAL_DAILY` 400, `quote:` key prefix apart from the faucet), body capped at 4 KB (413), and every field checked: `EXACT_INPUT` only (so the 0.25 NEAR cap bounds the NEAR going in), wNEAR → USDC on Arbitrum only, slippage 0..300 bps, deadline within 30 minutes, fixed deposit/refund types. An app unit test checks the Worker's cap, asset ids and `Fetch` type match the app's and that it accepts the app's quote bodies.
+
+## 2026-11-12 · Lesson 1.2 review notes fixed (Closes #15)
+
+- Reload: restore-on-reload moved out of `useKeyLesson.ts` into `resume.ts` (`findResumableKey`). When the lesson adds the key it remembers, in this browser, the starting allowance and the add hash (`rememberKey`, forgotten on delete; storage blocked is handled). A key picked up after a reload is recorded with `keyResumed: "yes"`, plus `addKeyTxHash` when remembered.
+- Step 6 caption is now `{keyLeft}` (`keyLeftLine`): "It still had X NEAR of its Y NEAR allowance.", or "It still had X NEAR of allowance left." when the start is unknown, so one number never shows twice. Gauges use `gaugeFrom` (the start, or what the key had when picked up). Script `1.2.md` updated.
+- 3D on phones and tablets: `layoutFor(width, height)` in `layout3d.ts` picks the arrangement from the 3D window, not the viewport. A tall or square window (phones) gets two rows, so the picture is about 1.5× larger; narrow windows get short labels (< 820 px) and short names (< 640 px: "you", "registrar", "attacker"). One-row registrar moved right (x 2.9 → 3.3) so the counter's label is clear.
+- Shared helpers: `src/ui/format.ts` (`shortId`, `nearAmount`) replaces the copies in l-1-2 `key.ts`, l-1-3 `batch.ts` and l-0-3 `tx.ts` (`short`). Lesson 1.2 now uses the scene-kit `useBoxSize` (#70). `scene-kit/svg/objects.tsx`'s `short` cuts text, a different job.
+- Not done here: the 3D view is still plain `InkStage`, not a `BookScene` (deferred on purpose in the review; with #60).
+- Gate: lint (0 errors), typecheck, unit tests, badge tests, e2e for wallet and lessons 0.3, 1.2, 1.3 (a full e2e run before the rebase on main: 244 passed, 4 load flakes in 3.1 and 4.1 that passed on a rerun). Screenshots checked at 390×844, 820×1180, 1024×768 and 1440×900, 2D and 3D, reduced motion and `?webgl=0`.

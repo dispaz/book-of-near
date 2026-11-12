@@ -15,8 +15,10 @@ export default {
   // Both views draw one state (useKeyLesson); the 3D view (Scene3D) loads only when chosen.
   views: ["2d", "3d"],
   summary: "Give an app a limited key that can call one contract and nothing else.",
-  // The learner's allowance is used in later text; `left` is what the key has left.
-  vars: { allowance: "0.1", left: "0.1" },
+  // The learner's allowance is used in later text; `left` is what the key has left. `keyLeft` is the
+  // delete step's sentence: it names the starting allowance only when it is known (not after a reload
+  // in a browser that forgot it), so it never shows one number twice.
+  vars: { allowance: "0.1", left: "0.1", keyLeft: "It still had 0.1 NEAR of its 0.1 NEAR allowance." },
   steps: [
     {
       caption:
@@ -57,8 +59,7 @@ export default {
       action: { label: "get all three refused", gate: true },
     },
     {
-      caption:
-        "You are done with the app. Delete its key. It still had {left} NEAR of its {allowance} NEAR allowance.",
+      caption: "You are done with the app. Delete its key. {keyLeft}",
       explain:
         "To take a key back you delete it, with your full-access key. Asking the app to forget it changes nothing on the chain. Whatever allowance was left goes with it. Then try Count once more: the chain refuses a key that no longer exists.",
       explainAt: "keycard",
