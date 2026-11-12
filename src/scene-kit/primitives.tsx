@@ -1,5 +1,5 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import { useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Edges, Html, RoundedBox } from "@react-three/drei";
 import {
   AdditiveBlending,
@@ -13,9 +13,10 @@ import {
 import { glowTexture, hullMaterial, inkMaterial, REVEAL, shadowTexture } from "./materials";
 import { NEAR_MARK } from "./nearMark";
 import { useOverlayItem } from "./overlay";
-import { isClick, type Vec3 } from "./motion";
+import type { Vec3 } from "./motion";
 import { COLORS, INK } from "./theme";
 import { useStage } from "./context";
+import { isPickable, Pickable, type PickProps } from "./Pickable";
 
 /** The ink material for a colour at the canvas pixel ratio. */
 export function useInk(color: string, faceted = false) {
@@ -100,82 +101,7 @@ export function NameLabel({ height, depth, children }: { height: number; depth: 
   return <Label position={flat ? [0, height - 0.9, -depth * 0.85] : [0, height, 0]}>{children}</Label>;
 }
 
-export interface PickProps {
-  /** Makes the object clickable. Also adds a focusable button named `pickLabel` for keyboards and tests. */
-  onPick?: () => void;
-  /** Accessible name of the pick button. Defaults to the object's name. */
-  pickLabel?: string;
-  /** Draws the selection ring under the object. */
-  selected?: boolean;
-}
-
-/**
- * Wraps a pickable object. A click is a press whose pointer never went `CLICK_PX` (6 px) from where it
- * began; anything further, even if it comes back, is a camera drag (CameraRig counts the same way) and
- * picks nothing. `anchor` is where the pick button sits, local to the object.
- */
-export function Pickable({
-  label,
-  selected = false,
-  onPick,
-  anchor = [0, 1, 0],
-  children,
-}: {
-  label: string;
-  selected?: boolean;
-  onPick: () => void;
-  anchor?: Vec3;
-  children: ReactNode;
-}) {
-  const ref = useRef<Object3D>(null);
-  const [hover, setHover] = useState(false);
-  /** The furthest the pointer went from where this press began (px): the camera rig counts the same. */
-  const travel = useRef(0);
-  useOverlayItem({ kind: "pick", label, pressed: selected, onPick }, ref);
-  useLayoutEffect(() => {
-    if (!hover) return;
-    document.body.style.cursor = "pointer";
-    return () => {
-      document.body.style.cursor = "";
-    };
-  }, [hover]);
-  return (
-    <group
-      onPointerDown={(e: ThreeEvent<PointerEvent>) => {
-        // Follow the whole press, not just where it ends: out 7 px and back is a drag (the camera rig
-        // takes it as a camera move), never also a pick.
-        const { clientX: x0, clientY: y0, pointerId: id } = e.nativeEvent;
-        travel.current = 0;
-        const move = (ev: PointerEvent) => {
-          if (ev.pointerId === id)
-            travel.current = Math.max(travel.current, Math.hypot(ev.clientX - x0, ev.clientY - y0));
-        };
-        const up = (ev: PointerEvent) => {
-          if (ev.pointerId !== id) return;
-          window.removeEventListener("pointermove", move, true);
-          window.removeEventListener("pointerup", up, true);
-          window.removeEventListener("pointercancel", up, true);
-        };
-        window.addEventListener("pointermove", move, true);
-        window.addEventListener("pointerup", up, true);
-        window.addEventListener("pointercancel", up, true);
-      }}
-      onClick={(e: ThreeEvent<MouseEvent>) => {
-        if (!isClick(Math.max(e.delta, travel.current))) return;
-        e.stopPropagation();
-        onPick();
-      }}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        setHover(true);
-      }}
-      onPointerOut={() => setHover(false)}
-    >
-      {children}
-      <object3D ref={ref} position={anchor} />
-    </group>
-  );
-}
+export { isPickable, Pickable, type PickMotion, type PickProps } from "./Pickable";
 
 /** Draws a ring under a selected object. */
 export function SelectRing({
@@ -215,16 +141,19 @@ export function SelectRing({
 }
 
 /**
- * Wraps `node` in a Pickable when the object has an `onPick`. `anchor` is where the focus marker sits:
- * a height above the object's origin, or a full local point for a wide object.
+ * Wraps `node` in a Pickable when the object reacts to clicks (`isPickable`). `anchor` is where the focus
+ * marker sits: a height above the object's origin, or a full local point for a wide object.
  */
 export function maybePickable(pick: PickProps, name: string, anchor: number | Vec3, node: ReactNode) {
-  if (!pick.onPick) return node;
+  if (!isPickable(pick)) return node;
   return (
     <Pickable
       label={pick.pickLabel ?? name}
       selected={pick.selected}
       onPick={pick.onPick}
+      disabledHint={pick.disabledHint}
+      detail={pick.detail}
+      pickMotion={pick.pickMotion}
       anchor={typeof anchor === "number" ? [0, anchor, 0] : anchor}
     >
       {node}
@@ -492,7 +421,7 @@ export function Key({
       {name ? <Label position={[0, 0.7, 0]}>{name}</Label> : null}
     </group>
   );
-  return <group position={position}>{name && pick.onPick ? maybePickable(pick, name, 0, key) : key}</group>;
+  return <group position={position}>{name ? maybePickable(pick, name, 0, key) : key}</group>;
 }
 
 /** A glow sprite, for travellers and highlights. */

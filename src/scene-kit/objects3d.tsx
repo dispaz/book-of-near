@@ -562,7 +562,7 @@ export function TaggedKey({
       {name ? <Label position={[0, 0.7, 0]}>{name}</Label> : null}
     </group>
   );
-  return <group position={position}>{name && pick.onPick ? maybePickable(pick, name, 0, node) : node}</group>;
+  return <group position={position}>{name ? maybePickable(pick, name, 0, node) : node}</group>;
 }
 
 // ---------- app: a screen on a stand ----------

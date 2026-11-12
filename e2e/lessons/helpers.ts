@@ -92,3 +92,113 @@ export function completionOf(page: Page, lessonId: string) {
     return w.__bookOfNear?.progress?.completions().find((c) => c.lessonId === id);
   }, lessonId);
 }
+
+// ---------- render on demand (#44) ----------
+
+/**
+ * Pass to `page.addInitScript` before the page loads: counts the animation-frame callbacks that issued
+ * WebGL draw calls (read them with `drawnFrames`).
+ */
+export function countDrawnFrames() {
+  const w = window as unknown as { __drawnFrames: number };
+  w.__drawnFrames = 0;
+  let draws = 0;
+  for (const C of [window.WebGLRenderingContext, window.WebGL2RenderingContext]) {
+    if (!C) continue;
+    const proto = C.prototype as unknown as Record<string, (...a: unknown[]) => unknown>;
+    for (const name of ["drawArrays", "drawElements", "drawArraysInstanced", "drawElementsInstanced"]) {
+      const orig = proto[name];
+      if (!orig) continue;
+      proto[name] = function (this: unknown, ...args: unknown[]) {
+        draws++;
+        return orig.apply(this, args);
+      };
+    }
+  }
+  const raf = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = (cb) =>
+    raf((t) => {
+      const before = draws;
+      cb(t);
+      if (draws > before) w.__drawnFrames++;
+    });
+}
+
+/** How many frames have drawn since the page loaded (needs `countDrawnFrames`). */
+export const drawnFrames = (page: Page) =>
+  page.evaluate(() => (window as unknown as { __drawnFrames: number }).__drawnFrames);
+
+/** Waits until a whole second passes without a drawn frame, then checks the next two stay empty too. */
+export async function expectSettled(page: Page) {
+  await expect
+    .poll(
+      async () => {
+        const a = await drawnFrames(page);
+        await page.waitForTimeout(1000);
+        return (await drawnFrames(page)) - a;
+      },
+      { timeout: 15_000, intervals: [0] },
+    )
+    .toBe(0);
+  const a = await drawnFrames(page);
+  await page.waitForTimeout(2000);
+  expect((await drawnFrames(page)) - a).toBe(0);
+}
+
+// ---------- clickable objects react (docs/book-scene.md rule 10a) ----------
+
+/** The focusable pick button of a 3D object, by its pick label. */
+export const pickButton = (page: Page, name: string) =>
+  page.locator(".sk-stage .sk-pick").and(page.getByRole("button", { name, exact: true }));
+
+/** Focusing the object's pick button (Tab) marks it hovered, the same as a mouse; leaving clears it. */
+export async function expectFocusMarksHover(page: Page, name: string) {
+  const button = pickButton(page, name);
+  await expect(button).toHaveAttribute("data-hover", "off");
+  await button.focus();
+  await expect(button).toHaveAttribute("data-hover", "on");
+  await button.blur();
+  await expect(button).toHaveAttribute("data-hover", "off");
+}
+
+/**
+ * Picking the object plays its reaction: `data-pick` goes "playing", frames are drawn, then it is "idle"
+ * again and the canvas rests. Needs `page.addInitScript(countDrawnFrames)` before the page loaded.
+ */
+export async function expectPickPlaysAndSettles(page: Page, name: string) {
+  const button = pickButton(page, name);
+  await expectSettled(page);
+  await button.evaluate((el) => {
+    const w = window as unknown as { __pickSeen: string[] };
+    w.__pickSeen = [];
+    new MutationObserver(() => w.__pickSeen.push(el.getAttribute("data-pick") ?? "")).observe(el, {
+      attributes: true,
+      attributeFilter: ["data-pick"],
+    });
+  });
+  const before = await drawnFrames(page);
+  await button.press("Enter");
+  await expect(button).toHaveAttribute("data-pick", "idle");
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __pickSeen: string[] }).__pickSeen))
+    .toContain("playing");
+  expect((await drawnFrames(page)) - before).toBeGreaterThan(5);
+  await expectSettled(page);
+}
+
+/** Picking the object too early shows its "not yet" hint (and does not play the pick). */
+export async function expectNotYetHint(page: Page, name: string, hint: string | RegExp) {
+  const button = pickButton(page, name);
+  await button.press("Enter");
+  await expect(button).toHaveAttribute("data-hint", hint);
+  await expect(page.locator(".sk-pick-note.hint")).toHaveText(hint);
+  await expect(button).toHaveAttribute("data-pick", "idle");
+}
+
+/** Picking the object after its step is done shows its detail. */
+export async function expectPickDetail(page: Page, name: string, detail: string | RegExp) {
+  const button = pickButton(page, name);
+  await button.press("Enter");
+  await expect(button).toHaveAttribute("data-detail", detail);
+  await expect(page.locator(".sk-pick-note.detail")).toHaveText(detail);
+}

@@ -158,6 +158,27 @@ describe("templates", () => {
     expect(src).toContain("TODO(author)");
   });
 
+  it("--book: the 3D object reacts (rule 10a): a 'not yet' hint before the step, a detail after", () => {
+    const src = renderBookScene3D(opts);
+    expect(src).toContain("REACTIONS");
+    expect(src).toContain("disabledHint");
+    expect(src).toContain("detail");
+    expect(src).toContain("Reactions");
+  });
+
+  it("--book: the spec tests the reactions (focus, not yet, pick plays and settles, detail)", () => {
+    const src = renderSpec({ ...opts, book: true });
+    for (const helper of [
+      "countDrawnFrames",
+      "expectFocusMarksHover",
+      "expectNotYetHint",
+      "expectPickDetail",
+      "expectPickPlaysAndSettles",
+    ])
+      expect(src).toContain(helper);
+    expect(renderSpec(opts)).not.toContain("expectNotYetHint");
+  });
+
   it("writes an e2e spec that walks to Finish and holds a fixme stub for the author", () => {
     const src = renderSpec(opts);
     expect(src).toContain('const ID = "x-lesson"');

@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Vector3, type Object3D } from "three";
+import type { PickNote } from "./reaction";
 
 /**
  * HTML that follows points in the 3D scene: handwritten labels and the focusable pick buttons.
@@ -19,7 +20,18 @@ import { Vector3, type Object3D } from "three";
  */
 export type OverlayItem =
   | { kind: "label"; text: string; variant?: "hand" | "small" | "hint" }
-  | { kind: "pick"; label: string; pressed: boolean; onPick: () => void };
+  | {
+      kind: "pick";
+      label: string;
+      pressed: boolean;
+      onPick: () => void;
+      /** Keyboard focus on the button counts as hovering the object (rule 10a). */
+      onHover?: (on: boolean) => void;
+      /** Test hooks and the note bubble (Pickable, rule 10a). */
+      hover?: boolean;
+      playing?: boolean;
+      note?: PickNote | null;
+    };
 
 type Entry = { id: string; item: OverlayItem; anchor: RefObject<Object3D | null> };
 
@@ -77,17 +89,22 @@ export const OverlayContext = createContext<OverlayStore | null>(null);
 export function useOverlayItem(item: OverlayItem, anchor: RefObject<Object3D | null>) {
   const store = useContext(OverlayContext);
   const id = useId();
-  // The pick callback goes through a ref, so a new closure each render does not re-render the overlay.
-  const onPick = useRef<() => void>(undefined);
+  // The callbacks go through a ref, so a new closure each render does not re-render the overlay.
+  const calls = useRef<{ onPick?: () => void; onHover?: (on: boolean) => void }>({});
   useLayoutEffect(() => {
-    onPick.current = item.kind === "pick" ? item.onPick : undefined;
+    calls.current = item.kind === "pick" ? { onPick: item.onPick, onHover: item.onHover } : {};
   });
-  const stablePick = useCallback(() => onPick.current?.(), []);
+  const stablePick = useCallback(() => calls.current.onPick?.(), []);
+  const stableHover = useCallback((on: boolean) => calls.current.onHover?.(on), []);
   const key = JSON.stringify(item); // functions drop out, so this changes only when the data changes
   useEffect(() => {
-    store?.set(id, item.kind === "pick" ? { ...item, onPick: stablePick } : item, anchor);
+    store?.set(
+      id,
+      item.kind === "pick" ? { ...item, onPick: stablePick, onHover: stableHover } : item,
+      anchor,
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `item` is tracked through `key`
-  }, [store, id, key, anchor, stablePick]);
+  }, [store, id, key, anchor, stablePick, stableHover]);
   useEffect(() => () => store?.remove(id), [store, id]);
 }
 
@@ -121,9 +138,27 @@ export function Overlay({ store }: { store: OverlayStore }) {
               {item.text}
             </div>
           ) : (
-            <button type="button" className="sk-pick" aria-pressed={item.pressed} onClick={item.onPick}>
-              <span>{item.label}</span>
-            </button>
+            <>
+              <button
+                type="button"
+                className="sk-pick"
+                aria-pressed={item.pressed}
+                onClick={item.onPick}
+                onFocus={() => item.onHover?.(true)}
+                onBlur={() => item.onHover?.(false)}
+                data-hover={item.hover ? "on" : "off"}
+                data-pick={item.playing ? "playing" : "idle"}
+                data-hint={item.note?.kind === "hint" ? item.note.text : undefined}
+                data-detail={item.note?.kind === "detail" ? item.note.text : undefined}
+              >
+                <span>{item.label}</span>
+              </button>
+              {item.note ? (
+                <p className={`sk-pick-note ${item.note.kind}`} role="status">
+                  {item.note.text}
+                </p>
+              ) : null}
+            </>
           )}
         </div>
       ))}
