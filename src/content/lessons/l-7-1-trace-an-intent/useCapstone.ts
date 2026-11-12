@@ -63,19 +63,27 @@ export function useCapstone({
     setReplaying(true);
     later(700, () => setReplaying(false));
   };
+  /** The timer that stops the gear: a repeat pick restarts the turn rather than cutting it short. */
+  const runStop = useRef<number | undefined>(undefined);
   const run = () => {
     if (reducedMotion) return;
     setRunning(true);
-    later(RUN_MS, () => setRunning(false));
+    window.clearTimeout(runStop.current);
+    runStop.current = window.setTimeout(() => live.current && setRunning(false), RUN_MS);
   };
+  useEffect(() => () => window.clearTimeout(runStop.current), []);
+  /** True only once the learner has verified the settlement themselves (not when the view was filled in). */
+  const verified = useRef(false);
   const verify = () => {
     if (settle !== "idle") return;
+    verified.current = true;
     if (reducedMotion) return setSettle("done");
     for (const [phase, ms] of Object.entries(SETTLE_AT) as [SettlePhase, number][])
       later(ms, () => setSettle(phase));
   };
 
-  // Opened at a later step (a link, a reload): fill in the earlier steps, so the page is not empty.
+  // Opened at a later step (a link, a reload): fill in the earlier steps, so the page is not empty. This
+  // only draws them; it reports no evidence (the record comes from an earlier visit, or from verify()).
   useEffect(() => {
     if (step > AUTHORIZE && !authorized) setAuthorized(true);
     if (step > SETTLE && settle === "idle") setSettle("done");
@@ -97,9 +105,9 @@ export function useCapstone({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trail]);
 
-  // The completion record: once the settlement is verified.
+  // The completion record: once the learner has verified the settlement.
   useEffect(() => {
-    if (settle === "done") reportEvidence?.(evidenceFor(trail, network));
+    if (settle === "done" && verified.current) reportEvidence?.(evidenceFor(trail, network));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settle]);
 
@@ -138,6 +146,10 @@ export function useCapstone({
     spot,
     picked,
     pick,
+    /** The last pick was this object (both views draw it selected). */
+    isPicked: (o: Obj) => picked?.what === o,
+    /** The last pick was this object, too early: both views shake it and show the hint. */
+    notYet: (o: Obj) => picked?.what === o && !!picked.result.notYet,
     passed,
     pass: () => setPassed(true),
     state,

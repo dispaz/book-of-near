@@ -6,7 +6,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { VERIFIER_CONTRACT } from "../../../chain/intents";
-import { PICK_LABELS, settleReached, stopsFor } from "./trail";
+import { PICK_LABELS, settleReached, SIGNERS_NOTE, stopsFor } from "./trail";
 import { AUTHORIZE, CONTRACT, MAP, SETTLE, SHARDS, type Capstone } from "./useCapstone";
 
 function Row({ label, children, testId }: { label: string; children: ReactNode; testId?: string }) {
@@ -26,9 +26,8 @@ const SOURCE_TEXT = {
 
 const SETTLE_TEXT = {
   idle: "Not verified yet.",
-  solver: "1. The solver pays out from its own funds.",
-  sign: "2. The signing nodes add their key shares to one signature.",
-  done: "Done. The settlement is verified.",
+  solver: "The solver pays out from its own funds.",
+  done: "Done. The solver paid out and the trade is settled.",
 } as const;
 
 export function Facts({ m, compact = false }: { m: Capstone; compact?: boolean }) {
@@ -69,6 +68,9 @@ export function Facts({ m, compact = false }: { m: Capstone; compact?: boolean }
               {trail.intent.amountOut} USDC, {trail.intent.where}
             </p>
           ) : null}
+          <p className="cap-side" data-testid="signers-note">
+            {SIGNERS_NOTE}
+          </p>
         </>
       ) : null}
 

@@ -206,11 +206,17 @@ export const stopsFor = (trail: Trail, step: number): Stop[] =>
 
 // ---------- step 5: the settlement ----------
 
-/** The settlement, in order: the solver pays out, the signing nodes sign, done. */
-export type SettlePhase = "idle" | "solver" | "sign" | "done";
-export const SETTLE_ORDER: SettlePhase[] = ["idle", "solver", "sign", "done"];
+/**
+ * The settlement, in order: the solver pays out, done. No chain signature: a 1Click swap settles inside
+ * NEAR (intents.near). The signing nodes are a side note: they sign only when a payout must leave NEAR.
+ */
+export type SettlePhase = "idle" | "solver" | "done";
+export const SETTLE_ORDER: SettlePhase[] = ["idle", "solver", "done"];
 /** When each phase starts, in ms after "Verify foreign settlement". */
-export const SETTLE_AT: Record<Exclude<SettlePhase, "idle">, number> = { solver: 0, sign: 1300, done: 2700 };
+export const SETTLE_AT: Record<Exclude<SettlePhase, "idle">, number> = { solver: 0, done: 1500 };
+/** The side note on the signing nodes, shown at step 5 and when they are picked. */
+export const SIGNERS_NOTE =
+  "Side note: the signing nodes (Chain Signatures, lesson 4.1) sign only when a payout must leave NEAR. This replay does not use them: the solver pays out from its own funds.";
 export const settleReached = (now: SettlePhase, p: SettlePhase) =>
   SETTLE_ORDER.indexOf(now) >= SETTLE_ORDER.indexOf(p);
 
@@ -270,22 +276,22 @@ export function pickResult(what: Obj, s: PickState): PickResult {
         note: `${VERIFIER_CONTRACT} runs as Wasm and checks the intent. 70% of the gas is burned; 30% goes to the contract's account.`,
       };
     case "signers":
-      if (step < SETTLE) return { notYet: true, note: "Let the contract check the intent first." };
-      if (step === SETTLE && settle === "idle")
-        return { act: "settle", note: "The solver pays out; the signing nodes get to work." };
       return {
-        note: "The signing nodes each add a share of one key. Together they make one signature (r, s, v); no node holds the whole key.",
+        note: "The signing nodes each hold a share of one key and sign together, only when a payout must leave NEAR. This replay does not need them.",
       };
     case "destination":
-      if (!settleReached(settle, "done")) return { notYet: true, note: "Verify the settlement first." };
+      if (step < SETTLE) return { notYet: true, note: "Let the contract check the intent first." };
+      if (step === SETTLE && settle === "idle")
+        return { act: "settle", note: "The solver pays out from its own funds, and the trade settles." };
+      if (!settleReached(settle, "done")) return { note: "The solver is paying out." };
       return { note: `${s.intent.amountOut} USDC, ${s.intent.where}` };
   }
 }
 
 /** Where the moving piece (the parcel, then the receipt) stands. */
-export type Spot = "home" | "shardA" | "shardB" | "verifier" | "signers";
+export type Spot = "home" | "shardA" | "shardB" | "verifier" | "landed";
 export function spotOf(step: number, authorized: boolean, settle: SettlePhase): Spot {
-  if (step >= SETTLE) return settleReached(settle, "sign") ? "signers" : "verifier";
+  if (step >= SETTLE) return settleReached(settle, "done") ? "landed" : "verifier";
   if (step === CONTRACT) return "verifier";
   if (step === SHARDS) return "shardB";
   return authorized ? "shardA" : "home";
@@ -305,10 +311,10 @@ export function describe(s: PickState): string {
     return "The receipt reached the verifier scroll. Its gear turns: the Wasm code checks the intent.";
   if (step === SETTLE)
     return settle === "idle"
-      ? "The signing nodes wait. The settlement is not verified yet."
+      ? "The receipt waits at the verifier. The settlement is not verified yet. The signing nodes stand aside."
       : settle === "done"
-        ? "Settled: the nodes signed, and the USDC has landed."
-        : "The solver pays out and the signing nodes add their key shares.";
+        ? "Settled: the solver paid out, and the USDC has landed. The signing nodes were not needed."
+        : "The solver pays out from its own funds.";
   return step >= CHECK ? "The book is open at the capstone page." : "";
 }
 

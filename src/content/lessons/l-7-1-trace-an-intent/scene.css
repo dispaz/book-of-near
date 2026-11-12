@@ -138,6 +138,11 @@
   color: var(--ink);
   font-weight: 600;
 }
+.cap-side {
+  color: var(--mute);
+  font-size: 13px;
+  font-style: italic;
+}
 .cap-note {
   color: var(--mute);
   font-size: 13px;

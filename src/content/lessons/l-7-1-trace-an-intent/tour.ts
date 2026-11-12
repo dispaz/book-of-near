@@ -36,8 +36,8 @@ export function tourFor(step: number): Shot<Target>[] {
     case SETTLE:
       return [
         ALL,
-        shot("signers", "the signing nodes, each with a share of one key."),
-        shot("destination", "where the USDC lands."),
+        shot("destination", "where the USDC lands, paid out by the solver."),
+        shot("signers", "the signing nodes. They sign only when a payout must leave NEAR."),
       ];
     default:
       return [];

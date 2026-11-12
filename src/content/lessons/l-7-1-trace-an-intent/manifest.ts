@@ -2,7 +2,7 @@ import type { LessonManifest } from "../../../app/types";
 
 // Lesson script: docs/lessons/stage-7/7.1.md (topic: 7.1-topic.md). Template: docs/lesson-template.md.
 // Shape: the map → authorize (account + key + transaction) → shards and receipts → the Wasm contract →
-// settlement (solver + Chain Signatures) → check → honest take. Keep the step numbers in steps.ts in sync.
+// settlement (solver; Chain Signatures only as a side note) → check → honest take. Keep the step numbers in steps.ts in sync.
 // A replay: it reads what earlier lessons left in progress (the learner's own 4.2 swap, else a recorded
 // intent) and sends nothing, so demo and testnet mode behave the same.
 export default {
@@ -45,10 +45,10 @@ export default {
       explainAt: "verifier",
     },
     {
-      caption: "Layer 5: a solver fills the order, and Chain Signatures sign on the other chain.",
+      caption: "Layer 5: a solver fills the order. Chain Signatures sign only if a payout must leave NEAR.",
       explain:
-        "Solvers compete to fill the intent; 1Click shows only the winning quote. The winner pays out from its own funds. When a NEAR account must sign on another chain, the signing network (the v1.signer contract) signs with key shares, for a 1 yoctoNEAR deposit, in seconds. A real swap from this app keeps the USDC in your NEAR Intents account (intents.near), not on Arbitrum.",
-      explainAt: "signers",
+        "Solvers compete to fill the intent; 1Click shows only the winning quote. The winner pays out from its own funds, and the verifier contract settles the trade. A real swap from this app keeps the USDC in your NEAR Intents account (intents.near), not on Arbitrum, so no chain signature is needed. Only when a NEAR account must sign on another chain does the signing network (the v1.signer contract) sign with key shares, for a 1 yoctoNEAR deposit.",
+      explainAt: "destination",
       action: { label: "verify the foreign settlement", gate: true },
     },
     {

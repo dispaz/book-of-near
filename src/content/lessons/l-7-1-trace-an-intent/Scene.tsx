@@ -46,7 +46,7 @@ const QUESTIONS: CheckQuestion[] = [
     ],
   },
   {
-    prompt: "How does an intent deliver native tokens on another chain without a lock-and-mint bridge?",
+    prompt: "How does an intent deliver tokens on another chain without user-facing bridges?",
     options: [
       {
         text: "A solver pays out from funds it already holds there, and the verifier contract on NEAR settles the trade.",
@@ -112,7 +112,7 @@ export default function Scene(props: SceneProps) {
           comparedWith={["Ethereum", "Solana"]}
           // docs/lessons/stage-7/7.1.md, section 4.
           strengths={[
-            "Chain abstraction from end to end: one named account can sign for other chains, and intents swap across chains without a lock-and-mint bridge holding a pool of funds to steal.",
+            "Chain abstraction from end to end: one named account can sign for other chains, and intents swap across chains without user-facing bridges or gas tokens for each chain.",
             "The parts are built in: named accounts, scoped keys, shards and Chain Signatures are protocol features, not add-ons from different teams.",
             "Compared with Ethereum and its rollups (many separate networks, bridges and gas tokens) and Solana (one fast shared state, but no sharding and no built-in signing for other chains).",
           ]}

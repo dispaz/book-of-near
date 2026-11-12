@@ -108,14 +108,21 @@ describe("pickResult", () => {
   it("says 'not yet' too early, and gives a detail after", () => {
     expect(pickResult("shards", base).notYet).toBe(true);
     expect(pickResult("verifier", base).notYet).toBe(true);
-    expect(pickResult("signers", { ...base, step: CONTRACT, authorized: true }).notYet).toBe(true);
-    expect(pickResult("destination", { ...base, step: SETTLE, authorized: true }).notYet).toBe(true);
+    expect(pickResult("destination", { ...base, step: CONTRACT, authorized: true }).notYet).toBe(true);
     const done = { ...base, step: SETTLE, authorized: true, settle: "done" as const };
-    expect(pickResult("signers", done).act).toBeUndefined();
+    expect(pickResult("destination", done).act).toBeUndefined();
     expect(pickResult("destination", done).note).toContain("20.27 USDC");
   });
-  it("the signing nodes start the settlement at step 5", () => {
-    expect(pickResult("signers", { ...base, step: SETTLE, authorized: true }).act).toBe("settle");
+  it("where the USDC lands starts the settlement at step 5", () => {
+    expect(pickResult("destination", { ...base, step: SETTLE, authorized: true }).act).toBe("settle");
+  });
+  it("the signing nodes are a side note: they never act, and sign only when a payout must leave NEAR", () => {
+    for (const step of [MAP, CONTRACT, SETTLE]) {
+      const r = pickResult("signers", { ...base, step, authorized: step > MAP });
+      expect(r.act).toBeUndefined();
+      expect(r.notYet).toBeFalsy();
+      expect(r.note).toMatch(/only when a payout must leave NEAR/);
+    }
   });
 });
 
@@ -127,7 +134,8 @@ describe("spotOf", () => {
     expect(spotOf(SHARDS, true, "idle")).toBe("shardB");
     expect(spotOf(CONTRACT, true, "idle")).toBe("verifier");
     expect(spotOf(SETTLE, true, "idle")).toBe("verifier");
-    expect(spotOf(SETTLE, true, "sign")).toBe("signers");
+    expect(spotOf(SETTLE, true, "solver")).toBe("verifier");
+    expect(spotOf(SETTLE, true, "done")).toBe("landed");
   });
 });
 

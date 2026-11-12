@@ -16,9 +16,20 @@ import {
 } from "../../../scene-kit/svg/objects";
 import { VERIFIER_CONTRACT } from "../../../chain/intents";
 import stage from "../../stages/7-book-of-near/stage";
-import { ACCOUNT, DESTINATION, FIGURE, KEY, RIBBON, SHARD_Z, SIGNERS, SPOT_AT, VERIFIER } from "./layout";
+import {
+  ACCOUNT,
+  DESTINATION,
+  FIGURE,
+  KEY,
+  RIBBON,
+  SHARD_RIBBONS,
+  SHARD_Z,
+  SIGNERS,
+  SPOT_AT,
+  VERIFIER,
+} from "./layout";
 import { Facts } from "./parts";
-import { describe, PICK_LABELS, settleReached } from "./trail";
+import { describe, PICK_LABELS, settleReached, type Obj } from "./trail";
 import { AUTHORIZE, CHECK, CONTRACT, MAP, SETTLE, SHARDS, type Capstone } from "./useCapstone";
 
 const ACCENT = stage.accent;
@@ -62,24 +73,17 @@ export default function Scene2D({
 
 function Page({ m }: { m: Capstone }) {
   const { step, authorized, settle } = m;
-  const sel = (o: string) => m.picked?.what === o;
+  const sel = m.isPicked;
   // A "not yet" pick shakes the object. Two class names in turn, so a second click shakes it again.
-  const shake = (o: string) =>
-    m.picked?.what === o && m.picked.result.notYet ? ` cap-shake${m.picked.n % 2}` : "";
+  const shake = (o: Obj) => (m.notYet(o) ? ` cap-shake${(m.picked?.n ?? 0) % 2}` : "");
   const at = SPOT_AT[m.spot];
-  const signed = settleReached(settle, "sign");
   const done = settleReached(settle, "done");
   const receipt = step >= SHARDS;
   return (
     <g>
       {/* ---------- the shards: yours (front), the verifier's (back) ---------- */}
       <g className={shake("shards")} data-explain={step === SHARDS ? "shards" : undefined}>
-        {(
-          [
-            ["mine", "your shard", "Your shard"],
-            ["verifier", "verifier's shard", "The verifier's shard"],
-          ] as const
-        ).map(([k, name, label]) => (
+        {SHARD_RIBBONS.map(([k, name, label]) => (
           <SvgShardRibbon
             key={k}
             x={px(RIBBON.x)}
@@ -111,7 +115,10 @@ function Page({ m }: { m: Capstone }) {
       </g>
 
       {/* ---------- where the USDC lands ---------- */}
-      <g className={shake("destination")}>
+      <g
+        className={`${step === SETTLE && settle === "solver" ? "cap-busy" : ""}${shake("destination")}`}
+        data-explain={step === SETTLE ? "destination" : undefined}
+      >
         <SvgMailbox
           x={px(DESTINATION[0])}
           y={pz(DESTINATION[2]) + 36}
@@ -125,11 +132,8 @@ function Page({ m }: { m: Capstone }) {
         />
       </g>
 
-      {/* ---------- the signing nodes ---------- */}
-      <g
-        className={`${step === SETTLE && settle !== "idle" && !done ? "cap-busy" : ""}${shake("signers")}`}
-        data-explain={step === SETTLE ? "signers" : undefined}
-      >
+      {/* ---------- the signing nodes: a side note, this replay does not use them ---------- */}
+      <g>
         {SIGNERS.map((n, i) => (
           <SvgSignerNode
             key={i}
@@ -137,7 +141,7 @@ function Page({ m }: { m: Capstone }) {
             y={pz(n[2]) + 18}
             size={44}
             color={ACCENT}
-            lit={signed}
+            lit={false}
             name={`node ${i + 1}`}
             onPick={() => m.pick("signers")}
             pickLabel={i === 0 ? PICK_LABELS.signers : `Signing node ${i + 1}`}

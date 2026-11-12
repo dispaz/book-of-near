@@ -1,7 +1,8 @@
 /**
  * Lesson 7.1 in 3D: a pop-up book scene (docs/book-scene.md). On the right page, the intent's trail from
  * left to right: your mailbox and function-call key, two shard ribbons (yours and the verifier's), the
- * verifier scroll (intents.near), three signing nodes and the mailbox where the USDC lands. The intent is a
+ * verifier scroll (intents.near), three signing nodes (a side note: this replay does not use them) and
+ * the mailbox where the USDC lands. The intent is a
  * parcel by your mailbox, then a receipt slip that walks the trail. Only draws the shared state from
  * useCapstone. Loaded lazily from Scene.tsx.
  */
@@ -38,6 +39,7 @@ import {
   FIGURE,
   KEY,
   RIBBON,
+  SHARD_RIBBONS,
   SHARD_Z,
   SIGNERS,
   SIGNERS_CENTER,
@@ -45,7 +47,7 @@ import {
   VERIFIER,
 } from "./layout";
 import { Facts } from "./parts";
-import { describe, PICK_LABELS, settleReached, type Obj } from "./trail";
+import { describe, PICK_LABELS, settleReached } from "./trail";
 import { tourFor, type Target } from "./tour";
 import { AUTHORIZE, CHECK, SETTLE, SHARDS, type Capstone } from "./useCapstone";
 
@@ -63,7 +65,7 @@ const FIGURES = [
   "Fig. 2  Your account signs with a scoped key",
   "Fig. 3  A receipt crosses shards",
   "Fig. 4  The verifier runs as Wasm",
-  "Fig. 5  Solver and signing nodes settle",
+  "Fig. 5  The solver settles the trade",
   "Fig. 6  The whole stack",
 ];
 
@@ -185,9 +187,7 @@ function Shake({ n, on, children }: { n: number; on: boolean; children: ReactNod
 function Figure({ m, compact }: { m: Capstone; compact: boolean }) {
   const { step, authorized, settle } = m;
   const n = m.picked?.n ?? 0;
-  const notYet = (o: Obj) => m.picked?.what === o && !!m.picked.result.notYet;
-  const sel = (o: Obj) => m.picked?.what === o;
-  const signed = settleReached(settle, "sign");
+  const { notYet, isPicked: sel } = m;
   const done = settleReached(settle, "done");
   return (
     <group>
@@ -216,12 +216,7 @@ function Figure({ m, compact }: { m: Capstone; compact: boolean }) {
 
       {/* ---------- the shards: yours (front), the verifier's (back) ---------- */}
       <Shake n={n} on={notYet("shards")}>
-        {(
-          [
-            ["mine", "your shard", "Your shard"],
-            ["verifier", "verifier's shard", "The verifier's shard"],
-          ] as const
-        ).map(([k, name, label]) => (
+        {SHARD_RIBBONS.map(([k, name, label]) => (
           <ShardRibbon
             key={k}
             position={[RIBBON.x, 0.01, SHARD_Z[k]]}
@@ -252,7 +247,7 @@ function Figure({ m, compact }: { m: Capstone; compact: boolean }) {
       </Shake>
       <Anchor name="verifier" position={[VERIFIER[0], 1.3, VERIFIER[2]]} />
 
-      {/* ---------- the signing nodes ---------- */}
+      {/* ---------- the signing nodes: a side note, this replay does not use them ---------- */}
       <Shake n={n} on={notYet("signers")}>
         {SIGNERS.map((p, i) => (
           <SignerNode
@@ -260,7 +255,7 @@ function Figure({ m, compact }: { m: Capstone; compact: boolean }) {
             position={p}
             size={0.72}
             color={ACCENT}
-            lit={signed}
+            lit={false}
             name={`node ${i + 1}`}
             onPick={() => m.pick("signers")}
             pickLabel={i === 0 ? PICK_LABELS.signers : `Signing node ${i + 1}`}
@@ -283,6 +278,7 @@ function Figure({ m, compact }: { m: Capstone; compact: boolean }) {
           selected={sel("destination")}
         />
       </Shake>
+      <Anchor name="destination" position={[DESTINATION[0], 1.2, DESTINATION[2]]} />
 
       {/* The intent: a parcel by your mailbox, then a receipt slip that walks the trail. */}
       <Traveller to={SPOT_AT[m.spot]} arc={1.2} duration={0.7} color={ACCENT}>

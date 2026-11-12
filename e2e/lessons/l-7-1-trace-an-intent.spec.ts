@@ -62,6 +62,7 @@ async function walk(page: Page) {
   await dock(page).getByRole("button", { name: "Verify foreign settlement" }).click();
   await expect(scene(page)).toHaveAttribute("data-scene-state", /settle:done/, { timeout: 10_000 });
   await expect(page.getByTestId("settle-where")).toContainText("no trade happened");
+  await expect(page.getByTestId("signers-note")).toContainText("only when a payout must leave NEAR");
   await expect(trail(page).getByRole("link", { name: /Back to Lesson 4.1/ })).toBeVisible();
 
   await go(page, "Three questions");
@@ -131,10 +132,15 @@ for (const view of ["2d", "3d"] as const)
       await expect(scene(page)).toHaveAttribute("data-scene-state", /authorized:yes/);
       await go(page, "Layer 3");
       await go(page, "Layer 4");
-      await page.getByRole("button", { name: "The signing nodes" }).press("Enter");
+      await page.getByRole("button", { name: "Where the USDC lands" }).press("Enter");
+      await expect(note).toHaveAttribute("data-not-yet", "yes");
       await expect(note).toContainText("Let the contract check the intent first.");
       await go(page, "Layer 5");
+      // The signing nodes are a side note: picking them explains, and settles nothing.
       await page.getByRole("button", { name: "The signing nodes" }).press("Enter");
+      await expect(note).toContainText("only when a payout must leave NEAR");
+      await expect(scene(page)).toHaveAttribute("data-scene-state", /settle:idle/);
+      await page.getByRole("button", { name: "Where the USDC lands" }).press("Enter");
       await expect(scene(page)).toHaveAttribute("data-scene-state", /settle:done/, { timeout: 10_000 });
       await page.getByRole("button", { name: "Where the USDC lands" }).press("Enter");
       await expect(note).not.toHaveAttribute("data-not-yet", "yes");

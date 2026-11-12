@@ -2,7 +2,7 @@
  * Where things stand in lesson 7.1 (world units, y up, z toward the reader), on the right page of the
  * book. The intent's trail runs left to right: your mailbox and key (front left), two shard ribbons
  * (back middle: your shard, then the verifier's), the verifier scroll (back right), the signing nodes
- * (front right) and where the USDC lands (far right). The 2D view draws the same plan from above. Pure.
+ * (front right, a side note: this replay does not use them) and where the USDC lands (far right). The 2D view draws the same plan from above. Pure.
  */
 import type { Vec3 } from "../../../scene-kit/motion";
 import type { Spot } from "./trail";
@@ -16,6 +16,11 @@ export const KEY: Vec3 = [-2.2, 0, 1.5];
 /** The two shard ribbons: yours (front) and the verifier's (back). */
 export const RIBBON = { length: 3.6, width: 0.85, x: 0.2 } as const;
 export const SHARD_Z = { mine: -0.5, verifier: -1.7 } as const;
+/** Both ribbons, as [which, name on the ribbon, pick label]: the same in 2D and 3D. */
+export const SHARD_RIBBONS = [
+  ["mine", "your shard", "Your shard"],
+  ["verifier", "verifier's shard", "The verifier's shard"],
+] as const;
 
 export const VERIFIER: Vec3 = [3.0, 0, -1.6];
 export const SIGNERS: Vec3[] = [
@@ -32,5 +37,5 @@ export const SPOT_AT: Record<Spot, Vec3> = {
   shardA: [0.6, 0, SHARD_Z.mine],
   shardB: [1.3, 0, SHARD_Z.verifier],
   verifier: [2.2, 0, -0.8],
-  signers: [1.9, 0, 2.0],
+  landed: [3.5, 0, -0.6],
 };
