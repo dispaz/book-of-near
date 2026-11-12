@@ -28,6 +28,8 @@ export function pickLabel(t: Token, o: Obj): string {
       return t.step === TRAP && !t.refused
         ? `Padlock: send ${SEND_AMOUNT} ${t.symbol} to ${FRIEND}`
         : "Storage padlock";
+    case "relayer":
+      return `Mailbox: the relayer, ${t.relayerId}`;
     case "parcel":
       return t.step === GASLESS && !t.relayed
         ? "Parcel: sign the gasless transfer"
@@ -41,7 +43,11 @@ export function describe(t: Token): string {
     ? `Your mailbox holds ${tokens(t.myBalance, t.symbol)}.`
     : "Your mailbox has no tokens yet.";
   if (t.step === HOOK || t.step === MINT) return `${me} A minting stamp stands beside it.`;
-  const lock = t.registered ? "The padlock on it is open." : "A red padlock hangs on it.";
+  const lock = t.registered
+    ? "The padlock on it is open."
+    : t.refused
+      ? "A red padlock hangs on it."
+      : "A padlock hangs on it.";
   const friend = `${FRIEND}'s mailbox holds ${tokens(t.friendBalance, t.symbol)}. ${lock}`;
   if (t.step === GASLESS)
     return `${me} ${friend} The relayer ${t.relayed ? `delivered ${t.relayed} signed parcel${t.relayed === 1 ? "" : "s"}` : "waits for your signed parcel"}.`;
@@ -168,7 +174,7 @@ function Relay({ t }: { t: Token }) {
             {" "}
             ·{" "}
             <span data-testid="relay-left">
-              {t.relay.remaining} of {t.relay.cap} left today
+              {t.relay.remaining} of {t.relay.cap} left this visit
             </span>
           </>
         ) : null}

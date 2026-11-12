@@ -4,7 +4,7 @@
  * through the Chain interface.
  */
 import { contractIdFor } from "../l-3-1-deploy-a-contract/contract";
-import type { AccountId } from "../../../chain/types";
+import type { AccountId, ChainNetwork } from "../../../chain/types";
 import { GASLESS, MINT, REGISTER, TRAP } from "./steps";
 
 /** The friend the learner sends tokens to (docs/lessons/stage-3/3.2.md, section 5). */
@@ -41,7 +41,7 @@ export const supplyOf = (raw: string) => Number(raw.trim().replace(/,/g, ""));
 export const tokens = (n: number, symbol: string) => `${n.toLocaleString("en-US")} ${symbol}`;
 
 /** The scene's clickable objects (docs/lessons/stage-3/3.2.md, "Reactions"). */
-export type Obj = "me" | "stamp" | "friend" | "padlock" | "parcel";
+export type Obj = "me" | "stamp" | "friend" | "padlock" | "parcel" | "relayer";
 
 /** What the lesson knows, for picks. */
 export interface PickState {
@@ -50,6 +50,9 @@ export interface PickState {
   refused: boolean;
   registered: boolean;
   relayed: number;
+  /** Transfers the relayer will still pay for this visit, and its cap. */
+  relayLeft: number;
+  relayCap: number;
   symbol: string;
   supply: number;
   myBalance: number;
@@ -114,11 +117,22 @@ export function pickResult(s: PickState, o: Obj): PickResult {
       return s.relayed
         ? { detail: "NEP-366 meta-transaction: you signed it, the relayer sent it and paid the gas." }
         : { notYet: "Sign the gasless transfer at step 5." };
+    case "relayer":
+      if (!s.registered) return { notYet: "Register your friend's storage first (step 4)." };
+      return s.relayed
+        ? {
+            detail: `The relayer paid the gas for ${s.relayed} transfer${s.relayed === 1 ? "" : "s"}. It pays for up to ${s.relayCap} per visit: ${s.relayLeft} left.`,
+          }
+        : { notYet: "The relayer only carries signed transfers. Sign the parcel first." };
   }
 }
 
-/** Evidence for the completion record: the token and transaction hashes, never keys. */
+/**
+ * Evidence for the completion record: the token and transaction hashes, never keys. `mode` is the
+ * network the token really ran on (this lesson always runs a DemoChain, so "demo").
+ */
 export function evidenceOf(v: {
+  mode: ChainNetwork;
   minted: boolean;
   tokenId: AccountId | null;
   symbol: string;
@@ -127,6 +141,7 @@ export function evidenceOf(v: {
 }): Record<string, string> | null {
   if (!v.minted || !v.tokenId) return null;
   return {
+    mode: v.mode,
     tokenContract: v.tokenId,
     tokenSymbol: v.symbol,
     totalSupply: String(v.supply),

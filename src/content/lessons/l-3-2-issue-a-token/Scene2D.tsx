@@ -124,7 +124,16 @@ function Figure({ t }: { t: Token }) {
       ) : null}
       {parts.includes("padlock") ? <Padlock t={t} selected={sel("padlock")} /> : null}
       {parts.includes("relayer") ? (
-        <SvgMailbox x={px(RELAYER[0])} y={pz(RELAYER[2]) + 40} size={92} name="relayer" color={ACCENT} />
+        <SvgMailbox
+          x={px(RELAYER[0])}
+          y={pz(RELAYER[2]) + 40}
+          size={92}
+          name="relayer"
+          color={ACCENT}
+          pickLabel={pickLabel(t, "relayer")}
+          onPick={() => t.pick("relayer")}
+          selected={sel("relayer")}
+        />
       ) : null}
       {parts.includes("parcel") ? (
         <g data-explain="parcel">

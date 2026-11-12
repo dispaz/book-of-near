@@ -46,7 +46,7 @@ export default {
     {
       caption: "Send 50 {symbol} without spending any NEAR. A relayer pays the gas for you.",
       explain:
-        "A meta-transaction (NEP-366) lets someone else pay. You sign the transfer off-chain as a SignedDelegateAction: no NEAR needed. A relayer, a server with its own account, wraps it in a transaction and pays the gas. The network checks your signature and runs the transfer as you. This app's relayer pays for 3 per learner per day, then refuses.",
+        "A meta-transaction (NEP-366) lets someone else pay. You sign the transfer off-chain as a SignedDelegateAction: no NEAR needed. A relayer, a server with its own account, wraps it in a transaction and pays the gas. The network checks your signature and runs the transfer as you. This demo relayer pays for up to 3 transfers per visit, then refuses. It keeps its count in memory, so reloading the page resets it.",
       explainAt: "parcel",
       action: { label: "send a gasless transfer", gate: true },
     },

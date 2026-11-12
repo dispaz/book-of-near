@@ -121,10 +121,20 @@ test.describe(`lesson ${ID}`, () => {
     await expect(page.getByTestId("token-facts")).toContainText("bytes in the token contract");
 
     await nextStep(page);
+    // The relayer is a pick target too: not yet before a signed parcel, then what it paid for.
+    const relayer = page.getByRole("button", { name: /^Mailbox: the relayer/ });
+    await relayer.press("Enter");
+    await expect(page.getByTestId("pick-note")).toHaveText(
+      "The relayer only carries signed transfers. Sign the parcel first.",
+    );
     await gasless(page, 1);
+    await relayer.press("Enter");
+    await expect(page.getByTestId("pick-note")).toHaveText(
+      "The relayer paid the gas for 1 transfer. It pays for up to 3 per visit: 2 left.",
+    );
     await expect(page.getByTestId("friend-balance")).toHaveText("50 INK");
     await expect(page.getByTestId("my-near")).toContainText("unchanged");
-    await expect(page.getByTestId("relay-left")).toHaveText("2 of 3 left today");
+    await expect(page.getByTestId("relay-left")).toHaveText("2 of 3 left this visit");
     await gasless(page, 2);
     await gasless(page, 3);
     await expect(page.getByTestId("friend-balance")).toHaveText("150 INK");

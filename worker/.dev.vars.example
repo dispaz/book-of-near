@@ -2,7 +2,4 @@
 # A funded TESTNET account that pays for practice accounts, and its full-access private key.
 FAUCET_ACCOUNT_ID=your-faucet.testnet
 FAUCET_PRIVATE_KEY=
-# Lesson 3.2's relayer: a funded TESTNET account that pays gas for learners' meta-transactions.
-RELAYER_ACCOUNT_ID=your-relayer.testnet
-RELAYER_PRIVATE_KEY=
 ALLOW_LOCALHOST=1

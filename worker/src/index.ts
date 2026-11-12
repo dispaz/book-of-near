@@ -2,15 +2,13 @@
  * Book of NEAR Worker. Routes:
  *   POST /faucet   fund a testnet practice account (faucet.ts)
  *   POST /intents/quote  1Click quote proxy for lesson 4.2 (intents.ts)
- *   POST /relay    relay a NEP-366 meta-transaction for lesson 3.2, capped per learner (relay.ts)
  *   GET  /health   { ok, faucet }
  * Secrets (never in the repo): FAUCET_ACCOUNT_ID, FAUCET_PRIVATE_KEY, optional ONECLICK_JWT. See README.md.
  */
 import { faucet, type FaucetSender } from "./faucet";
 import { MAX_QUOTE_BODY_BYTES, quote, type Fetch } from "./intents";
 import { kvCounters, memoryCounters, takeSlot, type CounterStore, type KvLike } from "./limits";
-import { nearRelayer, nearSender } from "./near";
-import { MAX_RELAY_PAYLOAD, relay, type RelaySender } from "./relay";
+import { nearSender } from "./near";
 
 export interface Env {
   FAUCET_ACCOUNT_ID?: string;
@@ -27,13 +25,6 @@ export interface Env {
   /** Quotes per IP address per UTC day (default 20), and in total per UTC day (default 400). */
   QUOTE_PER_IP_DAILY?: string;
   QUOTE_GLOBAL_DAILY?: string;
-  /** Lesson 3.2's relayer account and its key (secrets). Without them POST /relay answers 503. */
-  RELAYER_ACCOUNT_ID?: string;
-  RELAYER_PRIVATE_KEY?: string;
-  /** Meta-transactions per learner account per UTC day (default 3), per IP (10), in total (200). */
-  RELAY_PER_ACCOUNT_DAILY?: string;
-  RELAY_PER_IP_DAILY?: string;
-  RELAY_GLOBAL_DAILY?: string;
 }
 
 export interface Overrides {
@@ -42,8 +33,6 @@ export interface Overrides {
   now?: () => Date;
   /** The fetch used to reach 1Click (tests). */
   fetch?: Fetch;
-  /** The relayer used by POST /relay (tests); null means not configured. */
-  relayer?: RelaySender | null;
 }
 
 const LOCALHOST = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
@@ -177,44 +166,6 @@ export async function handle(request: Request, env: Env, o: Overrides = {}): Pro
         origin,
       );
     const reply = await quote(body, { apiKey: env.ONECLICK_JWT, fetch: o.fetch, now });
-    return json(reply.status, reply.body, origin);
-  }
-  if (url.pathname === "/relay" && request.method === "POST") {
-    if (Number(request.headers.get("content-length") ?? 0) > MAX_RELAY_PAYLOAD + 64)
-      return json(413, { error: "The meta-transaction is too big." }, origin);
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return json(400, { error: "Send JSON." }, origin);
-    }
-    const dev = env.ALLOW_LOCALHOST === "1";
-    const counters =
-      o.counters ??
-      (env.FAUCET_LIMITS
-        ? kvCounters(env.FAUCET_LIMITS)
-        : dev
-          ? (fallbackCounters ??= memoryCounters())
-          : null);
-    if (!counters) return json(503, { error: "The relayer is not set up yet." }, origin);
-    const ip = request.headers.get("cf-connecting-ip") ?? (dev ? "local" : null);
-    if (!ip) return json(400, { error: "Unknown client address." }, origin);
-    const relayer =
-      o.relayer !== undefined
-        ? o.relayer
-        : env.RELAYER_ACCOUNT_ID && env.RELAYER_PRIVATE_KEY
-          ? nearRelayer(env.RELAYER_ACCOUNT_ID, env.RELAYER_PRIVATE_KEY)
-          : null;
-    const reply = await relay(body, ip, {
-      sender: relayer,
-      counters,
-      limits: {
-        perAccountDaily: limitFrom(env.RELAY_PER_ACCOUNT_DAILY, 3),
-        perIpDaily: limitFrom(env.RELAY_PER_IP_DAILY, 10),
-        globalDaily: limitFrom(env.RELAY_GLOBAL_DAILY, 200),
-      },
-      now: o.now,
-    });
     return json(reply.status, reply.body, origin);
   }
   return json(404, { error: "Not found." }, origin);

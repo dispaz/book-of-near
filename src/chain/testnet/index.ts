@@ -21,6 +21,5 @@ export function createTestnetChain(): TestnetChain {
     store: localPracticeStore(),
     funders: defaultFunders(),
     returnAccountId: import.meta.env.VITE_RETURN_ACCOUNT_ID as string | undefined,
-    relayUrl: import.meta.env.VITE_WORKER_URL as string | undefined,
   });
 }

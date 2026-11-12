@@ -120,7 +120,7 @@ describe("demo relayer (NEP-366 meta-transactions)", () => {
     expect(r.outcome.receipts.some((x) => x.predecessorId === OWNER && x.receiverId === TOKEN)).toBe(true);
   });
 
-  it("refuses after the per-learner cap", async () => {
+  it("refuses after the per-sender cap", async () => {
     const chain = await registered(2);
     for (let i = 0; i < 2; i++) {
       const s = await chain.signDelegate({ senderId: OWNER, receiverId: TOKEN, actions: [ftTransfer("10")] });

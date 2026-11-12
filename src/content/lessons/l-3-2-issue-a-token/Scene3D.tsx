@@ -145,7 +145,7 @@ export default function Scene3D({
  * a side-to-side shake when it is "not yet". `n` is the pick's number, so every pick plays again.
  * Reduced motion: neither (the selection ring and the hint still show). Renders on demand.
  */
-function React({ t, o, children }: { t: Token; o: Obj; children: ReactNode }) {
+function PickReaction({ t, o, children }: { t: Token; o: Obj; children: ReactNode }) {
   const { reducedMotion } = useStage();
   const g = useRef<Group>(null);
   const mine = t.picked?.what === o;
@@ -180,7 +180,7 @@ function Figure({ t }: { t: Token }) {
   const sel = (o: Obj) => t.picked?.what === o;
   return (
     <group>
-      <React t={t} o="me">
+      <PickReaction t={t} o="me">
         <Mailbox
           position={ME}
           size={1.6}
@@ -190,18 +190,18 @@ function Figure({ t }: { t: Token }) {
           onPick={() => t.pick("me")}
           selected={sel("me")}
         />
-      </React>
+      </PickReaction>
       {t.minted ? <TokenStack at={stackBy(ME, 1)} count={t.myBalance} symbol={t.symbol} /> : null}
       {parts.includes("stamp") ? (
-        <React t={t} o="stamp">
+        <PickReaction t={t} o="stamp">
           <MintStamp t={t} />
-        </React>
+        </PickReaction>
       ) : null}
       {t.step === HOOK || t.step === MINT ? (
         <Anchor name="stamp" position={[STAMP[0], 1.1, STAMP[2]]} />
       ) : null}
       {parts.includes("friend") ? (
-        <React t={t} o="friend">
+        <PickReaction t={t} o="friend">
           <Mailbox
             position={FRIEND}
             size={1.5}
@@ -212,26 +212,36 @@ function Figure({ t }: { t: Token }) {
             onPick={() => t.pick("friend")}
             selected={sel("friend")}
           />
-        </React>
+        </PickReaction>
       ) : null}
       {parts.includes("friend") && t.friendBalance > 0 ? (
         <TokenStack at={stackBy(FRIEND, -1)} count={t.friendBalance} symbol={t.symbol} />
       ) : null}
       {parts.includes("padlock") ? (
-        <React t={t} o="padlock">
+        <PickReaction t={t} o="padlock">
           <Padlock t={t} />
-        </React>
+        </PickReaction>
       ) : null}
       {t.step === TRAP || t.step === REGISTER ? (
         <Anchor name="padlock" position={[PADLOCK[0], 0.8, PADLOCK[2]]} />
       ) : null}
       {parts.includes("relayer") ? (
-        <Mailbox position={RELAYER} size={1.2} name="relayer" color={ACCENT} />
+        <PickReaction t={t} o="relayer">
+          <Mailbox
+            position={RELAYER}
+            size={1.2}
+            name="relayer"
+            color={ACCENT}
+            pickLabel={pickLabel(t, "relayer")}
+            onPick={() => t.pick("relayer")}
+            selected={sel("relayer")}
+          />
+        </PickReaction>
       ) : null}
       {parts.includes("parcel") ? (
-        <React t={t} o="parcel">
+        <PickReaction t={t} o="parcel">
           <SignedParcel t={t} />
-        </React>
+        </PickReaction>
       ) : null}
       {t.step === GASLESS ? (
         <Anchor name="parcel" position={[PARCEL_START[0], 0.9, PARCEL_START[2]]} />

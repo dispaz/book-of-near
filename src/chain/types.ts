@@ -92,12 +92,12 @@ export interface SignedDelegate {
   payload: string;
 }
 
-/** What a relayer did with a signed delegate action. */
+/** What the demo relayer (DemoChain.relayDelegate, lesson 3.2) did with a signed delegate action. */
 export interface RelayResult {
   /** The account that signed the outer transaction and paid its gas. */
   relayerId: AccountId;
   outcome: TxOutcome;
-  /** Relays this sender may still use today, and the cap. */
+  /** Relays this sender may still use on this chain (a reload resets it), and the cap. */
   remaining: number;
   cap: number;
 }
@@ -350,7 +350,7 @@ export type ChainErrorKind =
   | "UnknownBlock"
   | "UnknownChunk"
   | "ViewFailed"
-  /** The relayer would not pay for a meta-transaction (its per-learner cap, or a request it does not sponsor). */
+  /** The demo relayer would not pay for a meta-transaction (its per-sender cap). */
   | "RelayRefused"
   | "Network";
 
@@ -396,11 +396,6 @@ export interface Chain {
    * Local signing, nothing is sent and no NEAR is spent.
    */
   signDelegate(request: DelegateRequest): Promise<SignedDelegate>;
-  /**
-   * Hand a signed delegate action to the app's relayer, which wraps it in its own transaction and pays
-   * the gas. Rejects with ChainError "RelayRefused" once this sender has used the relayer's cap.
-   */
-  relayDelegate(signed: SignedDelegate, options?: SendOptions): Promise<RelayResult>;
   /** Look up a past transaction (RPC `tx`). Rejects with "UnknownTransaction". */
   getTransaction(hash: CryptoHash, senderId: AccountId): Promise<TxOutcome>;
 

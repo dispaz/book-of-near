@@ -1,7 +1,8 @@
 /**
  * The ONE state of lesson 3.2, shared by the 2D and the 3D view. Everything on chain goes through the
  * Chain interface: making the parent name when needed, the token deploy batch, the refused transfer,
- * the storage deposit, and the meta-transaction (signDelegate + relayDelegate). No three.js here.
+ * the storage deposit, and signing the meta-transaction (signDelegate). The relayer that pays for it is
+ * the demo chain's own (DemoChain.relayDelegate): the app runs no live relayer. No three.js here.
  *
  * The token is the demo NEP-141 contract (src/chain/demo/token.ts). This repo has no token Wasm yet, so
  * in testnet mode the lesson runs on its own DemoChain and says so.
@@ -9,12 +10,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { SceneProps } from "../../../app/types";
 import { useChain } from "../../../chain/ChainContext";
-import { DEMO_RELAYER, DemoChain, demoContractCode } from "../../../chain/DemoChain";
+import { DEMO_RELAY_CAP, DEMO_RELAYER, DemoChain, demoContractCode } from "../../../chain/DemoChain";
 import { FT_STORAGE_DEPOSIT } from "../../../chain/demo/token";
 import { isChainError } from "../../../chain/errors";
 import { actions, callMethod, createNamedAccount } from "../../../chain/ops";
 import { tgas } from "../../../chain/units";
-import type { AccountView, Chain, TxOutcome, TxPhase } from "../../../chain/types";
+import type { AccountView, TxOutcome, TxPhase } from "../../../chain/types";
 import {
   CONTRACT_FUNDING,
   gaugeOf,
@@ -57,7 +58,7 @@ export function useToken({
 }: Pick<SceneProps, "step" | "setGate" | "setVars" | "reducedMotion" | "reportEvidence">) {
   const live = useChain();
   // No token Wasm ships yet, so testnet mode runs the token on a private demo chain (honest notice below).
-  const chain: Chain = useMemo(() => (live.network === "demo" ? live : new DemoChain()), [live]);
+  const chain = useMemo(() => (live instanceof DemoChain ? live : new DemoChain()), [live]);
   const demoOnly = live.network !== "demo";
   const pace = reducedMotion ? "instant" : "realtime";
 
@@ -122,9 +123,9 @@ export function useToken({
   const evidenceRef = useRef(reportEvidence);
   evidenceRef.current = reportEvidence;
   useEffect(() => {
-    const ev = evidenceOf({ minted: !!minted, tokenId, symbol, supply, relayTx });
+    const ev = evidenceOf({ mode: chain.network, minted: !!minted, tokenId, symbol, supply, relayTx });
     if (ev) evidenceRef.current?.(ev);
-  }, [minted, tokenId, symbol, supply, relayTx]);
+  }, [chain, minted, tokenId, symbol, supply, relayTx]);
 
   // A new step clears the last pick's hint.
   useEffect(() => setPicked(null), [step]);
@@ -293,6 +294,8 @@ export function useToken({
         refused: !!refused,
         registered: !!registered,
         relayed,
+        relayLeft: relay?.remaining ?? DEMO_RELAY_CAP,
+        relayCap: relay?.cap ?? DEMO_RELAY_CAP,
         symbol,
         supply,
         myBalance,

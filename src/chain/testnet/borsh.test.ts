@@ -151,7 +151,7 @@ describe("Borsh meta-transaction (NEP-366) encoding", () => {
     expect(delegateDigest(fields)).toEqual(sha256(serializeDelegateAction(d)));
   });
 
-  it("encodes a payload near-kit (and so the Worker relayer) can decode", () => {
+  it("encodes a payload near-kit (and so a relayer) can decode", () => {
     const bytes = serializeSignedDelegate({ ...fields, signature: sig });
     const decoded = decodeSignedDelegateAction(bytes) as unknown as {
       signedDelegate: { delegateAction: { senderId: string; receiverId: string; nonce: bigint } };

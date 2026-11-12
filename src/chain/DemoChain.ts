@@ -15,7 +15,7 @@ import { base58, base64 } from "@scure/base";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import { isDirectSubAccount, isImplicitAccountId, isValidAccountId } from "./accountId";
 import { ChainError } from "./errors";
-import { encodeSuccessValue } from "./ops";
+import { DELEGATE_VALIDITY_BLOCKS, encodeSuccessValue } from "./ops";
 import { HISTORICAL_BLOCK, RECORDED_LATENCY_MS, rpcEndpoint, type RpcEndpointId } from "./rpcEndpoints";
 import { shardForAccount } from "./shards";
 import type {
@@ -138,14 +138,14 @@ export interface DemoChainOptions {
   contracts?: { code: Uint8Array; contract: DemoContract }[];
   /** Override the timer (tests). */
   sleep?: (ms: number) => Promise<void>;
-  /** Meta-transactions the demo relayer pays for, per sender. Default 3 (the Worker relayer's default). */
+  /** Meta-transactions the demo relayer pays for, per sender, for this chain's life. Default `DEMO_RELAY_CAP`. */
   relayCap?: number;
 }
 
 /** The demo relayer (lesson 3.2): pays the gas of signed delegate actions, up to `relayCap` per sender. */
 export const DEMO_RELAYER = "relayer.bon.testnet";
-/** A delegate action stays valid for this many blocks after it is signed. */
-export const DELEGATE_VALIDITY_BLOCKS = 100;
+/** Transfers the demo relayer pays for per sender. The count lives in memory, so a reload resets it. */
+export const DEMO_RELAY_CAP = 3;
 
 // ---------- Internal state ----------
 
@@ -271,7 +271,7 @@ export class DemoChain implements Chain {
     this.genesisAccount(DEMO_BUYER, parseNear("10"), undefined, demoContractCode("buyer"));
     this.genesisAccount(DEMO_SHOP, parseNear("10"), undefined, demoContractCode("shop"));
     // Lesson 3.2's relayer: its key lives in this chain's key store, like the Worker's secret key.
-    this.relayCap = options.relayCap ?? 3;
+    this.relayCap = options.relayCap ?? DEMO_RELAY_CAP;
     this.relayerKey = `ed25519:${base58.encode(this.digest("relayer-key"))}`;
     this.keyStore.add(this.relayerKey);
     this.genesisAccount(DEMO_RELAYER, parseNear("50"), this.relayerKey);
@@ -517,7 +517,7 @@ export class DemoChain implements Chain {
     if (used >= this.relayCap)
       throw new ChainError(
         "RelayRefused",
-        `The relayer has paid for ${this.relayCap} transfers for ${signed.senderId} today. That is its cap, so it refused this one.`,
+        `The relayer has paid for ${this.relayCap} transfers for ${signed.senderId} on this visit. That is its cap, so it refused this one.`,
       );
     this.relayed.set(signed.senderId, used + 1);
     const delegate = { ...signed, actions: cloneActions(signed.actions) };

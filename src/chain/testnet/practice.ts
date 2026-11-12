@@ -118,7 +118,7 @@ export class FundingError extends Error {
   }
 }
 
-export async function postJson(doFetch: typeof fetch, url: string, body: unknown, timeoutMs: number) {
+async function postJson(doFetch: typeof fetch, url: string, body: unknown, timeoutMs: number) {
   const res = await doFetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
