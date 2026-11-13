@@ -63,7 +63,7 @@ describe("DemoChain badge contract (same rules as contracts/badge)", () => {
 
   it("refuses an unknown stage", async () => {
     const chain = new DemoChain({ pace: "instant" });
-    expect(failure(await claim(chain, 5))).toMatch(/Unknown stage/);
+    expect(failure(await claim(chain, 6))).toMatch(/Unknown stage/);
   });
 
   it("starts with the badges of an earlier visit", async () => {

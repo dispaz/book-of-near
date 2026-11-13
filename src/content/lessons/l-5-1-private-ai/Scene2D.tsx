@@ -16,6 +16,7 @@ import {
 } from "../../../scene-kit/svg/objects";
 import { COLORS } from "../../../scene-kit/theme";
 import stage from "../../stages/5-enclave/stage";
+import { SvgEnclave } from "../../stages/5-enclave/SvgEnclave";
 import { ENCLAVE, FIGURE, PROMPT_AT, QUOTE, ROOT, SEAL, SERVER, TERMINAL } from "./layout";
 import { Facts } from "./parts";
 import { describe, PICK_LABELS, type Obj } from "./tutor";
@@ -101,7 +102,13 @@ function Page({ m }: { m: PrivateAi }) {
           onPick={() => m.pick("enclave")}
           focus={[px(ENCLAVE[0]) - 70, pz(ENCLAVE[2]) - 78, 140, 116]}
         >
-          <SvgEnclave x={px(ENCLAVE[0])} y={pz(ENCLAVE[2])} holds={m.answered} attested={sealed} />
+          <SvgEnclave
+            x={px(ENCLAVE[0])}
+            y={pz(ENCLAVE[2])}
+            lit={sealed}
+            label="enclave (Intel TDX)"
+            note={m.answered ? "a prompt, sealed" : undefined}
+          />
         </SvgPickable>
       </g>
 
@@ -210,39 +217,6 @@ function SvgServer({ x, y, read }: { x: number; y: number; read: boolean }) {
       ) : null}
       <SvgLabel x={x} y={y + 48} variant="small">
         ordinary server
-      </SvgLabel>
-    </g>
-  );
-}
-
-/** The enclave: a chip with a sealed perimeter in the accent and a lock. */
-function SvgEnclave({ x, y, holds, attested }: { x: number; y: number; holds: boolean; attested: boolean }) {
-  return (
-    <g>
-      <rect
-        x={x - 58}
-        y={y - 58}
-        width={116}
-        height={92}
-        rx={10}
-        className={`pai-perimeter${attested ? " on" : ""}`}
-      />
-      <rect x={x - 42} y={y - 44} width={84} height={64} rx={4} className="pai-chip" />
-      {[-30, -10, 10, 30].map((d) => (
-        <g key={d} className="pai-pins">
-          <line x1={x + d} x2={x + d} y1={y - 52} y2={y - 44} />
-          <line x1={x + d} x2={x + d} y1={y + 20} y2={y + 28} />
-        </g>
-      ))}
-      <rect x={x - 11} y={y - 14} width={22} height={18} rx={3} className="pai-lock" />
-      <path d={`M${x - 7},${y - 14} v-6 a7,7 0 0 1 14,0 v6`} className="pai-shackle" />
-      {holds ? (
-        <text x={x} y={y + 50} className="pai-svg-note mid">
-          a prompt, sealed
-        </text>
-      ) : null}
-      <SvgLabel x={x} y={y - 66} variant="small">
-        enclave (Intel TDX)
       </SvgLabel>
     </g>
   );

@@ -89,6 +89,15 @@ export const STAGE_RULES: StageRule[] = [
       },
     ],
   },
+  {
+    // Stage 5 sends nothing on chain: 5.1 checks an attestation quote in the browser and 5.2 runs a model
+    // of an agent contract. So there is no transaction to prove, and the Worker signs a stage 5 claim
+    // without a lookup. The badge contract still refuses it until the stage 4 badge is held, and stage 4
+    // needs a real chain signature on testnet (4.1).
+    stage: 5,
+    lessons: ["l-5-1-private-ai", "l-5-2-agent-with-no-owner"],
+    evidence: [],
+  },
 ];
 
 /**
