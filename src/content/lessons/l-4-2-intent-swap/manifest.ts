@@ -1,3 +1,4 @@
+import { ENABLE_MAINNET } from "../../../app/flags";
 import type { LessonManifest } from "../../../app/types";
 
 // Lesson script: docs/lessons/stage-4/4.2.md (topic: 4.2-topic.md). Template: docs/lesson-template.md.
@@ -49,10 +50,13 @@ export default {
       action: { label: "simulate the solver", gate: true },
     },
     {
-      caption:
-        "Finish safely on the dry-run quote, or try a tiny real swap if you have a funded mainnet wallet.",
-      explain:
-        "A dry-run quote is a real, signed price with no deposit, so no money moves. If your connected mainnet wallet can pay, the app also offers an optional tiny real swap, capped at $1. That swap does not go to Arbitrum: the USDC stays in your NEAR Intents account (intents.near), and you withdraw it separately. Otherwise you finish on the quote and spend nothing.",
+      // The testnet-only build (VITE_ENABLE_MAINNET off, the default) has no real swap: say so plainly.
+      caption: ENABLE_MAINNET
+        ? "Finish safely on the dry-run quote, or try a tiny real swap if you have a funded mainnet wallet."
+        : "Finish safely on the dry-run quote, or simulate a tiny swap with the demo wallet.",
+      explain: ENABLE_MAINNET
+        ? "A dry-run quote is a real, signed price with no deposit, so no money moves. If your connected mainnet wallet can pay, the app also offers an optional tiny real swap, capped at $1. That swap does not go to Arbitrum: the USDC stays in your NEAR Intents account (intents.near), and you withdraw it separately. Otherwise you finish on the quote and spend nothing."
+        : "A dry-run quote is a real, signed price with no deposit, so no money moves. This build is testnet only: the real swap is switched off. You can still simulate a tiny swap with the demo wallet; no real money moves. A real swap would not go to Arbitrum: the USDC would stay in your NEAR Intents account (intents.near), and you would withdraw it separately.",
       explainAt: "destination",
       action: { label: "choose how to finish", gate: true },
     },

@@ -5,6 +5,7 @@
 import { useContext, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ActionSlot } from "../../../ui/SceneAction";
+import { ENABLE_MAINNET } from "../../../app/flags";
 import { REAL_SWAP_AMOUNT, REAL_SWAP_CAP_USD, SLIPPAGE_BPS, VERIFIER_CONTRACT } from "../../../chain/intents";
 import { useMainnetWallet } from "../../../chain/mainnet";
 import { formatNear } from "../../../chain/units";
@@ -145,10 +146,21 @@ export function FinishPanel({ m }: { m: IntentSwap }) {
   const rs = m.realSwap;
   const amount = formatNear(REAL_SWAP_AMOUNT, 2);
   const panel = (
-    <section className="ixs-finish" aria-label="Optional tiny real swap" data-testid="finish-panel">
-      <p className="ixs-finish-title">
-        Optional: a tiny real swap of {amount} NEAR, capped at ${REAL_SWAP_CAP_USD}.
-      </p>
+    <section
+      className="ixs-finish"
+      aria-label={ENABLE_MAINNET ? "Optional tiny real swap" : "Optional simulated swap"}
+      data-testid="finish-panel"
+    >
+      {ENABLE_MAINNET ? (
+        <p className="ixs-finish-title">
+          Optional: a tiny real swap of {amount} NEAR, capped at ${REAL_SWAP_CAP_USD}.
+        </p>
+      ) : (
+        <p className="ixs-finish-title" data-testid="testnet-only">
+          This build is testnet only: the real swap is switched off. Optional: simulate a {amount} NEAR swap
+          with the demo wallet.
+        </p>
+      )}
       {state.status !== "connected" ? (
         <p>
           <button
@@ -158,15 +170,20 @@ export function FinishPanel({ m }: { m: IntentSwap }) {
             disabled={state.status === "connecting"}
           >
             {usingReal ? "Connect my mainnet wallet" : "Connect the demo wallet"}
-          </button>{" "}
-          <button
-            type="button"
-            className="ixs-link"
-            disabled={loading}
-            onClick={() => setUseReal(!usingReal)}
-          >
-            {loading ? "Loading…" : usingReal ? "Back to the demo wallet" : "Use my own wallet"}
           </button>
+          {ENABLE_MAINNET ? (
+            <>
+              {" "}
+              <button
+                type="button"
+                className="ixs-link"
+                disabled={loading}
+                onClick={() => setUseReal(!usingReal)}
+              >
+                {loading ? "Loading…" : usingReal ? "Back to the demo wallet" : "Use my own wallet"}
+              </button>
+            </>
+          ) : null}
         </p>
       ) : (
         <p data-testid="swap-wallet">

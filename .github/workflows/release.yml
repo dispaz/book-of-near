@@ -125,6 +125,7 @@ jobs:
           VITE_CHAIN_MODE: ${{ vars.VITE_CHAIN_MODE || 'demo' }}
           VITE_WORKER_URL: ${{ vars.VITE_WORKER_URL }}
           VITE_RETURN_ACCOUNT_ID: ${{ vars.VITE_RETURN_ACCOUNT_ID }}
+          VITE_ENABLE_MAINNET: ${{ vars.VITE_ENABLE_MAINNET }}
         run: |
           npm run build
           node -e 'require("fs").writeFileSync("dist/version.json", JSON.stringify({

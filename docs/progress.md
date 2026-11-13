@@ -582,3 +582,8 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - The NEAR docs (https://docs.near.org/protocol/transactions/gas): "On protocol version 86 and earlier, contracts also receive 30% of the gas they burn while executing. From protocol version 87 (nearcore 2.14.0), all of it is burned." Mainnet and testnet run protocol 88 and report `burnt_gas_reward: [0, 1]` (13 Nov 2026).
 - 7.1: layer 4 now says all the gas is burned, none goes to the contract, with the 30% as history (topic, script, manifest, verifier note, gas rows).
 - 2.2: the same outdated claim drove step 4 (an estimated 70 / 30 split). It now shows the exact gas each contract burnt, all of it burned (`gasUse`, `meterParts` for both views), with a one-line history note. Quiz Q2, the button ("Inspect gas"), the honest take and the tour are updated. The 2.2 topic and spikes-seed note are resolved.
+
+## 2026-11-13 · Testnet-only build: mainnet behind `VITE_ENABLE_MAINNET` (Refs #66)
+
+- The submission is testnet only. New build flag `VITE_ENABLE_MAINNET` (`src/app/flags.ts`), off by default. With it off: lesson 4.2 step 5 offers only the dry-run finish and the demo wallet's simulated swap, with "This build is testnet only: the real swap is switched off." (no "Use my own wallet", no mainnet buttons); `/wallet` shows a short testnet-only note; `WalletPanel` hides the switch; the NEAR Connect loader is dead code, so its chunk is not built. `MainnetWalletProvider` stays mounted because 4.2 uses its demo wallet. With the flag on, everything is as before.
+- e2e: 4.2 checks the testnet-only step 5; `wallet.spec.ts` checks the note, and its demo-wallet test runs only with `VITE_ENABLE_MAINNET=true npm run e2e`.
