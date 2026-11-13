@@ -45,6 +45,8 @@ export interface PickProps {
    * instead of calling `onPick` (it also makes an object without `onPick` pickable).
    */
   disabledHint?: string;
+  /** Called on a "not yet" pick (after `disabledHint` shows), so a lesson can record it like any pick. */
+  onNotYet?: () => void;
   /** Shown after a pick, for exploring once the step is done (a value, a short fact). */
   detail?: string;
   /** The object's own pick animation; the kit's hop when left out. */
@@ -71,6 +73,7 @@ export function Pickable({
   onPick,
   anchor = [0, 1, 0],
   disabledHint,
+  onNotYet,
   detail,
   pickMotion,
   children,
@@ -104,6 +107,7 @@ export function Pickable({
     setNote(shown ? { ...shown } : null);
     if (disabledHint) {
       if (!reducedMotion) sim.current.nope = 0;
+      onNotYet?.();
       return;
     }
     onPick?.();

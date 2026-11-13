@@ -8,7 +8,7 @@ import { SvgLabel, SvgPickable } from "../../../scene-kit/svg";
 import { SvgChainArea, SvgLedger, SvgMailbox, SvgRpcWindow } from "../../../scene-kit/svg/objects";
 import { COLORS, INK } from "../../../scene-kit/theme";
 import stage from "../../stages/6-citizen/stage";
-import { describe, fmt, ORACLE_READ, PICK_LABELS, QUOTES, type Obj } from "./money";
+import { describe, fmt, ORACLE_READ, PICK_LABELS, QUOTES, SUPPLY, USDCE_LABEL, type Obj } from "./money";
 import { FIGURE, INTENTS_AT, LEND_AT, ORACLE_AT, POOL_R, SIMPLE_AT, STABLE_AT, USDC_AT } from "./layout";
 import { Facts } from "./parts";
 import { CHECK, DOLLARS, FLOWS, MAP, ORACLE, SWAP } from "./steps";
@@ -119,7 +119,7 @@ function Page({ m }: { m: MoneyMap }) {
           y={pz(USDC_AT[2]) + 40}
           size={86}
           name="USDC"
-          note={m.compared ? "79.3M" : "Circle"}
+          note={m.compared ? SUPPLY.usdc.short : "Circle"}
           color={step === DOLLARS ? ACCENT : COLORS.paper}
           flag={m.compared}
           onPick={() => m.pick("usdc")}
@@ -129,7 +129,7 @@ function Page({ m }: { m: MoneyMap }) {
       </g>
       {m.compared ? (
         <SvgLabel x={px(USDC_AT[0])} y={pz(USDC_AT[2]) + 62} variant="small">
-          USDC.e: 14.6M bridged
+          {USDCE_LABEL}
         </SvgLabel>
       ) : null}
 

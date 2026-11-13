@@ -42,13 +42,6 @@
   height: auto;
   max-height: 46vh;
 }
-.money-fill {
-  transition:
-    y 0.5s ease-out,
-    height 0.5s ease-out,
-    width 0.5s ease-out,
-    x 0.5s ease-out;
-}
 /* "Not yet": a short shake. Two names, so a second early click plays it again. */
 .money-shake0 {
   animation: money-shake0 0.45s ease-out;
@@ -75,9 +68,6 @@
   80% {
     transform: translateX(5px);
   }
-}
-.money.still .money-fill {
-  transition: none;
 }
 .money.still .money-shake0,
 .money.still .money-shake1 {
@@ -185,9 +175,6 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .money-fill {
-    transition: none;
-  }
   .money-shake0,
   .money-shake1 {
     animation: none;

@@ -1,7 +1,8 @@
 /**
  * Lesson 6.2's model, pure and unit tested: the RECORDED money map (docs/lessons/stage-6/6.2-topic.md,
  * "Recorded data, 13 Nov 2026"), the two pools' recorded quotes, and what each clickable object does when
- * picked (rule 10a, the script's Reactions table). No three.js, no network.
+ * picked (rule 10a, the script's Reactions table), with each object's pick animation (MOTIONS). It imports
+ * only three.js's `Object3D` type, so three.js stays out of the 2D bundle. No network.
  *
  * Every figure here was read once on 13 Nov 2026 from DefiLlama's public APIs and NEAR mainnet view calls
  * (no keys) and is shown with RECORDED_NOTE. Nothing is fetched again, and nothing is presented as live.
@@ -20,14 +21,24 @@ export const TVL = {
   solana: "about $5.0 billion",
   rheaLend: "about $139 million",
   rheaDex: "about $21 million",
+  /** Rhea Lend plus Rhea Dex: 138,950,502 + 21,396,972. */
+  rhea: "about $160 million",
   intentsHeld: "about $89 million",
 } as const;
 
-/** `ft_total_supply` on NEAR mainnet, block 224,346,125 (6 decimals). */
+/** `ft_total_supply` on NEAR mainnet, block 224,346,125 (6 decimals). `short` is for labels on the map. */
 export const SUPPLY = {
-  usdc: { name: "USDC", by: "issued by Circle on NEAR", amount: "79.3 million" },
-  usdce: { name: "USDC.e", by: "minted by a bridge (factory.bridge.near)", amount: "14.6 million" },
+  usdc: { name: "USDC", by: "issued by Circle on NEAR", amount: "79.3 million", short: "79.3M" },
+  usdce: {
+    name: "USDC.e",
+    by: "minted by a bridge (factory.bridge.near)",
+    amount: "14.6 million",
+    short: "14.6M",
+  },
 } as const;
+
+/** The map's label under the mailbox once the two USDCs are compared (both views). */
+export const USDCE_LABEL = `${SUPPLY.usdce.name}: ${SUPPLY.usdce.short} bridged`;
 
 /** `pyth-oracle.near`, NEAR/USD feed, block 224,346,234. DefiLlama coins API for the market price. */
 export const ORACLE_READ = {
@@ -55,6 +66,8 @@ export const POOLS = {
     id: 6416,
     kind: "DEGEN_SWAP (a stable pool)",
     holds: "308,087.56 USDt and 291,937.71 USDC",
+    /** Both sides added up, in dollars. */
+    size: "about $600,000",
     fee: "0.01%",
   },
   simple: {
@@ -99,6 +112,30 @@ export const QUOTES: Record<
     overStart: "10.9%",
   },
 };
+
+/** How many times native USDC's supply is bridged USDC.e's, rounded down and in words (79.3 / 14.6 → five). */
+const nativeTimes = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"][
+  Math.floor(parseFloat(SUPPLY.usdc.amount) / parseFloat(SUPPLY.usdce.amount))
+];
+
+/** The Honest take (docs/lessons/stage-6/6.2.md, section 4), built from the recorded figures above. */
+export const HONEST_TAKE = {
+  comparedWith: [
+    `Ethereum, with ${TVL.ethereum} in DeFi, the deepest pools (DefiLlama, recorded ${RECORDED_ON})`,
+    `Solana, with ${TVL.solana} in DeFi (DefiLlama, recorded ${RECORDED_ON})`,
+  ],
+  strengths: [
+    `Native dollars: Circle and Tether issue USDC and USDt on NEAR itself, with no bridge in between. Native ${SUPPLY.usdc.name} (${SUPPLY.usdc.amount}) is over ${nativeTimes} times bridged ${SUPPLY.usdce.name} (${SUPPLY.usdce.amount}).`,
+    `Stable pools work: 100,000 USDC traded only about 0.01% away from 1:1 in a pool of ${POOLS.stable.size}.`,
+    `Money moves through: NEAR Intents settled ${INTENTS.day} of trades in one day, more than all of NEAR's DeFi TVL.`,
+  ],
+  weaknesses: [
+    `Shallow pools: NEAR's DeFi TVL is ${TVL.near}; Ethereum's is ${TVL.ethereum}. 100,000 USDC into Rhea's biggest USDC/NEAR pool paid ${QUOTES[100_000].overStart} over the starting price. A router can split a big trade across several pools, so that figure is for one pool only.`,
+    `Concentrated: one group, Rhea, runs the main exchange and the main lending market, ${TVL.rhea} of the ${TVL.near.replace("about ", "")}.`,
+    "Oracles can go quiet: Pyth no longer supports NEAR, and its stored NEAR price is from August. Protocols must check a price's age and find other feeds.",
+    `Two USDCs: bridged ${SUPPLY.usdce.name} still circulates next to native ${SUPPLY.usdc.name}, and they are not the same token.`,
+  ],
+} as const;
 
 /** USDC paid per NEAR in the simple pool for a trade of `size`. */
 export const priceOf = (size: Size) => size / QUOTES[size].simpleOut;

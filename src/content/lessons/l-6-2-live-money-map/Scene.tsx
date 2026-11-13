@@ -3,7 +3,7 @@ import type { SceneProps } from "../../../app/types";
 import { SceneAction, SceneActionGroup } from "../../../ui/SceneAction";
 import { Check, HonestTake, type CheckQuestion } from "../../../lesson-kit";
 import Scene2D from "./Scene2D";
-import { fmt, SIZES } from "./money";
+import { fmt, HONEST_TAKE, SIZES } from "./money";
 import { CHECK, DOLLARS, FLOWS, HONEST, ORACLE, SWAP } from "./steps";
 import { useMoneyMap } from "./useMoneyMap";
 import "./scene.css";
@@ -117,22 +117,10 @@ export default function Scene(props: SceneProps) {
       ) : null}
       {step === HONEST ? (
         <HonestTake
-          comparedWith={[
-            "Ethereum, with about $39.4 billion in DeFi, the deepest pools (DefiLlama, recorded 13 Nov 2026)",
-            "Solana, with about $5.0 billion in DeFi (DefiLlama, recorded 13 Nov 2026)",
-          ]}
-          // docs/lessons/stage-6/6.2.md, section 4.
-          strengths={[
-            "Native dollars: Circle and Tether issue USDC and USDt on NEAR itself, with no bridge in between. Native USDC (79.3 million) is over five times bridged USDC.e (14.6 million).",
-            "Stable pools work: 100,000 USDC traded within 0.01% of 1:1 in a pool of about $600,000.",
-            "Money moves through: NEAR Intents settled $176 million of trades in one day, more than all of NEAR's DeFi TVL.",
-          ]}
-          weaknesses={[
-            "Shallow pools: NEAR's DeFi TVL is about $162 million; Ethereum's is about $39.4 billion. 100,000 USDC into NEAR's biggest USDC/NEAR pool paid 10.9% over the starting price.",
-            "Concentrated: one group, Rhea, runs the main exchange and the main lending market, about $160 million of the $162 million.",
-            "Oracles can go quiet: Pyth no longer supports NEAR, and its stored NEAR price is from August. Protocols must check a price's age and find other feeds.",
-            "Two USDCs: bridged USDC.e still circulates next to native USDC, and they are not the same token.",
-          ]}
+          // docs/lessons/stage-6/6.2.md, section 4, built from the recorded figures (money.ts).
+          comparedWith={[...HONEST_TAKE.comparedWith]}
+          strengths={[...HONEST_TAKE.strengths]}
+          weaknesses={[...HONEST_TAKE.weaknesses]}
         />
       ) : null}
     </>

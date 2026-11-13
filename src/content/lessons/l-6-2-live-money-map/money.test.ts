@@ -3,6 +3,7 @@ import {
   constantProduct,
   describe as describeScene,
   evidenceFor,
+  HONEST_TAKE,
   nextSize,
   POOLS,
   priceOf,
@@ -36,7 +37,7 @@ describe("recorded pool quotes", () => {
     expect(QUOTES[100_000].overStart).toBe("10.9%");
   });
 
-  it("keeps the stable pool within 0.01% of 1:1 for 100,000 USDC", () => {
+  it("keeps the stable pool about 0.01% from 1:1 for 100,000 USDC (0.01005%)", () => {
     expect(Math.abs(QUOTES[100_000].stableOut / 100_000 - 1)).toBeLessThan(0.000101);
   });
 
@@ -111,5 +112,29 @@ describe("the scene text and the completion record", () => {
       recordedOn: "2026-11-13",
       kind: "recorded",
     });
+  });
+});
+
+describe("the honest take", () => {
+  it("is built from the recorded figures", () => {
+    const text = [...HONEST_TAKE.comparedWith, ...HONEST_TAKE.strengths, ...HONEST_TAKE.weaknesses].join(" ");
+    for (const figure of [
+      "about $39.4 billion",
+      "about $5.0 billion",
+      "79.3 million",
+      "14.6 million",
+      "over five times",
+      "about $600,000",
+      "$176 million",
+      "about $162 million",
+      "10.9%",
+      "about $160 million of the $162 million",
+    ])
+      expect(text).toContain(figure);
+  });
+
+  it("says the 10.9% is one pool's figure", () => {
+    expect(HONEST_TAKE.weaknesses[0]).toMatch(/Rhea's biggest USDC\/NEAR pool/);
+    expect(HONEST_TAKE.weaknesses[0]).toMatch(/router can split a big trade/);
   });
 });

@@ -34,7 +34,18 @@ import {
 } from "../../../scene-kit";
 import type { SceneProps } from "../../../app/types";
 import stage from "../../stages/6-citizen/stage";
-import { describe, fmt, MOTIONS, ORACLE_READ, PICK_LABELS, QUOTES, type Obj, type Reaction } from "./money";
+import {
+  describe,
+  fmt,
+  MOTIONS,
+  ORACLE_READ,
+  PICK_LABELS,
+  QUOTES,
+  SUPPLY,
+  USDCE_LABEL,
+  type Obj,
+  type Reaction,
+} from "./money";
 import { FIGURE, INTENTS_AT, LEND_AT, ORACLE_AT, POOL_R, SIMPLE_AT, STABLE_AT, USDC_AT } from "./layout";
 import { Facts } from "./parts";
 import { tourFor, type Target } from "./tour";
@@ -42,6 +53,8 @@ import { CHECK, DOLLARS, FLOWS, MAP, ORACLE, SWAP } from "./steps";
 import type { MoneyMap } from "./useMoneyMap";
 
 const ACCENT = stage.accent;
+/** The USDC mailbox's size (its select ring's radius is 0.55 of it). */
+const USDC_SIZE = 1.4;
 /** The page needs room in front for the names under the front objects. */
 const SPREAD = {
   print: spreadBeside({ ...FIGURE, maxZ: FIGURE.maxZ + 0.3 }),
@@ -88,9 +101,13 @@ function shotFocus(t: Target): Focus {
   }
 }
 
-/** Pickable props for one object's reaction (rule 10a): its step action, a "not yet" hint or a detail. */
-const pickFor = (r: Reaction, action: () => void, pickMotion: PickMotion) => ({
-  onPick: r.act ? action : undefined,
+/**
+ * Pickable props for one object's reaction (rule 10a): its step action, a "not yet" hint or a detail.
+ * Every pick, hints and details too, goes through `pick`, so the shared state records it as in 2D.
+ */
+const pickFor = (r: Reaction, pick: () => void, pickMotion: PickMotion) => ({
+  onPick: pick,
+  onNotYet: pick,
   disabledHint: r.hint,
   detail: r.detail,
   pickMotion,
@@ -203,9 +220,9 @@ function Figure({ m, compact }: { m: MoneyMap; compact: boolean }) {
       {/* ---------- the USDC mailbox (front left) ---------- */}
       <Mailbox
         position={USDC_AT}
-        size={1.4}
+        size={USDC_SIZE}
         name="USDC"
-        note={compact ? undefined : m.compared ? "79.3M" : "Circle"}
+        note={compact ? undefined : m.compared ? SUPPLY.usdc.short : "Circle"}
         color={step === DOLLARS ? ACCENT : COLORS.paper}
         flag={m.compared}
         pickLabel={PICK_LABELS.usdc}
@@ -215,7 +232,7 @@ function Figure({ m, compact }: { m: MoneyMap; compact: boolean }) {
       <Anchor name="usdc" position={[USDC_AT[0], 1.2, USDC_AT[2]]} />
       {m.compared && !compact ? (
         <Label position={[USDC_AT[0], 0.05, USDC_AT[2] + 0.95]} variant="small">
-          USDC.e: 14.6M bridged
+          {USDCE_LABEL}
         </Label>
       ) : null}
 
@@ -268,6 +285,13 @@ function Pool({ which, lit }: { which: "stable" | "simple"; lit: boolean }) {
   );
 }
 
+/** Where each intent arrow points, and how far short of that point it stops: a pool's rim, the mailbox's ring. */
+const FLOW_TARGETS: [Vec3, number][] = [
+  [STABLE_AT, POOL_R],
+  [SIMPLE_AT, POOL_R],
+  [USDC_AT, USDC_SIZE * 0.55],
+];
+
 /**
  * The intent flows: three arrows from the NEAR Intents area to the pools and the mailbox. They grow in
  * once and settle (render on demand); reduced motion shows them at full length at once.
@@ -286,10 +310,11 @@ function Flows() {
   const from: Vec3 = [INTENTS_AT.x, 0.12, INTENTS_AT.z + INTENTS_AT.depth / 2];
   return (
     <group>
-      {[STABLE_AT, SIMPLE_AT, USDC_AT].map((to, i) => {
+      {FLOW_TARGETS.map(([to, stop], i) => {
+        // Aim at the object's centre and stop at its edge (`stop`, measured along the arrow).
         const dx = to[0] - from[0];
-        const dz = to[2] - POOL_R - from[2];
-        const len = Math.hypot(dx, dz);
+        const dz = to[2] - from[2];
+        const len = Math.hypot(dx, dz) - stop;
         const yaw = Math.atan2(dx, dz);
         return (
           <group key={i} position={from} rotation={[0, yaw, 0]}>
