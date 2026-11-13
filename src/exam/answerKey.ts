@@ -1,15 +1,18 @@
 /**
- * The final exam's answer key (issue #28). NEVER import this file statically from app code:
+ * The final exam's answer key (issue #28). Do not import this file statically from app code:
  * `examFlow.ts` loads it with `import()` only to grade a demo exam (demo mode has no network by rule),
- * and the Worker imports it to grade testnet exams. `answerKey.test.ts` enforces this, and the e2e
- * test checks that no script the exam page downloads before grading holds `ANSWER_KEY_MARK`.
+ * and the Worker imports it to grade testnet exams. `exam.test.ts` checks the imports, and the e2e
+ * test checks that no script the exam page downloads before grading holds any `why` text (and that
+ * the chunk demo grading loads does).
+ *
+ * The key is not a secret. It is in the public repo, demo mode downloads it to grade, and the Worker
+ * returns every `answer` and `why` after a graded attempt. Keeping it out of the page before grading
+ * only stops a casual peek. What a testnet pass is worth rests on the Worker's signature over the
+ * receipt and on the badge gate the Worker re-reads, not on hiding this file.
  *
  * `answer` is the index of the right option in `bank.ts`. `why[i]` explains option i, shown after
  * the exam is graded.
  */
-
-/** A marker the e2e test looks for in downloaded scripts. */
-export const ANSWER_KEY_MARK = "bon-exam-answer-key-v1";
 
 export interface KeyEntry {
   answer: number;

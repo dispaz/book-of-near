@@ -1,6 +1,9 @@
 /**
- * POST /exam: grades the final exam (issue #28). The answer key lives here and in the demo grader's
- * lazy chunk only, never in the app's main bundle.
+ * POST /exam: grades the final exam (issue #28). The answer key is used here and in the demo grader's
+ * lazy chunk, not in the app's main bundle. It is not secret (public repo, and every graded reply
+ * carries the answers): the receipt's worth rests on the claim key signature and the badge gate.
+ * This route does not prove the caller controls `accountId`; the final claim (#29) must bind the
+ * receipt's account to the account that signs `claim_final` (docs/badge-contract.md).
  *
  * Checks first that the account holds every stage badge its exam route requires, by reading the badge
  * contract on testnet (`has_badge`), then grades, then signs a receipt for a pass:
@@ -13,6 +16,7 @@ import { questionsFor } from "../../src/exam/bank";
 import { examMessage, gradeExam, validPicks } from "../../src/exam/grade";
 import { badgeList, EXAM_ROUTE_INFO, examGate, isExamRoute } from "../../src/exam/routes";
 import { signText, type Reply } from "./claim";
+import { rpcFirst } from "./rpc";
 
 /** An exam body is an account, a route and 15 small numbers. */
 export const MAX_EXAM_BODY_BYTES = 2 * 1024;
@@ -95,33 +99,29 @@ export function rpcBadges(
   return {
     async hasBadge(accountId, stage) {
       const args = btoa(JSON.stringify({ account_id: accountId, stage }));
-      let lastError: unknown = new Error("no rpc");
-      for (const url of urls) {
-        try {
-          const res = await fetchFn(url, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              jsonrpc: "2.0",
-              id: "exam",
-              method: "query",
-              params: {
-                request_type: "call_function",
-                finality: "final",
-                account_id: contractId,
-                method_name: "has_badge",
-                args_base64: args,
-              },
-            }),
-          });
-          const json = (await res.json()) as { result?: { result?: number[] }; error?: unknown };
+      const held = await rpcFirst(
+        urls,
+        fetchFn,
+        {
+          id: "exam",
+          method: "query",
+          params: {
+            request_type: "call_function",
+            finality: "final",
+            account_id: contractId,
+            method_name: "has_badge",
+            args_base64: args,
+          },
+        },
+        (raw) => {
+          // No "not found" here: a node without a result failed, so the next one is tried.
+          const json = raw as { result?: { result?: number[] }; error?: unknown };
           if (!json.result?.result) throw new Error("rpc");
           return JSON.parse(new TextDecoder().decode(new Uint8Array(json.result.result))) === true;
-        } catch (e) {
-          lastError = e;
-        }
-      }
-      throw lastError;
+        },
+      );
+      if (held === null) throw new Error("no rpc");
+      return held;
     },
   };
 }

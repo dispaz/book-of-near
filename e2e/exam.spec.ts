@@ -1,7 +1,33 @@
 import { base58 } from "@scure/base";
 import { expect, test, type Page } from "@playwright/test";
-import { ANSWER_KEY, ANSWER_KEY_MARK } from "../src/exam/answerKey";
-import { questionsFor } from "../src/exam/bank";
+import { ANSWER_KEY } from "../src/exam/answerKey";
+import { EXAM_QUESTIONS, questionsFor } from "../src/exam/bank";
+
+/**
+ * Text that only the answer key holds: every `why` explanation that is not also question text.
+ * Grading uses these strings, so a bundle that holds the key holds them (a separate marker constant
+ * would be tree-shaken out and prove nothing).
+ */
+const BANK_TEXT = EXAM_QUESTIONS.flatMap((q) => [q.prompt, ...q.options]).join("\n");
+const KEY_TEXT = Object.values(ANSWER_KEY)
+  .flatMap((k) => k.why)
+  .filter((w) => w.length >= 30 && !BANK_TEXT.includes(w));
+const holdsKey = (script: string) => KEY_TEXT.some((w) => script.includes(w));
+
+/** Collects the body of every script the page downloads; `bodies()` waits for all of them. */
+function collectScripts(page: Page) {
+  const pending: Promise<{ url: string; text: string }>[] = [];
+  page.on("response", (r) => {
+    if (r.request().resourceType() === "script")
+      pending.push(
+        r.text().then(
+          (text) => ({ url: r.url(), text }),
+          () => ({ url: r.url(), text: "" }),
+        ),
+      );
+  });
+  return { bodies: (from = 0) => Promise.all(pending.slice(from)) };
+}
 
 // The final exam in demo mode (issue #28): no wallet, no network. The gate reads the demo badge
 // contract, which keeps its badges in this browser (bon:demo-badges:v1).
@@ -59,11 +85,13 @@ async function answer(page: Page, route: Route, wrong = 0) {
 const handIn = (page: Page) => page.getByRole("button", { name: "Hand in my answers" }).click();
 const examRecord = (page: Page, route: Route) =>
   page.evaluate(
-    (r) =>
+    ({ r, me }) =>
       (
-        window as unknown as { __bookOfNear: { progress: { exam(r: string): unknown } } }
-      ).__bookOfNear.progress.exam(r),
-    route,
+        window as unknown as {
+          __bookOfNear: { progress: { exam(r: string, mode: string, accountId: string): unknown } };
+        }
+      ).__bookOfNear.progress.exam(r, "demo", me),
+    { r: route, me: ME },
   );
 
 test.describe("final exam in demo mode", () => {
@@ -102,11 +130,9 @@ test.describe("final exam in demo mode", () => {
 
   test("fail, read the explanations, retake and pass; the result is kept", async ({ page }) => {
     await seed(page, [0, 1, 2]);
-    // The answer key must not be in anything the page downloads before the exam is graded.
-    const scripts: string[] = [];
-    page.on("response", async (r) => {
-      if (r.request().resourceType() === "script") scripts.push(await r.text().catch(() => ""));
-    });
+    expect(KEY_TEXT.length).toBeGreaterThan(20);
+    // The answer key is not in anything the page downloads before the exam is graded.
+    const scripts = collectScripts(page);
     await page.goto("/exam");
     await expect(page.locator('form[data-exam-state="open"]')).toBeVisible();
 
@@ -114,13 +140,18 @@ test.describe("final exam in demo mode", () => {
     await handIn(page);
     await expect(page.getByRole("alert")).toContainText("15 are still blank");
     await expect(page.getByRole("alert")).toBeFocused();
-    expect(scripts.length).toBeGreaterThan(0);
-    expect(scripts.some((s) => s.includes(ANSWER_KEY_MARK))).toBe(false);
+    await page.waitForLoadState("networkidle");
+    const before = await scripts.bodies();
+    expect(before.length).toBeGreaterThan(0);
+    expect(before.filter((s) => holdsKey(s.text)).map((s) => s.url)).toEqual([]);
 
     await answer(page, "general", 4);
     await handIn(page);
     const result = page.locator(".exam-result");
     await expect(result).toHaveAttribute("data-exam-state", "failed");
+    // Positive control: demo grading fetched the key chunk, and the check above would have caught it.
+    const after = await scripts.bodies(before.length);
+    expect(after.filter((s) => holdsKey(s.text)).length).toBe(1);
     await expect(page.getByRole("heading", { name: "Not passed yet" })).toBeFocused();
     await expect(result).toContainText("11 of 15 right");
     await expect(result).toContainText("You need 12 of 15");

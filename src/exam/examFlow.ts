@@ -6,10 +6,14 @@
  * contract.
  *
  * Grading: testnet mode sends the answers to the Worker (`POST /exam`), which checks the badges on
- * testnet itself, grades with the answer key and signs a receipt for a pass. The key never reaches the
- * browser. Demo mode has no network by rule, so it loads the key as a separate chunk (`import()`),
- * only at the moment it grades, and signs the receipt with the public demo claim key. A demo receipt
- * is worth nothing on testnet: no Worker or contract trusts the demo key.
+ * testnet itself, grades with the answer key and signs a receipt for a pass. A testnet page does not
+ * download the key before grading. Demo mode has no network by rule, so it loads the key as a separate
+ * chunk (`import()`), only at the moment it grades, and signs the receipt with the public demo claim
+ * key. A demo receipt is worth nothing on testnet: no Worker or contract trusts the demo key.
+ *
+ * The key is not a secret (it is in the public repo, and every graded attempt returns the answers and
+ * explanations). A testnet receipt is worth something because the Worker signs it after re-reading the
+ * badges, and because the final badge checks that signature, not because the key is hidden.
  */
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { utf8ToBytes } from "@noble/hashes/utils.js";

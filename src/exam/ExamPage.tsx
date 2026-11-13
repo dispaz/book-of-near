@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 
 import { Link, useSearchParams } from "react-router";
 import { useChain } from "../chain/ChainContext";
 import { progress, useProgress } from "../progress";
+import { examKey } from "../progress/store";
 import { STAGE_ACCENTS } from "../scene-kit/theme";
 import { questionsFor } from "./bank";
 import { readExamGate, submitExam, type ExamOutcome, type GateView } from "./examFlow";
@@ -45,23 +46,32 @@ export function ExamPage() {
   const info = EXAM_ROUTE_INFO[route];
   const questions = questionsFor(route);
   const mark = passMark(questions.length);
-  const kept = state.exams?.[route];
-
+  const mode = chain.network === "testnet" ? "testnet" : "demo";
   const [view, setView] = useState<View>({ s: "checking" });
+  // The account whose result is shown: the one the last gate read was for (results are kept per
+  // route, mode and account, so a demo pass never stands in for a testnet one).
+  const [accountId, setAccountId] = useState<string | null>(null);
+  const kept = accountId ? state.exams?.[examKey(route, mode, accountId)] : undefined;
   const [picks, setPicks] = useState<Picks>(() => questions.map(() => null));
   const [blank, setBlank] = useState<number | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
   const blankNote = useRef<HTMLParagraphElement>(null);
 
+  function showGate(gate: GateView) {
+    setAccountId(gate.accountId);
+    setView(gate.open ? { s: "open", gate } : { s: "locked", gate });
+  }
+
   useEffect(() => {
     let live = true;
     setView({ s: "checking" });
+    setAccountId(null);
     setPicks(questionsFor(route).map(() => null));
     setBlank(null);
     setSubmitError(null);
     readExamGate(chain, route)
-      .then((gate) => live && setView(gate.open ? { s: "open", gate } : { s: "locked", gate }))
+      .then((gate) => live && showGate(gate))
       .catch(
         () => live && setView({ s: "error", text: "Your badges could not be read. Try again in a minute." }),
       );
@@ -91,27 +101,19 @@ export function ExamPage() {
       setSubmitError(outcome.error);
       setView({ s: "checking" });
       readExamGate(chain, route)
-        .then((gate) => setView(gate.open ? { s: "open", gate } : { s: "locked", gate }))
+        .then(showGate)
         .catch(() => setView({ s: "error", text: outcome.error }));
       return;
     }
     progress.recordExam({
       route,
       accountId: (await chain.practiceAccount()).accountId,
-      mode: chain.network === "testnet" ? "testnet" : "demo",
+      mode,
       score: outcome.score,
       total: outcome.total,
       passed: outcome.passed,
       takenAt: new Date().toISOString(),
-      ...(outcome.receipt
-        ? {
-            receipt: {
-              contractId: outcome.receipt.contractId,
-              passedAtMs: outcome.receipt.passedAtMs,
-              signature: outcome.receipt.signature,
-            },
-          }
-        : {}),
+      ...(outcome.receipt ? { receipt: outcome.receipt } : {}),
     });
     setView({ s: "graded", outcome });
     window.scrollTo(0, 0);
@@ -121,12 +123,12 @@ export function ExamPage() {
     setPicks(questions.map(() => null));
     setView({ s: "checking" });
     readExamGate(chain, route)
-      .then((gate) => setView(gate.open ? { s: "open", gate } : { s: "locked", gate }))
+      .then(showGate)
       .catch(() => setView({ s: "error", text: "Your badges could not be read. Try again in a minute." }));
     window.scrollTo(0, 0);
   }
 
-  const demo = chain.network !== "testnet";
+  const demo = mode === "demo";
 
   return (
     <main className="page exam-page" style={{ "--stage-accent": STAGE_ACCENTS[7] } as CSSProperties}>

@@ -84,6 +84,83 @@ function json(status: number, body: unknown, origin: string | null): Response {
 
 let fallbackCounters: CounterStore | null = null;
 
+/** What differs between the signed routes (/claim, /exam) before their own check runs. */
+interface SignedRoute {
+  /** Counter prefix: `<name>` per IP and in total, `<name>-account` per account. */
+  name: string;
+  maxBytes: number;
+  notSetUp: string;
+  tooBig: string;
+  perIpDaily: number;
+  perAccountDaily: number;
+  globalDaily: number;
+  /** 429 text when the day's total is used up, and when an IP or account is over its limit. */
+  globalUsed: string;
+  tooMany: string;
+}
+
+/**
+ * The shared prologue of the signed routes: config, body size cap, JSON, counters, client address and
+ * the per-IP, total and per-account daily slots. Slots are taken before the body is checked, so refused
+ * requests count too. Returns the parsed body and the time, or the error reply.
+ */
+async function signedPrologue(
+  request: Request,
+  env: Env,
+  o: Overrides,
+  origin: string | null,
+  r: SignedRoute,
+): Promise<
+  | { ok: true; body: unknown; now: Date; contractId: string; signingKey: string }
+  | { ok: false; reply: Response }
+> {
+  const fail = (status: number, error: string) => ({
+    ok: false as const,
+    reply: json(status, { error }, origin),
+  });
+  if (!env.CLAIM_SIGNING_KEY || !env.BADGE_CONTRACT_ID) return fail(503, r.notSetUp);
+  if (Number(request.headers.get("content-length") ?? 0) > r.maxBytes) return fail(413, r.tooBig);
+  const text = await request.text();
+  if (new TextEncoder().encode(text).length > r.maxBytes) return fail(413, r.tooBig);
+  let body: unknown;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    return fail(400, "Send JSON.");
+  }
+  const dev = env.ALLOW_LOCALHOST === "1";
+  const counters =
+    o.counters ??
+    (env.FAUCET_LIMITS
+      ? kvCounters(env.FAUCET_LIMITS)
+      : dev
+        ? (fallbackCounters ??= memoryCounters())
+        : null);
+  if (!counters) return fail(503, r.notSetUp);
+  const ip = request.headers.get("cf-connecting-ip") ?? (dev ? "local" : null);
+  if (!ip) return fail(400, "Unknown client address.");
+  const now = o.now?.() ?? new Date();
+  const byIp = await takeSlot(
+    counters,
+    { perIpDaily: r.perIpDaily, globalDaily: r.globalDaily },
+    ip,
+    now,
+    r.name,
+  );
+  const account = (body as { accountId?: unknown } | null)?.accountId;
+  const byAccount = byIp.ok
+    ? await takeSlot(
+        counters,
+        { perIpDaily: r.perAccountDaily, globalDaily: Number.MAX_SAFE_INTEGER },
+        String(account ?? "?").slice(0, 64),
+        now,
+        `${r.name}-account`,
+      )
+    : byIp;
+  if (!byAccount.ok) return fail(429, byAccount.reason === "global" ? r.globalUsed : r.tooMany);
+  return { ok: true, body, now, contractId: env.BADGE_CONTRACT_ID, signingKey: env.CLAIM_SIGNING_KEY };
+}
+
 export async function handle(request: Request, env: Env, o: Overrides = {}): Promise<Response> {
   const url = new URL(request.url);
   const origin = allowedOrigin(request.headers.get("origin"), env);
@@ -189,130 +266,45 @@ export async function handle(request: Request, env: Env, o: Overrides = {}): Pro
     return json(reply.status, reply.body, origin);
   }
   if (url.pathname === "/claim" && request.method === "POST") {
-    if (!env.CLAIM_SIGNING_KEY || !env.BADGE_CONTRACT_ID)
-      return json(503, { error: "Badge claims are not set up yet." }, origin);
-    const tooBig = () => json(413, { error: "The claim request is too big." }, origin);
-    if (Number(request.headers.get("content-length") ?? 0) > MAX_CLAIM_BODY_BYTES) return tooBig();
-    const text = await request.text();
-    if (new TextEncoder().encode(text).length > MAX_CLAIM_BODY_BYTES) return tooBig();
-    let body: unknown;
-    try {
-      body = JSON.parse(text);
-    } catch {
-      return json(400, { error: "Send JSON." }, origin);
-    }
-    const dev = env.ALLOW_LOCALHOST === "1";
-    const counters =
-      o.counters ??
-      (env.FAUCET_LIMITS
-        ? kvCounters(env.FAUCET_LIMITS)
-        : dev
-          ? (fallbackCounters ??= memoryCounters())
-          : null);
-    if (!counters) return json(503, { error: "Badge claims are not set up yet." }, origin);
-    const ip = request.headers.get("cf-connecting-ip") ?? (dev ? "local" : null);
-    if (!ip) return json(400, { error: "Unknown client address." }, origin);
-    const now = o.now?.() ?? new Date();
-    const global = limitFrom(env.CLAIM_GLOBAL_DAILY, 500);
-    // Slots are taken before the evidence is checked, so refused claims count too.
-    const byIp = await takeSlot(
-      counters,
-      { perIpDaily: limitFrom(env.CLAIM_PER_IP_DAILY, 20), globalDaily: global },
-      ip,
-      now,
-      "claim",
-    );
-    const account = (body as { accountId?: unknown } | null)?.accountId;
-    const byAccount = byIp.ok
-      ? await takeSlot(
-          counters,
-          { perIpDaily: limitFrom(env.CLAIM_PER_ACCOUNT_DAILY, 10), globalDaily: Number.MAX_SAFE_INTEGER },
-          String(account ?? "?").slice(0, 64),
-          now,
-          "claim-account",
-        )
-      : byIp;
-    if (!byAccount.ok)
-      return json(
-        429,
-        {
-          error:
-            byAccount.reason === "global"
-              ? "The app has signed today's badge claims. Try again tomorrow."
-              : "Too many claims today. Try again tomorrow.",
-        },
-        origin,
-      );
-    const reply = await claim(body, {
-      contractId: env.BADGE_CONTRACT_ID,
-      signingKey: env.CLAIM_SIGNING_KEY,
+    const p = await signedPrologue(request, env, o, origin, {
+      name: "claim",
+      maxBytes: MAX_CLAIM_BODY_BYTES,
+      notSetUp: "Badge claims are not set up yet.",
+      tooBig: "The claim request is too big.",
+      perIpDaily: limitFrom(env.CLAIM_PER_IP_DAILY, 20),
+      perAccountDaily: limitFrom(env.CLAIM_PER_ACCOUNT_DAILY, 10),
+      globalDaily: limitFrom(env.CLAIM_GLOBAL_DAILY, 500),
+      globalUsed: "The app has signed today's badge claims. Try again tomorrow.",
+      tooMany: "Too many claims today. Try again tomorrow.",
+    });
+    if (!p.ok) return p.reply;
+    const reply = await claim(p.body, {
+      contractId: p.contractId,
+      signingKey: p.signingKey,
       lookup: o.lookup ?? rpcLookup(),
-      now,
+      now: p.now,
     });
     return json(reply.status, reply.body, origin);
   }
   if (url.pathname === "/exam" && request.method === "POST") {
-    if (!env.CLAIM_SIGNING_KEY || !env.BADGE_CONTRACT_ID)
-      return json(503, { error: "The exam is not set up yet." }, origin);
-    const tooBig = () => json(413, { error: "The exam request is too big." }, origin);
-    if (Number(request.headers.get("content-length") ?? 0) > MAX_EXAM_BODY_BYTES) return tooBig();
-    const text = await request.text();
-    if (new TextEncoder().encode(text).length > MAX_EXAM_BODY_BYTES) return tooBig();
-    let body: unknown;
-    try {
-      body = JSON.parse(text);
-    } catch {
-      return json(400, { error: "Send JSON." }, origin);
-    }
-    const dev = env.ALLOW_LOCALHOST === "1";
-    const counters =
-      o.counters ??
-      (env.FAUCET_LIMITS
-        ? kvCounters(env.FAUCET_LIMITS)
-        : dev
-          ? (fallbackCounters ??= memoryCounters())
-          : null);
-    if (!counters) return json(503, { error: "The exam is not set up yet." }, origin);
-    const ip = request.headers.get("cf-connecting-ip") ?? (dev ? "local" : null);
-    if (!ip) return json(400, { error: "Unknown client address." }, origin);
-    const now = o.now?.() ?? new Date();
-    // Every attempt counts, graded or refused, so the key cannot be probed at speed.
-    const byIp = await takeSlot(
-      counters,
-      {
-        perIpDaily: limitFrom(env.EXAM_PER_IP_DAILY, 30),
-        globalDaily: limitFrom(env.EXAM_GLOBAL_DAILY, 2000),
-      },
-      ip,
-      now,
-      "exam",
-    );
-    const account = (body as { accountId?: unknown } | null)?.accountId;
-    const byAccount = byIp.ok
-      ? await takeSlot(
-          counters,
-          { perIpDaily: limitFrom(env.EXAM_PER_ACCOUNT_DAILY, 10), globalDaily: Number.MAX_SAFE_INTEGER },
-          String(account ?? "?").slice(0, 64),
-          now,
-          "exam-account",
-        )
-      : byIp;
-    if (!byAccount.ok)
-      return json(
-        429,
-        {
-          error:
-            byAccount.reason === "global"
-              ? "The app has graded today's exams. Try again tomorrow."
-              : "Too many exam attempts today. Try again tomorrow.",
-        },
-        origin,
-      );
-    const reply = await exam(body, {
-      contractId: env.BADGE_CONTRACT_ID,
-      signingKey: env.CLAIM_SIGNING_KEY,
-      badges: o.badges ?? rpcBadges(env.BADGE_CONTRACT_ID),
-      now,
+    // Every attempt counts, graded or refused, so the Worker's RPC reads and signatures stay bounded.
+    const p = await signedPrologue(request, env, o, origin, {
+      name: "exam",
+      maxBytes: MAX_EXAM_BODY_BYTES,
+      notSetUp: "The exam is not set up yet.",
+      tooBig: "The exam request is too big.",
+      perIpDaily: limitFrom(env.EXAM_PER_IP_DAILY, 30),
+      perAccountDaily: limitFrom(env.EXAM_PER_ACCOUNT_DAILY, 10),
+      globalDaily: limitFrom(env.EXAM_GLOBAL_DAILY, 2000),
+      globalUsed: "The app has graded today's exams. Try again tomorrow.",
+      tooMany: "Too many exam attempts today. Try again tomorrow.",
+    });
+    if (!p.ok) return p.reply;
+    const reply = await exam(p.body, {
+      contractId: p.contractId,
+      signingKey: p.signingKey,
+      badges: o.badges ?? rpcBadges(p.contractId),
+      now: p.now,
     });
     return json(reply.status, reply.body, origin);
   }

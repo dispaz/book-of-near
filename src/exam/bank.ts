@@ -1,7 +1,8 @@
 /**
  * The final exam's questions, WITHOUT answers (issue #28). This file ships to every browser. Which
  * option is right lives only in `answerKey.ts`: the Worker grades testnet exams with it, and demo mode
- * loads it as a separate chunk only when a demo exam is graded (`examFlow.ts`).
+ * loads it as a separate chunk only when a demo exam is graded (`examFlow.ts`). That keeps answers off
+ * the page before grading; it does not make them secret (see `answerKey.ts`).
  *
  * Every question comes from a lesson's own check (the `QUESTIONS` array in the lesson's Scene.tsx,
  * written from docs/lessons/stage-<n>/<order>.md), so it only tests what a lesson teaches. Options are

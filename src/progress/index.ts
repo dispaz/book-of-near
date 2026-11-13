@@ -26,7 +26,7 @@ if (typeof window !== "undefined") {
       completions: () => progress.completions(),
       isComplete: (id: string) => progress.isComplete(id),
       resumeTarget: () => progress.resumeTarget(),
-      exam: (route: "general" | "developer") => progress.exam(route),
+      exam: (...args: Parameters<Progress["exam"]>) => progress.exam(...args),
     }),
   };
 }

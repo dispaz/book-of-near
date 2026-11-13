@@ -81,13 +81,26 @@ describe("answerKey.ts stays out of the app bundle", () => {
       return statSync(p).isDirectory() ? files(p) : /\.tsx?$/.test(f) ? [p] : [];
     });
 
+  /** A static, non-type import or re-export of answerKey: `import x from`, `export … from`, `import "…"`. */
+  const staticKeyImport = (text: string) =>
+    /^\s*(?:import|export)\s+(?!type\b)[^;]*?from\s+["'][^"']*answerKey(?:\.tsx?)?["']/m.test(text) ||
+    /^\s*import\s+["'][^"']*answerKey(?:\.tsx?)?["']/m.test(text);
+
+  it("catches every form of static import", () => {
+    expect(staticKeyImport('import { ANSWER_KEY } from "./answerKey";')).toBe(true);
+    expect(staticKeyImport('import {\n  ANSWER_KEY,\n} from "../exam/answerKey.ts";')).toBe(true);
+    expect(staticKeyImport('export { ANSWER_KEY } from "./answerKey";')).toBe(true);
+    expect(staticKeyImport('export * from "./answerKey";')).toBe(true);
+    expect(staticKeyImport('import "./answerKey";')).toBe(true);
+    expect(staticKeyImport('import type { KeyEntry } from "./answerKey";')).toBe(false);
+    expect(staticKeyImport('export type { KeyEntry } from "./answerKey";')).toBe(false);
+    expect(staticKeyImport('const k = await import("./answerKey");')).toBe(false);
+  });
+
   it("is only ever imported with import() or as types, outside tests", () => {
     const offenders = files(src)
       .filter((f) => !/\.test\.tsx?$/.test(f))
-      .filter((f) => {
-        const text = readFileSync(f, "utf8");
-        return /^\s*import\s+(?!type\b)[^;]*?from\s+["'][^"']*answerKey["']/m.test(text);
-      })
+      .filter((f) => staticKeyImport(readFileSync(f, "utf8")))
       .map((f) => relative(src, f));
     expect(offenders).toEqual([]);
   });
