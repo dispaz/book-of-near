@@ -532,3 +532,10 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Hints and details come from one pure `reactionsFor(step, state)` in `wallet3d.ts` (unit tested; never a key value): empty places say "Generate a key pair first", the key "Write a message first", the address "Turn it into an address first", the card "Sign the message first"; after each step the object shows a fact (BIP-39 / SLIP-10 path, 64 hex, 42 characters, 64-byte signature, "0 keys left").
 - Script "Reactions" table updated to what was built. E2E: 2 new tests (focus, picks play and settle, early hints, details; reduced motion keeps hints and details with no pick motion).
 - Gate (merged with main): lint, typecheck, unit tests, 0.2 spec + render-on-demand (GPU, `E2E_WORKERS=2`).
+
+## 2026-11-13 · Badge art in NEAR's palette, stage 4 blockchains, badges for stages 5 to 7 (Refs #11, #68)
+
+- `scripts/badges-art.mjs` draws eight badges (0 to 7) in NEAR's colours only (black, off-white, green, forest; `docs/palette.md` rule 4). Stages 0 to 3 keep their motifs. Stage 4 is now three short blockchains (linked blocks) joined by chain links. New: 5 Enclave (a padlocked chip), 6 Citizen (a ballot going into a box), 7 Book of NEAR (an open book with one trail from start to flag).
+- `STAGE_BADGES = 8`: My book and the checker show eight slots; stages 5 and 6 (no lessons) show "Not open yet", 7 (a lesson, no rule) "Badge not available yet"; the count is "N of 5" (`CLAIMABLE_BADGES`, equal to the demo contract's stage count).
+- Testnet: `set_art` for stage-0 to stage-4 with the new hashes (`docs/badge-contract.md`). `set_stage_count(8)` and art for 5 to 7 are left to the owner (`node scripts/deploy-badge.mjs stage-count 8`).
+- Screenshots: `docs/screenshots/badges-near/`. Gate: lint, typecheck, unit tests, `e2e/badges.spec.ts`.

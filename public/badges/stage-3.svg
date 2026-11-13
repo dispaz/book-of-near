@@ -1,20 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Book of NEAR, stage 3 badge: Wasm">
   <title>Book of NEAR: Stage 3 (Wasm)</title>
-  <circle cx="256" cy="256" r="240" fill="#f2f1e9" stroke="#16141f" stroke-width="12"/>
-  <circle cx="256" cy="256" r="214" fill="none" stroke="#1e9bd7" stroke-width="10"/>
-  <circle cx="256" cy="256" r="200" fill="none" stroke="#16141f" stroke-width="4" stroke-dasharray="1 14" stroke-linecap="round"/>
-  <path d="M200 356 q-8 34 10 44 q16 -16 6 -46" fill="#1e9bd7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
-  <path d="M402.0 232.0 L383.5 266.2 L382.4 305.0 L349.3 325.3 L329.0 358.4 L290.2 359.5 L256.0 378.0 L221.8 359.5 L183.0 358.4 L162.7 325.3 L129.6 305.0 L128.5 266.2 L110.0 232.0 L128.5 197.8 L129.6 159.0 L162.7 138.7 L183.0 105.6 L221.8 104.5 L256.0 86.0 L290.2 104.5 L329.0 105.6 L349.3 138.7 L382.4 159.0 L383.5 197.8 Z" fill="#1e9bd7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
-  <rect x="240" y="138" width="32" height="34" rx="4" transform="rotate(0 256 232)" fill="#fffdf7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
-  <rect x="240" y="138" width="32" height="34" rx="4" transform="rotate(45 256 232)" fill="#fffdf7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
-  <rect x="240" y="138" width="32" height="34" rx="4" transform="rotate(90 256 232)" fill="#fffdf7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
-  <rect x="240" y="138" width="32" height="34" rx="4" transform="rotate(135 256 232)" fill="#fffdf7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
-  <rect x="240" y="138" width="32" height="34" rx="4" transform="rotate(180 256 232)" fill="#fffdf7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
-  <rect x="240" y="138" width="32" height="34" rx="4" transform="rotate(225 256 232)" fill="#fffdf7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
-  <rect x="240" y="138" width="32" height="34" rx="4" transform="rotate(270 256 232)" fill="#fffdf7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
-  <rect x="240" y="138" width="32" height="34" rx="4" transform="rotate(315 256 232)" fill="#fffdf7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
-  <circle cx="256" cy="232" r="72" fill="#fffdf7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
-  <circle cx="256" cy="232" r="24" fill="#1e9bd7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
-  <path d="M120 392 h272 l-18 30 l18 30 h-272 l18 -30 z" fill="#fffdf7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
-  <text x="256" y="434" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="40" font-weight="700" letter-spacing="4" fill="#16141f">STAGE 3</text>
+  <circle cx="256" cy="256" r="240" fill="#f2f1e9" stroke="#000000" stroke-width="12"/>
+  <circle cx="256" cy="256" r="214" fill="none" stroke="#00ec97" stroke-width="12"/>
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#000000" stroke-width="4" stroke-dasharray="1 14" stroke-linecap="round"/>
+  <path d="M200 356 q-8 34 10 44 q16 -16 6 -46" fill="#00ec97" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M402.0 232.0 L383.5 266.2 L382.4 305.0 L349.3 325.3 L329.0 358.4 L290.2 359.5 L256.0 378.0 L221.8 359.5 L183.0 358.4 L162.7 325.3 L129.6 305.0 L128.5 266.2 L110.0 232.0 L128.5 197.8 L129.6 159.0 L162.7 138.7 L183.0 105.6 L221.8 104.5 L256.0 86.0 L290.2 104.5 L329.0 105.6 L349.3 138.7 L382.4 159.0 L383.5 197.8 Z" fill="#00ec97" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <rect x="240" y="138" width="32" height="34" rx="4" transform="rotate(0 256 232)" fill="#f2f1e9" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <rect x="240" y="138" width="32" height="34" rx="4" transform="rotate(45 256 232)" fill="#f2f1e9" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <rect x="240" y="138" width="32" height="34" rx="4" transform="rotate(90 256 232)" fill="#f2f1e9" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <rect x="240" y="138" width="32" height="34" rx="4" transform="rotate(135 256 232)" fill="#f2f1e9" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <rect x="240" y="138" width="32" height="34" rx="4" transform="rotate(180 256 232)" fill="#f2f1e9" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <rect x="240" y="138" width="32" height="34" rx="4" transform="rotate(225 256 232)" fill="#f2f1e9" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <rect x="240" y="138" width="32" height="34" rx="4" transform="rotate(270 256 232)" fill="#f2f1e9" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <rect x="240" y="138" width="32" height="34" rx="4" transform="rotate(315 256 232)" fill="#f2f1e9" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <circle cx="256" cy="232" r="72" fill="#f2f1e9" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <circle cx="256" cy="232" r="24" fill="#145c43" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M120 392 h272 l-18 30 l18 30 h-272 l18 -30 z" fill="#f2f1e9" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <text x="256" y="434" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="40" font-weight="700" letter-spacing="4" fill="#000000">STAGE 3</text>
 </svg>

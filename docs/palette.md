@@ -43,7 +43,13 @@ object. Promote a colour to a token once a second file needs it.
    4.5:1 against `--ink`. Never put accent-coloured body text on paper: no accent passes 4.5:1 there.
 3. **Restraint.** near.org is almost all black and white, with green on a couple of elements. Keep the app
    mostly ink on paper, one accent per stage, and green for NEAR things.
-4. **Fonts** stay DM Sans (UI), Newsreader (serif) and Caveat (hand). NEAR's own typeface, FK Grotesk, is
+4. **Badge art is NEAR's own colours only.** A stage badge (`scripts/badges-art.mjs`, `public/badges/`) is
+   NEAR-branded proof minted on NEAR, so it is a NEAR thing in the sense of rule 1, and it uses the NEAR
+   brand layer and nothing else: `NEAR.black` outlines, `NEAR.offWhite` ground and paper, `NEAR.green` for
+   the main figure and the ring, `NEAR.forest` for second parts. No stage accent appears on a badge: the
+   motif and the "STAGE n" ribbon tell the stages apart (`scripts/badges-art.test.ts` checks every hex).
+   This is the one place where green is used for a whole figure rather than a coin.
+5. **Fonts** stay DM Sans (UI), Newsreader (serif) and Caveat (hand). NEAR's own typeface, FK Grotesk, is
    commercial; don't ship it in this public repo unless its licence allows it.
 
 ## Sources (checked 10 Nov 2026)

@@ -76,6 +76,21 @@ Deployed on 12 Nov 2026 with `scripts/deploy-badge.mjs`:
 
 `set_art` for `stage-0` to `stage-4` (13 Nov 2026, media `stage-<n>.svg`, hashes from `public/badges/art.json`): `5pogwK2r2bwrwzLNwk7HE4gz5qeMVqEDkaEoZd5bYtD6`, `FBvcFxFx256JSTDEzLj7UypiX2ymbGMX8Eve58C6gpSd`, `47Ve4RYK5iDCzYRqWqeXoTERAaQtoVY7Aoppo4TpHGd1`, `Ez2BPyJWeyWjCXa7E56VXMi4vWprYN7X2KraC2UrZPa`, `9kiUhZor8aEXdBuKDNYdPMyWKtjPGC5nMdrWbt6dhXN9`.
 
+`set_art` again for `stage-0` to `stage-4` (13 Nov 2026, NEAR palette and the new stage 4 blockchain motif; every hash changed, `node scripts/deploy-badge.mjs art --keys stage-0,stage-1,stage-2,stage-3,stage-4`): `6o6yMNoBVfQ3RoAqafMtRCRjoBhugSCUocpzCTSP4qZs`, `57WcJHuBjbmWrhTAory2LySNxzSb1PXqhtttpt3MyiDa`, `6PehTDcFo7bteMC2HzYsWFvfRizX7nkVzPyeFFiifv2x`, `HJ9hCmsTi56gf5APkpUq14SnMvnQnR2j9zHfzaTgUfKi`, `CGsEVYecjiK3uEKBfJnZoqsNasc3CEy76T4Z4xojUoe`. Token `1` (stage 0) now reports `media_hash` `kHDPWZIgf5SYKNJgl/XJTaNRIET51eYAPABdDd+fqrg=`, the hash in `art.json`.
+
+### Adding stages 5 to 7 (owner decision, not run)
+
+The art for stages 5 (Enclave), 6 (Citizen) and 7 (Book of NEAR) is in `public/badges/` and `art.json`, and the app shows eight slots (`STAGE_BADGES = 8`), but the contract still counts five stages. `set_stage_count` can only grow, so growing it is the owner's call. To add the three stages, from a checkout whose `worker/.dev.vars` holds the owner key:
+
+```
+node scripts/deploy-badge.mjs stage-count 8      # set_stage_count(8) on badges.bon-badges-mwe57oab.testnet; cannot be undone
+node scripts/deploy-badge.mjs art --keys stage-5,stage-6,stage-7
+```
+
+(With near-cli instead: `set_stage_count '{"stage_count": 8}'` called by `bon-badges-mwe57oab.testnet`. Then change `STAGE_COUNT` in `scripts/deploy-badge.mjs` to 8 so `settings` keeps it, and `DEMO_STAGE_COUNT` in `src/chain/demo/badges.ts` so demo mode matches.)
+
+The contract requires each previous stage's badge, so stage 7 cannot be claimed until stages 5 and 6 have lessons, a rule in `src/badges/rules.ts` and claimed badges. Until a stage has a rule, no claim card appears and the shelf shows "Not open yet" (no lessons: 5, 6) or "Badge not available yet" (lessons but no rule: 7). The shelf counts "N of 5 claimed" (`CLAIMABLE_BADGES`, the stages with a rule), which matches `DEMO_STAGE_COUNT`.
+
 First real claim (stage 0, Worker run locally): learner `bon-learner-mwe61s8i.testnet`, evidence transfer `AQ63WVtJWPYtAzFka5XgRc5miHEuZkYZD3gtYrRpgyPY`, `claim_stage` `EAuadk9PtuXBfee1fMx32okJyo6t2xCMbwJkumk8XJ1o` → token `1`. The image shows on explorers once `https://book-of-near.pages.dev/badges/stage-0.svg` is deployed.
 
 The contract id is config, not code: `src/badges/config.ts` reads `VITE_BADGE_CONTRACT_ID` and falls back to the id above; the Worker reads `BADGE_CONTRACT_ID` from `wrangler.toml`.

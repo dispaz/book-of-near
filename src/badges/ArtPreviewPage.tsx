@@ -1,6 +1,6 @@
 import { registry } from "../app/registry";
 import { badgeArtUrl } from "./BadgeShelf";
-import { STAGE_BADGES } from "./config";
+import { STAGE_BADGE_NAMES, STAGE_BADGES } from "./config";
 
 const STAGES = [...Array(STAGE_BADGES).keys()];
 
@@ -40,7 +40,7 @@ export default function ArtPreviewPage() {
               <figure key={n} style={{ margin: 0, textAlign: "center" }}>
                 <img src={badgeArtUrl(n)} width={256} height={256} alt={`Stage ${n} badge`} />
                 <figcaption>
-                  Stage {n}: {registry.stages.find((s) => s.id === n)?.name}
+                  Stage {n}: {registry.stages.find((s) => s.id === n)?.name ?? STAGE_BADGE_NAMES[n]}
                 </figcaption>
               </figure>
             ))}

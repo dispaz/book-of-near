@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Book of NEAR, stage 5 badge: Enclave">
+  <title>Book of NEAR: Stage 5 (Enclave)</title>
+  <circle cx="256" cy="256" r="240" fill="#f2f1e9" stroke="#000000" stroke-width="12"/>
+  <circle cx="256" cy="256" r="214" fill="none" stroke="#00ec97" stroke-width="12"/>
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#000000" stroke-width="4" stroke-dasharray="1 14" stroke-linecap="round"/>
+  <path d="M172 108 v-22 M172 356 v22 M128 142 h-22 M384 142 h22 M228 108 v-22 M228 356 v22 M128 198 h-22 M384 198 h22 M284 108 v-22 M284 356 v22 M128 254 h-22 M384 254 h22 M340 108 v-22 M340 356 v22 M128 310 h-22 M384 310 h22" fill="none" stroke="#000000" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="128" y="108" width="256" height="248" rx="22" fill="#145c43" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <rect x="152" y="132" width="208" height="200" rx="12" fill="none" stroke="#f2f1e9" stroke-width="5" stroke-dasharray="2 12" stroke-linecap="round"/>
+  <path d="M212 222 v-34 a44 44 0 0 1 88 0 v34" fill="none" stroke="#000000" stroke-width="30" stroke-linecap="round"/>
+  <path d="M212 222 v-34 a44 44 0 0 1 88 0 v34" fill="none" stroke="#f2f1e9" stroke-width="12" stroke-linecap="round"/>
+  <rect x="186" y="216" width="140" height="104" rx="14" fill="#00ec97" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M256 250 a15 15 0 0 1 8 27 l6 24 h-28 l6 -24 a15 15 0 0 1 8 -27 z" fill="#000000" stroke="#000000" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M120 392 h272 l-18 30 l18 30 h-272 l18 -30 z" fill="#f2f1e9" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <text x="256" y="434" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="40" font-weight="700" letter-spacing="4" fill="#000000">STAGE 5</text>
+</svg>

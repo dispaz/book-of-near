@@ -1,7 +1,8 @@
 import type { CSSProperties } from "react";
 import { registry } from "../app/registry";
 import type { StageBadge } from "../chain/types";
-import { STAGE_BADGES } from "./config";
+import { STAGE_BADGE_NAMES, STAGE_BADGES } from "./config";
+import { ruleFor } from "./rules";
 import "./badges.css";
 
 /** The badge image for a stage, from `public/badges/` (the same files the contract's `base_uri` serves). */
@@ -38,7 +39,11 @@ export function BadgeShelf({
     <ul className="badge-shelf" aria-label={label}>
       {[...Array(STAGE_BADGES).keys()].map((n) => {
         const s = stageInfo(n);
+        const name = s?.name ?? STAGE_BADGE_NAMES[n];
         const b = held.get(n);
+        // Claimable once the stage has a badge rule. Without one: a stage with lessons (a stage.ts) has
+        // no badge yet; a stage with no lessons is not open.
+        const unclaimed = ruleFor(n) ? "Not claimed yet" : s ? "Badge not available yet" : "Not open yet";
         return (
           <li
             key={n}
@@ -55,12 +60,12 @@ export function BadgeShelf({
             )}
             <span className="badge-name">
               Stage {n}
-              {s ? `: ${s.name}` : ""}
+              {name ? `: ${name}` : ""}
             </span>
             <span className="badge-state">
               {b
                 ? `Claimed${dates && b.mintedAtMs ? ` ${new Date(b.mintedAtMs).toISOString().slice(0, 10)}` : ""}`
-                : "Not claimed yet"}
+                : unclaimed}
             </span>
           </li>
         );
