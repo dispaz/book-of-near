@@ -19,7 +19,7 @@ import type { DemoContract, DemoContractContext } from "./contracts";
 export const DEMO_CLAIM_SEED = sha256(utf8ToBytes("book-of-near demo claim key"));
 export const DEMO_CLAIM_PUBLIC_KEY = `ed25519:${base58.encode(ed25519.getPublicKey(DEMO_CLAIM_SEED))}`;
 
-export const DEMO_STAGE_COUNT = 5;
+export const DEMO_STAGE_COUNT = 6;
 
 interface DemoToken {
   owner: string;

@@ -69,43 +69,6 @@
   stroke-width: 4;
   stroke-linecap: round;
 }
-.pai-perimeter {
-  fill: none;
-  stroke: var(--ink);
-  stroke-width: 2;
-  stroke-dasharray: 6 4;
-}
-.pai-perimeter.on {
-  stroke: var(--accent);
-  stroke-width: 4;
-  stroke-dasharray: none;
-}
-.pai-chip {
-  fill: var(--ink);
-  stroke: var(--ink);
-  stroke-width: 2;
-}
-.pai-pins line {
-  stroke: var(--ink);
-  stroke-width: 3;
-}
-.pai-lock {
-  fill: var(--accent);
-  stroke: var(--card);
-  stroke-width: 2;
-}
-.pai-shackle {
-  fill: none;
-  stroke: var(--card);
-  stroke-width: 2.5;
-}
-.pai-svg-note {
-  font: 600 13px var(--ui);
-  fill: var(--mute);
-}
-.pai-svg-note.mid {
-  text-anchor: middle;
-}
 /* "Not yet": a short shake. A pick: the object's own animation, like its 3D one (rule 10a). Two names
    each, so a second click plays it again. Reduced motion keeps only the outline and colour change. */
 .pai-shake0 {
