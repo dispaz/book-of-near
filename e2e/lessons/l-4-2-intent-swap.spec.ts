@@ -31,6 +31,21 @@ async function go(page: Page, caption: string | RegExp) {
   await expect(page.getByTestId("caption")).toContainText(caption);
 }
 
+/**
+ * The default build is testnet only (VITE_ENABLE_MAINNET off): step 5 says so, and offers no way to
+ * the learner's own mainnet wallet or a real swap. `VITE_ENABLE_MAINNET=true npm run e2e` builds with it on.
+ */
+const MAINNET = process.env.VITE_ENABLE_MAINNET === "true";
+
+async function expectTestnetOnly(page: Page) {
+  await expect(page.getByTestId("testnet-only")).toHaveText(
+    "This build is testnet only: the real swap is switched off. Optional: simulate a 0.1 NEAR swap with the demo wallet.",
+  );
+  await expect(page.getByRole("button", { name: "Use my own wallet" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /mainnet|for real/i })).toHaveCount(0);
+  await expect(page.getByTestId("finish-panel")).not.toContainText(/mainnet/i);
+}
+
 /** From the hook to "Lesson done", finishing on the dry-run quote. */
 async function walk(page: Page) {
   await go(page, "Choose your trade");
@@ -54,6 +69,7 @@ async function walk(page: Page) {
 
   await go(page, "Finish safely on the dry-run quote");
   await expect(page.getByTestId("swap-offer")).toHaveAttribute("data-offer", "not-offered");
+  if (!MAINNET) await expectTestnetOnly(page);
   await dock(page).getByRole("button", { name: "Finish on verified quote" }).click();
 
   await go(page, "Three questions");
@@ -146,9 +162,10 @@ test.describe(`lesson ${ID}`, () => {
     // The demo wallet has 25 simulated NEAR: offered.
     await dock(page).getByRole("button", { name: "Connect the demo wallet" }).click();
     await expect(offer).toHaveAttribute("data-offer", "offered");
-    // Before the button: the real swap's USDC stays in NEAR Intents, not on Arbitrum.
+    // Before the button: where a real swap's USDC would go. The demo wallet only simulates, so the words
+    // must not read as if this swap were real.
     await expect(page.getByTestId("swap-where")).toHaveText(
-      "The USDC stays in your NEAR Intents account (intents.near), not on Arbitrum. You withdraw it separately.",
+      "In a real swap, the USDC would stay in your NEAR Intents account (intents.near), not on Arbitrum. Here nothing moves.",
     );
     await page.getByTestId("swap-real").click();
     // The wallet seam shows the amount and waits for Confirm.
