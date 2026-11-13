@@ -25,13 +25,13 @@ const stage0 = (mode: "demo" | "testnet") => [
 ];
 
 describe("STAGE_RULES: the required lessons, in one place", () => {
-  it("lists every lesson a learner can open in stages 0 to 5, and nothing planned", () => {
+  it("lists every lesson a learner can open in stages 0 to 6, and nothing planned", () => {
     for (const rule of STAGE_RULES) {
       const stage = registry.stages.find((s) => s.id === rule.stage)!;
       const open = stage.lessons.filter(isOpen).map((l) => l.id);
       expect(rule.lessons).toEqual(open);
     }
-    expect(STAGE_RULES.map((r) => r.stage)).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(STAGE_RULES.map((r) => r.stage)).toEqual([0, 1, 2, 3, 4, 5, 6]);
   });
 
   it("asks each evidence lesson for keys it really reports", () => {
@@ -46,8 +46,8 @@ describe("STAGE_RULES: the required lessons, in one place", () => {
 });
 
 describe("CLAIMABLE_BADGES: the total My book and the checker show", () => {
-  it("counts the stages with a rule (0 to 5), the same stages the demo contract knows", () => {
-    expect(CLAIMABLE_BADGES).toBe(6);
+  it("counts the stages with a rule (0 to 6), the same stages the demo contract knows", () => {
+    expect(CLAIMABLE_BADGES).toBe(7);
     expect(STAGE_RULES.map((r) => r.stage)).toEqual([...Array(CLAIMABLE_BADGES).keys()]);
     expect(DEMO_STAGE_COUNT).toBe(CLAIMABLE_BADGES);
   });
@@ -117,5 +117,37 @@ describe("claimReadiness", () => {
     expect(claimReadiness(5, both, "demo")).toEqual({ ready: true, missing: [] });
     // No evidence to redo on testnet; the badge contract still needs the stage 4 badge first.
     expect(claimReadiness(5, both, "testnet").ready).toBe(true);
+  });
+});
+
+describe("stage 6: a practice vote and recorded data, accepted in demo mode", () => {
+  const stage6 = (mode: "demo" | "testnet") => [
+    rec("l-6-1-vote-on-a-proposal", mode, {
+      proposalId: "42",
+      voteCast: "true",
+      choice: "yes",
+      power: "300",
+      kind: "practice",
+    }),
+    rec("l-6-2-live-money-map", mode, { pair: "USDC/USDt", amountIn: "100000", kind: "recorded" }),
+  ];
+
+  it("is ready once 6.1's practice vote and 6.2's trade are recorded", () => {
+    expect(claimReadiness(6, stage6("demo"), "demo")).toEqual({ ready: true, missing: [] });
+  });
+
+  it("asks for each lesson's step when it was tested out", () => {
+    const tested = stage6("demo").map((c) => ({ ...c, evidence: undefined }));
+    expect(claimReadiness(6, tested, "demo").missing.map((m) => m.text)).toEqual([
+      "Cast your practice vote in lesson 6.1.",
+      "Trade 100,000 USDC in the two pools in lesson 6.2.",
+    ]);
+  });
+
+  it("names lesson 6.2 when only 6.1 is done", () => {
+    const r = claimReadiness(6, stage6("demo").slice(0, 1), "demo");
+    expect(r.missing).toEqual([
+      { lessonId: "l-6-2-live-money-map", reason: "not-finished", text: "Finish lesson 6.2." },
+    ]);
   });
 });

@@ -152,6 +152,7 @@ export function maybePickable(pick: PickProps, name: string, anchor: number | Ve
       selected={pick.selected}
       onPick={pick.onPick}
       disabledHint={pick.disabledHint}
+      onNotYet={pick.onNotYet}
       detail={pick.detail}
       pickMotion={pick.pickMotion}
       anchor={typeof anchor === "number" ? [0, anchor, 0] : anchor}

@@ -20,6 +20,7 @@ const LESSONS = [
   "l-4-1-one-account-every-chain",
   "l-4-2-intent-swap",
   "l-6-1-vote-on-a-proposal",
+  "l-6-2-live-money-map",
   "l-7-1-trace-an-intent",
   "l-7-2-honest-scoreboard",
 ];
