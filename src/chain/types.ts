@@ -7,7 +7,7 @@
  * into them field by field. Amounts are bigint yoctoNEAR, gas is bigint gas units.
  */
 
-import type { StageClaim } from "../badges/message";
+import type { FinalClaim, Rarity, StageClaim } from "../badges/message";
 import type { RpcEndpointId } from "./rpcEndpoints";
 
 /** Account id, e.g. `alice.testnet` or a 64-hex implicit id. Rules in accountId.ts. */
@@ -368,6 +368,19 @@ export interface StageBadge {
   media?: string;
 }
 
+/** The final badge as the badge contract reports it (NEP-171 token, `extra.kind === "final"`). */
+export interface FinalBadge {
+  tokenId: string;
+  owner: AccountId;
+  /** The exam route it was claimed on ("general" or "developer"). */
+  route: string;
+  rarity: Rarity;
+  /** Block time of the mint, milliseconds since 1970. */
+  mintedAtMs: number;
+  /** Image path under the contract's `base_uri` (set with `set_art`), when there is one. */
+  media?: string;
+}
+
 // ---------- The interface ----------
 
 export interface Chain {
@@ -426,6 +439,14 @@ export interface Chain {
   /** Stage badges an account holds, lowest stage first. Any account, no login. */
   badgesOf(accountId: AccountId): Promise<StageBadge[]>;
   hasBadge(accountId: AccountId, stage: number): Promise<boolean>;
+  /**
+   * Mint the final badge to the practice account with a claim signed by the claim key (`claim_final`).
+   * The contract checks the signature over the caller's own account, so a claim signed for another
+   * account fails. A refused claim resolves with a Failure status.
+   */
+  claimFinal(claim: FinalClaim, options?: SendOptions): Promise<TxOutcome>;
+  /** The account's final badge, or null. Any account, no login. */
+  finalBadgeOf(accountId: AccountId): Promise<FinalBadge | null>;
   /**
    * Ask ONE RPC endpoint (`RPC_ENDPOINTS` in rpcEndpoints.ts) for a block, with no fallback, and time it.
    * Never rejects for a node's problem: it resolves `ok: false`. Rejects only for an unknown endpoint id or an aborted `signal`.

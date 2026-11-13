@@ -86,7 +86,6 @@ Stage 7, Book of NEAR (capstone)
 - **7.1 Trace one intent end to end.** **Authorize intent**, follow it through your shard, the contract and settlement, then **Verify foreign settlement**. It replays your own 4.2 quote, or a recorded intent.
 - **7.2 The honest scoreboard.** Open the Accounts, Scalability, Speed and Liquidity cards and weigh NEAR against Ethereum, Solana and Cosmos, weak spots included.
 
-In progress at submission time, not part of this submission: the final badge (#29).
 
 ### Badges, "My book" and `/check`
 
@@ -112,16 +111,20 @@ Two routes, 15 fixed questions each, all taken from the lessons' own checks. The
 | Press **Hand in my answers** with questions blank | "Answer every question first. 15 are still blank." Nothing is graded. |
 | Answer and hand in with 11 right | "Not passed yet", "You need 12 of 15", and every answer marked right or wrong with the right option and why it is right. |
 | Press **Take the exam again**, answer 12 or more right | "You passed the final exam". The result and its signed receipt are saved in this browser; the page shows your kept result and attempt count after a reload. A later fail never replaces a pass. |
+| Pass with 14 of 15 right | Under the result: "Your final badge is ready: epic". 14 of 15 is rare, and a pass during the hackathon raises it one tier (demo time is inside the hackathon, so demo passes always get the extra tier). |
+| Press **Claim the final badge** | "Final badge claimed: epic" with the badge art. **My book** shows it under the stage shelf ("Final badge: epic, Passed the general route"), and `/check` adds "and the final badge (epic)". It survives a reload; one final badge per account. |
 
 Retakes are unlimited in the app (the Worker allows 10 graded attempts per account per day). In demo mode the exam is graded in the browser and the receipt is signed with the public demo key, so it counts only in that browser. In testnet mode the Worker grades it (`POST /exam`): it re-reads the route's badges on testnet, grades, and signs a receipt for a pass with the claim key. Results are kept per route, mode and account, so a demo pass never stands in for a testnet one.
 
-The answer key is not secret. It is in this public repo, demo mode downloads it (as a separate chunk, only when it grades), and every graded attempt shows the right answers. A testnet pass is worth something because the Worker signs the receipt after checking the badges, not because the answers are hidden. The final badge (#29), which will check that receipt, is not built yet.
+The answer key is not secret. It is in this public repo, demo mode downloads it (as a separate chunk, only when it grades), and every graded attempt shows the right answers. A testnet pass is worth something because the Worker signs the receipt after checking the badges, not because the answers are hidden.
+
+**Final badge rarity.** It comes only from what the signed receipt proves: the score sets the tier (12 of 15 common, 13 or 14 rare, 15 epic), and a pass during the hackathon (1 to 14 Nov 2026 UTC, by the Worker's clock) raises it one tier, so legendary is 15 of 15 during the hackathon. The spec's other two inputs (the optional real swap and "the key challenge without hints") are not used: nothing on testnet proves them. In testnet mode the Worker (`POST /final`) checks the receipt's signature with its own key, its contract, account and route, then signs the claim; the practice account sends `claim_final`. The contract checks the claim against the account that sends it, so a receipt for someone else's account cannot mint to you. The final badge is minted on testnet only (no mainnet edition in this submission).
 
 ### Testnet mode
 
 Press **Use testnet** on any lesson page (or open a lesson with `?mode=testnet`). The app makes a practice account in your browser: a throwaway key in `localStorage`, funded by our Worker faucet if `VITE_WORKER_URL` is set, otherwise by NEAR's public testnet helper (which limits accounts per IP address). If no faucet answers, the app says so and offers to stay in demo mode. Testnet NEAR has no value. Lessons that need no chain (0.1, 0.2, 4.3 except its quote, 6.1, 6.2, 7.1, 7.2) behave the same in both modes; 2.2 opens a recorded real testnet call; 3.2 always runs on the simulated chain. In testnet mode, 4.2 and 4.3 fetch a dry, read-only quote from the mainnet 1Click API (Intents has no testnet); nothing is signed or sent on mainnet.
 
-Claiming a testnet badge also needs the Worker's `/claim` route deployed with its signing key (see "Honest limitations").
+Claiming a testnet badge also needs the Worker's `/claim` route deployed with its signing key (see "Honest limitations"). The testnet final badge also needs the Worker's `/final` route, and the owner's one-time `set_route` call for both exam routes (`docs/badge-contract.md`).
 
 ## Hackathon tracks and evidence
 
@@ -159,7 +162,7 @@ Tracks entered: `["open", "nfts", "security"]`. Explorer links use https://testn
 - **One `Chain` interface** (`src/chain/types.ts`) for everything on chain. Lessons never call RPC, wallets or SDKs directly; they call `useChain()`. Two implementations: `DemoChain` (deterministic, in the browser, no network; the default) and `TestnetChain` (`src/chain/testnet/`, near-kit for keys and signing, its own Borsh encoder, an RPC fallback list led by FastNEAR). A unit test (`src/chain/noNetworkImports.test.ts`) checks that the Chain interface files (`types.ts`, `errors.ts`, `shards.ts`, `units.ts`, `accountId.ts`, `ops.ts`) import no network code.
 - **Lessons are folders**: `src/content/lessons/<id>/manifest.ts` (steps, captions, check questions, honest take) plus lazy `Scene.tsx` / `Scene3D.tsx`. Stages are `src/content/stages/<n>-<slug>/stage.ts`. Both are found automatically. The researched copy is in `docs/lessons/stage-<n>/`.
 - **Scene kit** (`src/scene-kit/`): the ink style (black outlines, paper white, one accent per stage), SVG objects for 2D, and the 3D pop-up book (`BookScene`, react-three-fiber): objects rise from the right-hand page, step text is printed on the left page on wide screens, canvases draw only when something moves. See `docs/book-scene.md`.
-- **Cloudflare Worker** (`worker/`): `POST /faucet` (funds a practice account, rate-limited per IP and per day), `POST /intents/quote` (proxy to NEAR Intents 1Click, dry quotes, NEAR to USDC only), `POST /claim` (checks a learner's testnet evidence, then signs a 5-minute badge claim), `POST /exam` (checks the route's badges on testnet, grades the final exam and signs a receipt for a pass), `GET /health`. Keys live only in Worker secrets.
+- **Cloudflare Worker** (`worker/`): `POST /faucet` (funds a practice account, rate-limited per IP and per day), `POST /intents/quote` (proxy to NEAR Intents 1Click, dry quotes, NEAR to USDC only), `POST /claim` (checks a learner's testnet evidence, then signs a 5-minute badge claim), `POST /exam` (checks the route's badges on testnet, grades the final exam and signs a receipt for a pass), `POST /final` (checks a pass's signed receipt, works out the rarity and signs the final badge claim), `GET /health`. Keys live only in Worker secrets.
 - **Badge contract** (`contracts/badge/`): Rust, see above.
 
 ## Tests
@@ -223,13 +226,13 @@ Diff of everything built during the hackathon: https://github.com/dispaz/book-of
 - **Testnet badge claims need our Worker.** The live site's testnet claim works only once the Worker is deployed with its claim signing key. The real claim above was made with the Worker running locally.
 - **Not every lesson was walked on live testnet.** 0.3, 3.1 and 4.1 were run end to end on testnet in the app; the chain calls of the other lessons are covered by the testnet contract suite, and their UI by demo-mode e2e tests.
 - **4.1 does not broadcast to Sepolia**: a derived address starts with 0 ETH. **4.2 shows one best quote**, not competing solver bids (1Click returns one). **3.2 runs on the simulated chain** in both modes. **5.1's tutor answers are pre-written** (NEAR AI chat needs an API key); the attestation check is real. **6.1's vote is a practice vote.** **6.2's figures are recorded** (13 Nov 2026), not live.
-- **No final badge yet.**
+- **The final badge on testnet** needs the Worker's `/final` route and the owner's `set_route` call; it works in demo mode. Its rarity uses only the score and the pass time, not the real swap or hint use (nothing on testnet proves them).
 - The public testnet faucet fallback limits accounts per IP address, so a reviewer may hit it; demo mode always works.
 
 ### Not part of this submission (present in the code, not verified live)
 
 - **Mainnet wallet sign-in** (`@hot-labs/near-connect`, page `/wallet`) and the **optional tiny real mainnet swap** at the end of lesson 4.2 ("Use my own wallet"). Both are switched off in the default build behind `VITE_ENABLE_MAINNET` (off unless set to `true`). A real mainnet sign-in and signature were never tested.
-- **Mainnet badge minting**: not built.
+- **Mainnet badge minting**: not built. The final badge has a testnet edition only (owner decision for the hackathon).
 
 ## More documents
 
