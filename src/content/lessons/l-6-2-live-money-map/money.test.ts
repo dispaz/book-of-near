@@ -4,12 +4,14 @@ import {
   describe as describeScene,
   evidenceFor,
   HONEST_TAKE,
+  NATIVE_TIMES,
   nextSize,
   POOLS,
   priceOf,
   QUOTES,
   reactionFor,
   RECORDED_NOTE,
+  SUPPLY,
   SIZES,
   type MapState,
 } from "./money";
@@ -131,6 +133,13 @@ describe("the honest take", () => {
       "about $160 million of the $162 million",
     ])
       expect(text).toContain(figure);
+  });
+
+  it("says native USDC is over five times USDC.e, as the recorded supplies show", () => {
+    const ratio = parseFloat(SUPPLY.usdc.amount) / parseFloat(SUPPLY.usdce.amount);
+    expect(ratio).toBeGreaterThan(5);
+    expect(ratio).toBeLessThan(6);
+    expect(NATIVE_TIMES).toBe("five");
   });
 
   it("says the 10.9% is one pool's figure", () => {

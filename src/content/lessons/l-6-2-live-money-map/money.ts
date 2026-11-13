@@ -113,10 +113,8 @@ export const QUOTES: Record<
   },
 };
 
-/** How many times native USDC's supply is bridged USDC.e's, rounded down and in words (79.3 / 14.6 → five). */
-const nativeTimes = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"][
-  Math.floor(parseFloat(SUPPLY.usdc.amount) / parseFloat(SUPPLY.usdce.amount))
-];
+/** Native USDC's supply over bridged USDC.e's, rounded down (79.3 / 14.6 = 5.4). Unit tested against SUPPLY. */
+export const NATIVE_TIMES = "five";
 
 /** The Honest take (docs/lessons/stage-6/6.2.md, section 4), built from the recorded figures above. */
 export const HONEST_TAKE = {
@@ -125,7 +123,7 @@ export const HONEST_TAKE = {
     `Solana, with ${TVL.solana} in DeFi (DefiLlama, recorded ${RECORDED_ON})`,
   ],
   strengths: [
-    `Native dollars: Circle and Tether issue USDC and USDt on NEAR itself, with no bridge in between. Native ${SUPPLY.usdc.name} (${SUPPLY.usdc.amount}) is over ${nativeTimes} times bridged ${SUPPLY.usdce.name} (${SUPPLY.usdce.amount}).`,
+    `Native dollars: Circle and Tether issue USDC and USDt on NEAR itself, with no bridge in between. Native ${SUPPLY.usdc.name} (${SUPPLY.usdc.amount}) is over ${NATIVE_TIMES} times bridged ${SUPPLY.usdce.name} (${SUPPLY.usdce.amount}).`,
     `Stable pools work: 100,000 USDC traded only about 0.01% away from 1:1 in a pool of ${POOLS.stable.size}.`,
     `Money moves through: NEAR Intents settled ${INTENTS.day} of trades in one day, more than all of NEAR's DeFi TVL.`,
   ],
