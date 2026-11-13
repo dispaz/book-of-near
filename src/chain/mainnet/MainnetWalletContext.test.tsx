@@ -155,6 +155,33 @@ describe("real wallet choice", () => {
     expect(loadMainnetWallet).not.toHaveBeenCalled();
   });
 
+  it("says the build is testnet only if the real wallet is asked for anyway (flag off)", async () => {
+    flags.ENABLE_MAINNET = false;
+    const loadMainnetWallet = vi.fn(async () => new DemoWallet());
+    function AskAnyway() {
+      const { setUseReal, notice, usingReal } = useMainnetWallet();
+      return (
+        <>
+          <button type="button" onClick={() => setUseReal(true)}>
+            ask
+          </button>
+          <p data-testid="notice">{notice}</p>
+          <p data-testid="real">{String(usingReal)}</p>
+        </>
+      );
+    }
+    render(
+      <MainnetWalletProvider loadMainnetWallet={loadMainnetWallet}>
+        <AskAnyway />
+      </MainnetWalletProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "ask" }));
+    expect(await screen.findByTestId("notice")).toHaveTextContent(/this build is testnet only/i);
+    expect(screen.getByTestId("notice")).not.toHaveTextContent(/could not load/i);
+    expect(screen.getByTestId("real")).toHaveTextContent("false");
+    expect(loadMainnetWallet).not.toHaveBeenCalled();
+  });
+
   it("stays in demo until the learner opts in, then loads the real wallet lazily", async () => {
     const real = new DemoWallet({ accountId: "real-ana.near" }); // stands in for NearConnectWallet
     const loadMainnetWallet = vi.fn(async () => real);
