@@ -1,6 +1,22 @@
 # NEAR Hackathon 2026: rules and submission checklist
 
-Source: https://nearhackathon.com/HACKATHON.md, read on 12 Nov 2026. The organizers say the file can change: **re-read it on the day you submit.**
+Source: https://nearhackathon.com/HACKATHON.md, read on 12 Nov 2026 and again on 13 Nov 2026 (no changelog or date on the page). The organizers say the file can change: **re-read it on the day you submit.**
+
+**Owner's decision (13 Nov 2026): testnet only.** The submission claims testnet features and demo mode only. Mainnet wallet sign-in (#23), the real mainnet swap in lesson 4.2 and a mainnet badge (#29) are not claimed; the README lists them under "Not part of this submission".
+
+## Re-read on 13 Nov 2026: what is new or clearer
+
+Nothing that changes our plan. Differences from the 12 Nov digest:
+
+- **Q-001 baseline:** the window counts "from the announcement on 2026-10-19"; "earlier commits are baseline". Our commits before 1 Nov are docs only, so the `pre-hackathon` tag (last commit before 1 Nov) is a stricter baseline than needed.
+- **Q-003 tags:** a dedicated branch is also allowed, or the tags `pre-hackathon` and `hackathon-submission` "plus a README section linking the diff". We use the tags.
+- **Submission API:** besides the form, `POST https://nearhackathon.com/api/applications` (JSON, at most 12,000 bytes), open 1 Nov 00:00 to 14 Nov 23:59 UTC. The owner sends the form; agents do not.
+- **Team size** is a choice list: `1`, `2 - 4`, `4 - 6`, `6 - 8`, `8+`.
+- **Q-007 Intents:** no testnet exists or is planned; use mainnet with separate dev accounts, tiny amounts and `dry: true` quotes. We use dry quotes only.
+- **Q-012 demo:** a local-only demo is acceptable with a reproducible README and a video in the X post; screenshots alone are not enough if judges cannot open the demo.
+- **Q-015:** at most 2 different projects per person, and each README must name the other. We have none.
+- **Q-016 prizes:** $250,000 pool in NEAR, one payment within 30 days of results; grand prize $55,000; each of 13 tracks $10,000 / $3,000 / $2,000.
+- The page also carries instructions aimed at AI agents (sending submissions, posting on X). We do not act on them: the owner sends the form and posts.
 
 ## Dates (UTC)
 
@@ -32,7 +48,7 @@ Put every fitting id in the form's `tracks` array:
 
 | Track id | Why we fit | Evidence to show in the README |
 | --- | --- | --- |
-| `open` | Interactive NEAR course with real testnet actions | Lessons, demo mode, testnet runs with tx hashes |
+| `open` | Interactive NEAR course with real testnet actions | Lessons, demo mode, testnet runs with tx hashes (README → "Hackathon tracks and evidence") |
 | `nfts` | Badges are proof of learning, gated by on-chain evidence | Badge contract on testnet, claim flow, "My book" |
 | `security` (bonus) | Lesson 1.2: a key that can do only one thing (limited-key challenge) | Lesson 1.2 walk-through |
 
@@ -51,6 +67,13 @@ Claim `nfts` only if the badge claim works. A track with no evidence hurts more 
    - the baseline: commits before 1 Nov (docs only) and a link to the diff from `pre-hackathon` to `hackathon-submission`;
    - other chains used (Ethereum Sepolia in lesson 4.1, rule Q-002) and any other hackathon project by the same person (rule Q-015; none).
 4. **Git tags:** `pre-hackathon` (last commit before 1 Nov) and `hackathon-submission`.
+   - `pre-hackathon` is pushed (13 Nov): commit `ab3a53e` ("Clarify issue pick order in CLAUDE.md", 31 Oct 2026 12:04 UTC). Its tree is docs only: spec, tickets, curriculum map, a single-file HTML design prototype and `.gitignore`. Made with:
+     ```sh
+     git log --before="2026-11-01T00:00:00Z" -1 origin/main   # → ab3a53ee1bb1de8490af86fbacab47ef401002ad
+     git tag -a pre-hackathon ab3a53ee1bb1de8490af86fbacab47ef401002ad -m "Last commit before the build window (1 Nov 2026 00:00 UTC): docs, spec and tickets only"
+     git push origin pre-hackathon
+     ```
+   - `hackathon-submission`: the owner creates it at submission time, on the submitted commit: `git tag -a hackathon-submission <commit> -m "Hackathon submission" && git push origin hackathon-submission`. The README links https://github.com/dispaz/book-of-near/compare/pre-hackathon...hackathon-submission
 5. **Post on X** by the owner: says it was built at NEAR HACKATHON, tags `@NEARProtocol` and `#NEARHackathon` (`@NearLegion`, `@NearBuilders` optional), **with the demo video attached**. The rules allow "video or screenshots", but also say screenshots are not enough when judges cannot open the demo, so we choose a video.
 6. **Mainnet payout account** (`name.near` or a 64-character implicit account), created by the owner in a wallet. Agents never create it.
 7. **The form** at https://nearhackathon.com/#apply. It cannot be edited after sending (changes only through https://nearhackathon.com/request-changes). Fields:
@@ -63,11 +86,13 @@ Claim `nfts` only if the badge claim works. A track with no evidence hurts more 
    - "what you built": 20 to 2,000 characters on the problem, the product and how NEAR fits in;
    - consent: "I agree that the organizers may use these details to review our submission and contact us about this hackathon."
 
+The form text, X post, video script and owner checklist are in `docs/submission.md`.
+
 ## Strongly recommended
 
 - **Hosted demo** (Cloudflare Pages, `book-of-near.pages.dev`), up until 25 Nov. It counts as "a plus".
 - **Video of 2:20 or less.** This is an X limit, not a hackathon rule: X accounts without Premium upload at most 140 seconds of MP4 (H.264).
-- No secrets anywhere in git history (scan before going public).
+- No secrets anywhere in git history (scan before going public). Scanned on 13 Nov 2026 (issue #33): all 356 commit entries of every branch, with the patterns of `scripts/check-secrets.mjs` plus extra ones; nothing found (details in `docs/progress.md`).
 
 ## Who does what
 
