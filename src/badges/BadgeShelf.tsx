@@ -41,8 +41,9 @@ export function BadgeShelf({
         const s = stageInfo(n);
         const name = s?.name ?? STAGE_BADGE_NAMES[n];
         const b = held.get(n);
-        // A stage with no badge rule (no lessons yet, or no claim yet) cannot be claimed.
-        const open = !!ruleFor(n);
+        // Claimable once the stage has a badge rule. Without one: a stage with lessons (a stage.ts) has
+        // no badge yet; a stage with no lessons is not open.
+        const unclaimed = ruleFor(n) ? "Not claimed yet" : s ? "Badge not available yet" : "Not open yet";
         return (
           <li
             key={n}
@@ -64,9 +65,7 @@ export function BadgeShelf({
             <span className="badge-state">
               {b
                 ? `Claimed${dates && b.mintedAtMs ? ` ${new Date(b.mintedAtMs).toISOString().slice(0, 10)}` : ""}`
-                : open
-                  ? "Not claimed yet"
-                  : "Not open yet"}
+                : unclaimed}
             </span>
           </li>
         );

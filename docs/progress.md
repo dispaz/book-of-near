@@ -536,6 +536,6 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 ## 2026-11-13 · Badge art in NEAR's palette, stage 4 blockchains, badges for stages 5 to 7 (Refs #11, #68)
 
 - `scripts/badges-art.mjs` draws eight badges (0 to 7) in NEAR's colours only (black, off-white, green, forest; `docs/palette.md` rule 4). Stages 0 to 3 keep their motifs. Stage 4 is now three short blockchains (linked blocks) joined by chain links. New: 5 Enclave (a padlocked chip), 6 Citizen (a ballot going into a box), 7 Book of NEAR (an open book with one trail from start to flag).
-- `STAGE_BADGES = 8`: My book and the checker show eight slots; a stage with no badge rule (5, 6, 7) shows "Not open yet".
+- `STAGE_BADGES = 8`: My book and the checker show eight slots; stages 5 and 6 (no lessons) show "Not open yet", 7 (a lesson, no rule) "Badge not available yet"; the count is "N of 5" (`CLAIMABLE_BADGES`, equal to the demo contract's stage count).
 - Testnet: `set_art` for stage-0 to stage-4 with the new hashes (`docs/badge-contract.md`). `set_stage_count(8)` and art for 5 to 7 are left to the owner (`node scripts/deploy-badge.mjs stage-count 8`).
 - Screenshots: `docs/screenshots/badges-near/`. Gate: lint, typecheck, unit tests, `e2e/badges.spec.ts`.

@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { registry } from "../app/registry";
 import { isOpen } from "../progress/routes";
 import type { CompletionRecord } from "../progress/types";
-import { claimReadiness, STAGE_RULES } from "./rules";
+import { DEMO_STAGE_COUNT } from "../chain/demo/badges";
+import { CLAIMABLE_BADGES, claimReadiness, STAGE_RULES } from "./rules";
 
 const rec = (
   lessonId: string,
@@ -41,6 +42,14 @@ describe("STAGE_RULES: the required lessons, in one place", () => {
       ["l-1-1-claim-your-name", ["txHash", "accountId"]],
       ["l-1-2-function-call-key", ["addKeyTxHash", "txHash"]],
     ]);
+  });
+});
+
+describe("CLAIMABLE_BADGES: the total My book and the checker show", () => {
+  it("counts the stages with a rule (0 to 4), the same stages the demo contract knows", () => {
+    expect(CLAIMABLE_BADGES).toBe(5);
+    expect(STAGE_RULES.map((r) => r.stage)).toEqual([...Array(CLAIMABLE_BADGES).keys()]);
+    expect(DEMO_STAGE_COUNT).toBe(CLAIMABLE_BADGES);
   });
 });
 

@@ -257,6 +257,21 @@ export function writeArt(dir) {
   return list;
 }
 
+/**
+ * The art.json entries `deploy-badge.mjs art` sends: all of them, or only `--keys stage-0,stage-4`.
+ * Throws on `--keys` with no value, and names the keys that are not in art.json.
+ */
+export function selectArt(all, argv) {
+  const at = argv.indexOf("--keys");
+  if (at < 0) return all;
+  const value = argv[at + 1];
+  if (!value || value.startsWith("--")) throw new Error("--keys needs a value, for example --keys stage-4");
+  const keys = value.split(",").filter(Boolean);
+  const unknown = keys.filter((k) => !all.some((a) => a.key === k));
+  if (unknown.length) throw new Error(`Unknown key in --keys: ${unknown.join(", ")}`);
+  return all.filter((a) => keys.includes(a.key));
+}
+
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const dir = join(dirname(fileURLToPath(import.meta.url)), "..", "public", "badges");
   for (const a of writeArt(dir)) console.log(`${a.media}  sha256 ${a.sha256}`);

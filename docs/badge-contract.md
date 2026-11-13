@@ -89,7 +89,7 @@ node scripts/deploy-badge.mjs art --keys stage-5,stage-6,stage-7
 
 (With near-cli instead: `set_stage_count '{"stage_count": 8}'` called by `bon-badges-mwe57oab.testnet`. Then change `STAGE_COUNT` in `scripts/deploy-badge.mjs` to 8 so `settings` keeps it, and `DEMO_STAGE_COUNT` in `src/chain/demo/badges.ts` so demo mode matches.)
 
-The contract requires each previous stage's badge, so stage 7 cannot be claimed until stages 5 and 6 have lessons, a rule in `src/badges/rules.ts` and claimed badges. Until a stage has a rule, the shelf shows it as "Not open yet" and no claim card appears.
+The contract requires each previous stage's badge, so stage 7 cannot be claimed until stages 5 and 6 have lessons, a rule in `src/badges/rules.ts` and claimed badges. Until a stage has a rule, no claim card appears and the shelf shows "Not open yet" (no lessons: 5, 6) or "Badge not available yet" (lessons but no rule: 7). The shelf counts "N of 5 claimed" (`CLAIMABLE_BADGES`, the stages with a rule), which matches `DEMO_STAGE_COUNT`.
 
 First real claim (stage 0, Worker run locally): learner `bon-learner-mwe61s8i.testnet`, evidence transfer `AQ63WVtJWPYtAzFka5XgRc5miHEuZkYZD3gtYrRpgyPY`, `claim_stage` `EAuadk9PtuXBfee1fMx32okJyo6t2xCMbwJkumk8XJ1o` → token `1`. The image shows on explorers once `https://book-of-near.pages.dev/badges/stage-0.svg` is deployed.
 

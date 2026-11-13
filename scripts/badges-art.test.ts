@@ -4,7 +4,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { COLORS, NEAR, STAGE_ACCENTS } from "../src/scene-kit/theme";
 // @ts-expect-error plain ESM script without types
-import { badgeSvg, NAMES, writeArt } from "./badges-art.mjs";
+import { badgeSvg, NAMES, selectArt, writeArt } from "./badges-art.mjs";
+import { registry } from "../src/app/registry";
+import { STAGE_BADGE_NAMES, STAGE_BADGES } from "../src/badges/config";
 
 const STAGES = [0, 1, 2, 3, 4, 5, 6, 7];
 const hexes = (svg: string) => new Set([...svg.matchAll(/#[0-9a-f]{6}/gi)].map((m) => m[0].toLowerCase()));
@@ -88,5 +90,34 @@ describe("badges:art", () => {
       const file = readFileSync(join(__dirname, "..", "public", "badges", `stage-${s}.svg`), "utf8");
       expect(badgeSvg(s), `stage ${s}`).toBe(file);
     }
+  });
+});
+
+describe("badge names", () => {
+  it("match the app's stage names (stage.ts, else STAGE_BADGE_NAMES) for every badge", () => {
+    expect(STAGE_BADGES).toBe((NAMES as string[]).length);
+    for (const s of STAGES) {
+      const appName = registry.stages.find((st) => st.id === s)?.name ?? STAGE_BADGE_NAMES[s];
+      expect(appName, `stage ${s}`).toBe((NAMES as string[])[s]);
+    }
+  });
+});
+
+describe("selectArt (deploy-badge.mjs art --keys)", () => {
+  type Art = { key: string; media: string; sha256: string };
+  const all: Art[] = STAGES.map((s) => ({ key: `stage-${s}`, media: `stage-${s}.svg`, sha256: "x" }));
+  const pick = selectArt as (all: Art[], argv: string[]) => Art[];
+
+  it("sends every entry without --keys, and only the listed ones with it", () => {
+    expect(pick(all, ["art"])).toEqual(all);
+    expect(pick(all, ["art", "--keys", "stage-0,stage-4"]).map((a) => a.key)).toEqual(["stage-0", "stage-4"]);
+  });
+
+  it("refuses --keys with no value, and names only the unknown keys", () => {
+    expect(() => pick(all, ["art", "--keys"])).toThrow("--keys needs a value");
+    expect(() => pick(all, ["art", "--keys", "--vars"])).toThrow("--keys needs a value");
+    expect(() => pick(all, ["art", "--keys", "stage-0,stage-9,nope"])).toThrow(
+      /^Unknown key in --keys: stage-9, nope$/,
+    );
   });
 });

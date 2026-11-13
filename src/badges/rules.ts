@@ -91,6 +91,12 @@ export const STAGE_RULES: StageRule[] = [
   },
 ];
 
+/**
+ * How many badges a learner can claim today: the stages with a rule. My book and the checker show
+ * "N of this" (not of every badge drawn); the demo contract's stage count matches it (rules.test.ts).
+ */
+export const CLAIMABLE_BADGES = STAGE_RULES.length;
+
 export const ruleFor = (stage: number): StageRule | undefined => STAGE_RULES.find((r) => r.stage === stage);
 
 export type MissingReason = "not-finished" | "no-evidence" | "demo-only";

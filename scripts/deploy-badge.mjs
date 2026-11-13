@@ -16,6 +16,7 @@
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { Near, generateKey } from "near-kit";
+import { selectArt } from "./badges-art.mjs";
 
 const BASE_URI = "https://book-of-near.pages.dev/badges";
 const STAGE_COUNT = 5;
@@ -118,11 +119,8 @@ async function deploy() {
 async function art() {
   const vars = readVars();
   const near = await owner(vars);
-  const all = JSON.parse(readFileSync("public/badges/art.json", "utf8"));
   // `--keys stage-0,stage-4` sends only those entries (art for stages the contract does not count yet waits).
-  const keys = args.includes("--keys") ? args[args.indexOf("--keys") + 1].split(",") : null;
-  const list = keys ? all.filter((a) => keys.includes(a.key)) : all;
-  if (keys && list.length !== keys.length) throw new Error(`Unknown key in --keys: ${keys.join(",")}`);
+  const list = selectArt(JSON.parse(readFileSync("public/badges/art.json", "utf8")), args);
   for (const a of list) {
     const r = await near
       .transaction(vars.BADGE_OWNER_ID)
