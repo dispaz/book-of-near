@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test";
-import { answerCheck, completionOf, nextStep } from "../lessons/helpers";
+import { answerCheck, dock, dockButton, finish, nextStep } from "../lessons/helpers";
 
 /**
  * One short walk per shipped lesson, for the judge's path (e2e/judge-path.spec.ts) and the badge flow
@@ -14,23 +14,9 @@ import { answerCheck, completionOf, nextStep } from "../lessons/helpers";
 const BASE58_HASH = /^[1-9A-HJ-NP-Za-km-z]{43,44}$/;
 const T = { timeout: 15_000 };
 
-const dock = (page: Page) => page.locator(".action-slot");
-export const dockButton = (page: Page, name: string) => dock(page).getByRole("button", { name, exact: true });
 const next = (page: Page) => page.getByRole("button", { name: "Next step" });
 const sceneState = (page: Page) => page.locator("[data-scene-state]").first();
 const state = (page: Page, re: RegExp) => expect(sceneState(page)).toHaveAttribute("data-scene-state", re, T);
-
-/** The honest take is on screen; Finish writes a demo-mode completion record for the lesson. */
-export async function finish(page: Page, lessonId: string) {
-  await expect(page.getByRole("region", { name: "Honest take" })).toBeVisible();
-  await page.getByRole("button", { name: "Finish lesson" }).click();
-  await expect(page.getByText("Lesson done")).toBeVisible();
-  expect(await completionOf(page, lessonId)).toMatchObject({
-    lessonId,
-    stage: Number(lessonId.split("-")[1]),
-    mode: "demo",
-  });
-}
 
 // ---------- stage 0 ----------
 

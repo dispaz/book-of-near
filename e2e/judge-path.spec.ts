@@ -45,15 +45,20 @@ test.beforeAll(async ({ browser }) => {
     return route.abort("blockedbyclient");
   });
   // The walks play the 2D view (the 3D view is checked at the end).
+  // It runs on about:blank too (a new page, a popup), where localStorage throws: skip those.
   await context.addInitScript(() => {
+    if (location.origin === "null") return;
     if (!localStorage.getItem("bon:view")) localStorage.setItem("bon:view", "2d");
   });
-  page = await context.newPage();
-  // The dev server's hot-reload socket (ws://, same host) is the app's own.
-  page.on("websocket", (ws) => {
-    if (new URL(ws.url()).host !== new URL(origin).host) external.push(ws.url());
+  // Web sockets skip context.route, so they are watched on every page of the context (popups too).
+  // `vite preview` serves no hot-reload socket: any socket to another host is outside traffic.
+  context.on("page", (p) => {
+    p.on("websocket", (ws) => {
+      if (new URL(ws.url()).host !== new URL(origin).host) external.push(ws.url());
+    });
+    p.on("pageerror", (e) => errors.push(e.message));
   });
-  page.on("pageerror", (e) => errors.push(e.message));
+  page = await context.newPage();
 });
 
 test.afterAll(() => context?.close());
@@ -61,7 +66,9 @@ test.afterAll(() => context?.close());
 // Each test owns the outside requests and page errors made while it ran.
 let seen = 0;
 let seenErrors = 0;
-test.afterEach(() => {
+test.afterEach(async () => {
+  // Let requests still in flight settle first, so they are blamed on this test, not the next one.
+  await page.waitForLoadState("networkidle").catch(() => {});
   const mine = external.slice(seen);
   const myErrors = errors.slice(seenErrors);
   seen = external.length;
@@ -135,7 +142,7 @@ test("My book shows every claimed badge, and the public checker agrees", async (
   await expect(page.getByRole("alert")).toHaveText("That is not a NEAR account name.");
 });
 
-test("the final exam opens with the badges held, and all 15 right answers pass it", async () => {
+test(`the final exam opens with the badges held, and all ${questionsFor("general").length} right answers pass it`, async () => {
   await page.goto("/");
   await page.getByRole("link", { name: "Final exam" }).click();
   await expect(page).toHaveURL(/\/exam/);

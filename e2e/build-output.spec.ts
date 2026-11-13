@@ -5,9 +5,12 @@ import { expect, test } from "@playwright/test";
 import { PATTERNS } from "../scripts/check-secrets.mjs";
 
 /**
- * The production build that `npm run e2e` just made (playwright.config.ts builds `dist/` before it
+ * The build that `npm run e2e` just made (playwright.config.ts builds `dist/` with `VITE_E2E=1` before it
  * serves it) carries no secret and, in the default testnet-only build, no mainnet wallet code (issue #31).
+ * That build is a superset of the deploy build: it only adds test hooks, so what passes here passes there.
  * Not run against a live URL (BASE_URL): then nothing was built here.
+ *
+ * The commit hook's seed-phrase heuristic is left out: lesson 0.2 ships the BIP39 wordlist, which trips it.
  */
 test.skip(!!process.env.BASE_URL, "checks the local build only");
 
@@ -28,7 +31,12 @@ function distFiles() {
   return out;
 }
 
-/** Values from the git-ignored files that hold real keys on a developer's machine, if any are here. */
+/**
+ * Values from the git-ignored files that hold real keys on a developer's machine, if any are here.
+ * A simple `KEY=value` reader: one value per line, quotes stripped, no multi-line values, no `export`
+ * prefix, no `${VAR}` expansion, and a value stops at whitespace or `#`. Values under 16 characters are
+ * skipped (too short to be a key, and they would match by chance).
+ */
 function localSecretValues() {
   const values: string[] = [];
   for (const file of [".env", ".env.local", ".env.production", ".dev.vars", "worker/.dev.vars"]) {

@@ -19,8 +19,9 @@ type View =
 const EXPLORER = "https://testnet.nearblocks.io/nft-token";
 
 /**
- * Sent on `window` after a badge is claimed, so the next stage's card checks again: its claim needs the
- * badge just claimed. Without it, that card said "Claim the stage N badge first" until a reload.
+ * Sent on `window` after a badge is claimed, with `detail.stage`, so the next stage's card checks again:
+ * its claim needs the badge just claimed. Without it, that card said "Claim the stage N badge first" until
+ * a reload. Only that one card re-checks: in testnet mode every check costs RPC reads.
  */
 const CLAIMED_EVENT = "bon:badge-claimed";
 
@@ -32,15 +33,18 @@ export function ClaimBadge({ stage, accent }: { stage: number; accent?: string }
   const chain = useChain();
   const { completions } = useProgress();
   const [view, setView] = useState<View>({ s: "checking" });
-  const [claims, setClaims] = useState(0);
+  /** Bumped when the previous stage's badge is claimed, to run the check again. */
+  const [recheck, setRecheck] = useState(0);
   const testnet = chain.network === "testnet";
   const rule = ruleFor(stage);
 
   useEffect(() => {
-    const again = () => setClaims((n) => n + 1);
+    const again = (e: Event) => {
+      if ((e as CustomEvent<{ stage?: number }>).detail?.stage === stage - 1) setRecheck((n) => n + 1);
+    };
     window.addEventListener(CLAIMED_EVENT, again);
     return () => window.removeEventListener(CLAIMED_EVENT, again);
-  }, []);
+  }, [stage]);
 
   useEffect(() => {
     let live = true;
@@ -48,14 +52,22 @@ export function ClaimBadge({ stage, accent }: { stage: number; accent?: string }
       try {
         const me = (await chain.practiceAccount()).accountId;
         if (await chain.hasBadge(me, stage)) {
-          if (live) setView({ s: "claimed", contractId: await chain.badgeContractId() });
+          const contractId = await chain.badgeContractId();
+          // Keep the tokenId of a claim made on this card: the explorer link needs it.
+          if (live)
+            setView((v) => ({
+              s: "claimed",
+              tokenId: v.s === "claimed" ? v.tokenId : undefined,
+              contractId,
+            }));
           return;
         }
         const ready = claimReadiness(stage, completions, testnet ? "testnet" : "demo");
         const prevMissing = stage > 0 && !(await chain.hasBadge(me, stage - 1));
         if (!live) return;
+        // A lagging RPC node can still say "no badge" just after a claim: a claimed card never goes back.
         setView((v) =>
-          v.s === "claiming" || v.s === "failed"
+          v.s === "claiming" || v.s === "failed" || v.s === "claimed"
             ? v
             : !ready.ready || prevMissing
               ? { s: "not-yet", missing: ready.missing, previous: prevMissing ? stage - 1 : undefined }
@@ -63,13 +75,17 @@ export function ClaimBadge({ stage, accent }: { stage: number; accent?: string }
         );
       } catch {
         if (live)
-          setView({ s: "failed", error: "The badge contract could not be read. Try again in a minute." });
+          setView((v) =>
+            v.s === "claimed"
+              ? v
+              : { s: "failed", error: "The badge contract could not be read. Try again in a minute." },
+          );
       }
     })();
     return () => {
       live = false;
     };
-  }, [chain, stage, completions, testnet, claims]);
+  }, [chain, stage, completions, testnet, recheck]);
 
   if (!rule) return null;
 
@@ -81,7 +97,7 @@ export function ClaimBadge({ stage, accent }: { stage: number; accent?: string }
     }).catch(() => ({ ok: false as const, error: "Something went wrong while claiming. Try again." }));
     if (r.ok) {
       setView({ s: "claimed", tokenId: r.tokenId, contractId: await chain.badgeContractId() });
-      window.dispatchEvent(new Event(CLAIMED_EVENT));
+      window.dispatchEvent(new CustomEvent(CLAIMED_EVENT, { detail: { stage } }));
     } else setView({ s: "failed", error: r.error });
   }
 
