@@ -36,6 +36,8 @@ export const COLORS = {
   /** Stage 3. A sky blue: well clear of NEAR green, so a stage-3 highlight never reads as a coin. */
   cerulean: "#1e9bd7",
   ochre: "#c9a227",
+  /** Stage 5. An orchid: clear of NEAR green and of stage 2 pink and stage 4 violet. */
+  orchid: "#c86bd6",
   /** The "pass" mark (checks, verdicts). Not a NEAR colour. */
   green: "#2fa36b",
   red: "#d8433b",
@@ -67,6 +69,7 @@ export const STAGE_ACCENTS = {
   2: COLORS.pink,
   3: COLORS.cerulean,
   4: COLORS.violet,
+  5: COLORS.orchid,
   7: COLORS.ochre,
 } as const;
 
