@@ -37,6 +37,7 @@ import {
 } from "../../../scene-kit";
 import type { SceneProps } from "../../../app/types";
 import stage from "../../stages/5-enclave/stage";
+import { EnclaveBox } from "../../stages/5-enclave/EnclaveBox";
 import { ENCLAVE, FIGURE, PROMPT_AT, QUOTE, ROOT, SEAL, SERVER, TERMINAL } from "./layout";
 import { Facts } from "./parts";
 import { describe, PICK_LABELS, type Obj, type Reaction } from "./tutor";
@@ -229,7 +230,10 @@ function Figure({ m, compact }: { m: PrivateAi; compact: boolean }) {
         pickMotion={MOTIONS.enclave}
       >
         <group position={ENCLAVE}>
-          <EnclaveBox attested={sealed} holds={m.answered} compact={compact} />
+          <EnclaveBox
+            lit={sealed}
+            label={compact ? undefined : m.answered ? "enclave · a prompt, sealed" : "enclave (Intel TDX)"}
+          />
         </group>
       </Pickable>
       <Anchor name="enclave" position={[ENCLAVE[0], 1.1, ENCLAVE[2]]} />
@@ -321,58 +325,6 @@ function OpenServer({ read, compact }: { read: boolean; compact: boolean }) {
       {compact ? null : (
         <Label position={[0, 0.05, 0.95]} variant="small">
           {read ? "ordinary server · plain text" : "ordinary server"}
-        </Label>
-      )}
-    </group>
-  );
-}
-
-/** The enclave: a dark chip with pins, a padlock on top, inside a perimeter that lights once attested. */
-function EnclaveBox({ attested, holds, compact }: { attested: boolean; holds: boolean; compact: boolean }) {
-  const chip = useInk(INK);
-  const pin = useInk(COLORS.slab);
-  const accent = useInk(ACCENT);
-  const rim = useInk(attested ? ACCENT : COLORS.paper);
-  return (
-    <group>
-      <SoftShadow position={[0, 0, 0.2]} size={[2.4, 1.8]} />
-      {/* The sealed perimeter: a low wall all round. */}
-      {(
-        [
-          [0, -0.85, 2.0, 0.12],
-          [0, 0.85, 2.0, 0.12],
-          [-1.0, 0, 0.12, 1.82],
-          [1.0, 0, 0.12, 1.82],
-        ] as const
-      ).map(([x, z, w, d]) => (
-        <mesh key={`${x},${z}`} position={[x, 0.12, z]} material={rim}>
-          <boxGeometry args={[w, 0.24, d]} />
-          <Outline />
-        </mesh>
-      ))}
-      {/* The chip and its pins. */}
-      <mesh position={[0, 0.2, 0]} material={chip}>
-        <boxGeometry args={[1.2, 0.25, 1.0]} />
-        <Outline />
-      </mesh>
-      {[-0.4, -0.13, 0.13, 0.4].map((x) =>
-        [-0.58, 0.58].map((z) => (
-          <mesh key={`${x},${z}`} position={[x, 0.12, z]} material={pin}>
-            <boxGeometry args={[0.08, 0.06, 0.16]} />
-          </mesh>
-        )),
-      )}
-      {/* A padlock on the chip. */}
-      <mesh position={[0, 0.48, 0]} material={accent}>
-        <boxGeometry args={[0.38, 0.3, 0.2]} />
-        <Outline />
-      </mesh>
-      <mesh position={[0, 0.66, 0]} material={chip}>
-        <torusGeometry args={[0.12, 0.035, 8, 20, Math.PI]} />
-      </mesh>
-      {compact ? null : (
-        <Label position={[0, 0.05, 1.2]} variant="small">
-          {holds ? "enclave · a prompt, sealed" : "enclave (Intel TDX)"}
         </Label>
       )}
     </group>

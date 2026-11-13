@@ -59,12 +59,13 @@ test.describe("badges in demo mode", () => {
     const shelf = page.getByRole("list", { name: "My badges" });
     await expect(shelf.locator('[data-stage="0"]')).toContainText("Claimed");
     await expect(shelf.locator('[data-stage="1"]')).toContainText("Not claimed yet");
-    await expect(page.getByText("1 of 5 claimed.")).toBeVisible();
-    // Eight slots, counted out of the 5 claimable. 5, 6 and 7 have a lesson but no badge rule yet
-    // (stage 5's waits for lesson 5.2, stage 6's for lesson 6.2).
+    await expect(page.getByText("1 of 6 claimed.")).toBeVisible();
+    // Eight slots, counted out of the 6 claimable (stages 0 to 5). 6 and 7 have a lesson but no badge rule
+    // yet (stage 6's waits for lesson 6.2).
     await expect(shelf.getByRole("listitem")).toHaveCount(8);
-    for (const n of [5, 6, 7])
+    for (const n of [6, 7])
       await expect(shelf.locator(`[data-stage="${n}"]`)).toContainText("Badge not available yet");
+    await expect(shelf.locator('[data-stage="5"]')).toContainText("Not claimed yet");
     await expect(shelf.locator('[data-stage="5"]')).toContainText("Stage 5: Enclave");
     await expect(shelf.locator('[data-stage="6"]')).toContainText("Stage 6: Citizen");
     await expect(shelf.locator('[data-stage="4"]')).toContainText("Not claimed yet");
@@ -141,7 +142,7 @@ test.describe("badges in demo mode", () => {
     await box1.getByRole("button", { name: "Claim the stage 1 badge" }).click();
     await expect(box1).toContainText("Stage 1 badge claimed");
     await page.goto("/my-book");
-    await expect(page.getByText("2 of 5 claimed.")).toBeVisible();
+    await expect(page.getByText("2 of 6 claimed.")).toBeVisible();
   });
 
   test("the claim card works on a phone and with reduced motion", async ({ page }) => {
@@ -295,6 +296,6 @@ test("plays lessons 0.1 to 0.3 in demo mode, then claims the stage 0 badge and s
   await box.getByRole("link", { name: "My book" }).click();
   const shelf = page.getByRole("list", { name: "My badges" });
   await expect(shelf.locator('[data-stage="0"]')).toContainText("Claimed");
-  await expect(page.getByText("1 of 5 claimed.")).toBeVisible();
+  await expect(page.getByText("1 of 6 claimed.")).toBeVisible();
   expect(errors).toEqual([]);
 });

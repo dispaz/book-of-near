@@ -13,10 +13,11 @@ test.describe("backlog topic cards", () => {
     for (const n of [0, 1, 2, 3, 4, 5, 6, 7]) {
       await expect(page.getByRole("region", { name: new RegExp(`Stage ${n}\\b`) })).toBeVisible();
     }
-    // Stage 5 opens with lesson 5.1 (#84); lesson 5.2's topic stays a locked card until it lands.
+    // Stage 5 has lessons 5.1 (#84) and 5.2 (#85): the Shade Agents card is gone, the lesson teaches it.
     const stage5 = page.getByRole("region", { name: /Stage 5/ });
     await expect(stage5.getByRole("link", { name: /Ask a private AI and verify it/ })).toHaveCount(1);
-    await expect(stage5.getByRole("button", { name: /Shade Agents/ })).toBeVisible();
+    await expect(stage5.getByRole("link", { name: /An agent with no owner/ })).toHaveCount(1);
+    await expect(stage5.getByRole("button", { name: /Shade Agents/ })).toHaveCount(0);
     await expect(stage5.getByRole("button", { name: /TEEs and remote attestation/ })).toHaveCount(0);
     // Stage 6 is back with lesson 6.1 (#86); its DeFi map topic stays a locked card until 6.2.
     const stage6 = page.getByRole("region", { name: /Stage 6\b/ });

@@ -1,0 +1,368 @@
+/* Lesson 5.2: an agent with no owner. One state, a flat page (2D) or the pop-up book (3D). */
+.nao {
+  position: absolute;
+  top: var(--head-h, 112px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--bar-reserve, 88px) + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .nao {
+    top: var(--head-h, 104px);
+    left: 448px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    gap: 12px;
+  }
+}
+.nao p,
+.nao-panel p {
+  margin: 0;
+}
+.nao code,
+.nao-panel code {
+  font:
+    600 13px ui-monospace,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- flat page ---------- */
+.nao-2d {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 6px;
+}
+.nao-2d svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 46vh;
+}
+.nao-move {
+  transition: transform 0.9s ease-in-out;
+}
+/* "Not yet": a short shake. A pick: the object's own animation, like its 3D one (rule 10a). Two names
+   each, so a second click plays it again. Reduced motion keeps only the outline and colour change. */
+.nao-shake0 {
+  animation: nao-shake0 0.45s ease-out;
+}
+.nao-shake1 {
+  animation: nao-shake1 0.45s ease-out;
+}
+.nao-pick-laptop0 {
+  animation: nao-pick-laptop0 0.6s ease-out;
+}
+.nao-pick-laptop1 {
+  animation: nao-pick-laptop1 0.6s ease-out;
+}
+.nao-pick-key0 {
+  animation: nao-pick-key0 0.7s ease-out;
+}
+.nao-pick-key1 {
+  animation: nao-pick-key1 0.7s ease-out;
+}
+.nao-pick-enclave0 {
+  animation: nao-pick-enclave0 0.8s ease-out;
+}
+.nao-pick-enclave1 {
+  animation: nao-pick-enclave1 0.8s ease-out;
+}
+.nao-pick-contract0 {
+  animation: nao-pick-contract0 0.7s ease-out;
+}
+.nao-pick-contract1 {
+  animation: nao-pick-contract1 0.7s ease-out;
+}
+.nao-pick-signer0 {
+  animation: nao-pick-signer0 0.9s ease-out;
+}
+.nao-pick-signer1 {
+  animation: nao-pick-signer1 0.9s ease-out;
+}
+.nao-pick-eth0 {
+  animation: nao-pick-eth0 0.7s ease-out;
+}
+.nao-pick-eth1 {
+  animation: nao-pick-eth1 0.7s ease-out;
+}
+.nao-shake0,
+.nao-shake1,
+.nao-pick-laptop0,
+.nao-pick-laptop1,
+.nao-pick-key0,
+.nao-pick-key1,
+.nao-pick-enclave0,
+.nao-pick-enclave1,
+.nao-pick-contract0,
+.nao-pick-contract1,
+.nao-pick-signer0,
+.nao-pick-signer1,
+.nao-pick-eth0,
+.nao-pick-eth1 {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes nao-shake0 {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+@keyframes nao-shake1 {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+@keyframes nao-pick-laptop0 {
+  /* Tilts forward, like opening a file. */
+  45% {
+    transform: skewX(-8deg) translateX(4px);
+  }
+}
+@keyframes nao-pick-laptop1 {
+  /* Tilts forward, like opening a file. */
+  45% {
+    transform: skewX(-8deg) translateX(4px);
+  }
+}
+@keyframes nao-pick-key0 {
+  /* Lunges at the agent contract and bounces back. */
+  40% {
+    transform: translate(14px, -10px);
+  }
+}
+@keyframes nao-pick-key1 {
+  /* Lunges at the agent contract and bounces back. */
+  40% {
+    transform: translate(14px, -10px);
+  }
+}
+@keyframes nao-pick-enclave0 {
+  /* Pulses twice: the agent at work inside. */
+  25%,
+  75% {
+    transform: scale(1.07);
+  }
+  50% {
+    transform: scale(1);
+  }
+}
+@keyframes nao-pick-enclave1 {
+  /* Pulses twice: the agent at work inside. */
+  25%,
+  75% {
+    transform: scale(1.07);
+  }
+  50% {
+    transform: scale(1);
+  }
+}
+@keyframes nao-pick-contract0 {
+  /* Rises and turns a little, like unrolling to read. */
+  45% {
+    transform: translateY(-10px) rotate(-4deg);
+  }
+}
+@keyframes nao-pick-contract1 {
+  /* Rises and turns a little, like unrolling to read. */
+  45% {
+    transform: translateY(-10px) rotate(-4deg);
+  }
+}
+@keyframes nao-pick-signer0 {
+  /* The nodes bob, like passing the request round. */
+  30% {
+    transform: translateY(-8px);
+  }
+  60% {
+    transform: translateY(0);
+  }
+  80% {
+    transform: translateY(-4px);
+  }
+}
+@keyframes nao-pick-signer1 {
+  /* The nodes bob, like passing the request round. */
+  30% {
+    transform: translateY(-8px);
+  }
+  60% {
+    transform: translateY(0);
+  }
+  80% {
+    transform: translateY(-4px);
+  }
+}
+@keyframes nao-pick-eth0 {
+  /* Hops to show its flag. */
+  40% {
+    transform: translateY(-10px) rotate(4deg);
+  }
+}
+@keyframes nao-pick-eth1 {
+  /* Hops to show its flag. */
+  40% {
+    transform: translateY(-10px) rotate(4deg);
+  }
+}
+.nao.still .nao-move {
+  transition: none;
+}
+.nao.still .nao-shake0,
+.nao.still .nao-shake1,
+.nao.still .nao-pick-laptop0,
+.nao.still .nao-pick-laptop1,
+.nao.still .nao-pick-key0,
+.nao.still .nao-pick-key1,
+.nao.still .nao-pick-enclave0,
+.nao.still .nao-pick-enclave1,
+.nao.still .nao-pick-contract0,
+.nao.still .nao-pick-contract1,
+.nao.still .nao-pick-signer0,
+.nao.still .nao-pick-signer1,
+.nao.still .nao-pick-eth0,
+.nao.still .nao-pick-eth1 {
+  animation: none;
+}
+
+/* ---------- facts (both views) ---------- */
+.nao-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: 500 14px var(--ui);
+}
+.nao-dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 2px 12px;
+  margin: 0;
+}
+.nao-dl dt {
+  font-weight: 700;
+}
+.nao-dl dd {
+  margin: 0;
+  min-width: 0;
+}
+.nao-checks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.nao-checks li.ok span {
+  color: var(--green);
+  font-weight: 800;
+}
+.nao-checks li.bad span {
+  color: var(--red);
+  font-weight: 800;
+}
+.nao-line {
+  font-weight: 600;
+}
+.nao-note {
+  color: var(--mute);
+  font-size: 13px;
+}
+.nao-note.not-yet {
+  color: var(--ink);
+  border-left: 4px solid var(--accent);
+  padding-left: 6px;
+}
+.nao-warn {
+  padding: 4px 8px;
+  border-left: 4px solid var(--red);
+  background: var(--card);
+  color: var(--red);
+  font-weight: 600;
+}
+.nao-ok {
+  padding: 4px 8px;
+  border-left: 4px solid var(--green);
+  background: var(--card);
+  font-weight: 700;
+}
+
+/* ---------- 3D: the facts in the book scene's panel ---------- */
+.nao-panel .nao-facts.compact {
+  max-height: min(30vh, 250px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+@media (min-width: 1100px) {
+  .nao-panel .nao-facts.compact {
+    max-height: min(27vh, 236px);
+  }
+}
+.nao-env {
+  margin: 0;
+  padding: 6px 8px;
+  border: 1.5px solid var(--ink);
+  border-left: 4px solid var(--red);
+  border-radius: 8px;
+  background: var(--card);
+}
+.nao-env figcaption {
+  font-weight: 700;
+  font-size: 13px;
+}
+.nao-env pre {
+  margin: 4px 0 0;
+  font:
+    600 12px ui-monospace,
+    Menlo,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nao-move {
+    transition: none;
+  }
+  .nao-shake0,
+  .nao-shake1,
+  .nao-pick-laptop0,
+  .nao-pick-laptop1,
+  .nao-pick-key0,
+  .nao-pick-key1,
+  .nao-pick-enclave0,
+  .nao-pick-enclave1,
+  .nao-pick-contract0,
+  .nao-pick-contract1,
+  .nao-pick-signer0,
+  .nao-pick-signer1,
+  .nao-pick-eth0,
+  .nao-pick-eth1 {
+    animation: none;
+  }
+}

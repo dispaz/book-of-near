@@ -159,6 +159,10 @@ async function checkStage(stage: number, account: string, ev: Evidence, lookup: 
       if (t.receiverId !== MPC_SIGNER) refuse("Lesson 4.1's transaction is not a chain-signature request.");
       return;
     }
+    case 5:
+      // Lessons 5.1 and 5.2 send nothing on chain (rules.ts), so there is nothing to look up. The badge
+      // contract still refuses the claim until the account holds the stage 4 badge.
+      return;
   }
 }
 
