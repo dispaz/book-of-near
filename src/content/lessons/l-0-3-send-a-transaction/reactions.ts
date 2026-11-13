@@ -117,7 +117,7 @@ export const MOTIONS = {
     if (t >= T) return false;
     const k = swell(t, T);
     o.scale.y *= 1 - 0.3 * k;
-    o.position.y += 0.15 * swell(t, T / 2) * (t < T / 2 ? 1 : 0);
+    o.position.y += 0.15 * swell(t, T / 2);
     return true;
   },
   /** The key tips down and stamps, like pressing a seal into wax. */

@@ -1,5 +1,20 @@
 import { expect, test, type Page } from "@playwright/test";
-import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3d } from "./helpers";
+import {
+  answerCheck,
+  completionOf,
+  countDrawnFrames,
+  drawnFrames,
+  expectFocusMarksHover,
+  expectNotYetHint,
+  expectPickDetail,
+  expectPickPlaysAndSettles,
+  expectSettled,
+  LOAD_3D,
+  nextStep,
+  pickButton,
+  seedRoute,
+  slow3d,
+} from "./helpers";
 
 // Walks lesson 0.2 in demo mode (no wallet, no network). Demo mode uses the public example key from
 // docs.near.org, so the values below are public and stable.
@@ -393,6 +408,97 @@ test.describe(`lesson ${ID}`, () => {
     await expect(overlay).not.toContainText("Private key");
     await expect(next).toBeEnabled();
     await expectNoSecretsStored(page);
+  });
+
+  test("3D objects react: focus, own pick motion, not-yet hints and details (rule 10a)", async ({ page }) => {
+    slow3d();
+    await page.addInitScript(countDrawnFrames);
+    await open(page, "3d");
+    await page.getByRole("checkbox", { name: /these keys are for practice only/ }).check();
+    await nextStep(page);
+
+    // Before Generate the paper shows empty places: picking one says why nothing is there.
+    await expectNotYetHint(page, "Empty place: private key", "Generate a key pair first");
+    await page.getByRole("button", { name: "Generate", exact: true }).click();
+    await expectFocusMarksHover(page, "Show the private key");
+    await nextStep(page);
+
+    // The words nod and fold into the key again; after the rebuild they show the path.
+    await expectPickPlaysAndSettles(page, "Seed words: rebuild the key");
+    await expect(panel(page).getByTestId("rebuilt-key")).toHaveText(DEMO_PUBLIC);
+    await expectPickDetail(page, "Seed words: rebuild the key", /SLIP-10 path m\/44'\/397'\/0'/);
+    await expectPickDetail(page, "Private key", "ed25519 private key: secret, used to sign");
+    await nextStep(page);
+
+    await expectNotYetHint(page, "Address block", "Turn it into an address first");
+    await page.getByRole("button", { name: "Turn it into an address" }).click();
+    await expect(panel(page).getByTestId("implicit-account")).toHaveText(DEMO_IMPLICIT, { timeout: 10_000 });
+    await expectPickDetail(page, "Address block", "NEAR implicit address: 64 hex characters");
+    await nextStep(page);
+
+    // Each address block flips to show its rule, then shows its length.
+    for (const name of ["Ethereum address block", "NEAR implicit account block", "NEAR named account block"])
+      await pickButton(page, name).press("Enter");
+    await expectPickDetail(page, "Ethereum address block", /42 characters starting with 0x/);
+    await nextStep(page);
+
+    // No message, no signature: the key and the card both say "not yet".
+    await page.getByRole("textbox", { name: "Message" }).fill("");
+    await expectNotYetHint(page, "Sign with the private key", "Write a message first");
+    await expectNotYetHint(page, "Message card", "Sign the message first");
+    await page.getByRole("textbox", { name: "Message" }).fill("Hello from Book of NEAR");
+    await expectPickPlaysAndSettles(page, "Sign with the private key");
+    await expect(scene(page)).toHaveAttribute("data-scene-state", "signed");
+    await expectPickDetail(page, "Message card", /64-byte ed25519 signature/);
+    // Editing the box after signing asks to sign again in step 6...
+    await page.getByRole("textbox", { name: "Message" }).fill("Hello again");
+    await expectNotYetHint(page, "Message card", "Sign the message first");
+    await nextStep(page);
+
+    // ...but step 7 checks the signed text, so the card can still be tampered with.
+    await page.getByRole("button", { name: "Verify", exact: true }).click();
+    await expect(panel(page).getByRole("status")).toHaveText(/Signature matches this message/);
+    await expectPickPlaysAndSettles(page, "Change one letter on the card");
+    await page.getByRole("button", { name: "Verify", exact: true }).click();
+    await expect(scene(page)).toHaveAttribute("data-scene-state", "tamper-caught");
+    await expectPickDetail(
+      page,
+      "Change one letter on the card",
+      "The text changed: the signature does not match",
+    );
+    await nextStep(page);
+
+    // The bin's pick renames it ("Bin" once the keys are gone), so its rock is checked by hand.
+    await expectFocusMarksHover(page, "Drop the keys in the bin");
+    await expectSettled(page);
+    const before = await drawnFrames(page);
+    await pickButton(page, "Drop the keys in the bin").press("Enter");
+    await expect(scene(page)).toHaveAttribute("data-scene-state", "cleared");
+    await expect(pickButton(page, "Bin")).toBeVisible();
+    await expectSettled(page);
+    expect((await drawnFrames(page)) - before).toBeGreaterThan(5);
+    await expectPickDetail(page, "Bin", "Memory cleared: 0 keys left on this page");
+    await expectNoSecretsStored(page);
+  });
+
+  test("3D reactions under reduced motion: hints and details, no pick motion", async ({ browser }) => {
+    slow3d();
+    const context = await browser.newContext({ reducedMotion: "reduce" });
+    const page = await context.newPage();
+    await seedRoute(page);
+    await open(page, "3d");
+    await page.getByRole("checkbox", { name: /these keys are for practice only/ }).check();
+    await nextStep(page);
+    await expectNotYetHint(page, "Empty place: seed words", "Generate a key pair first");
+    await page.getByRole("button", { name: "Generate", exact: true }).click();
+    await expectFocusMarksHover(page, "Show the private key");
+    await nextStep(page);
+    const words = pickButton(page, "Seed words: rebuild the key");
+    await words.press("Enter");
+    await expect(panel(page).getByTestId("rebuilt-key")).toHaveText(DEMO_PUBLIC);
+    await expect(words).toHaveAttribute("data-pick", "idle");
+    await expectPickDetail(page, "Seed words: rebuild the key", /SLIP-10/);
+    await context.close();
   });
 
   test("2D never downloads three.js; 3D loads it lazily", async ({ page }) => {
