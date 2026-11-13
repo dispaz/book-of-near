@@ -60,11 +60,12 @@ test.describe("badges in demo mode", () => {
     await expect(shelf.locator('[data-stage="0"]')).toContainText("Claimed");
     await expect(shelf.locator('[data-stage="1"]')).toContainText("Not claimed yet");
     await expect(page.getByText("1 of 5 claimed.")).toBeVisible();
-    // Eight slots, counted out of the 5 claimable. 5 and 6 have no lessons yet: not open. 7 has a lesson
+    // Eight slots, counted out of the 5 claimable. 5 has no lessons yet: not open. 6 and 7 have a lesson
     // but no badge rule yet.
     await expect(shelf.getByRole("listitem")).toHaveCount(8);
-    for (const n of [5, 6]) await expect(shelf.locator(`[data-stage="${n}"]`)).toContainText("Not open yet");
-    await expect(shelf.locator('[data-stage="7"]')).toContainText("Badge not available yet");
+    await expect(shelf.locator('[data-stage="5"]')).toContainText("Not open yet");
+    for (const n of [6, 7])
+      await expect(shelf.locator(`[data-stage="${n}"]`)).toContainText("Badge not available yet");
     await expect(shelf.locator('[data-stage="5"]')).toContainText("Stage 5: Enclave");
     await expect(shelf.locator('[data-stage="6"]')).toContainText("Stage 6: Citizen");
     await expect(shelf.locator('[data-stage="4"]')).toContainText("Not claimed yet");

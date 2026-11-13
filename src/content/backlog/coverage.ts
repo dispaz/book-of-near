@@ -32,5 +32,6 @@ export const LESSON_TOPICS: Coverage = {
   "l-4-1-one-account-every-chain": ["Chain Signatures", "Multichain accounts"],
   "l-4-2-intent-swap": ["NEAR Intents"],
   "l-4-3-old-bridge-vs-near": ["Omni Bridge", "Confidential Intents"],
+  "l-6-1-vote-on-a-proposal": ["House of Stake"],
   "l-7-1-trace-an-intent": ["Capstone: trace"],
 };

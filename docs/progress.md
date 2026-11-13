@@ -539,3 +539,12 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - `STAGE_BADGES = 8`: My book and the checker show eight slots; stages 5 and 6 (no lessons) show "Not open yet", 7 (a lesson, no rule) "Badge not available yet"; the count is "N of 5" (`CLAIMABLE_BADGES`, equal to the demo contract's stage count).
 - Testnet: `set_art` for stage-0 to stage-4 with the new hashes (`docs/badge-contract.md`). `set_stage_count(8)` and art for 5 to 7 are left to the owner (`node scripts/deploy-badge.mjs stage-count 8`).
 - Screenshots: `docs/screenshots/badges-near/`. Gate: lint, typecheck, unit tests, `e2e/badges.spec.ts`.
+
+## 2026-11-13 · Lesson 6.1: Read and vote on a proposal (Closes #86)
+
+- Stage 6 (Citizen) is back: `src/content/stages/6-citizen/stage.ts`, accent `STAGE_ACCENTS[6]` (new `COLORS.olive`, about 6:1 with ink). Lesson 6.1 covers the "House of Stake, veNEAR and DAOs" topic card; the DeFi map topic stays a locked card until 6.2. Stage 5 is still parked.
+- `l-6-1-vote-on-a-proposal`: 7 steps from the script, 2D and 3D on one state (`useGovernance`). A town hall on the right page: staking pool mailbox, veNEAR gauge (slider or pick; 1× at 1 month to 4× at 48 months, as the topic says), Proposal #42 scroll with a quorum bar, YES and NO ballot stamps. Gates: set a lock, review the proposal, vote.
+- Nothing touches a chain. Proposal #42 is the script's example, labelled "Example proposal, made up for this lesson. Not a real or live proposal." on the page; the vote is a practice vote ("Nothing was sent to a chain"), evidence `{ proposalId, voteCast, choice, power, kind: "practice" }`.
+- Rule 10a: every object has its own `pickMotion`, a "not yet" hint and a detail (`governance.ts`: `reactionFor`, `MOTIONS`, unit tested). Script Reactions table updated to what was built.
+- No stage 6 badge rule yet (`src/badges/rules.ts`): it waits for 6.2. The badge shelf now shows stage 6 as "Badge not available yet".
+- E2E: walk in 2D and 3D, reduced motion, `?webgl=0`, phone layout (2D and 3D), 2D to 3D keeps state, 0 idle frames (and the gauge settles), rule 10a reactions; added to the render-on-demand list.
