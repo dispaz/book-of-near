@@ -58,8 +58,29 @@ test.beforeAll(async ({ browser }) => {
     });
     p.on("pageerror", (e) => errors.push(e.message));
   });
+  // Requests in flight on any page, so each test can wait for its own to end (see afterEach).
+  context.on("request", () => inFlight++);
+  context.on("requestfinished", () => inFlight--);
+  context.on("requestfailed", () => inFlight--);
   page = await context.newPage();
 });
+
+let inFlight = 0;
+
+/**
+ * Waits until no request has been in flight for a short quiet spell (at most 5 s). `networkidle` does
+ * not do this: it resolves at once after a client-side navigation.
+ */
+async function settle() {
+  const end = Date.now() + 5_000;
+  let quietSince = inFlight === 0 ? Date.now() : 0;
+  while (Date.now() < end) {
+    if (inFlight > 0) quietSince = 0;
+    else if (!quietSince) quietSince = Date.now();
+    else if (Date.now() - quietSince >= 300) return;
+    await page.waitForTimeout(50);
+  }
+}
 
 test.afterAll(() => context?.close());
 
@@ -68,7 +89,7 @@ let seen = 0;
 let seenErrors = 0;
 test.afterEach(async () => {
   // Let requests still in flight settle first, so they are blamed on this test, not the next one.
-  await page.waitForLoadState("networkidle").catch(() => {});
+  await settle();
   const mine = external.slice(seen);
   const myErrors = errors.slice(seenErrors);
   seen = external.length;

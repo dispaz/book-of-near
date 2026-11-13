@@ -18,7 +18,9 @@ const chain = {
   badgeContractId: async () => "badges.testnet",
 } as unknown as Chain;
 
-vi.mock("../chain/ChainContext", () => ({ useChain: () => chain }));
+// The chain the app hands out now: ChainProvider can swap it (demo first, then testnet).
+let current: Chain = chain;
+vi.mock("../chain/ChainContext", () => ({ useChain: () => current }));
 vi.mock("../progress", () => {
   const state = { completions: [] }; // one array, as the real store keeps between renders
   return { useProgress: () => state };
@@ -55,6 +57,7 @@ beforeEach(() => {
   held.add(0);
   for (const k of Object.keys(reads)) delete reads[Number(k)];
   lagging = false;
+  current = chain;
 });
 afterEach(cleanup);
 
@@ -117,5 +120,28 @@ describe("ClaimBadge after a claim", () => {
       "href",
       expect.stringContaining("/tok-1"),
     );
+  });
+
+  it("a claimed card checks again when the chain swaps to one without the badge", async () => {
+    // A testnet load with demo badges in this browser: the demo chain comes first and holds stage 1.
+    held.add(1);
+    const testnetNoBadge = {
+      ...chain,
+      hasBadge: async (_id: string, s: number) => s === 0,
+    } as unknown as Chain;
+    const { rerender } = render(
+      <MemoryRouter>
+        <ClaimBadge stage={1} />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(card(1)).toHaveAttribute("data-claim-state", "claimed"));
+
+    current = testnetNoBadge;
+    rerender(
+      <MemoryRouter>
+        <ClaimBadge stage={1} />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(card(1)).toHaveAttribute("data-claim-state", "ready"));
   });
 });

@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
 import { useChain } from "../chain/ChainContext";
+import type { Chain } from "../chain/types";
 import { useProgress } from "../progress";
 import { BadgeArt } from "./BadgeShelf";
 import { claimStageBadge } from "./claimFlow";
@@ -13,7 +14,8 @@ type View =
   | { s: "not-yet"; missing: Missing[]; previous?: number }
   | { s: "ready" }
   | { s: "claiming" }
-  | { s: "claimed"; tokenId?: string; contractId?: string }
+  /** `on`: the chain that holds the badge. A claimed view sticks only while that chain is still in use. */
+  | { s: "claimed"; on: Chain; tokenId?: string; contractId?: string }
   | { s: "failed"; error: string };
 
 const EXPLORER = "https://testnet.nearblocks.io/nft-token";
@@ -57,7 +59,8 @@ export function ClaimBadge({ stage, accent }: { stage: number; accent?: string }
           if (live)
             setView((v) => ({
               s: "claimed",
-              tokenId: v.s === "claimed" ? v.tokenId : undefined,
+              on: chain,
+              tokenId: v.s === "claimed" && v.on === chain ? v.tokenId : undefined,
               contractId,
             }));
           return;
@@ -65,9 +68,10 @@ export function ClaimBadge({ stage, accent }: { stage: number; accent?: string }
         const ready = claimReadiness(stage, completions, testnet ? "testnet" : "demo");
         const prevMissing = stage > 0 && !(await chain.hasBadge(me, stage - 1));
         if (!live) return;
-        // A lagging RPC node can still say "no badge" just after a claim: a claimed card never goes back.
+        // A lagging RPC node can still say "no badge" just after a claim: a claimed card never goes back
+        // on the same chain. After a chain swap (demo to testnet on load) the other chain's answer counts.
         setView((v) =>
-          v.s === "claiming" || v.s === "failed" || v.s === "claimed"
+          v.s === "claiming" || v.s === "failed" || (v.s === "claimed" && v.on === chain)
             ? v
             : !ready.ready || prevMissing
               ? { s: "not-yet", missing: ready.missing, previous: prevMissing ? stage - 1 : undefined }
@@ -76,7 +80,7 @@ export function ClaimBadge({ stage, accent }: { stage: number; accent?: string }
       } catch {
         if (live)
           setView((v) =>
-            v.s === "claimed"
+            v.s === "claimed" && v.on === chain
               ? v
               : { s: "failed", error: "The badge contract could not be read. Try again in a minute." },
           );
@@ -96,7 +100,7 @@ export function ClaimBadge({ stage, accent }: { stage: number; accent?: string }
       keepDemoBadges: (b) => keepDemoBadges(b),
     }).catch(() => ({ ok: false as const, error: "Something went wrong while claiming. Try again." }));
     if (r.ok) {
-      setView({ s: "claimed", tokenId: r.tokenId, contractId: await chain.badgeContractId() });
+      setView({ s: "claimed", on: chain, tokenId: r.tokenId, contractId: await chain.badgeContractId() });
       window.dispatchEvent(new CustomEvent(CLAIMED_EVENT, { detail: { stage } }));
     } else setView({ s: "failed", error: r.error });
   }
