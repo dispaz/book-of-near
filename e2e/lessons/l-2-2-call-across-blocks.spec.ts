@@ -24,7 +24,7 @@ async function sendOrder(page: Page) {
 
 async function inspectGas(page: Page) {
   await expect(next(page)).toBeDisabled();
-  await page.getByRole("button", { name: "Inspect gas rebate", exact: true }).click();
+  await page.getByRole("button", { name: "Inspect gas", exact: true }).click();
   await state(page, /gas:open/);
 }
 
@@ -49,7 +49,7 @@ async function walkToCheck(page: Page) {
 
 const ANSWERS = [
   "They stay committed. Your callback must see the failure and undo them itself.",
-  "To the account of the contract whose code ran.",
+  "All of it is burned. No account receives it.",
   "Contracts can live on different shards and run in parallel without locking the whole network.",
 ];
 
@@ -80,7 +80,7 @@ test.describe(`lesson ${ID}`, () => {
     });
   }
 
-  test("the call's receipts run in order, one block each, and the gas splits 70 / 30", async ({ page }) => {
+  test("the call's receipts run in order, one block each, and all the gas is burned", async ({ page }) => {
     await page.goto(`/lesson/${ID}?view=2d`);
     await nextStep(page);
     await nextStep(page);
@@ -105,13 +105,19 @@ test.describe(`lesson ${ID}`, () => {
     const gas = page.getByTestId("gas-split");
     const tg = async (id: string) => Number(((await page.getByTestId(id).textContent()) ?? "").split(" ")[0]);
     const all = await tg("gas-contracts");
-    const burned = await tg("gas-burned");
-    const rebate = await tg("gas-rebate");
     expect(all).toBeGreaterThan(0);
-    expect(Math.abs(burned + rebate - all)).toBeLessThanOrEqual(0.02);
-    expect(Math.abs(rebate - all * 0.3)).toBeLessThanOrEqual(0.02);
+    // One row per contract; together they make the contracts' gas.
+    const each = page.getByTestId("gas-by-contract");
+    await expect(each).toHaveCount(2);
+    const sum = (await each.locator("dd").allTextContents()).reduce((s, t) => s + Number(t.split(" ")[0]), 0);
+    expect(Math.abs(sum - all)).toBeLessThanOrEqual(0.02);
     await expect(gas).toContainText("shop.demo.testnet");
-    await expect(page.getByTestId("caption")).toContainText(`burnt ${all.toFixed(2)} Tgas`);
+    await expect(page.getByTestId("gas-burned")).toHaveText("all of it");
+    await expect(page.getByTestId("gas-history")).toContainText("Up to and including protocol version 86");
+    await expect(gas).not.toContainText("70%");
+    await expect(page.getByTestId("caption")).toContainText(
+      `burnt ${all.toFixed(2)} Tgas of gas, and the NEAR paid for it was destroyed`,
+    );
   });
 
   test("a failing shop leaves the reservation; the callback undoes it", async ({ page }) => {
@@ -146,6 +152,7 @@ test.describe(`lesson ${ID}`, () => {
     await expect(honest).toContainText("Ethereum");
     await expect(honest).toContainText(/reentrancy/);
     await expect(honest).toContainText(/Callbacks can starve/);
+    await expect(honest).not.toContainText("30%");
   });
 });
 

@@ -5,7 +5,7 @@
 import { DEMO_BUYER, DEMO_SHOP } from "../../../chain/demo/shop";
 import { explorerTxUrl } from "../../../chain/ops";
 import { formatTgas } from "../../../chain/units";
-import { contractHops, gasSplit, type CrossCall, type Hop } from "./call";
+import { contractHops, gasUse, type CrossCall, type Hop } from "./call";
 import { RECORDED } from "./recorded";
 import { FAIL, GAS, HOOK, HOP, ORDER, orderButton } from "./steps";
 import type { CallState } from "./useCrossCall";
@@ -30,8 +30,48 @@ export function shardOf(c: CrossCall | null, account: string): number | null {
 export const blockText = (n: number) => `#${n.toLocaleString("en-US")}`;
 /** A block number short enough for the figure: its last three digits. The facts list has it whole. */
 export const tailText = (n: number) => `#…${String(n).slice(-3)}`;
-/** A contract's short tag on its scroll: "A · buyer". */
-export const tagOf = (which: "A" | "B", id: string) => `${which} · ${id.split(".")[0]}`;
+/** A contract's short tag on its scroll: "A · buyer". `which` is its letter: A, B, C… */
+export const tagOf = (which: string, id: string) => `${which} · ${id.split(".")[0]}`;
+
+/** The smallest share of the gas meter a part gets, so a contract that burnt little stays visible. */
+const MIN_PART = 0.2;
+
+export interface MeterPart {
+  /** "A · buyer burned 14.21 Tgas": the exact gas, whatever the part's width. */
+  label: string;
+  /** Where the part starts and how wide it is, as fractions of the bar. Not to scale: see MIN_PART. */
+  start: number;
+  frac: number;
+  /** Only the first and the last part carry a label, so labels never overlap. */
+  showLabel: boolean;
+  /** Which end of the bar the label sits at: the first part's on the left, the last one's on the right. */
+  align: "start" | "end";
+}
+
+/**
+ * The gas meter's parts, shared by the 2D and the 3D view: one per contract (A first, then B, C…), sized
+ * by the gas its receipts burnt, all of it burned.
+ */
+export function meterParts(call: CrossCall): MeterPart[] {
+  const g = gasUse(call);
+  const raw = g.byContract.map((b) => (g.contractGas > 0n ? Number(b.gas) / Number(g.contractGas) : 0));
+  const lifted = raw.map((f) => Math.max(f, MIN_PART));
+  const sum = lifted.reduce((s, f) => s + f, 0) || 1;
+  const last = g.byContract.length - 1;
+  let start = 0;
+  return g.byContract.map((b, i) => {
+    const frac = lifted[i]! / sum;
+    const part: MeterPart = {
+      label: `${tagOf(String.fromCharCode(65 + i), b.accountId)} burned ${formatTgas(b.gas)} Tgas`,
+      start,
+      frac,
+      showLabel: i === 0 || i === last,
+      align: i > 0 && i === last ? "end" : "start",
+    };
+    start += frac;
+    return part;
+  });
+}
 
 /** The four hops the block row draws: the transaction, then the three contract receipts. */
 export function rowOf(c: CrossCall | null): (Hop | null)[] {
@@ -109,8 +149,9 @@ export function describe(c: CallState): string {
     .join(", ");
   const base = `Receipts in order: ${list || "none yet"}.`;
   if (c.step === GAS) {
-    const g = gasSplit(d);
-    return `${base} The contracts burnt ${formatTgas(g.contractGas)} Tgas: about ${formatTgas(g.burned)} burned, about ${formatTgas(g.rebate)} to the contracts (an estimate).`;
+    const g = gasUse(d);
+    const each = g.byContract.map((b) => `${b.accountId} ${formatTgas(b.gas)} Tgas`).join(", ");
+    return `${base} The contracts burnt ${formatTgas(g.contractGas)} Tgas (${each}); the NEAR paid for it was destroyed.`;
   }
   return base;
 }
@@ -209,7 +250,7 @@ const pressHint = (c: CallState) =>
   c.step === FAIL ? "Press Simulate out-of-stock failure." : `Press ${orderButton(c.network).press}.`;
 
 function Gas({ call, inspected }: { call: CrossCall; inspected: boolean }) {
-  const g = gasSplit(call);
+  const g = gasUse(call);
   return (
     <section aria-label="Where the gas went" data-testid="gas-split">
       <Source d={call} />
@@ -218,26 +259,24 @@ function Gas({ call, inspected }: { call: CrossCall; inspected: boolean }) {
         <dd>
           <strong data-testid="gas-contracts">{formatTgas(g.contractGas)} Tgas</strong>
         </dd>
-        <dt>About 70% burned for good</dt>
-        <dd data-testid="gas-burned">{formatTgas(g.burned)} Tgas</dd>
-        <dt>About 30% to the contracts</dt>
-        <dd data-testid="gas-rebate">{formatTgas(g.rebate)} Tgas</dd>
         {inspected
           ? g.byContract.map((b) => (
-              <div key={b.accountId} className="xcc-sub">
+              <div key={b.accountId} className="xcc-sub" data-testid="gas-by-contract">
                 <dt>
-                  to <code>{short(b.accountId, 22)}</code>
+                  by <code>{short(b.accountId, 22)}</code>
                 </dt>
-                <dd>{formatTgas(b.rebate)} Tgas</dd>
+                <dd>{formatTgas(b.gas)} Tgas</dd>
               </div>
             ))
           : null}
+        <dt>Burned for good</dt>
+        <dd data-testid="gas-burned">all of it</dd>
         <dt>Whole transaction, with the signer's steps and refunds</dt>
         <dd>{formatTgas(g.total)} Tgas</dd>
       </dl>
-      <p className="xcc-soft" data-testid="gas-estimate">
-        An estimate. The rule pays 30% of the gas spent running a contract's code. The chain does not report
-        that share, and the gas burnt here also counts fixed fees, so the true share is a little smaller.
+      <p className="xcc-soft" data-testid="gas-history">
+        No account receives burnt gas, not even the contract. Up to and including protocol version 86, the
+        contract got 30% of the gas its code burnt. From version 87, all of it is burned.
       </p>
     </section>
   );

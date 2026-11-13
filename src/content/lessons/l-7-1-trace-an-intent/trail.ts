@@ -273,7 +273,7 @@ export function pickResult(what: Obj, s: PickState): PickResult {
       if (!authorized) return { notYet: true, note: "Authorize the intent first." };
       return {
         act: step === CONTRACT ? "run" : undefined,
-        note: `${VERIFIER_CONTRACT} runs as Wasm and checks the intent. 70% of the gas is burned; 30% goes to the contract's account.`,
+        note: `${VERIFIER_CONTRACT} runs as Wasm and checks the intent. The NEAR paid for its gas is destroyed; none goes to the contract.`,
       };
     case "signers":
       return {

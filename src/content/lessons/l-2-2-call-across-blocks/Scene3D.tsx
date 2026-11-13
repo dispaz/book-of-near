@@ -2,7 +2,7 @@
  * Lesson 2.2 in 3D: a pop-up book scene (docs/book-scene.md). On the right page: contract A and
  * contract B as scrolls (the gear turns while a receipt runs on them), the action receipt at step 2,
  * the block row (a parcel for the transaction, then a slip per receipt, one block each) and, at step 4,
- * the gas meter split 70 / 30. Every object is a pick that runs the step's action or shows a detail. It
+ * the gas meter, one part per contract, all of it burned. Every object is a pick that runs the step's action or shows a detail. It
  * only draws the shared state from useCrossCall. Loaded lazily from Scene.tsx.
  */
 import { useRef } from "react";
@@ -30,10 +30,19 @@ import {
 } from "../../../scene-kit";
 import { STAGE_ACCENTS } from "../../../scene-kit/theme";
 import type { SceneProps } from "../../../app/types";
-import { formatTgas } from "../../../chain/units";
-import { gasSplit } from "./call";
 import { A, B, BLOCK_Z, boxOf, COLUMNS, FIGURE, METER, partsAt, ROW_Z, SLIP } from "./layout3d";
-import { calleeFailed, describe, Facts, namesOf, runningOn, shardOf, short, slotsOf, tagOf } from "./parts";
+import {
+  calleeFailed,
+  describe,
+  Facts,
+  meterParts,
+  namesOf,
+  runningOn,
+  shardOf,
+  short,
+  slotsOf,
+  tagOf,
+} from "./parts";
 import { CHECK, FAIL, HOOK, ORDER } from "./steps";
 import { tourFor, type Target } from "./tour";
 import type { CallState } from "./useCrossCall";
@@ -253,28 +262,23 @@ function Row({ c }: { c: CallState }) {
   );
 }
 
-/** Step 4: the contracts' gas as a flat bar, 70% burned (grey) and 30% to the contracts (accent). */
+/** Step 4: the contracts' gas as a flat bar, one grey part per contract, all of it burned. */
 function Meter({ c }: { c: CallState }) {
   const paper = useInk(COLORS.paper);
   const burn = useInk(COLORS.slab);
-  const rebate = useInk(ACCENT);
   const [cx, , cz] = METER.center;
   const len = METER.length;
-  const g = c.call ? gasSplit(c.call) : null;
+  const parts = c.call ? meterParts(c.call) : null;
   return (
     <group position={[cx, 0, cz]}>
-      <Pickable label="Gas meter: inspect the gas rebate" onPick={c.pickMeter} anchor={[0, 0.4, 0]}>
-        {g ? (
-          <>
-            <mesh position={[-len / 2 + (len * 0.7) / 2, 0.08, 0]} material={burn}>
-              <boxGeometry args={[len * 0.7, 0.16, METER.depth]} />
+      <Pickable label="Gas meter: inspect the gas" onPick={c.pickMeter} anchor={[0, 0.4, 0]}>
+        {parts ? (
+          parts.map((p) => (
+            <mesh key={p.label} position={[-len / 2 + len * (p.start + p.frac / 2), 0.08, 0]} material={burn}>
+              <boxGeometry args={[len * p.frac, 0.16, METER.depth]} />
               <Outline />
             </mesh>
-            <mesh position={[len / 2 - (len * 0.3) / 2, 0.08, 0]} material={rebate}>
-              <boxGeometry args={[len * 0.3, 0.16, METER.depth]} />
-              <Outline />
-            </mesh>
-          </>
+          ))
         ) : (
           <mesh position={[0, 0.06, 0]} material={paper}>
             <boxGeometry args={[len, 0.12, METER.depth]} />
@@ -282,16 +286,17 @@ function Meter({ c }: { c: CallState }) {
           </mesh>
         )}
       </Pickable>
-      {g ? (
-        <>
-          <Label position={[-len / 2 + 1.4, 0.3, -0.45]} variant="small">
-            {`about 70% burned: ${formatTgas(g.burned)} Tgas`}
+      {parts
+        ?.filter((p) => p.showLabel)
+        .map((p) => (
+          <Label
+            key={p.label}
+            position={p.align === "start" ? [-len / 2 + 1.4, 0.3, -0.45] : [len / 2 - 1.4, 0.3, 0.5]}
+            variant="small"
+          >
+            {p.label}
           </Label>
-          <Label position={[len / 2 - 1.4, 0.3, 0.5]} variant="small">
-            {`about 30% to contracts: ${formatTgas(g.rebate)} Tgas`}
-          </Label>
-        </>
-      ) : null}
+        ))}
       <Anchor name="meter" position={[-len / 2 + 0.4, 0.3, 0]} />
     </group>
   );

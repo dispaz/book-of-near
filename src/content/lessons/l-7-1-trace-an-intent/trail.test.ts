@@ -113,6 +113,11 @@ describe("pickResult", () => {
     expect(pickResult("destination", done).act).toBeUndefined();
     expect(pickResult("destination", done).note).toContain("20.27 USDC");
   });
+  it("the verifier says all its gas is burned (the 30% contract reward ended with protocol version 87)", () => {
+    const note = pickResult("verifier", { ...base, step: CONTRACT, authorized: true }).note;
+    expect(note).toMatch(/NEAR paid for its gas is destroyed; none goes to the contract/);
+    expect(note).not.toMatch(/30%|70%/);
+  });
   it("where the USDC lands starts the settlement at step 5", () => {
     expect(pickResult("destination", { ...base, step: SETTLE, authorized: true }).act).toBe("settle");
   });
