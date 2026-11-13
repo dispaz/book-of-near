@@ -523,4 +523,4 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - The accounts' own selection disc and "whose is it" label are gone: the kit's hover ring is the only ring, the detail slip says whose it is. The key is wrapped in its own `Pickable` so it is pickable on every step.
 - Script `docs/lessons/stage-0/0.3.md` "Reactions" table rewritten to match what is built.
 - E2E (`l-0-3-send-a-transaction.spec.ts`, "3d reactions"): focus marks hover, early picks show hints, a pick plays then settles, details after each step, reduced motion shows the detail with no motion.
-- Gate: lint, typecheck, unit 761, e2e 0.3 + render-on-demand + badges 44 passed / 2 skipped (@testnet) (GPU, `E2E_WORKERS=2`).
+- Gate (merged with main): lint, typecheck, unit 774, e2e 0.3 + render-on-demand + badges 44 passed / 2 skipped (@testnet) (GPU, `E2E_WORKERS=2`).
