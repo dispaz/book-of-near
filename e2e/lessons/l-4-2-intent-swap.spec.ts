@@ -185,6 +185,21 @@ test.describe(`lesson ${ID}`, () => {
     await expect(page.getByRole("button", { name: "Next step" })).toBeEnabled();
   });
 
+  test("on a short desktop screen the note docks instead of covering the swap controls", async ({ page }) => {
+    // The swap outcome makes the dock taller, so the margin above it gets too short for the note: it must
+    // move into the dock, not stay where it was, over the buttons (CI's fonts hit this at 720 px).
+    await page.setViewportSize({ width: 1280, height: 660 });
+    await page.goto(`/lesson/${ID}?view=2d&step=5`);
+    await dock(page).getByRole("button", { name: "Connect the demo wallet" }).click();
+    await page.getByTestId("swap-real").click();
+    await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+    await expect(page.getByTestId("swap-outcome")).toHaveAttribute("data-outcome", "declined");
+    await expect(page.locator(".lesson-dock").getByTestId("explain")).toBeVisible();
+    await expect(page.locator(".note.floating")).toBeHidden();
+    await dock(page).getByRole("button", { name: "Finish on verified quote" }).click({ timeout: 5000 });
+    await expect(page.getByRole("button", { name: "Next step" })).toBeEnabled();
+  });
+
   test("opening a later step by its link fills in the free steps but never swaps", async ({ page }) => {
     await page.goto(`/lesson/${ID}?view=2d&step=5`);
     await expect(scene(page)).toHaveAttribute(
