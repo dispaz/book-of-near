@@ -21,6 +21,7 @@ const LESSONS = [
   "l-4-2-intent-swap",
   "l-6-1-vote-on-a-proposal",
   "l-7-1-trace-an-intent",
+  "l-7-2-honest-scoreboard",
 ];
 
 test.beforeEach(() => slow3d());
