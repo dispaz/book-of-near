@@ -28,5 +28,5 @@ export const NODES: Vec3[] = [
 export const REQUEST_AT = {
   home: [ENCLAVE[0] + 0.9, 0, ENCLAVE[2] + 0.6] as Vec3,
   contract: [CONTRACT[0] + 0.9, 0, CONTRACT[2] + 0.7] as Vec3,
-  signer: [SIGNER[0] - 1.0, 0, SIGNER[2] + 1.0] as Vec3,
+  signer: [SIGNER[0] - 1.5, 0, SIGNER[2] + 1.0] as Vec3,
 };
