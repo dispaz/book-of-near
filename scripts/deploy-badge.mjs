@@ -8,7 +8,8 @@
  *       (single step, so `new` cannot be front-run). Then the owner settings. A fresh claim key pair
  *       is generated. Every secret is written to the --vars file (git-ignored), never printed.
  *   node scripts/deploy-badge.mjs settings [--vars ...]   re-applies daily cap, base URI, claim key, stage count.
- *   node scripts/deploy-badge.mjs art [--vars ...]        set_art for stage-0..4 from public/badges/art.json.
+ *   node scripts/deploy-badge.mjs art [--keys stage-0,stage-4] [--vars ...]
+ *       set_art for every entry of public/badges/art.json (stage-0..7), or only the --keys listed.
  *
  * Reads and writes the --vars file (default worker/.dev.vars): BADGE_OWNER_ID, BADGE_OWNER_PRIVATE_KEY,
  * BADGE_CONTRACT_ID, CLAIM_SIGNING_KEY, CLAIM_PUBLIC_KEY.
@@ -117,7 +118,11 @@ async function deploy() {
 async function art() {
   const vars = readVars();
   const near = await owner(vars);
-  const list = JSON.parse(readFileSync("public/badges/art.json", "utf8"));
+  const all = JSON.parse(readFileSync("public/badges/art.json", "utf8"));
+  // `--keys stage-0,stage-4` sends only those entries (art for stages the contract does not count yet waits).
+  const keys = args.includes("--keys") ? args[args.indexOf("--keys") + 1].split(",") : null;
+  const list = keys ? all.filter((a) => keys.includes(a.key)) : all;
+  if (keys && list.length !== keys.length) throw new Error(`Unknown key in --keys: ${keys.join(",")}`);
   for (const a of list) {
     const r = await near
       .transaction(vars.BADGE_OWNER_ID)
@@ -132,9 +137,24 @@ async function art() {
   }
 }
 
-const run = { deploy, settings: () => settings(readVars()), art }[cmd];
+/** `stage-count <n>`: the owner grows the stage count (it can never shrink). Owner decision, never automatic. */
+async function stageCount() {
+  const n = Number(args[1]);
+  if (!Number.isInteger(n) || n < 1) throw new Error("usage: stage-count <n>, for example stage-count 8");
+  const vars = readVars();
+  const near = await owner(vars);
+  const r = await near
+    .transaction(vars.BADGE_OWNER_ID)
+    .functionCall(vars.BADGE_CONTRACT_ID, "set_stage_count", { stage_count: n }, { gas: "30 Tgas" })
+    .send();
+  console.log(`set_stage_count(${n}): ${hashOf(r)}`);
+}
+
+const run = { deploy, settings: () => settings(readVars()), art, "stage-count": stageCount }[cmd];
 if (!run) {
-  console.log("usage: node scripts/deploy-badge.mjs deploy|settings|art [--vars worker/.dev.vars]");
+  console.log(
+    "usage: node scripts/deploy-badge.mjs deploy|settings|art|stage-count <n> [--keys ...] [--vars worker/.dev.vars]",
+  );
   process.exit(1);
 }
 run().catch((e) => {

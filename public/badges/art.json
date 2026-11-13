@@ -2,26 +2,41 @@
   {
     "key": "stage-0",
     "media": "stage-0.svg",
-    "sha256": "3OPXEPFNiHGbQA6OdLOGC3QlQlbomwkdzdbtZ5n4bFY="
+    "sha256": "kHDPWZIgf5SYKNJgl/XJTaNRIET51eYAPABdDd+fqrg="
   },
   {
     "key": "stage-1",
     "media": "stage-1.svg",
-    "sha256": "hcY+yp1N9voRr6DxGsGjp5hOe1VijmfiLelrrQ0J/Eg="
+    "sha256": "7t2ZQji0dnM9+eRvmEMuv0BwGOtyjZfSUwQ6p1HJyBk="
   },
   {
     "key": "stage-2",
     "media": "stage-2.svg",
-    "sha256": "i6zraOgwdoCce2kCiMmmnnB0wZ55R0Q/vv5HJid/CeI="
+    "sha256": "OAz1ZmJfun2ATldB7lADZ10b8BVKk9wzyaoBuAGY/W4="
   },
   {
     "key": "stage-3",
     "media": "stage-3.svg",
-    "sha256": "d9kF8i0gIunmLw3EbDlpy6e5X0wYbldC6YwVIdZLiaI="
+    "sha256": "2TugrQ3uL56y3utAOMeJ72CvQzkUhY3C7600Q98fPqc="
   },
   {
     "key": "stage-4",
     "media": "stage-4.svg",
-    "sha256": "KxtMqE2RzyjM/VLvYrrOcNHuZmjEd1f4rGk08e6mIZY="
+    "sha256": "t/jJOO5q+xZ6J8RDaPbThV0jQQLpTALfdzj9RTjCvik="
+  },
+  {
+    "key": "stage-5",
+    "media": "stage-5.svg",
+    "sha256": "dKzWrOiOC/eyG34RGpSCHXRi1NslHmMp0SiQxUQihhY="
+  },
+  {
+    "key": "stage-6",
+    "media": "stage-6.svg",
+    "sha256": "Zx+Aku+Pw8lvyh2iAKi+ecA0v/aGN+zgHTnP9B0VxRY="
+  },
+  {
+    "key": "stage-7",
+    "media": "stage-7.svg",
+    "sha256": "Kpj6oGCQoXGswl8UTU8slh6lLGWK53uAwwttK/XIxYk="
   }
 ]

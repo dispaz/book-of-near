@@ -59,7 +59,14 @@ test.describe("badges in demo mode", () => {
     const shelf = page.getByRole("list", { name: "My badges" });
     await expect(shelf.locator('[data-stage="0"]')).toContainText("Claimed");
     await expect(shelf.locator('[data-stage="1"]')).toContainText("Not claimed yet");
-    await expect(page.getByText("1 of 5 claimed.")).toBeVisible();
+    await expect(page.getByText("1 of 8 claimed.")).toBeVisible();
+    // Eight slots: stages without a badge rule yet (5 and 6 have no lessons; 7 has no claim) are not open.
+    await expect(shelf.getByRole("listitem")).toHaveCount(8);
+    for (const n of [5, 6, 7])
+      await expect(shelf.locator(`[data-stage="${n}"]`)).toContainText("Not open yet");
+    await expect(shelf.locator('[data-stage="5"]')).toContainText("Stage 5: Enclave");
+    await expect(shelf.locator('[data-stage="6"]')).toContainText("Stage 6: Citizen");
+    await expect(shelf.locator('[data-stage="4"]')).toContainText("Not claimed yet");
 
     // The badge survives a reload (demo badges are kept in this browser).
     await page.reload();
@@ -133,7 +140,7 @@ test.describe("badges in demo mode", () => {
     await box1.getByRole("button", { name: "Claim the stage 1 badge" }).click();
     await expect(box1).toContainText("Stage 1 badge claimed");
     await page.goto("/my-book");
-    await expect(page.getByText("2 of 5 claimed.")).toBeVisible();
+    await expect(page.getByText("2 of 8 claimed.")).toBeVisible();
   });
 
   test("the claim card works on a phone and with reduced motion", async ({ page }) => {
@@ -287,6 +294,6 @@ test("plays lessons 0.1 to 0.3 in demo mode, then claims the stage 0 badge and s
   await box.getByRole("link", { name: "My book" }).click();
   const shelf = page.getByRole("list", { name: "My badges" });
   await expect(shelf.locator('[data-stage="0"]')).toContainText("Claimed");
-  await expect(page.getByText("1 of 5 claimed.")).toBeVisible();
+  await expect(page.getByText("1 of 8 claimed.")).toBeVisible();
   expect(errors).toEqual([]);
 });

@@ -2,25 +2,75 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { COLORS, NEAR, STAGE_ACCENTS } from "../src/scene-kit/theme";
 // @ts-expect-error plain ESM script without types
-import { ACCENTS, badgeSvg, writeArt } from "./badges-art.mjs";
+import { badgeSvg, NAMES, writeArt } from "./badges-art.mjs";
+
+const STAGES = [0, 1, 2, 3, 4, 5, 6, 7];
+const hexes = (svg: string) => new Set([...svg.matchAll(/#[0-9a-f]{6}/gi)].map((m) => m[0].toLowerCase()));
 
 describe("badges:art", () => {
-  it("draws five valid SVG badges in ink and each stage's accent", () => {
-    for (let s = 0; s < 5; s++) {
+  it("draws eight valid SVG badges, one per stage (0 to 7), each named and numbered", () => {
+    expect(NAMES).toEqual([
+      "Blank Page",
+      "Named",
+      "Nightshade",
+      "Wasm",
+      "Any Chain",
+      "Enclave",
+      "Citizen",
+      "Book of NEAR",
+    ]);
+    for (const s of STAGES) {
       const svg = badgeSvg(s) as string;
       const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
       expect(doc.getElementsByTagName("parsererror"), `stage ${s}`).toHaveLength(0);
-      expect(svg).toContain('stroke="#16141f"');
-      expect(svg).toContain((ACCENTS as string[])[s]);
       expect(svg).toContain(`STAGE ${s}`);
+      expect(svg).toContain(`stage ${s} badge: ${(NAMES as string[])[s]}`);
     }
+  });
+
+  it("uses only NEAR's palette: black outlines, off-white ground, NEAR green and its forest shade", () => {
+    const near = new Set(Object.values(NEAR).map((v) => v.toLowerCase()));
+    const stageAccents = new Set(Object.values(STAGE_ACCENTS).map((v) => v.toLowerCase()));
+    for (const s of STAGES) {
+      const svg = badgeSvg(s) as string;
+      const used = hexes(svg);
+      expect(
+        [...used].filter((h) => !near.has(h)),
+        `stage ${s}`,
+      ).toEqual([]);
+      expect(
+        [...used].filter((h) => stageAccents.has(h)),
+        `stage ${s}`,
+      ).toEqual([]);
+      expect(svg).toContain(`stroke="${NEAR.black}"`);
+      expect(svg).toContain(`fill="${NEAR.offWhite}"`);
+      expect(svg).toContain(NEAR.green);
+      // The "pass" green is not NEAR's: it must not sneak in.
+      expect(svg).not.toContain(COLORS.green);
+    }
+  });
+
+  it("draws each stage's motif differently (no two badges share their art)", () => {
+    const motifs = STAGES.map((s) =>
+      (badgeSvg(s) as string).replace(/STAGE \d|stage \d|\(.*?\)|: [^"<]+/g, ""),
+    );
+    expect(new Set(motifs).size).toBe(8);
+  });
+
+  it("stage 4 is linked blocks (blockchains), not rings", () => {
+    const svg = badgeSvg(4) as string;
+    expect(svg).toContain('data-motif="blockchains"');
+    expect(svg.match(/data-part="block"/g)?.length ?? 0).toBeGreaterThanOrEqual(6);
+    expect(svg.match(/data-part="link"/g)?.length ?? 0).toBeGreaterThanOrEqual(5);
   });
 
   it("records a sha256 (base64) per file for set_art, matching the bytes written", async () => {
     const dir = mkdtempSync(join(tmpdir(), "badges-"));
     const list = writeArt(dir) as { key: string; media: string; sha256: string }[];
-    expect(list.map((a) => a.key)).toEqual(["stage-0", "stage-1", "stage-2", "stage-3", "stage-4"]);
+    expect(list.map((a) => a.key)).toEqual(STAGES.map((s) => `stage-${s}`));
+    expect(new Set(list.map((a) => a.sha256)).size).toBe(8);
     const { createHash } = await import("node:crypto");
     for (const a of list) {
       const bytes = readFileSync(join(dir, a.media));
@@ -30,7 +80,13 @@ describe("badges:art", () => {
   });
 
   it("is deterministic, and public/badges matches the generator", () => {
-    const committed = readFileSync(join(__dirname, "..", "public", "badges", "stage-2.svg"), "utf8");
-    expect(badgeSvg(2)).toBe(committed);
+    const committed = JSON.parse(
+      readFileSync(join(__dirname, "..", "public", "badges", "art.json"), "utf8"),
+    ) as { media: string }[];
+    expect(committed).toHaveLength(8);
+    for (const s of STAGES) {
+      const file = readFileSync(join(__dirname, "..", "public", "badges", `stage-${s}.svg`), "utf8");
+      expect(badgeSvg(s), `stage ${s}`).toBe(file);
+    }
   });
 });
