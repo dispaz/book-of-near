@@ -19,6 +19,12 @@ type View =
 const EXPLORER = "https://testnet.nearblocks.io/nft-token";
 
 /**
+ * Sent on `window` after a badge is claimed, so the next stage's card checks again: its claim needs the
+ * badge just claimed. Without it, that card said "Claim the stage N badge first" until a reload.
+ */
+const CLAIMED_EVENT = "bon:badge-claimed";
+
+/**
  * The claim button at the end of a stage. States: not yet (with what is missing), ready, claiming,
  * claimed, failed. Demo mode signs in the browser; testnet mode asks the Worker (claimFlow.ts).
  */
@@ -26,8 +32,15 @@ export function ClaimBadge({ stage, accent }: { stage: number; accent?: string }
   const chain = useChain();
   const { completions } = useProgress();
   const [view, setView] = useState<View>({ s: "checking" });
+  const [claims, setClaims] = useState(0);
   const testnet = chain.network === "testnet";
   const rule = ruleFor(stage);
+
+  useEffect(() => {
+    const again = () => setClaims((n) => n + 1);
+    window.addEventListener(CLAIMED_EVENT, again);
+    return () => window.removeEventListener(CLAIMED_EVENT, again);
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -56,7 +69,7 @@ export function ClaimBadge({ stage, accent }: { stage: number; accent?: string }
     return () => {
       live = false;
     };
-  }, [chain, stage, completions, testnet]);
+  }, [chain, stage, completions, testnet, claims]);
 
   if (!rule) return null;
 
@@ -66,8 +79,10 @@ export function ClaimBadge({ stage, accent }: { stage: number; accent?: string }
       workerUrl: import.meta.env.VITE_WORKER_URL as string | undefined,
       keepDemoBadges: (b) => keepDemoBadges(b),
     }).catch(() => ({ ok: false as const, error: "Something went wrong while claiming. Try again." }));
-    if (r.ok) setView({ s: "claimed", tokenId: r.tokenId, contractId: await chain.badgeContractId() });
-    else setView({ s: "failed", error: r.error });
+    if (r.ok) {
+      setView({ s: "claimed", tokenId: r.tokenId, contractId: await chain.badgeContractId() });
+      window.dispatchEvent(new Event(CLAIMED_EVENT));
+    } else setView({ s: "failed", error: r.error });
   }
 
   return (
