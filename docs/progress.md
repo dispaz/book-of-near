@@ -508,3 +508,11 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Proven on the scene kit demo (`e2e/scene-kit.spec.ts`, "3d reactions"): the coin says "not yet" until Ben holds it, then flips (its own `pickMotion`) and shows a detail; the blocks hop.
 - `npm run new-lesson -- … --book` scaffolds a `REACTIONS` table in `Scene3D.tsx` and a reactions e2e test (checked by scaffolding a throwaway lesson and running its spec); `docs/lesson-template.md` has the script's "Reactions" table shape. Docs: `docs/book-scene.md` rule 10a, `docs/scene-kit.md`.
 - Per-lesson retrofits stay in #56–#64.
+
+## 2026-11-13 · Lesson 0.3: clickable 3D objects react (Closes #58)
+
+- Five pickable objects, each with its own pick motion (`reactions.ts`, unit tested): the two accounts swell and rise, the device slab thumps (Build), the key tips down and stamps (Sign), the RPC tower rocks (Send). Each always has its step action, a "not yet" hint (Build before step 2, Sign before built or before step 4, Send before signed or before step 5) or a detail after its step (balances, built fields and nonce, transaction ID, the node that passed it on), so it stays pickable as the state moves.
+- The accounts' own selection disc and "whose is it" label are gone: the kit's hover ring is the only ring, the detail slip says whose it is. The key is wrapped in its own `Pickable` so it is pickable on every step.
+- Script `docs/lessons/stage-0/0.3.md` "Reactions" table rewritten to match what is built.
+- E2E (`l-0-3-send-a-transaction.spec.ts`, "3d reactions"): focus marks hover, early picks show hints, a pick plays then settles, details after each step, reduced motion shows the detail with no motion.
+- Gate: lint, typecheck, unit 761, e2e 0.3 + render-on-demand + badges 44 passed / 2 skipped (@testnet) (GPU, `E2E_WORKERS=2`).
