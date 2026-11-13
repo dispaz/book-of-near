@@ -56,6 +56,7 @@ The contract trusts whoever holds the claim key, so the Worker that signs must:
 - **Sign short expiries** (minutes, not days) and never accept an `expires_at_ms` from the client.
 - **Check evidence first** (stage finished, exam score), then sign. Never sign a rarity the client chose.
   `worker/src/claim.ts` does this on testnet: each transaction must be sent by the learner (or the name they made in 1.1, or the fresh parent 3.1 made for an implicit account, proved by its `create_account` hash) and be the kind the lesson sends (0.3 and 2.1: one Transfer; 1.2: AddKey then DeleteKey; 3.1: DeployContract to a contract under the learner's account; 4.1: a call to the MPC signer). One hash may not stand for two pieces of evidence in one claim. The body is capped at 4 KB, and an RPC failure answers 502, never "not found".
+- **Stage 5 is signed with no testnet lookup** (issue #85, a deliberate decision for a testnet learning badge). Lessons 5.1 and 5.2 send no transaction, so there is nothing on chain to check: `case 5` in `checkEvidence` returns at once. The only on-chain gate is the contract's "previous badge first" rule. Stage 4 needs a real lesson 4.1 call to `v1.signer-prod.testnet`, so in effect the Worker signs stage 5 for any account that already holds the stage 4 badge. Lesson 5.1's `attestationHash` is not used as evidence: the client reports it, and the Worker cannot verify it (it is a hash of a quote fetched in the browser, not a transaction it can look up), so checking it would add no real gate.
 - Keep the claim secret key only in Worker secrets.
 
 Operators must deploy with the single-step `with-init-call new` below. `new` has no access check of its own, so a deploy followed by a separate `new` call could be front-run.
@@ -78,18 +79,15 @@ Deployed on 12 Nov 2026 with `scripts/deploy-badge.mjs`:
 
 `set_art` again for `stage-0` to `stage-4` (13 Nov 2026, NEAR palette and the new stage 4 blockchain motif; every hash changed, `node scripts/deploy-badge.mjs art --keys stage-0,stage-1,stage-2,stage-3,stage-4`): `6o6yMNoBVfQ3RoAqafMtRCRjoBhugSCUocpzCTSP4qZs`, `57WcJHuBjbmWrhTAory2LySNxzSb1PXqhtttpt3MyiDa`, `6PehTDcFo7bteMC2HzYsWFvfRizX7nkVzPyeFFiifv2x`, `HJ9hCmsTi56gf5APkpUq14SnMvnQnR2j9zHfzaTgUfKi`, `CGsEVYecjiK3uEKBfJnZoqsNasc3CEy76T4Z4xojUoe`. Token `1` (stage 0) now reports `media_hash` `kHDPWZIgf5SYKNJgl/XJTaNRIET51eYAPABdDd+fqrg=`, the hash in `art.json`.
 
-### Adding stages 5 to 7 (owner decision, not run)
+### Stages 5 to 7
 
-The art for stages 5 (Enclave), 6 (Citizen) and 7 (Book of NEAR) is in `public/badges/` and `art.json`, and the app shows eight slots (`STAGE_BADGES = 8`), but the contract still counts five stages. `set_stage_count` can only grow, so growing it is the owner's call. To add the three stages, from a checkout whose `worker/.dev.vars` holds the owner key:
+The art for stages 5 (Enclave), 6 (Citizen) and 7 (Book of NEAR) is in `public/badges/` and `art.json`, and the app shows eight slots (`STAGE_BADGES = 8`). The owner has grown the contract to eight stages: on 13 Nov 2026 a `get_stage_count` view call on `badges.bon-badges-mwe57oab.testnet` (through `https://rpc.testnet.fastnear.com`) returned `8`. `STAGE_COUNT` in `scripts/deploy-badge.mjs` is 8 to match, so `settings` re-applies the same value (`set_stage_count` can only grow). The art for the new stages goes up with:
 
 ```
-node scripts/deploy-badge.mjs stage-count 8      # set_stage_count(8) on badges.bon-badges-mwe57oab.testnet; cannot be undone
 node scripts/deploy-badge.mjs art --keys stage-5,stage-6,stage-7
 ```
 
-(With near-cli instead: `set_stage_count '{"stage_count": 8}'` called by `bon-badges-mwe57oab.testnet`. Then change `STAGE_COUNT` in `scripts/deploy-badge.mjs` to 8 so `settings` keeps it, and `DEMO_STAGE_COUNT` in `src/chain/demo/badges.ts` so demo mode matches.)
-
-The contract requires each previous stage's badge, so stage 7 cannot be claimed until stages 5 and 6 have lessons, a rule in `src/badges/rules.ts` and claimed badges. Until a stage has a rule, no claim card appears and the shelf shows "Not open yet" (no lessons: 5, 6) or "Badge not available yet" (lessons but no rule: 7). The shelf counts "N of 5 claimed" (`CLAIMABLE_BADGES`, the stages with a rule), which matches `DEMO_STAGE_COUNT`.
+The contract has eight stages, but the app opens a claim only for a stage with a rule in `src/badges/rules.ts`. Today that is stages 0 to 5 (stage 5 since issue #85). `CLAIMABLE_BADGES` (the stages with a rule) and `DEMO_STAGE_COUNT` are both 6, so the shelf counts "N of 6 claimed" in demo mode and on testnet. Stages 6 and 7 have lessons but no rule yet, so they show "Badge not available yet" and no claim card. A stage with no lessons would show "Not open yet"; none is left. The contract requires each previous stage's badge, so stage 7 cannot be claimed until stage 6 has a rule and a claimed badge.
 
 First real claim (stage 0, Worker run locally): learner `bon-learner-mwe61s8i.testnet`, evidence transfer `AQ63WVtJWPYtAzFka5XgRc5miHEuZkYZD3gtYrRpgyPY`, `claim_stage` `EAuadk9PtuXBfee1fMx32okJyo6t2xCMbwJkumk8XJ1o` → token `1`. The image shows on explorers once `https://book-of-near.pages.dev/badges/stage-0.svg` is deployed.
 
@@ -126,7 +124,7 @@ For mainnet repeat with a mainnet account and a different claim key (out of scop
 
 ## The app side (issue #68)
 
-- **Rules in one place:** `src/badges/rules.ts` lists each stage's required lessons (only lessons that exist; a test keeps the list equal to the open lessons) and the evidence keys checked. Stage 0: 0.3's `txHash`. Stage 1: 1.1's `txHash` + `accountId` and 1.2's `addKeyTxHash` + `txHash`. Stage 2: 2.1's `txHash`. Stage 3: 3.1's `txHash` + `contractId`. Stage 4: 4.1's `mpcTxHash`. A tested-out lesson counts as finished, but an evidence lesson still needs its evidence.
+- **Rules in one place:** `src/badges/rules.ts` lists each stage's required lessons (only lessons that exist; a test keeps the list equal to the open lessons) and the evidence keys checked. Stage 0: 0.3's `txHash`. Stage 1: 1.1's `txHash` + `accountId` and 1.2's `addKeyTxHash` + `txHash`. Stage 2: 2.1's `txHash`. Stage 3: 3.1's `txHash` + `contractId`. Stage 4: 4.1's `mpcTxHash`. Stage 5: lessons 5.1 and 5.2, no evidence (see Worker requirements). A tested-out lesson counts as finished, but an evidence lesson still needs its evidence.
 - **Worker `POST /claim`** (`worker/src/claim.ts`): rate-limited per IP, per account and in total; checks the evidence on testnet with RPC `tx` (the transaction exists, succeeded and was sent by the learner, by the name the learner made in 1.1, or for 3.1 by the contract's parent; 1.1 must be the learner's own `create_account` for that name; 1.2 must add and delete a key; 3.1 must deploy to the named contract; 4.1 must call `v1.signer-prod.testnet`). Then it signs `stage_message` with a 5-minute expiry it chooses itself.
 - **Chain interface:** `claimBadge`, `badgesOf`, `hasBadge`, `badgeContractId` (`docs/chain.md`). DemoChain runs a simulated badge contract with the same rules (one per stage, previous stage, signature, expiry against block time, no deposit). Demo claims are signed in the browser with a public demo key; demo badges are kept in localStorage (`bon:demo-badges:v1`) so a reload keeps them.
 - **UI:** the claim card at the end of each stage on the contents page and under "Lesson done" on a stage's last lesson (not yet / ready / claiming / claimed / failed); `/my-book` (the shelf); `/check?account=...` (anyone's badges, no login).
