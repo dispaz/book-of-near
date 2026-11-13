@@ -163,6 +163,11 @@ async function checkStage(stage: number, account: string, ev: Evidence, lookup: 
       // Lessons 5.1 and 5.2 send nothing on chain (rules.ts), so there is nothing to look up. The badge
       // contract still refuses the claim until the account holds the stage 4 badge.
       return;
+    case 6:
+      // Nothing on chain to check: 6.1 is a practice vote and 6.2 reads recorded data. The rule's evidence
+      // keys (checked in `claim`) show the steps were done; the contract refuses stage 6 until the account
+      // holds stage 5, so the badge still rests on the earlier stages' on-chain work.
+      return;
   }
 }
 
