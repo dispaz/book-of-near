@@ -14,3 +14,9 @@ target/
 *.tsbuildinfo
 .claude/worktrees/
 dist-artifact/
+# Demo video (issue #65): the MP4s, clips and build files stay out of git; the .srt and voiceover.txt are kept.
+video/*.mp4
+video/clips/
+video/build/
+video/probe/
+video/*.log

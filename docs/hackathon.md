@@ -110,11 +110,12 @@ The form text, X post, video script and owner checklist are in `docs/submission.
 
 ## The demo video, made by Claude
 
-A Playwright script drives the production build in demo mode and records it. Then ffmpeg joins the clips, burns in captions, adds a voice-over and writes an MP4 for X.
+Built in issue #65. `npm run video` (with `FFMPEG=/path/to/ffmpeg` if ffmpeg is not on PATH) does it all, with no manual steps: it builds the default testnet-only app, serves it on :4246, records each shot, then renders. Details and options: README, "Demo video".
 
-- **Recording:** `recordVideo` at 1920×1080 in headed Chromium on the Mac GPU (3D needs it). Fixed waits for the camera to settle so cuts land on still frames. `localStorage bon:cover=off` skips the cover.
-- **Voice-over:** macOS `say` (download an Enhanced or Premium voice in System Settings → Accessibility → Spoken Content for a natural sound). Or captions only, or the owner records a voice track over the cut.
-- **Needs:** `ffmpeg` (`brew install ffmpeg`, or the `ffmpeg-static` npm package as a dev dependency).
-- **Output:** `video/book-of-near-demo.mp4`, H.264, AAC, at most 2:20, kept out of git if it is large (upload it to the GitHub Release instead).
+- **Recording** (`scripts/video/record.mjs`): one function per shot, `recordVideo` at 1920×1080 in headless Chromium that still draws WebGL on the Mac GPU (Metal), so the run never takes window focus (`VIDEO_HEADED=1`: a visible window, parked off-screen; one browser and one context for all shots), `localStorage bon:cover=off`, demo mode only. Every request that is not to localhost is aborted, and the run fails if any was tried. A drawn cursor shows the clicks. Fixed waits let the camera settle, so cuts land on still frames.
+- **Script** (`scripts/video/narration.json`): per shot, its length, caption and voice-over. Every claim is checked against the README.
+- **Render** (`scripts/video/render.mjs`): ffmpeg trims each clip from its first still frame (a clip whose action runs long is sped up to fit, at most 2x), frames the app at 1600×900 on an ink border and burns the captions into the band below it, so they never cover the UI. Voice: macOS `say`, voice Daniel (no Enhanced or Premium voice was installed; `VOICE` picks another), loudness-normalised to -16 LUFS.
+- **Needs:** ffmpeg with libx264 and libass. Without Homebrew: `npm i ffmpeg-static` in a scratch folder (not a repo dependency) and set `FFMPEG` to its binary.
+- **Output:** `video/book-of-near-demo.mp4` (voice and captions) and `video/book-of-near-demo-captions-only.mp4` (silent track, for the owner's own voice): 2:14, 1920×1080, H.264 High, yuv420p, AAC 48 kHz, about 20 MB. The MP4s are ignored by git; `video/book-of-near-demo.srt` and `video/voiceover.txt` are committed.
 
-Suggested shots (about 2:10): the title and the problem (10 s), the opening quiz (10 s), one transaction on paper (0.3, 15 s), the limited key (1.2, 15 s), following a transaction across shards in 3D (2.1, 25 s), deploying a contract (3.1, 15 s), one account signing for Ethereum (4.1, 25 s), claiming a badge and "My book" (10 s), the end card with the link (5 s).
+Shots (2:14): title and the problem on the contents page (8 s), the opening quiz (9 s), one transaction from Build to Final (0.3, 14 s), the limited key and the three refused attacks (1.2, 14 s), switching to 3D and following a recorded testnet transaction across shards (2.1, 21 s), deploying a contract and the failing callback (3.1, 18 s), one account signing for Ethereum (4.1, 20 s), the intent quote, labelled as recorded (4.2, 11 s), an honest take, the stage 0 badge claim and "My book" (13 s), the end card with the link (6 s).

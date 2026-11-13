@@ -51,24 +51,24 @@ The owner posts it from their own account, **with the demo video attached** (MP4
 
 Optional tags: `@NearLegion`, `@NearBuilders`. Add the repo link in a reply if wanted.
 
-## Demo video script (2:10, under the 2:20 limit)
+## Demo video script (2:14, under the 2:20 limit)
 
-Recorded in demo mode on the production build (`localStorage bon:cover=off` skips the cover), 1920×1080, captions burned in. Plan and tooling: `docs/hackathon.md` → "The demo video, made by Claude" (issue #65).
+Made by `npm run video` (issue #65): Playwright records the production build in demo mode (`localStorage bon:cover=off`, nothing leaves localhost), 1920×1080, captions burned in under the picture, macOS `say` voice-over (Daniel). Output: `video/book-of-near-demo.mp4` and a captions-only cut for the owner's own voice; the voice-over script with times is `video/voiceover.txt`. Copy lives in `scripts/video/narration.json`; tooling: `docs/hackathon.md` → "The demo video, made by Claude".
 
-| # | Time | Length | Shot | What is on screen | Caption / voice-over |
+| # | Time | Length | Shot | What is on screen | Caption (the voice-over says the same) |
 | --- | --- | --- | --- | --- | --- |
-| 1 | 0:00 | 10 s | Title and problem | Contents spread, then the book cover | "Learning NEAR is hard: docs assume you know crypto, explainers are static. Book of NEAR lets you do the real thing." |
-| 2 | 0:10 | 10 s | Opening quiz | `/start`: three questions, the path appears | "Three questions pick your path: newcomer, veteran or developer." |
-| 3 | 0:20 | 15 s | A transaction on paper (0.3) | Build, Sign, Send; the five lights reach Final | "Build, sign and send a transaction, and watch it become final in a couple of seconds." |
-| 4 | 0:35 | 15 s | The limited key (1.2) | Give the app a key; the three attacks refused with reasons | "Give an app a key that can do only one thing. When it is hacked, the chain refuses everything else." |
-| 5 | 0:50 | 20 s | Across shards in 3D (2.1) | Switch 2D to 3D; follow the receipts hop by hop | "Switch to 3D and follow your transaction across shards, chunks and blocks." |
-| 6 | 1:10 | 15 s | Deploy a contract (3.1) | Deploy, Increment, the failing callback's receipts | "Deploy a contract in one click, call it, and watch a cross-contract callback catch a failure." |
-| 7 | 1:25 | 20 s | One account signs for Ethereum (4.1) | Derive the address, request the MPC signature, the signer recovers | "Your NEAR account signs an Ethereum transaction with Chain Signatures. The signature recovers to your derived address." |
-| 8 | 1:45 | 10 s | An intent quote (4.2) | Fetch the quote; amount in, amount out, fees, time estimate | "Ask for a cross-chain swap with an intent: a signed quote from NEAR Intents (recorded from the live API), with no money moved." |
-| 9 | 1:55 | 10 s | Badge and "My book" | Claim the stage 0 badge, the shelf | "Finish a stage and claim a badge NFT on NEAR testnet. Every lesson ends with an honest take." |
-| 10 | 2:05 | 5 s | End card | `book-of-near.pages.dev`, "Built at NEAR HACKATHON" | "Try it: book-of-near.pages.dev. Demo mode needs no wallet." |
+| 1 | 0:00 | 8 s | Title and problem | The contents spread: the title page, then the stages scroll by | "Learning NEAR is hard. The docs assume you know crypto, and explainers are static. Book of NEAR lets you do the real thing." |
+| 2 | 0:08 | 9 s | Opening quiz | `/` on a first visit: three questions, the newcomer path appears | "A first visit starts with three questions. They pick your path: newcomer, crypto veteran or developer." |
+| 3 | 0:17 | 14 s | A transaction (0.3, 3D) | Build, fee, Sign, Send; the five lights reach Final | "Demo mode simulates the chain in your browser, so you need no wallet. Build, sign and send a transaction, and watch it reach Final." |
+| 4 | 0:31 | 14 s | The limited key (1.2, 3D) | Give the app a key, Count, then the three attacks refused with reasons | "Give an app a key that can do only one thing. Then the app is hacked: the chain refuses each attack and says why." |
+| 5 | 0:45 | 21 s | Across shards in 3D (2.1) | Recorded example in 2D, switch to 3D (the pop-up book), follow the receipts hop by hop | "Every lesson has a flat view and a 3D pop-up book. Follow a recorded testnet transaction hop by hop across shards, chunks and blocks." |
+| 6 | 1:06 | 18 s | Deploy a contract (3.1, 3D) | Deploy, Increment, Read, then the failing callback's receipts | "Deploy a contract in one click, call it, then watch a cross-contract callback catch a failure." |
+| 7 | 1:24 | 20 s | One account signs for Ethereum (4.1, 3D) | Derive the address, prepare the payload, request the signature, Verify signer: Match. The panel says demo mode plays the signing network | "Chain Signatures: one NEAR account signs for Ethereum. Derive an address, get a signature, and check it recovers to that address. In demo mode the app plays the signing network; the math is real." |
+| 8 | 1:44 | 11 s | An intent quote (4.2, 3D) | Fetch the quote; the breakdown says "Recorded quote ... not a live price. No network was used." | "Ask for a cross-chain swap with an intent. In demo mode it is a recorded example quote, not a live price. No money moves." |
+| 9 | 1:55 | 13 s | Honest take, badge and "My book" | 0.1's honest take, Finish lesson, claim the stage 0 badge, the shelf | "Every lesson ends with an honest take on NEAR. Finish a stage to claim its badge: an NFT on testnet, kept in your browser in demo mode." |
+| 10 | 2:08 | 6 s | End card | `book-of-near.pages.dev`, the repo, "Built for the NEAR Hackathon 2026. Testnet only." | "Try it: book-of-near.pages.dev. Demo mode needs no wallet." |
 
-Total: 2:10. If the cut runs long, shorten shot 1 or 2 first (to 8 s).
+Total: 2:14. To shorten, lower a shot's `length` in `narration.json` and run `npm run video:render`.
 
 ## Owner checklist
 
