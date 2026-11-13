@@ -148,7 +148,7 @@
    "s": 2,
    "t": "A",
    "name": "A call that takes several blocks",
-   "does": "Make a cross-contract call and watch its receipts hop between blocks and shards, with the gas burned and the 30% paid to the contract.",
+   "does": "Make a cross-contract call and watch its receipts hop between blocks and shards, with the gas each contract burned.",
    "chain": "Testnet, real transaction",
    "covers": [
     "Receipts and",
@@ -741,15 +741,15 @@
    "showpiece": "A"
   },
   {
-   "name": "Gas economics: 30% of fees go to the contract",
+   "name": "Gas economics: all burnt gas is burned",
    "stage": 2,
    "difficulty": 2,
    "importance": 3,
    "innovation": 4,
    "differs": "p",
-   "comparison": "Ethereum burns the base fee and gives contracts nothing. NEAR burns 70% and pays 30% to the called contract, a built-in developer revenue stream.",
+   "comparison": "Ethereum burns the base fee. On NEAR, all the gas a call uses is burned. Up to and including protocol version 86, NEAR paid 30% of it to the called contract; from protocol version 87 (nearcore 2.14.0), all of it is burned.",
    "verify": 0,
-   "source": "https://docs.near.org/protocol/basics",
+   "source": "https://docs.near.org/protocol/transactions/gas",
    "goingDeeper": false,
    "stageName": "Nightshade",
    "showpiece": "A"

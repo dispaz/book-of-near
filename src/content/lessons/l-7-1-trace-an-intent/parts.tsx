@@ -54,8 +54,12 @@ export function Facts({ m, compact = false }: { m: Capstone; compact?: boolean }
       {step === CONTRACT ? (
         <dl className="cap-dl" data-testid="gas-split">
           <Row label="Contract">{VERIFIER_CONTRACT}, running as Wasm</Row>
-          <Row label="Gas burned">about 70%</Row>
-          <Row label="Gas to the contract">about 30%, paid to the contract's account</Row>
+          <Row label="Gas burned" testId="gas-burned">
+            all of it
+          </Row>
+          <Row label="Gas to the contract" testId="gas-to-contract">
+            none (up to and including protocol version 86, the contract got 30%)
+          </Row>
         </dl>
       ) : null}
       {step === SETTLE ? (

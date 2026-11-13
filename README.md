@@ -57,7 +57,7 @@ Stage 1, Named (first steps on NEAR)
 Stage 2, Nightshade (under the hood)
 
 - **2.1 Follow your transaction across shards.** Load your 0.3 transaction (or a recorded one) and follow it hop by hop (**Next hop**, **Follow next receipt**) across shards, chunks and blocks, then see where the time went.
-- **2.2 A call that takes several blocks.** **Send cross-contract order** and watch one call split into receipts over several blocks; **Inspect gas rebate** shows the 70/30 split of gas; **Simulate out-of-stock failure** shows the callback.
+- **2.2 A call that takes several blocks.** **Send cross-contract order** and watch one call split into receipts over several blocks; **Inspect gas** shows the gas each contract burnt (all of it is burned); **Simulate out-of-stock failure** shows the callback.
 
 Stage 3, Wasm (builder)
 
