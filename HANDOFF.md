@@ -31,6 +31,8 @@ Nothing. When this was written there were no open PRs and no running agents. Lef
 
 ## Remaining board, in order
 
+0. **Badge art PR #89** (stage 4 linked blockchains, stages 5–7, NEAR palette): in review when this was written; merge after LGTM and owner approval of `docs/screenshots/badges-near/`. Owner then runs `node scripts/deploy-badge.mjs stage-count 8` and `node scripts/deploy-badge.mjs art --keys stage-5,stage-6,stage-7`.
+0. **New lesson issues** (owner, 13 Nov: build the stage 5–7 lessons too, before the submission tasks): #84 5.1, #85 5.2, #86 6.1, #87 6.2, #88 7.2. #65 and #66 are now blocked on them. Use the lesson implementer prompt (as for #24/#25: read script + topic, `new-lesson --book`, tdd, demo mode with recorded data, rule 10a reactions, e2e, merge main, no deletions).
 1. Retrofits (one PR each, same prompt as #56): #59 1.1, #60 1.2 (+ move 3D to BookScene, deferred from #15), #61 1.3 (+ BookScene move, deferred from #16), #62 2.1, #63 3.1 (pass `pickMotion`; gauge grows), #64 4.1. Then tick #54's per-lesson boxes and close it.
 2. Badge leftovers: #11, #13, #27 have a few unticked boxes (mostly the explorer image, which needs a Pages deploy). Read their last comments; close what is done.
 3. #28 final exam and badge gating; #29 final badge (testnet edition only; mainnet mint cut; includes the `FundsNotice` link nit); #31 demo-mode verification suite; #32 polish (mobile, motion, fallbacks).
