@@ -1,0 +1,136 @@
+/* The final exam (issue #28). Ink style with the stage 7 accent (--stage-accent). Builds on the quiz
+   styles in progress/progress.css. Nothing moves, so reduced motion needs no extra rule. */
+
+.exam-page .quiz-n {
+  background: var(--stage-accent, var(--accent));
+}
+.exam-page .quiz-option:has(input:checked) {
+  background: color-mix(in srgb, var(--stage-accent, var(--accent)) 22%, #fff);
+}
+
+.exam-routes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 18px 0 8px;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.exam-routes legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font: 700 13px var(--ui);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.exam-route-for {
+  display: block;
+  margin-top: 2px;
+  font: 500 14px/1.4 var(--ui);
+  color: var(--mute);
+}
+
+.exam-kept {
+  margin: 12px 0;
+  font: 500 15px/1.4 var(--ui);
+}
+
+.exam-alert {
+  margin: 12px 0;
+  padding: 10px 14px;
+  border: 1.5px solid var(--ink);
+  border-left: 6px solid var(--red);
+  border-radius: 12px;
+  background: #fff;
+  font: 500 15px/1.4 var(--ui);
+}
+.exam-alert:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.exam-locked,
+.exam-result {
+  margin-top: 18px;
+}
+.exam-locked {
+  border: 1.5px solid var(--ink);
+  border-radius: 18px;
+  background: var(--paper-2);
+  box-shadow: 0 4px 0 var(--ink);
+  padding: 16px 18px 18px;
+}
+.exam-locked h2 {
+  margin-top: 0;
+}
+.exam-badges {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.exam-badges li {
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  padding: 3px 12px;
+  font: 700 13px var(--ui);
+  background: #fff;
+}
+.exam-badges li.has {
+  background: var(--stage-accent, var(--accent));
+}
+.exam-badges li.missing {
+  border-style: dashed;
+  color: var(--mute);
+}
+
+.exam-result h2:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 4px;
+}
+.exam-review {
+  padding: 0;
+  margin: 18px 0 0;
+  list-style: none;
+  counter-reset: exam;
+}
+.exam-review li {
+  counter-increment: exam;
+  border: 1.5px solid var(--ink);
+  border-radius: 14px;
+  background: var(--card);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border-left-width: 6px;
+}
+.exam-review li.right {
+  border-left-color: var(--green);
+}
+.exam-review li.wrong {
+  border-left-color: var(--red);
+}
+.exam-review p {
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+}
+.exam-review-q {
+  font: 700 17px/1.35 var(--serif);
+}
+.exam-review-q::before {
+  content: counter(exam) ". ";
+}
+.exam-review-mark {
+  font: 700 14px var(--ui);
+}
+.exam-review-mark em {
+  font-weight: 500;
+}
+.exam-review-answer {
+  font: 500 15px/1.4 var(--serif);
+}
+.exam-review-why {
+  font: 500 14px/1.45 var(--ui);
+  color: var(--mute);
+}

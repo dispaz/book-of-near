@@ -3,10 +3,12 @@
  *   POST /faucet   fund a testnet practice account (faucet.ts)
  *   POST /intents/quote  1Click quote proxy for lesson 4.2 (intents.ts)
  *   POST /claim    sign a stage badge claim after checking its evidence on testnet (claim.ts)
+ *   POST /exam     grade the final exam after checking the route's badges on testnet (exam.ts)
  *   GET  /health   { ok, faucet }
  * Secrets (never in the repo): FAUCET_ACCOUNT_ID, FAUCET_PRIVATE_KEY, CLAIM_SIGNING_KEY, optional ONECLICK_JWT. See README.md.
  */
 import { claim, MAX_CLAIM_BODY_BYTES, rpcLookup, type TxLookup } from "./claim";
+import { exam, MAX_EXAM_BODY_BYTES, rpcBadges, type BadgeReader } from "./exam";
 import { faucet, type FaucetSender } from "./faucet";
 import { MAX_QUOTE_BODY_BYTES, quote, type Fetch } from "./intents";
 import { kvCounters, memoryCounters, takeSlot, type CounterStore, type KvLike } from "./limits";
@@ -35,6 +37,10 @@ export interface Env {
   CLAIM_PER_IP_DAILY?: string;
   CLAIM_PER_ACCOUNT_DAILY?: string;
   CLAIM_GLOBAL_DAILY?: string;
+  /** Exam attempts per IP address (default 30), per account (default 10) and in total (default 2000) per UTC day. */
+  EXAM_PER_IP_DAILY?: string;
+  EXAM_PER_ACCOUNT_DAILY?: string;
+  EXAM_GLOBAL_DAILY?: string;
 }
 
 export interface Overrides {
@@ -45,6 +51,8 @@ export interface Overrides {
   fetch?: Fetch;
   /** Testnet transaction lookup for badge claims (tests). */
   lookup?: TxLookup;
+  /** Badge contract reads for the exam gate (tests). */
+  badges?: BadgeReader;
 }
 
 const LOCALHOST = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
@@ -239,6 +247,71 @@ export async function handle(request: Request, env: Env, o: Overrides = {}): Pro
       contractId: env.BADGE_CONTRACT_ID,
       signingKey: env.CLAIM_SIGNING_KEY,
       lookup: o.lookup ?? rpcLookup(),
+      now,
+    });
+    return json(reply.status, reply.body, origin);
+  }
+  if (url.pathname === "/exam" && request.method === "POST") {
+    if (!env.CLAIM_SIGNING_KEY || !env.BADGE_CONTRACT_ID)
+      return json(503, { error: "The exam is not set up yet." }, origin);
+    const tooBig = () => json(413, { error: "The exam request is too big." }, origin);
+    if (Number(request.headers.get("content-length") ?? 0) > MAX_EXAM_BODY_BYTES) return tooBig();
+    const text = await request.text();
+    if (new TextEncoder().encode(text).length > MAX_EXAM_BODY_BYTES) return tooBig();
+    let body: unknown;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      return json(400, { error: "Send JSON." }, origin);
+    }
+    const dev = env.ALLOW_LOCALHOST === "1";
+    const counters =
+      o.counters ??
+      (env.FAUCET_LIMITS
+        ? kvCounters(env.FAUCET_LIMITS)
+        : dev
+          ? (fallbackCounters ??= memoryCounters())
+          : null);
+    if (!counters) return json(503, { error: "The exam is not set up yet." }, origin);
+    const ip = request.headers.get("cf-connecting-ip") ?? (dev ? "local" : null);
+    if (!ip) return json(400, { error: "Unknown client address." }, origin);
+    const now = o.now?.() ?? new Date();
+    // Every attempt counts, graded or refused, so the key cannot be probed at speed.
+    const byIp = await takeSlot(
+      counters,
+      {
+        perIpDaily: limitFrom(env.EXAM_PER_IP_DAILY, 30),
+        globalDaily: limitFrom(env.EXAM_GLOBAL_DAILY, 2000),
+      },
+      ip,
+      now,
+      "exam",
+    );
+    const account = (body as { accountId?: unknown } | null)?.accountId;
+    const byAccount = byIp.ok
+      ? await takeSlot(
+          counters,
+          { perIpDaily: limitFrom(env.EXAM_PER_ACCOUNT_DAILY, 10), globalDaily: Number.MAX_SAFE_INTEGER },
+          String(account ?? "?").slice(0, 64),
+          now,
+          "exam-account",
+        )
+      : byIp;
+    if (!byAccount.ok)
+      return json(
+        429,
+        {
+          error:
+            byAccount.reason === "global"
+              ? "The app has graded today's exams. Try again tomorrow."
+              : "Too many exam attempts today. Try again tomorrow.",
+        },
+        origin,
+      );
+    const reply = await exam(body, {
+      contractId: env.BADGE_CONTRACT_ID,
+      signingKey: env.CLAIM_SIGNING_KEY,
+      badges: o.badges ?? rpcBadges(env.BADGE_CONTRACT_ID),
       now,
     });
     return json(reply.status, reply.body, origin);

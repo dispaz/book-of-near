@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { createProgress, STORAGE_KEY, type KeyValueStorage } from "./store";
-import type { CompletionRecord } from "./types";
+import { createProgress, keepBest, STORAGE_KEY, type KeyValueStorage } from "./store";
+import type { CompletionRecord, ExamRecord } from "./types";
 
 function memoryStorage(): KeyValueStorage & { data: Map<string, string> } {
   const data = new Map<string, string>();
@@ -105,5 +105,55 @@ describe("progress store", () => {
 
   it("resumeTarget is null before any lesson was opened", () => {
     expect(createProgress(memoryStorage()).resumeTarget()).toBeNull();
+  });
+});
+
+describe("final exam records (issue #28)", () => {
+  const attempt = (score: number, passed: boolean, extra: Partial<ExamRecord> = {}) => ({
+    route: "general" as const,
+    accountId: "me.testnet",
+    mode: "demo" as const,
+    score,
+    total: 15,
+    passed,
+    takenAt: "2026-11-13T10:00:00.000Z",
+    ...(passed ? { receipt: { contractId: "c", passedAtMs: 1, signature: `s${score}` } } : {}),
+    ...extra,
+  });
+
+  it("stores attempts per route, keeps a pass over a later fail or lower pass, and counts attempts", () => {
+    const p = createProgress(memoryStorage());
+    expect(p.exam("general")).toBeNull();
+    expect(p.recordExam(attempt(9, false))).toMatchObject({ score: 9, attempts: 1 });
+    expect(p.recordExam(attempt(13, true))).toMatchObject({ score: 13, passed: true, attempts: 2 });
+    expect(p.recordExam(attempt(5, false))).toMatchObject({ score: 13, passed: true, attempts: 3 });
+    expect(p.recordExam(attempt(12, true))).toMatchObject({ score: 13, attempts: 4 });
+    expect(p.recordExam(attempt(15, true))).toMatchObject({
+      score: 15,
+      attempts: 5,
+      receipt: { signature: "s15" },
+    });
+    expect(p.exam("developer")).toBeNull();
+  });
+
+  it("keeps the newest of two fails", () => {
+    expect(keepBest({ ...attempt(10, false), attempts: 1 }, attempt(8, false))).toMatchObject({
+      score: 8,
+      attempts: 2,
+    });
+  });
+
+  it("survives a reload and drops malformed exam records", () => {
+    const s = memoryStorage();
+    createProgress(s).recordExam(attempt(13, true));
+    expect(createProgress(s).exam("general")).toMatchObject({ score: 13, passed: true, attempts: 1 });
+
+    const raw = JSON.parse(s.data.get(STORAGE_KEY)!) as Record<string, unknown>;
+    raw.exams = { general: { route: "general", score: "lots" }, developer: attempt(1, false) };
+    s.data.set(STORAGE_KEY, JSON.stringify(raw));
+    const p = createProgress(s);
+    expect(p.exam("general")).toBeNull();
+    // A record filed under the wrong route is dropped too.
+    expect(p.exam("developer")).toBeNull();
   });
 });

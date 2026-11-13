@@ -17,6 +17,7 @@ import { ChainProvider } from "./chain/ChainContext";
 import { MainnetWalletProvider } from "./chain/mainnet";
 import { WalletPage } from "./ui/WalletPage";
 import { CheckerPage, MyBookPage } from "./badges/BadgePages";
+import { ExamPage } from "./exam/ExamPage";
 
 const ArtPreview = import.meta.env.DEV ? lazy(() => import("./badges/ArtPreviewPage")) : () => null;
 
@@ -30,6 +31,7 @@ const router = createRouter([
   { path: "/wallet", element: <WalletPage /> },
   { path: "/my-book", element: <MyBookPage /> },
   { path: "/check", element: <CheckerPage /> },
+  { path: "/exam", element: <ExamPage /> },
   // Dev only: the badge art for review (npm run badges:art). Left out of production builds.
   ...(import.meta.env.DEV
     ? [
