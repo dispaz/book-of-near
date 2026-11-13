@@ -127,7 +127,7 @@ Tracks entered: `["open", "nfts", "security"]`. Explorer links use https://testn
 
 ### `nfts`: badges that gate on proof of learning
 
-- Contract: [`badges.bon-badges-mwe57oab.testnet`](https://testnet.nearblocks.io/address/badges.bon-badges-mwe57oab.testnet) (Rust, near-sdk 5.11, `contracts/badge/`). NEP-171 with NEP-177 metadata and NEP-297 events. Badges are non-transferable, one per account per stage, need the previous stage, and are minted only with an ed25519 claim signed by our Worker after it checked the learner's own testnet transactions. The contract pays storage, so the learner pays only gas. Details: `docs/badge-contract.md`.
+- Contract: [`badges.bon-badges-mwe57oab.testnet`](https://testnet.nearblocks.io/address/badges.bon-badges-mwe57oab.testnet) (Rust, near-sdk 5.11, `contracts/badge/`). NEP-171 with NEP-177 metadata and NEP-297 events. Badges are non-transferable, one per account per stage, need the previous stage, and are minted only with an ed25519 claim signed by our Worker after it checked the learner's own testnet transactions (stages 0 to 4; stages 5 and 6 have none to check). The contract pays storage, so the learner pays only gas. Details: `docs/badge-contract.md`.
 - Deploy transaction: [`3WJ3Rgw…bwwp`](https://testnet.nearblocks.io/txns/3WJ3Rgw2ca7wXpVxJF3jyu9pmx3DUL98pvRsqBHKbwwp).
 - A real claim: practice account `bon-learner-mwe61s8i.testnet` sent a transfer, the Worker checked it and signed a claim, and [`claim_stage` `EAuadk9…XJ1o`](https://testnet.nearblocks.io/txns/EAuadk9PtuXBfee1fMx32okJyo6t2xCMbwJkumk8XJ1o) minted token `1` ("Book of NEAR: Stage 0"). A claim with no evidence was refused, and the same claim again was refused ("already claimed").
 - In the app: the claim card, "My book" (`/my-book`) and the public checker (`/check`), covered by `e2e/badges.spec.ts` in demo mode. 19 sandbox tests for the contract (`npm run test:badge`, needs Rust).
@@ -204,7 +204,7 @@ Diff of everything built during the hackathon: https://github.com/dispaz/book-of
 - **Testnet badge claims need our Worker.** The live site's testnet claim works only once the Worker is deployed with its claim signing key. The real claim above was made with the Worker running locally.
 - **Not every lesson was walked on live testnet.** 0.3, 3.1 and 4.1 were run end to end on testnet in the app; the chain calls of the other lessons are covered by the testnet contract suite, and their UI by demo-mode e2e tests.
 - **4.1 does not broadcast to Sepolia**: a derived address starts with 0 ETH. **4.2 shows one best quote**, not competing solver bids (1Click returns one). **3.2 runs on the simulated chain** in both modes. **5.1's tutor answers are pre-written** (NEAR AI chat needs an API key); the attestation check is real. **6.1's vote is a practice vote.** **6.2's figures are recorded** (13 Nov 2026), not live.
-- **No final exam or final badge yet**, and no stage 6 or 7 badges.
+- **No final exam or final badge yet**, and no stage 7 badge.
 - The public testnet faucet fallback limits accounts per IP address, so a reviewer may hit it; demo mode always works.
 
 ### Not part of this submission (present in the code, not verified live)
