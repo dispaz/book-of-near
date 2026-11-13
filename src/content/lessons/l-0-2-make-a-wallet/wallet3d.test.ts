@@ -153,6 +153,7 @@ describe("3D reactions (rule 10a)", () => {
     cleared: false,
     message: true,
     signed: false,
+    stale: false,
     rebuilt: false,
     addressDone: false,
     flipped: [false, false, false],
@@ -203,9 +204,17 @@ describe("3D reactions (rule 10a)", () => {
     expect(reactionsFor(STEP.sign, base).card).toEqual({ disabledHint: REACTION.noSignature });
     expect(reactionsFor(STEP.sign, { ...base, signed: true }).card.detail).toMatch(/signature/);
     expect(reactionsFor(STEP.verify, { ...base, signed: true }).card).toEqual({});
-    expect(reactionsFor(STEP.verify, { ...base, signed: true, verdict: "fail" }).card.detail).toMatch(
-      /does not match/,
+    // Any failed check (a typed edit too), not only the card's one-letter change.
+    expect(reactionsFor(STEP.verify, { ...base, signed: true, verdict: "fail" }).card.detail).toBe(
+      "The text changed: the signature does not match",
     );
+  });
+
+  it("a signature whose message box changed since is stale in step 6, but still tamperable in step 7", () => {
+    const stale = { ...base, signed: true, stale: true };
+    expect(reactionsFor(STEP.sign, stale).key).toEqual({});
+    expect(reactionsFor(STEP.sign, stale).card).toEqual({ disabledHint: REACTION.noSignature });
+    expect(reactionsFor(STEP.verify, stale).card).toEqual({});
   });
 
   it("the bin shows that memory is clear once the keys are gone", () => {

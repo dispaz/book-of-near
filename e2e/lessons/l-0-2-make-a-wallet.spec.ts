@@ -450,13 +450,22 @@ test.describe(`lesson ${ID}`, () => {
     await expectPickPlaysAndSettles(page, "Sign with the private key");
     await expect(scene(page)).toHaveAttribute("data-scene-state", "signed");
     await expectPickDetail(page, "Message card", /64-byte ed25519 signature/);
+    // Editing the box after signing asks to sign again in step 6...
+    await page.getByRole("textbox", { name: "Message" }).fill("Hello again");
+    await expectNotYetHint(page, "Message card", "Sign the message first");
     await nextStep(page);
 
+    // ...but step 7 checks the signed text, so the card can still be tampered with.
     await page.getByRole("button", { name: "Verify", exact: true }).click();
+    await expect(panel(page).getByRole("status")).toHaveText(/Signature matches this message/);
     await expectPickPlaysAndSettles(page, "Change one letter on the card");
     await page.getByRole("button", { name: "Verify", exact: true }).click();
     await expect(scene(page)).toHaveAttribute("data-scene-state", "tamper-caught");
-    await expectPickDetail(page, "Change one letter on the card", /does not match/);
+    await expectPickDetail(
+      page,
+      "Change one letter on the card",
+      "The text changed: the signature does not match",
+    );
     await nextStep(page);
 
     // The bin's pick renames it ("Bin" once the keys are gone), so its rock is checked by hand.

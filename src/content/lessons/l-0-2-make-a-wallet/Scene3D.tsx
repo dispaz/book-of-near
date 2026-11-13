@@ -14,6 +14,7 @@ import {
   COLORS,
   INK,
   InkStage,
+  isPickable,
   Key,
   Label,
   Outline,
@@ -131,7 +132,7 @@ const binRock = motion(0.9, (o, u) => {
 });
 
 /** Whether a pick does anything at all (an action, a hint or a detail). */
-const reacts = (r: Reaction, onPick?: () => void) => !!(onPick || r.disabledHint || r.detail);
+const reacts = (r: Reaction, onPick?: () => void) => isPickable({ ...r, onPick });
 
 export default function Scene3D({
   w,
@@ -206,7 +207,8 @@ function World({
     keys: !!keys,
     cleared,
     message: !!w.message.trim(),
-    signed: !!w.signed && w.signed.message === w.message,
+    signed: !!w.signed,
+    stale: !!w.signed && w.signed.message !== w.message,
     rebuilt: !!w.rebuilt,
     addressDone: w.convert >= CONVERT_STAGES,
     flipped: w.flipped,

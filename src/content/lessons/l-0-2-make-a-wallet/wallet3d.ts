@@ -184,7 +184,7 @@ export const REACTION = {
   eth: "Ethereum address: 42 characters starting with 0x",
   named: "Named account: a readable name, like ana.testnet",
   sealed: "Sealed: a 64-byte ed25519 signature covers this text",
-  tampered: "One letter changed: the signature does not match",
+  tampered: "The text changed: the signature does not match",
   cleared: "Memory cleared: 0 keys left on this page",
 } as const;
 
@@ -196,8 +196,10 @@ export interface ReactionState {
   cleared: boolean;
   /** The message box is not empty. */
   message: boolean;
-  /** The current message is signed. */
+  /** A signature exists. */
   signed: boolean;
+  /** The message box changed since signing (step 6 asks to sign again; step 7 checks its own text). */
+  stale: boolean;
   rebuilt: boolean;
   /** The address conversion has finished. */
   addressDone: boolean;
@@ -213,6 +215,8 @@ const none: Reaction = {};
 /** The reaction of each clickable object at this step (rule 10a in docs/book-scene.md). */
 export function reactionsFor(step: number, s: ReactionState) {
   const at = (...steps: number[]) => steps.includes(step);
+  // Step 6 is about the message in its box; step 7 checks the signature against a text of its own.
+  const signed = s.signed && (at(STEP.verify) || !s.stale);
   return {
     /** The empty places drawn before any key exists. */
     ghost: s.cleared ? none : hint(REACTION.noKeys),
@@ -220,7 +224,7 @@ export function reactionsFor(step: number, s: ReactionState) {
     key: at(STEP.sign)
       ? !s.message
         ? hint(REACTION.noMessage)
-        : s.signed
+        : signed
           ? detail(REACTION.signature)
           : none
       : detail(REACTION.key),
@@ -233,7 +237,7 @@ export function reactionsFor(step: number, s: ReactionState) {
         : detail(REACTION.implicit),
     eth: s.flipped[0] ? detail(REACTION.eth) : none,
     named: s.flipped[2] ? detail(REACTION.named) : none,
-    card: !s.signed
+    card: !signed
       ? hint(REACTION.noSignature)
       : at(STEP.verify)
         ? s.verdict === "fail"
