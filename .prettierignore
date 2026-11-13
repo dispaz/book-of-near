@@ -8,3 +8,6 @@ package-lock.json
 *.md
 .claude/worktrees
 dist-artifact
+video/out
+video/public
+video/package-lock.json
