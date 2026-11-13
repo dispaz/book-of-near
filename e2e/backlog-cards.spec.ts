@@ -9,13 +9,15 @@ test.describe("backlog topic cards", () => {
     page,
   }) => {
     await page.goto("/");
-    for (const n of [0, 1, 2, 3, 4, 7]) {
+    for (const n of [0, 1, 2, 3, 4, 6, 7]) {
       await expect(page.getByRole("region", { name: new RegExp(`Stage ${n}\\b`) })).toBeVisible();
     }
-    // Stages 5 and 6 are parked (docs/progress.md, #30): no section and no cards for them.
-    for (const n of [5, 6]) {
-      await expect(page.getByRole("region", { name: new RegExp(`Stage ${n}\\b`) })).toHaveCount(0);
-    }
+    // Stage 5 is parked (docs/progress.md, #30): no section and no cards for it.
+    await expect(page.getByRole("region", { name: /Stage 5\b/ })).toHaveCount(0);
+    // Stage 6 is back with lesson 6.1 (#86); its DeFi map topic stays a locked card until 6.2.
+    const stage6 = page.getByRole("region", { name: /Stage 6\b/ });
+    await expect(stage6.getByRole("link", { name: /Read and vote on a proposal/ })).toHaveCount(1);
+    await expect(stage6.getByRole("button", { name: /DeFi map/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /Shade Agents/ })).toHaveCount(0);
     const stage7 = page.getByRole("region", { name: /Stage 7/ });
     // The capstone (#26) is ready, so stage 7 is no longer "Coming later".
