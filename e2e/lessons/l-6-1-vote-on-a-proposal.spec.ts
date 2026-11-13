@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { play61 } from "../judge/walks";
 import {
   answerCheck,
   completionOf,
@@ -272,5 +273,13 @@ test.describe("3D book scene", () => {
     await expectPickDetail(page, "The YES stamp", /\+100 veNEAR YES/);
     await expectPickDetail(page, "The NO stamp", "You voted YES. One vote per voter.");
     await expectPickDetail(page, "Proposal #42", /62% yes, 38% no/);
+  });
+});
+
+test("a NO vote is a practice vote too, and the lesson finishes on it (2d)", async ({ page }) => {
+  await page.goto(`/lesson/${ID}?view=2d`);
+  await play61(page, "no");
+  expect(await completionOf(page, ID)).toMatchObject({
+    evidence: { voteCast: "true", choice: "no", kind: "practice" },
   });
 });

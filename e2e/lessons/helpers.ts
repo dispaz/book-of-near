@@ -213,3 +213,19 @@ async function pickNoteOf(button: Locator) {
   expect(id).toBeTruthy();
   return button.page().locator(`[id="${id}"]`);
 }
+
+/** The scene's action dock (below the scene), and one of its buttons by exact name. */
+export const dock = (page: Page) => page.locator(".action-slot");
+export const dockButton = (page: Page, name: string) => dock(page).getByRole("button", { name, exact: true });
+
+/** The honest take is on screen; Finish writes a demo-mode completion record for the lesson. */
+export async function finish(page: Page, lessonId: string) {
+  await expect(page.getByRole("region", { name: "Honest take" })).toBeVisible();
+  await page.getByRole("button", { name: "Finish lesson" }).click();
+  await expect(page.getByText("Lesson done")).toBeVisible();
+  expect(await completionOf(page, lessonId)).toMatchObject({
+    lessonId,
+    stage: Number(lessonId.split("-")[1]),
+    mode: "demo",
+  });
+}
