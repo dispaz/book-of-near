@@ -143,9 +143,15 @@ export function FinalClaim({ route, receipt }: { route: ExamRoute; receipt: Exam
             <p className="claim-text">
               Rarity comes from your signed exam result: {receipt.score} of {receipt.total}
               {inEventWindow(receipt.passedAtMs)
-                ? ", passed during the hackathon (1 to 14 Nov 2026), which raises it one tier"
+                ? testnet
+                  ? ", passed during the hackathon (1 to 14 Nov 2026), which raises it one tier"
+                  : ", plus one tier for a pass during the hackathon"
                 : ""}
-              . The badge cannot be sold or sent.
+              .
+              {!testnet && inEventWindow(receipt.passedAtMs)
+                ? " Demo time is set inside the hackathon (from 1 Nov 2026), so a demo pass always gets the extra tier."
+                : ""}{" "}
+              The badge cannot be sold or sent.
               {testnet
                 ? " It is minted on NEAR testnet to your practice account. You pay only a little testnet gas."
                 : " In demo mode it lives in this browser. Nothing is sent to a real network."}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { examMessage, type ExamReceipt } from "../../src/exam/grade";
-import { finalMessage } from "../../src/badges/message";
+import { finalMessage, stageMessage } from "../../src/badges/message";
+import { DEMO_CLAIM_SEED } from "../../src/chain/demo/badges";
 import { b58encode, b64decode, b64urlDecode } from "./bytes";
 import { signText } from "./claim";
 import { final, signedByKey } from "./final";
@@ -23,6 +24,32 @@ async function testKey() {
   const verify = (sigB64: string, text: string) =>
     crypto.subtle.verify("Ed25519", pair.publicKey, b64decode(sigB64), new TextEncoder().encode(text));
   return { secret, verify };
+}
+
+/** The demo claim key's public half, through WebCrypto (the Worker has no ed25519 library). */
+async function demoPublic(): Promise<Uint8Array> {
+  const pkcs8 = new Uint8Array([
+    0x30,
+    0x2e,
+    0x02,
+    0x01,
+    0x00,
+    0x30,
+    0x05,
+    0x06,
+    0x03,
+    0x2b,
+    0x65,
+    0x70,
+    0x04,
+    0x22,
+    0x04,
+    0x20,
+    ...DEMO_CLAIM_SEED,
+  ]);
+  const key = await crypto.subtle.importKey("pkcs8", pkcs8, { name: "Ed25519" }, true, ["sign"]);
+  const jwk = (await crypto.subtle.exportKey("jwk", key)) as JsonWebKey;
+  return b64urlDecode(jwk.x!);
 }
 
 /** A receipt as `/exam` signs it, with any field changed before signing. */
@@ -97,6 +124,29 @@ describe("final", () => {
     expect((await final({ accountId: ME, route: "general", receipt: moved }, deps)).status).toBe(403);
     const junk = { ...(await receipt(k.secret)), signature: "not base64!" };
     expect((await final({ accountId: ME, route: "general", receipt: junk }, deps)).status).toBe(403);
+  });
+
+  it("refuses a demo receipt: signed with the public demo key and naming the demo contract", async () => {
+    const k = await testKey();
+    const demoSecret = `ed25519:${b58encode(new Uint8Array([...DEMO_CLAIM_SEED, ...(await demoPublic())]))}`;
+    const deps = { contractId: CONTRACT, signingKey: k.secret, now: NOW };
+    const demo = await receipt(demoSecret, { contractId: "badges.book-of-near.testnet" });
+    expect((await final({ accountId: ME, route: "general", receipt: demo }, deps)).status).toBe(403);
+    // Even naming this contract, the demo key's signature does not pass.
+    const renamed = await receipt(demoSecret);
+    const r = await final({ accountId: ME, route: "general", receipt: renamed }, deps);
+    expect(r.status).toBe(403);
+    expect((r.body as { error: string }).error).toMatch(/signature/);
+  });
+
+  it("refuses a stage claim signature (bon-badge-v1) sent as a receipt", async () => {
+    const k = await testKey();
+    const deps = { contractId: CONTRACT, signingKey: k.secret, now: NOW };
+    const r0 = await receipt(k.secret);
+    const stageSig = await signText(k.secret, stageMessage(CONTRACT, ME, 0, r0.passedAtMs));
+    const r = await final({ accountId: ME, route: "general", receipt: { ...r0, signature: stageSig } }, deps);
+    expect(r.status).toBe(403);
+    expect((r.body as { error: string }).error).toMatch(/signature/);
   });
 
   it("refuses a receipt for another badge contract", async () => {

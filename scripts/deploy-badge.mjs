@@ -20,8 +20,13 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { Near, generateKey } from "near-kit";
 import { selectArt } from "./badges-art.mjs";
-// The exam routes' stages, one source of truth (Node runs the .ts file directly: it has no imports).
-import { EXAM_ROUTE_INFO, EXAM_ROUTES } from "../src/exam/routes.ts";
+
+/**
+ * The stages each final exam route needs, as `set_route` sets them. A copy of `requiredBadges` in
+ * src/exam/routes.ts (not imported: Node before 22.18 cannot run .ts files); deploy-badge.test.ts
+ * keeps the two equal.
+ */
+const ROUTES = { general: [0, 1, 2], developer: [0, 1, 2, 3, 4] };
 
 const BASE_URI = "https://book-of-near.pages.dev/badges";
 const STAGE_COUNT = 8;
@@ -157,8 +162,7 @@ async function stageCount() {
 async function routes() {
   const vars = readVars();
   const near = await owner(vars);
-  for (const route of EXAM_ROUTES) {
-    const stages = EXAM_ROUTE_INFO[route].requiredBadges;
+  for (const [route, stages] of Object.entries(ROUTES)) {
     const r = await near
       .transaction(vars.BADGE_OWNER_ID)
       .functionCall(vars.BADGE_CONTRACT_ID, "set_route", { route, stages }, { gas: "30 Tgas" })

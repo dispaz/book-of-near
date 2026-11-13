@@ -211,7 +211,12 @@ test.describe("final exam in demo mode", () => {
     const card = page.getByRole("region", { name: "Final badge" });
     await expect(card).toHaveAttribute("data-claim-state", "ready");
     await expect(card).toContainText("Your final badge is ready: epic");
-    await expect(card).toContainText("14 of 15, passed during the hackathon");
+    await expect(card).toContainText("14 of 15, plus one tier for a pass during the hackathon.");
+    // Demo time never leaves the window, and the card says so instead of claiming a real date.
+    await expect(card).toContainText(
+      "Demo time is set inside the hackathon (from 1 Nov 2026), so a demo pass always gets the extra tier.",
+    );
+    await expect(card).not.toContainText("1 to 14 Nov 2026");
     await card.getByRole("button", { name: "Claim the final badge" }).click();
     await expect(card).toHaveAttribute("data-claim-state", "claimed");
     await expect(card).toContainText("Final badge claimed: epic");
