@@ -153,3 +153,29 @@
     opacity: 1;
   }
 }
+
+/* The final badge (issue #29): one slot under the stage shelf. */
+.final-slot {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  margin: 0 0 16px;
+  padding: 16px 12px;
+  text-align: center;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.final-slot .badge-empty {
+  width: 96px;
+  height: 96px;
+}
+
+.final-slot.held {
+  box-shadow: 3px 3px 0 var(--stage-accent, var(--accent));
+}
+
+.final-claim {
+  margin: 16px 0;
+}

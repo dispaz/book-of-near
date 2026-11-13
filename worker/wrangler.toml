@@ -28,6 +28,10 @@ CLAIM_GLOBAL_DAILY = "500"
 EXAM_PER_IP_DAILY = "30"
 EXAM_PER_ACCOUNT_DAILY = "10"
 EXAM_GLOBAL_DAILY = "2000"
+# Final badge claims (POST /final): signed claims per IP address, per account and in total per UTC day.
+FINAL_PER_IP_DAILY = "10"
+FINAL_PER_ACCOUNT_DAILY = "5"
+FINAL_GLOBAL_DAILY = "300"
 
 # Counters for the rate limits. Create the namespace once with
 #   npx wrangler kv namespace create FAUCET_LIMITS

@@ -38,5 +38,25 @@
     "key": "stage-7",
     "media": "stage-7.svg",
     "sha256": "Kpj6oGCQoXGswl8UTU8slh6lLGWK53uAwwttK/XIxYk="
+  },
+  {
+    "key": "final-common",
+    "media": "final-common.svg",
+    "sha256": "nvedmO3rqcWLanwkwvyjcEOGccWDWiqJdUPnP6ifk/g="
+  },
+  {
+    "key": "final-rare",
+    "media": "final-rare.svg",
+    "sha256": "pJp1o66gHXIvxTvqQ1CLQadoa8NSdOc3ePNtjfTz2xQ="
+  },
+  {
+    "key": "final-epic",
+    "media": "final-epic.svg",
+    "sha256": "h9p2a5/Oye5N1vdOhrbAmkLfVGHX0Loi96QQvBV9/Fs="
+  },
+  {
+    "key": "final-legendary",
+    "media": "final-legendary.svg",
+    "sha256": "LJPLuUesiwqlLuoAHVUyFfK6luOjrjQWN9+X0WKWpKA="
   }
 ]

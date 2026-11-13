@@ -2,12 +2,22 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useChain } from "../chain/ChainContext";
 import { isValidAccountId } from "../chain/accountId";
-import type { StageBadge } from "../chain/types";
+import type { Chain, FinalBadge, StageBadge } from "../chain/types";
 import { BadgeShelf } from "./BadgeShelf";
+import { FinalBadgeSlot } from "./FinalBadge";
 import { CLAIMABLE_BADGES } from "./rules";
 import "./badges.css";
 
-type Load = { s: "loading" } | { s: "done"; badges: StageBadge[] } | { s: "error"; text: string };
+type Load =
+  | { s: "loading" }
+  | { s: "done"; badges: StageBadge[]; final: FinalBadge | null }
+  | { s: "error"; text: string };
+
+/** An account's stage badges and final badge, read together. */
+const readAll = async (chain: Chain, accountId: string) => {
+  const [badges, final] = await Promise.all([chain.badgesOf(accountId), chain.finalBadgeOf(accountId)]);
+  return { badges, final };
+};
 
 /** My book: the learner's own shelf, one slot per stage. */
 export function MyBookPage() {
@@ -20,10 +30,10 @@ export function MyBookPage() {
     (async () => {
       try {
         const me = (await chain.practiceAccount()).accountId;
-        const badges = await chain.badgesOf(me);
+        const all = await readAll(chain, me);
         if (live) {
           setAccount(me);
-          setLoad({ s: "done", badges });
+          setLoad({ s: "done", ...all });
         }
       } catch {
         if (live) setLoad({ s: "error", text: "Your badges could not be read. Try again in a minute." });
@@ -41,8 +51,8 @@ export function MyBookPage() {
         <p className="eyebrow">My book</p>
         <h1>Your badges</h1>
         <p className="lede">
-          You get one badge for each stage you finish. A badge is a token on the badge contract: it cannot be
-          sold or sent to anyone else.
+          You get one badge for each stage you finish, and a final badge for passing the final exam. A badge
+          is a token on the badge contract: it cannot be sold or sent to anyone else.
           {chain.network === "demo"
             ? " You are in demo mode, so these badges live in this browser only."
             : ""}
@@ -57,6 +67,7 @@ export function MyBookPage() {
                 : `${count} of ${CLAIMABLE_BADGES} claimed.`}
             </p>
             <BadgeShelf badges={load.badges} label="My badges" dates={chain.network === "testnet"} />
+            <FinalBadgeSlot badge={load.final} dates={chain.network === "testnet"} />
             {account ? (
               <p className="badge-account">
                 Held by <code>{account}</code>.{" "}
@@ -88,9 +99,8 @@ export function CheckerPage() {
     if (!isValidAccountId(asked)) return setLoad({ s: "error", text: "That is not a NEAR account name." });
     let live = true;
     setLoad({ s: "loading" });
-    chain
-      .badgesOf(asked)
-      .then((badges) => live && setLoad({ s: "done", badges }))
+    readAll(chain, asked)
+      .then((all) => live && setLoad({ s: "done", ...all }))
       .catch(
         () =>
           live &&
@@ -139,13 +149,14 @@ export function CheckerPage() {
             <p className="badge-count">
               <code>{asked}</code> holds{" "}
               {load.badges.length === 0 ? "no badges" : `${load.badges.length} of ${CLAIMABLE_BADGES} badges`}
-              .
+              {load.final ? ` and the final badge (${load.final.rarity})` : ""}.
             </p>
             <BadgeShelf
               badges={load.badges}
               label={`Badges of ${asked}`}
               dates={chain.network === "testnet"}
             />
+            <FinalBadgeSlot badge={load.final} dates={chain.network === "testnet"} />
           </>
         ) : null}
         <p>

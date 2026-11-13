@@ -4,12 +4,14 @@
  *   POST /intents/quote  1Click quote proxy for lesson 4.2 (intents.ts)
  *   POST /claim    sign a stage badge claim after checking its evidence on testnet (claim.ts)
  *   POST /exam     grade the final exam after checking the route's badges on testnet (exam.ts)
+ *   POST /final    sign the final badge claim for a passed exam's receipt (final.ts)
  *   GET  /health   { ok, faucet }
  * Secrets (never in the repo): FAUCET_ACCOUNT_ID, FAUCET_PRIVATE_KEY, CLAIM_SIGNING_KEY, optional ONECLICK_JWT. See README.md.
  */
 import { claim, MAX_CLAIM_BODY_BYTES, rpcLookup, type TxLookup } from "./claim";
 import { exam, MAX_EXAM_BODY_BYTES, rpcBadges, type BadgeReader } from "./exam";
 import { faucet, type FaucetSender } from "./faucet";
+import { final, MAX_FINAL_BODY_BYTES } from "./final";
 import { MAX_QUOTE_BODY_BYTES, quote, type Fetch } from "./intents";
 import { kvCounters, memoryCounters, takeSlot, type CounterStore, type KvLike } from "./limits";
 import { nearSender } from "./near";
@@ -41,6 +43,10 @@ export interface Env {
   EXAM_PER_IP_DAILY?: string;
   EXAM_PER_ACCOUNT_DAILY?: string;
   EXAM_GLOBAL_DAILY?: string;
+  /** Final badge claims signed per IP address (default 10), per account (default 5) and in total (default 300) per UTC day. */
+  FINAL_PER_IP_DAILY?: string;
+  FINAL_PER_ACCOUNT_DAILY?: string;
+  FINAL_GLOBAL_DAILY?: string;
 }
 
 export interface Overrides {
@@ -84,7 +90,7 @@ function json(status: number, body: unknown, origin: string | null): Response {
 
 let fallbackCounters: CounterStore | null = null;
 
-/** What differs between the signed routes (/claim, /exam) before their own check runs. */
+/** What differs between the signed routes (/claim, /exam, /final) before their own check runs. */
 interface SignedRoute {
   /** Counter prefix: `<name>` per IP and in total, `<name>-account` per account. */
   name: string;
@@ -306,6 +312,22 @@ export async function handle(request: Request, env: Env, o: Overrides = {}): Pro
       badges: o.badges ?? rpcBadges(p.contractId),
       now: p.now,
     });
+    return json(reply.status, reply.body, origin);
+  }
+  if (url.pathname === "/final" && request.method === "POST") {
+    const p = await signedPrologue(request, env, o, origin, {
+      name: "final",
+      maxBytes: MAX_FINAL_BODY_BYTES,
+      notSetUp: "Final badge claims are not set up yet.",
+      tooBig: "The final claim request is too big.",
+      perIpDaily: limitFrom(env.FINAL_PER_IP_DAILY, 10),
+      perAccountDaily: limitFrom(env.FINAL_PER_ACCOUNT_DAILY, 5),
+      globalDaily: limitFrom(env.FINAL_GLOBAL_DAILY, 300),
+      globalUsed: "The app has signed today's final badge claims. Try again tomorrow.",
+      tooMany: "Too many final badge claims today. Try again tomorrow.",
+    });
+    if (!p.ok) return p.reply;
+    const reply = await final(p.body, { contractId: p.contractId, signingKey: p.signingKey, now: p.now });
     return json(reply.status, reply.body, origin);
   }
   return json(404, { error: "Not found." }, origin);

@@ -15,10 +15,10 @@ import { base58, base64 } from "@scure/base";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import { isDirectSubAccount, isImplicitAccountId, isValidAccountId } from "./accountId";
 import { ChainError } from "./errors";
-import { readHasBadge, readStageBadges, sendStageClaim } from "./badges";
+import { readFinalBadge, readHasBadge, readStageBadges, sendFinalClaim, sendStageClaim } from "./badges";
 import { DEMO_BADGE_CONTRACT } from "../badges/config";
-import type { StageClaim } from "../badges/message";
-import { badgeContract, seedBadgeState, type DemoBadgeSeed } from "./demo/badges";
+import type { FinalClaim, StageClaim } from "../badges/message";
+import { badgeContract, seedBadgeState, type DemoBadgeSeed, type DemoFinalSeed } from "./demo/badges";
 import { DELEGATE_VALIDITY_BLOCKS, encodeSuccessValue } from "./ops";
 import { HISTORICAL_BLOCK, RECORDED_LATENCY_MS, rpcEndpoint, type RpcEndpointId } from "./rpcEndpoints";
 import { shardForAccount } from "./shards";
@@ -52,6 +52,7 @@ import type {
   ReceiptView,
   SendOptions,
   StageBadge,
+  FinalBadge,
   ShardId,
   ShardLayout,
   SignedTransaction,
@@ -143,6 +144,8 @@ export interface DemoChainOptions {
   accounts?: DemoGenesisAccount[];
   /** Stage badges to start with (claimed on an earlier visit), oldest first. */
   badges?: DemoBadgeSeed[];
+  /** Final badges to start with (claimed on an earlier visit). */
+  finalBadges?: DemoFinalSeed[];
   /** Extra simulated contracts, installed when their code is deployed. */
   contracts?: { code: Uint8Array; contract: DemoContract }[];
   /** Override the timer (tests). */
@@ -284,7 +287,7 @@ export class DemoChain implements Chain {
     this.genesisAccount(DEMO_BADGE_CONTRACT, parseNear("10"), undefined, demoContractCode("badges"));
     // Badges claimed on an earlier visit (the app keeps them in localStorage: src/badges/demoLedger.ts).
     const badgeState = this.accounts.get(DEMO_BADGE_CONTRACT)!.state;
-    seedBadgeState((k, v) => badgeState.set(k, v), options.badges ?? []);
+    seedBadgeState((k, v) => badgeState.set(k, v), options.badges ?? [], options.finalBadges ?? []);
     // Lesson 3.2's relayer: its key lives in this chain's key store, like the Worker's secret key.
     this.relayCap = options.relayCap ?? DEMO_RELAY_CAP;
     this.relayerKey = `ed25519:${base58.encode(this.digest("relayer-key"))}`;
@@ -310,6 +313,14 @@ export class DemoChain implements Chain {
 
   hasBadge(accountId: AccountId, stage: number): Promise<boolean> {
     return readHasBadge(this, DEMO_BADGE_CONTRACT, accountId, stage);
+  }
+
+  claimFinal(claim: FinalClaim, options?: SendOptions): Promise<TxOutcome> {
+    return sendFinalClaim(this, DEMO_BADGE_CONTRACT, claim, options);
+  }
+
+  finalBadgeOf(accountId: AccountId): Promise<FinalBadge | null> {
+    return readFinalBadge(this, DEMO_BADGE_CONTRACT, accountId);
   }
 
   // ---------- Reads ----------

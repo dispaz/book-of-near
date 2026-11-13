@@ -10,7 +10,7 @@ import {
 } from "react";
 import { initialMode, saveMode } from "../app/mode";
 import type { ChainMode } from "../app/types";
-import { loadDemoBadges } from "../badges/demoLedger";
+import { loadDemoBadges, loadDemoFinals } from "../badges/demoLedger";
 import { DemoChain } from "./DemoChain";
 import type { Chain } from "./types";
 
@@ -68,7 +68,9 @@ export function ChainProvider({
   children: ReactNode;
   loadTestnetChain?: TestnetLoader;
 }) {
-  const [demo] = useState<Chain>(() => chain ?? new DemoChain({ badges: loadDemoBadges() }));
+  const [demo] = useState<Chain>(
+    () => chain ?? new DemoChain({ badges: loadDemoBadges(), finalBadges: loadDemoFinals() }),
+  );
   const [requested, setRequested] = useState<ChainMode>(() => (chain ? chain.network : initialMode()));
   const [testnet, setTestnet] = useState<{ chain: Chain; status: ChainStatus; notice: string | null } | null>(
     null,

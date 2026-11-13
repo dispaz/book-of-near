@@ -197,6 +197,47 @@ test.describe("final exam in demo mode", () => {
     );
   });
 
+  test("pass, claim the final badge, see it in My book and the checker (issue #29)", async ({ page }) => {
+    await seed(page, [0, 1, 2]);
+    await page.goto("/exam");
+    await expect(page.locator('form[data-exam-state="open"]')).toBeVisible();
+    // No card before a pass.
+    await expect(page.getByRole("region", { name: "Final badge" })).toHaveCount(0);
+    await answer(page, "general", 1);
+    await handIn(page);
+    await expect(page.locator(".exam-result")).toHaveAttribute("data-exam-state", "passed");
+
+    // 14 of 15 is rare; demo time is inside the hackathon window, which raises it one tier.
+    const card = page.getByRole("region", { name: "Final badge" });
+    await expect(card).toHaveAttribute("data-claim-state", "ready");
+    await expect(card).toContainText("Your final badge is ready: epic");
+    await expect(card).toContainText("14 of 15, passed during the hackathon");
+    await card.getByRole("button", { name: "Claim the final badge" }).click();
+    await expect(card).toHaveAttribute("data-claim-state", "claimed");
+    await expect(card).toContainText("Final badge claimed: epic");
+    await expect(card.getByRole("img", { name: "Final badge, epic" })).toBeVisible();
+
+    await card.getByRole("link", { name: "My book" }).click();
+    const slot = page.getByRole("group", { name: "Final badge" });
+    await expect(slot).toHaveAttribute("data-final", "epic");
+    await expect(slot).toContainText("Passed the general route");
+    // Stage badges still count as before: the final badge is not one of them.
+    await expect(page.locator(".badge-count")).toContainText("3 of");
+
+    // A reload keeps it (demo badges live in this browser), and the checker reads it too.
+    await page.reload();
+    await expect(page.getByRole("group", { name: "Final badge" })).toHaveAttribute("data-final", "epic");
+    await page.goto(`/check?account=${ME}`);
+    await expect(page.locator(".badge-count")).toContainText("and the final badge (epic)");
+    await expect(page.getByRole("group", { name: "Final badge" })).toHaveAttribute("data-final", "epic");
+
+    // Back on the exam page, the card says it is held; a retake cannot claim a second one.
+    await page.goto("/exam");
+    await expect(page.getByRole("region", { name: "Final badge" })).toContainText(
+      "You hold the final badge: epic",
+    );
+  });
+
   test("works on a phone, by keyboard, with reduced motion", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 360, height: 740 });

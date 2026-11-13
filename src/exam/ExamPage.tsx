@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { Link, useSearchParams } from "react-router";
+import { FinalClaim } from "../badges/FinalBadge";
 import { useChain } from "../chain/ChainContext";
 import { progress, useProgress } from "../progress";
 import { examKey } from "../progress/store";
@@ -129,6 +130,8 @@ export function ExamPage() {
   }
 
   const demo = mode === "demo";
+  // The final badge card (issue #29), from the kept pass: the best result for this route, mode and account.
+  const finalCard = kept?.passed && kept.receipt ? <FinalClaim route={route} receipt={kept.receipt} /> : null;
 
   return (
     <main className="page exam-page" style={{ "--stage-accent": STAGE_ACCENTS[7] } as CSSProperties}>
@@ -179,6 +182,8 @@ export function ExamPage() {
             {submitError}
           </p>
         ) : null}
+
+        {view.s !== "graded" && view.s !== "grading" ? finalCard : null}
 
         {view.s === "checking" ? <p role="status">Checking your badges…</p> : null}
         {view.s === "error" ? <p role="alert">{view.text}</p> : null}
@@ -271,6 +276,7 @@ export function ExamPage() {
             demo={demo}
             headingRef={resultHeading}
             onRetake={retake}
+            finalCard={finalCard}
           />
         ) : null}
       </div>
@@ -284,12 +290,14 @@ function Result({
   demo,
   headingRef,
   onRetake,
+  finalCard,
 }: {
   outcome: Extract<ExamOutcome, { ok: true }>;
   route: ExamRoute;
   demo: boolean;
   headingRef: RefObject<HTMLHeadingElement | null>;
   onRetake: () => void;
+  finalCard: ReactNode;
 }) {
   const questions = questionsFor(route);
   return (
@@ -306,8 +314,8 @@ function Result({
       </h2>
       {outcome.passed ? (
         <p className="lede">
-          {outcome.score} of {outcome.total}. Your result is saved in this browser with a signed receipt,
-          which the final badge will check. The final badge is not open yet.
+          {outcome.score} of {outcome.total}. Your result is saved in this browser with a signed receipt.
+          Claim your final badge with it below.
           {demo
             ? " In demo mode the receipt is signed with the public demo key, so it counts in this browser only."
             : ""}
@@ -318,6 +326,7 @@ function Result({
           exam again.
         </p>
       )}
+      {finalCard}
       <ol className="exam-review" aria-label="Your answers">
         {outcome.results.map((r, i) => {
           const q = questions[i];

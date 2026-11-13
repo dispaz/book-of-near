@@ -23,3 +23,31 @@ export interface StageClaim {
   /** base64 of the 64-byte ed25519 signature over `stageMessage`. */
   signature: string;
 }
+
+/** The four final badge tiers the contract accepts (`claim_final`), lowest first. */
+export type Rarity = "common" | "rare" | "epic" | "legendary";
+export const RARITIES: readonly Rarity[] = ["common", "rare", "epic", "legendary"];
+export const isRarity = (v: unknown): v is Rarity => RARITIES.includes(v as Rarity);
+
+/**
+ * `bon-badge-v1|<contract>|<account>|final|<route>|<rarity>|<expires_at_ms>`, signed as UTF-8 bytes.
+ * The contract rebuilds it with the caller (the predecessor) as `<account>` (contracts/badge `final_message`).
+ */
+export function finalMessage(
+  contractId: string,
+  accountId: string,
+  route: string,
+  rarity: Rarity,
+  expiresAtMs: number,
+): string {
+  return `bon-badge-v1|${contractId}|${accountId}|final|${route}|${rarity}|${expiresAtMs}`;
+}
+
+/** A final badge claim signed by the claim key, ready for `claim_final`. */
+export interface FinalClaim {
+  route: string;
+  rarity: Rarity;
+  expiresAtMs: number;
+  /** base64 of the 64-byte ed25519 signature over `finalMessage`. */
+  signature: string;
+}
