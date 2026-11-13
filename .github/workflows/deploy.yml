@@ -7,6 +7,7 @@
 #   VITE_CHAIN_MODE        demo | testnet (default: demo)
 #   VITE_WORKER_URL        https://<worker>.workers.dev
 #   VITE_RETURN_ACCOUNT_ID testnet account lesson transfers go back to
+#   VITE_ENABLE_MAINNET    "true" turns on the mainnet wallet and 4.2's real swap (default: off, testnet only)
 name: Deploy
 
 on:
@@ -57,6 +58,7 @@ jobs:
           VITE_CHAIN_MODE: ${{ vars.VITE_CHAIN_MODE || 'demo' }}
           VITE_WORKER_URL: ${{ vars.VITE_WORKER_URL }}
           VITE_RETURN_ACCOUNT_ID: ${{ vars.VITE_RETURN_ACCOUNT_ID }}
+          VITE_ENABLE_MAINNET: ${{ vars.VITE_ENABLE_MAINNET }}
 
       - name: Deploy to Cloudflare Pages
         id: deploy

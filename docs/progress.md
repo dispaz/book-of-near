@@ -608,3 +608,9 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
   - `DEMO_STAGE_COUNT` and `CLAIMABLE_BADGES` are now 7 (stages 0 to 6, after #85's stage 5), so My book counts "of 7". The contract needs the stage 5 badge first, and the claim card says so.
 - The stage 6 "DeFi map" locked card is gone (`coverage.ts`).
 - E2E covers: a walk in 2D and 3D, reduced motion, `?webgl=0`, the phone layout, 2D to 3D keeping the trade, 0 idle frames (the flows settle), rule 10a in 2D and 3D, and the stage 6 badge in demo mode (refused before stage 5, claimed after). The lesson is also on the render-on-demand list.
+- Review fixes: the stage 6 README matches the lesson (recorded data, Rhea Dex and Rhea Lend, a stored price has an age). "Rhea's biggest USDC/NEAR pool" (all 9,018 `v2.ref-finance.near` pools scanned, in the topic) with a note that a router can split a big trade; "about 0.01%"; the Pyth quote is the NEAR sentence only; tether.to is the USDt source. The Honest take and map labels are built from `money.ts`. 3D hint and detail picks now update the shared state like 2D (new `Pickable` `onNotYet`).
+
+## 2026-11-13 · Testnet-only build: mainnet behind `VITE_ENABLE_MAINNET` (Refs #66)
+
+- The submission is testnet only. New build flag `VITE_ENABLE_MAINNET` (`src/app/flags.ts`), off by default. With it off: lesson 4.2 step 5 offers only the dry-run finish and the demo wallet's simulated swap, with "This build is testnet only: the real swap is switched off." (no "Use my own wallet", no mainnet buttons); `/wallet` shows a short testnet-only note; `WalletPanel` hides the switch; the NEAR Connect loader is dead code, so its chunk is not built. `MainnetWalletProvider` stays mounted because 4.2 uses its demo wallet. With the flag on, everything is as before.
+- e2e: 4.2 checks the testnet-only step 5; `wallet.spec.ts` checks the note, and its demo-wallet test runs only with `VITE_ENABLE_MAINNET=true npm run e2e`.
