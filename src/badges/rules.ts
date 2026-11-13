@@ -117,6 +117,27 @@ export const STAGE_RULES: StageRule[] = [
       },
     ],
   },
+  {
+    // Stage 7 is a look back, and it sends nothing on testnet. 7.1's `txHash` is the learner's 4.2 swap
+    // (NEAR Intents on mainnet), a demo-wallet hash, or the recorded replay id: never a testnet
+    // transaction the Worker could look up, so it is not asked for. The keys show the trace was settled
+    // (7.1) and the scoreboard read (7.2); the contract's stage order (stage 6 first, back to 4.1's
+    // chain signature) is what ties the badge to on-chain work.
+    stage: 7,
+    lessons: ["l-7-1-trace-an-intent", "l-7-2-honest-scoreboard"],
+    evidence: [
+      {
+        lessonId: "l-7-1-trace-an-intent",
+        keys: ["capstoneComplete"],
+        todo: "Trace the intent to its settlement in lesson 7.1.",
+      },
+      {
+        lessonId: "l-7-2-honest-scoreboard",
+        keys: ["scoreboardReviewed"],
+        todo: "Open all four scoreboard cards in lesson 7.2.",
+      },
+    ],
+  },
 ];
 
 /**

@@ -74,7 +74,7 @@ Total: 2:10. If the cut runs long, shorten shot 1 or 2 first (to 8 s).
 
 Do these in order. Re-read https://nearhackathon.com/HACKATHON.md before sending the form.
 
-- [ ] **Merge the open PRs** you want in the submission. The final exam PR (#102) already updates the README and the form text; the final badge (#29) and the stage 7 badge are still in progress, so if either merges, update the README's "in progress" line and "Honest limitations".
+- [ ] **Merge the open PRs** you want in the submission. The final exam PR (#102) already updates the README and the form text; the stage 7 badge PR makes stages 0 to 7 claimable; the final badge (#29) is still in progress, so if it merges, update the README's "in progress" line and "Honest limitations".
 - [ ] **Release** the final `main` to Cloudflare Pages: `git push origin origin/main:refs/heads/release`. Then check https://book-of-near.pages.dev/version.json shows the new version. (On 13 Nov the live site was v0.2.2 from 12 Nov, without badges and lessons 5.1, 6.1 and 7.2.)
 - [ ] **Worker for testnet badge claims and exams** (optional, otherwise testnet claims and testnet exam grading fail on the live site; demo mode always works; `/exam` uses the same key): `cd worker && npx wrangler secret put CLAIM_SIGNING_KEY && npx wrangler deploy`, then set the repo variable `VITE_WORKER_URL` and release again. Steps: `docs/badge-contract.md`.
 - [ ] **Tag the submission** on the commit you submit: `git tag -a hackathon-submission <commit> -m "Hackathon submission" && git push origin hackathon-submission`. The `pre-hackathon` tag is already pushed (`ab3a53e`). Check the README's compare link opens: https://github.com/dispaz/book-of-near/compare/pre-hackathon...hackathon-submission

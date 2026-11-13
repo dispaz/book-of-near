@@ -292,10 +292,10 @@ test.describe(`lesson ${ID}`, () => {
     await box(5).getByRole("button", { name: "Claim the stage 5 badge" }).click();
     await expect(box(5)).toContainText("Stage 5 badge claimed");
     await page.goto("/my-book");
-    await expect(page.getByText("6 of 7 claimed.")).toBeVisible();
+    await expect(page.getByText("6 of 8 claimed.")).toBeVisible();
     const shelf = page.getByRole("list", { name: "My badges" });
     await expect(shelf.locator('[data-stage="5"]')).toContainText("Claimed");
-    await expect(shelf.locator('[data-stage="7"]')).toContainText("Badge not available yet");
+    await expect(shelf.locator('[data-stage="7"]')).toContainText("Not claimed yet");
   });
 });
 

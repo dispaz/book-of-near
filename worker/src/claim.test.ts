@@ -165,9 +165,47 @@ describe("claim (POST /claim): checks evidence on testnet, then signs", () => {
     expect(body.stage).toBe(5);
     expect(await k.verify(body.signature, stageMessage(CONTRACT, ME, 5, body.expiresAtMs))).toBe(true);
     expect(look.asked).toEqual([]);
-    // Stage 7 has no rule yet.
-    for (const stage of [7])
-      expect((await claim({ accountId: ME, stage, evidence: {} }, deps)).status).toBe(400);
+  });
+
+  it("stage 7: signs with 7.1's settled trace and 7.2's read scoreboard, looks nothing up, refuses without them", async () => {
+    const k = await testKey();
+    const deps = { contractId: CONTRACT, signingKey: k.secret, lookup: lookup({}), now: NOW };
+    const evidence = {
+      "l-7-1-trace-an-intent": {
+        capstoneComplete: "true",
+        txHash: "recorded-demo-intent",
+        intentSource: "recorded",
+      },
+      "l-7-2-honest-scoreboard": { scoreboardReviewed: "true", recordedOn: "2026-11-13" },
+    };
+    const r = await claim({ accountId: ME, stage: 7, evidence }, deps);
+    expect(r.status).toBe(200);
+    const body = r.body as { stage: number; expiresAtMs: number; signature: string };
+    expect(body.stage).toBe(7);
+    expect(await k.verify(body.signature, stageMessage(CONTRACT, ME, 7, body.expiresAtMs))).toBe(true);
+    // The recorded replay id is not a testnet transaction: the Worker does not look it up.
+    expect(deps.lookup.asked).toEqual([]);
+
+    const noBoard = await claim(
+      { accountId: ME, stage: 7, evidence: { "l-7-1-trace-an-intent": evidence["l-7-1-trace-an-intent"] } },
+      deps,
+    );
+    expect(noBoard.status).toBe(403);
+    expect((noBoard.body as { error: string }).error).toMatch(/lesson 7\.2/);
+
+    const noTrace = await claim(
+      {
+        accountId: ME,
+        stage: 7,
+        evidence: { "l-7-2-honest-scoreboard": evidence["l-7-2-honest-scoreboard"] },
+      },
+      deps,
+    );
+    expect(noTrace.status).toBe(403);
+    expect((noTrace.body as { error: string }).error).toMatch(/lesson 7\.1/);
+
+    // Stage 8 does not exist (the contract has stages 0 to 7).
+    expect((await claim({ accountId: ME, stage: 8, evidence }, deps)).status).toBe(400);
   });
 
   it("stage 3 refuses someone else's deploy, even when the evidence names its parent", async () => {
@@ -247,7 +285,8 @@ describe("claim (POST /claim): checks evidence on testnet, then signs", () => {
     const k = await testKey();
     const deps = { contractId: CONTRACT, signingKey: k.secret, lookup: lookup({}), now: NOW };
     expect((await claim({ accountId: "NOT VALID", stage: 0, evidence: {} }, deps)).status).toBe(400);
-    expect((await claim({ accountId: ME, stage: 9, evidence: {} }, deps)).status).toBe(400);
+    for (const stage of [8, 9, -1, 1.5])
+      expect((await claim({ accountId: ME, stage, evidence: {} }, deps)).status).toBe(400);
     expect((await claim("nope", deps)).status).toBe(400);
   });
 });
