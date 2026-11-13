@@ -1,0 +1,460 @@
+/* Lesson 5.1: ask a private AI and verify it. One state, a flat page (2D) or the pop-up book (3D). */
+.pai {
+  position: absolute;
+  top: var(--head-h, 112px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--bar-reserve, 88px) + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .pai {
+    top: var(--head-h, 104px);
+    left: 448px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    gap: 12px;
+  }
+}
+.pai p,
+.pai-panel p {
+  margin: 0;
+}
+.pai code,
+.pai-panel code {
+  font:
+    600 13px ui-monospace,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- flat page ---------- */
+.pai-2d {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 6px;
+}
+.pai-2d svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 46vh;
+}
+.pai-move {
+  transition: transform 0.9s ease-in-out;
+}
+.pai-box {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.pai-lid {
+  fill: var(--paper-2);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+.pai-plain {
+  stroke: var(--ink);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.pai-perimeter {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+.pai-perimeter.on {
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-dasharray: none;
+}
+.pai-chip {
+  fill: var(--ink);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.pai-pins line {
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+.pai-lock {
+  fill: var(--accent);
+  stroke: var(--card);
+  stroke-width: 2;
+}
+.pai-shackle {
+  fill: none;
+  stroke: var(--card);
+  stroke-width: 2.5;
+}
+.pai-svg-note {
+  font: 600 13px var(--ui);
+  fill: var(--mute);
+}
+.pai-svg-note.mid {
+  text-anchor: middle;
+}
+/* "Not yet": a short shake. A pick: the object's own animation, like its 3D one (rule 10a). Two names
+   each, so a second click plays it again. Reduced motion keeps only the outline and colour change. */
+.pai-shake0 {
+  animation: pai-shake0 0.45s ease-out;
+}
+.pai-shake1 {
+  animation: pai-shake1 0.45s ease-out;
+}
+.pai-pick-terminal0 {
+  animation: pai-pick-terminal0 0.6s ease-out;
+}
+.pai-pick-terminal1 {
+  animation: pai-pick-terminal1 0.6s ease-out;
+}
+.pai-pick-server0 {
+  animation: pai-pick-server0 0.7s ease-out;
+}
+.pai-pick-server1 {
+  animation: pai-pick-server1 0.7s ease-out;
+}
+.pai-pick-enclave0 {
+  animation: pai-pick-enclave0 0.8s ease-out;
+}
+.pai-pick-enclave1 {
+  animation: pai-pick-enclave1 0.8s ease-out;
+}
+.pai-pick-root0 {
+  animation: pai-pick-root0 0.7s ease-out;
+}
+.pai-pick-root1 {
+  animation: pai-pick-root1 0.7s ease-out;
+}
+.pai-pick-quote0 {
+  animation: pai-pick-quote0 0.8s ease-out;
+}
+.pai-pick-quote1 {
+  animation: pai-pick-quote1 0.8s ease-out;
+}
+.pai-pick-seal0 {
+  animation: pai-pick-seal0 0.5s ease-out;
+}
+.pai-pick-seal1 {
+  animation: pai-pick-seal1 0.5s ease-out;
+}
+.pai-shake0,
+.pai-shake1,
+.pai-pick-terminal0,
+.pai-pick-terminal1,
+.pai-pick-server0,
+.pai-pick-server1,
+.pai-pick-enclave0,
+.pai-pick-enclave1,
+.pai-pick-root0,
+.pai-pick-root1,
+.pai-pick-quote0,
+.pai-pick-quote1,
+.pai-pick-seal0,
+.pai-pick-seal1 {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes pai-shake0 {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+@keyframes pai-shake1 {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+@keyframes pai-pick-terminal0 {
+  /* Tilts forward, like leaning in to send. */
+  45% {
+    transform: skewX(-8deg) translateX(4px);
+  }
+}
+@keyframes pai-pick-terminal1 {
+  /* Tilts forward, like leaning in to send. */
+  45% {
+    transform: skewX(-8deg) translateX(4px);
+  }
+}
+@keyframes pai-pick-server0 {
+  /* Rocks: nothing stops anyone reading it. */
+  25% {
+    transform: rotate(-5deg);
+  }
+  60% {
+    transform: rotate(3deg);
+  }
+}
+@keyframes pai-pick-server1 {
+  /* Rocks: nothing stops anyone reading it. */
+  25% {
+    transform: rotate(-5deg);
+  }
+  60% {
+    transform: rotate(3deg);
+  }
+}
+@keyframes pai-pick-enclave0 {
+  /* Pulses twice: the sealed perimeter at work. */
+  25%,
+  75% {
+    transform: scale(1.07);
+  }
+  50% {
+    transform: scale(1);
+  }
+}
+@keyframes pai-pick-enclave1 {
+  /* Pulses twice: the sealed perimeter at work. */
+  25%,
+  75% {
+    transform: scale(1.07);
+  }
+  50% {
+    transform: scale(1);
+  }
+}
+@keyframes pai-pick-root0 {
+  /* Lunges at the enclave and bounces back. */
+  40% {
+    transform: translate(-14px, 10px);
+  }
+}
+@keyframes pai-pick-root1 {
+  /* Lunges at the enclave and bounces back. */
+  40% {
+    transform: translate(-14px, 10px);
+  }
+}
+@keyframes pai-pick-quote0 {
+  /* Lifts and turns over, like unfolding it to read. */
+  30% {
+    transform: translateY(-8px) scaleX(1);
+  }
+  60% {
+    transform: translateY(-8px) scaleX(-1);
+  }
+}
+@keyframes pai-pick-quote1 {
+  /* Lifts and turns over, like unfolding it to read. */
+  30% {
+    transform: translateY(-8px) scaleX(1);
+  }
+  60% {
+    transform: translateY(-8px) scaleX(-1);
+  }
+}
+@keyframes pai-pick-seal0 {
+  /* Stamps down once. */
+  35% {
+    transform: translateY(-10px);
+  }
+  65% {
+    transform: translateY(2px) scale(0.95);
+  }
+}
+@keyframes pai-pick-seal1 {
+  /* Stamps down once. */
+  35% {
+    transform: translateY(-10px);
+  }
+  65% {
+    transform: translateY(2px) scale(0.95);
+  }
+}
+.pai.still .pai-move {
+  transition: none;
+}
+.pai.still .pai-shake0,
+.pai.still .pai-shake1,
+.pai.still .pai-pick-terminal0,
+.pai.still .pai-pick-terminal1,
+.pai.still .pai-pick-server0,
+.pai.still .pai-pick-server1,
+.pai.still .pai-pick-enclave0,
+.pai.still .pai-pick-enclave1,
+.pai.still .pai-pick-root0,
+.pai.still .pai-pick-root1,
+.pai.still .pai-pick-quote0,
+.pai.still .pai-pick-quote1,
+.pai.still .pai-pick-seal0,
+.pai.still .pai-pick-seal1 {
+  animation: none;
+}
+
+/* ---------- facts (both views) ---------- */
+.pai-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: 500 14px var(--ui);
+}
+.pai-dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 2px 12px;
+  margin: 0;
+}
+.pai-dl dt {
+  font-weight: 700;
+}
+.pai-dl dd {
+  margin: 0;
+  min-width: 0;
+}
+.pai-ram-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+.pai-ram {
+  margin: 0;
+  padding: 6px 8px;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  background: var(--card);
+}
+.pai-ram figcaption {
+  font-weight: 700;
+  font-size: 13px;
+}
+.pai-ram pre {
+  margin: 4px 0 0;
+  font:
+    600 12px ui-monospace,
+    Menlo,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.pai-ram.sealed {
+  border-left: 4px solid var(--accent);
+}
+.pai-ram.plain {
+  border-left: 4px solid var(--red);
+}
+.pai-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pai-q {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 4px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px 12px 2px 12px;
+  background: var(--paper-2);
+  font-weight: 600;
+}
+.pai-a {
+  max-width: 95%;
+  min-height: 3em;
+  padding: 6px 10px;
+  border: 1.5px solid var(--ink);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px 12px 12px 2px;
+  background: var(--card);
+}
+.pai-checks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pai-checks li.ok span {
+  color: var(--green);
+  font-weight: 800;
+}
+.pai-checks li.bad span {
+  color: var(--red);
+  font-weight: 800;
+}
+.pai-line {
+  font-weight: 600;
+}
+.pai-note {
+  color: var(--mute);
+  font-size: 13px;
+}
+.pai-note.not-yet {
+  color: var(--ink);
+  border-left: 4px solid var(--accent);
+  padding-left: 6px;
+}
+.pai-warn {
+  padding: 4px 8px;
+  border-left: 4px solid var(--red);
+  background: var(--card);
+  color: var(--red);
+  font-weight: 600;
+}
+.pai-ok {
+  padding: 4px 8px;
+  border-left: 4px solid var(--green);
+  background: var(--card);
+  font-weight: 700;
+}
+
+/* ---------- 3D: the facts in the book scene's panel ---------- */
+.pai-panel .pai-facts.compact {
+  max-height: min(30vh, 250px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+@media (min-width: 1100px) {
+  .pai-panel .pai-facts.compact {
+    max-height: min(27vh, 236px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pai-move {
+    transition: none;
+  }
+  .pai-shake0,
+  .pai-shake1,
+  .pai-pick-terminal0,
+  .pai-pick-terminal1,
+  .pai-pick-server0,
+  .pai-pick-server1,
+  .pai-pick-enclave0,
+  .pai-pick-enclave1,
+  .pai-pick-root0,
+  .pai-pick-root1,
+  .pai-pick-quote0,
+  .pai-pick-quote1,
+  .pai-pick-seal0,
+  .pai-pick-seal1 {
+    animation: none;
+  }
+}
