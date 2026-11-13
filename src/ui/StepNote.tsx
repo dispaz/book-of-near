@@ -191,6 +191,9 @@ export function StepNote({
     let placed = "";
     let idle = 0;
     let misses = 0;
+    // The open note's height with its text. The card has no text while it is hidden (not placed yet, or
+    // docked), so measuring it then would say a docked note fits and bring it back over the dock.
+    let textH = 0;
     const tick = () => {
       raf = requestAnimationFrame(tick);
       const el = layer.querySelector(`[data-explain="${anchor}"]`);
@@ -208,7 +211,6 @@ export function StepNote({
         }
         return;
       }
-      misses = 0;
       const L = layer.getBoundingClientRect();
       const rel = (r: DOMRect): Rect => ({
         left: r.left - L.left,
@@ -230,7 +232,9 @@ export function StepNote({
             ? rel(dock.getBoundingClientRect()).top
             : L.height - (2 * num("--bar-gap", 16) + num("--bar-h", 56))) - 14,
       };
-      const size = { w: c.offsetWidth || W, h: c.offsetHeight || 120 };
+      const open = !c.classList.contains("folded");
+      if (open && c.querySelector(".note-text")) textH = c.offsetHeight;
+      const size = { w: c.offsetWidth || W, h: (open && textH) || c.offsetHeight || 120 };
       // The note lives in the margin or in the dock, never on top of the page. If the element is not
       // right of the margin (or the margin is too short), treat it like a missing element: dock.
       if (!fitsMargin(rel(a), size, margin)) {
@@ -241,6 +245,8 @@ export function StepNote({
         }
         return;
       }
+      // Reset only once the note fits: a margin that stays too short must reach the dock fallback above.
+      misses = 0;
       // Route the arrow when the element, the note or the page moved, and twice a second for cards
       // that appear around it (routing probes the page, so not on every frame).
       const ar = rel(a);
