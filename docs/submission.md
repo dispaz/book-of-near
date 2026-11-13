@@ -21,7 +21,7 @@ Everything the owner needs to submit Book of NEAR to the NEAR Hackathon 2026. Ru
 
 The live site, https://book-of-near.pages.dev, goes in the README and in the X post, not in the demo URL field.
 
-### "What you built" (1,635 characters)
+### "What you built" (1,741 characters)
 
 Count it again after any edit: copy the text between the markers into a file and run `wc -m`.
 
@@ -33,7 +33,7 @@ The problem: newcomers cannot realistically learn how NEAR works. Docs assume pr
 
 The product: 20 lessons in 8 stages. You make a key pair and its 12 recovery words, send a transaction and watch it reach finality, claim a name.testnet account, give an app a function-call key that can call one contract and watch the chain refuse its misuse, batch actions and see them roll back, follow a transaction across shards, deploy a contract and see a cross-contract callback fail, and sign an Ethereum Sepolia transaction from your NEAR account with Chain Signatures. A dry NEAR Intents quote shows a cross-chain swap.
 
-How NEAR fits in: in testnet mode the lessons run on real NEAR testnet through one Chain interface. Finishing a stage lets you claim a non-transferable NFT badge on our testnet contract (badges.bon-badges-mwe57oab.testnet). A Cloudflare Worker checks your own testnet transactions before signing the claim for stages 0 to 4. "My book" shows your badges and /check verifies anyone's.
+How NEAR fits in: in testnet mode the lessons run on real NEAR testnet through one Chain interface. Finishing a stage lets you claim a non-transferable NFT badge on our testnet contract (badges.bon-badges-mwe57oab.testnet). A Cloudflare Worker checks your own testnet transactions before signing the claim for stages 0 to 4. "My book" shows your badges and /check verifies anyone's. The badges open a 15-question final exam; on testnet the Worker grades it and signs a receipt for a pass.
 
 Demo mode needs no wallet and no network, so judges can run it with one command: npm install && npm run dev. Live: https://book-of-near.pages.dev. Testnet only. Built with Claude Code agents, disclosed in the README.
 
@@ -74,9 +74,9 @@ Total: 2:10. If the cut runs long, shorten shot 1 or 2 first (to 8 s).
 
 Do these in order. Re-read https://nearhackathon.com/HACKATHON.md before sending the form.
 
-- [ ] **Merge the open PRs** you want in the submission (the final exam is in review; if it merges, update the README's lesson list and "in progress" line).
+- [ ] **Merge the open PRs** you want in the submission. The final exam PR (#102) already updates the README and the form text; the final badge (#29) and the stage 7 badge are still in progress, so if either merges, update the README's "in progress" line and "Honest limitations".
 - [ ] **Release** the final `main` to Cloudflare Pages: `git push origin origin/main:refs/heads/release`. Then check https://book-of-near.pages.dev/version.json shows the new version. (On 13 Nov the live site was v0.2.2 from 12 Nov, without badges and lessons 5.1, 6.1 and 7.2.)
-- [ ] **Worker for testnet badge claims** (optional, otherwise testnet claims fail on the live site; demo claims always work): `cd worker && npx wrangler secret put CLAIM_SIGNING_KEY && npx wrangler deploy`, then set the repo variable `VITE_WORKER_URL` and release again. Steps: `docs/badge-contract.md`.
+- [ ] **Worker for testnet badge claims and exams** (optional, otherwise testnet claims and testnet exam grading fail on the live site; demo mode always works; `/exam` uses the same key): `cd worker && npx wrangler secret put CLAIM_SIGNING_KEY && npx wrangler deploy`, then set the repo variable `VITE_WORKER_URL` and release again. Steps: `docs/badge-contract.md`.
 - [ ] **Tag the submission** on the commit you submit: `git tag -a hackathon-submission <commit> -m "Hackathon submission" && git push origin hackathon-submission`. The `pre-hackathon` tag is already pushed (`ab3a53e`). Check the README's compare link opens: https://github.com/dispaz/book-of-near/compare/pre-hackathon...hackathon-submission
 - [ ] **Make the repository public** (GitHub → Settings → Danger zone, or `gh repo edit dispaz/book-of-near --visibility public --accept-visibility-change-consequences`) and keep it public through judging.
 - [ ] **Mainnet payout account**: create `name.near` (or use a 64-character implicit account) in your own wallet. Agents never create it.

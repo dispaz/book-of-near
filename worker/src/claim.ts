@@ -7,6 +7,7 @@
 import { CLAIM_TTL_MS, stageMessage } from "../../src/badges/message";
 import { lessonNumber, ruleFor } from "../../src/badges/rules";
 import { b58decode, b64encode, b64urlEncode } from "./bytes";
+import { MISSING, rpcFirst } from "./rpc";
 
 /** A claim body is a few hashes: anything bigger is refused before it is parsed. */
 export const MAX_CLAIM_BODY_BYTES = 4 * 1024;
@@ -227,33 +228,24 @@ export function rpcLookup(
   fetchFn: typeof fetch = fetch,
 ): TxLookup {
   return {
-    async tx(hash, senderId) {
-      let lastError: unknown = null;
-      for (const url of urls) {
-        try {
-          const res = await fetchFn(url, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              jsonrpc: "2.0",
-              id: "claim",
-              method: "tx",
-              params: { tx_hash: hash, sender_account_id: senderId, wait_until: "FINAL" },
-            }),
-          });
-          const json = (await res.json()) as { result?: RpcTx; error?: { cause?: { name?: string } } };
+    tx: (hash, senderId) =>
+      rpcFirst(
+        urls,
+        fetchFn,
+        {
+          id: "claim",
+          method: "tx",
+          params: { tx_hash: hash, sender_account_id: senderId, wait_until: "FINAL" },
+        },
+        (raw) => {
+          const json = raw as { result?: RpcTx; error?: { cause?: { name?: string } } };
           if (json.result) return toTxInfo(json.result);
           const cause = json.error?.cause?.name;
           if (cause !== "UNKNOWN_TRANSACTION" && cause !== "INVALID_TRANSACTION")
             throw new Error(cause ?? "rpc");
-        } catch (e) {
-          lastError = e;
-          continue;
-        }
-      }
-      if (lastError) throw lastError;
-      return null;
-    },
+          return MISSING;
+        },
+      ),
   };
 }
 

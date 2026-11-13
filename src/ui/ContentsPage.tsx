@@ -124,6 +124,9 @@ export function ContentsPage() {
         <Link className="pill" to="/check">
           Badge checker
         </Link>
+        <Link className="pill" to="/exam">
+          Final exam
+        </Link>
         {route && route !== "newcomer" && !stage0Done ? (
           <Link className="pill" to="/test-out">
             Test out of stage 0
