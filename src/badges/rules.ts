@@ -98,6 +98,25 @@ export const STAGE_RULES: StageRule[] = [
     lessons: ["l-5-1-private-ai", "l-5-2-agent-with-no-owner"],
     evidence: [],
   },
+  {
+    // Nothing in stage 6 happens on chain: 6.1's vote is a practice vote (kind "practice") and 6.2 reads
+    // recorded data (kind "recorded"). The evidence shows the learner did the step; the contract's stage
+    // order (stage 5 first, back to 4.1's chain signature) is what ties the badge to on-chain work.
+    stage: 6,
+    lessons: ["l-6-1-vote-on-a-proposal", "l-6-2-live-money-map"],
+    evidence: [
+      {
+        lessonId: "l-6-1-vote-on-a-proposal",
+        keys: ["voteCast"],
+        todo: "Cast your practice vote in lesson 6.1.",
+      },
+      {
+        lessonId: "l-6-2-live-money-map",
+        keys: ["pair"],
+        todo: "Trade 100,000 USDC in the two pools in lesson 6.2.",
+      },
+    ],
+  },
 ];
 
 /**

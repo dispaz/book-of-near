@@ -7,6 +7,7 @@
 import { CLAIM_TTL_MS, stageMessage } from "../../src/badges/message";
 import { lessonNumber, ruleFor } from "../../src/badges/rules";
 import { b58decode, b64encode, b64urlEncode } from "./bytes";
+import { MISSING, rpcFirst } from "./rpc";
 
 /** A claim body is a few hashes: anything bigger is refused before it is parsed. */
 export const MAX_CLAIM_BODY_BYTES = 4 * 1024;
@@ -163,6 +164,11 @@ async function checkStage(stage: number, account: string, ev: Evidence, lookup: 
       // Lessons 5.1 and 5.2 send nothing on chain (rules.ts), so there is nothing to look up. The badge
       // contract still refuses the claim until the account holds the stage 4 badge.
       return;
+    case 6:
+      // Nothing on chain to check: 6.1 is a practice vote and 6.2 reads recorded data. The rule's evidence
+      // keys (checked in `claim`) show the steps were done; the contract refuses stage 6 until the account
+      // holds stage 5, so the badge still rests on the earlier stages' on-chain work.
+      return;
   }
 }
 
@@ -222,33 +228,24 @@ export function rpcLookup(
   fetchFn: typeof fetch = fetch,
 ): TxLookup {
   return {
-    async tx(hash, senderId) {
-      let lastError: unknown = null;
-      for (const url of urls) {
-        try {
-          const res = await fetchFn(url, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              jsonrpc: "2.0",
-              id: "claim",
-              method: "tx",
-              params: { tx_hash: hash, sender_account_id: senderId, wait_until: "FINAL" },
-            }),
-          });
-          const json = (await res.json()) as { result?: RpcTx; error?: { cause?: { name?: string } } };
+    tx: (hash, senderId) =>
+      rpcFirst(
+        urls,
+        fetchFn,
+        {
+          id: "claim",
+          method: "tx",
+          params: { tx_hash: hash, sender_account_id: senderId, wait_until: "FINAL" },
+        },
+        (raw) => {
+          const json = raw as { result?: RpcTx; error?: { cause?: { name?: string } } };
           if (json.result) return toTxInfo(json.result);
           const cause = json.error?.cause?.name;
           if (cause !== "UNKNOWN_TRANSACTION" && cause !== "INVALID_TRANSACTION")
             throw new Error(cause ?? "rpc");
-        } catch (e) {
-          lastError = e;
-          continue;
-        }
-      }
-      if (lastError) throw lastError;
-      return null;
-    },
+          return MISSING;
+        },
+      ),
   };
 }
 

@@ -1,4 +1,6 @@
 import type { ChainMode } from "../app/types";
+import type { ExamReceipt } from "../exam/grade";
+import type { ExamRoute } from "../exam/routes";
 
 /** A path through the book, picked by the opening quiz. */
 export type Route = "newcomer" | "veteran" | "developer";
@@ -28,6 +30,28 @@ export interface Position {
   step: number;
 }
 
+/**
+ * The learner's best final exam result on one exam route, in one mode, for one account (issue #28).
+ * Evidence for the final badge (#29): a passed result carries the receipt the Worker (testnet) or the
+ * demo key (demo) signed. Results for another mode or account sit beside it and are never compared
+ * with it, so a demo pass can never hide the testnet receipt #29 needs.
+ */
+export interface ExamRecord {
+  route: ExamRoute;
+  /** The account the exam was taken for (its badges opened the exam). */
+  accountId: string;
+  mode: ChainMode;
+  score: number;
+  total: number;
+  passed: boolean;
+  /** ISO 8601 time of this result. */
+  takenAt: string;
+  /** Attempts on this route so far, this one included. */
+  attempts: number;
+  /** A passed exam's signed receipt (src/exam/grade.ts `examMessage`). */
+  receipt?: ExamReceipt;
+}
+
 export interface ProgressState {
   v: 1;
   route: Route | null;
@@ -35,4 +59,6 @@ export interface ProgressState {
   position: Position | null;
   /** Evidence reported by a scene before the lesson is finished, by lesson id. */
   evidence: Record<string, Record<string, string>>;
+  /** Final exam results by `examKey(route, mode, accountId)`; absent before the first attempt. */
+  exams?: Record<string, ExamRecord>;
 }

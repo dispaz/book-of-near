@@ -60,13 +60,12 @@ test.describe("badges in demo mode", () => {
     const shelf = page.getByRole("list", { name: "My badges" });
     await expect(shelf.locator('[data-stage="0"]')).toContainText("Claimed");
     await expect(shelf.locator('[data-stage="1"]')).toContainText("Not claimed yet");
-    await expect(page.getByText("1 of 6 claimed.")).toBeVisible();
-    // Eight slots, counted out of the 6 claimable (stages 0 to 5). 6 and 7 have a lesson but no badge rule
-    // yet (stage 6's waits for lesson 6.2).
+    await expect(page.getByText("1 of 7 claimed.")).toBeVisible();
+    // Eight slots, counted out of the 7 claimable (stages 0 to 6). 7 has lessons but no badge rule yet.
     await expect(shelf.getByRole("listitem")).toHaveCount(8);
-    for (const n of [6, 7])
-      await expect(shelf.locator(`[data-stage="${n}"]`)).toContainText("Badge not available yet");
-    await expect(shelf.locator('[data-stage="5"]')).toContainText("Not claimed yet");
+    await expect(shelf.locator('[data-stage="7"]')).toContainText("Badge not available yet");
+    for (const n of [5, 6])
+      await expect(shelf.locator(`[data-stage="${n}"]`)).toContainText("Not claimed yet");
     await expect(shelf.locator('[data-stage="5"]')).toContainText("Stage 5: Enclave");
     await expect(shelf.locator('[data-stage="6"]')).toContainText("Stage 6: Citizen");
     await expect(shelf.locator('[data-stage="4"]')).toContainText("Not claimed yet");
@@ -143,7 +142,52 @@ test.describe("badges in demo mode", () => {
     await box1.getByRole("button", { name: "Claim the stage 1 badge" }).click();
     await expect(box1).toContainText("Stage 1 badge claimed");
     await page.goto("/my-book");
-    await expect(page.getByText("2 of 6 claimed.")).toBeVisible();
+    await expect(page.getByText("2 of 7 claimed.")).toBeVisible();
+  });
+
+  test("stage 6: a practice vote and recorded data claim the badge, once stage 5 is held", async ({
+    page,
+  }) => {
+    const STAGE6 = [
+      done("l-6-1-vote-on-a-proposal", {
+        proposalId: "42",
+        voteCast: "true",
+        choice: "yes",
+        power: "300",
+        kind: "practice",
+      }),
+      done("l-6-2-live-money-map", {
+        pair: "USDC/USDt",
+        amountIn: "100000",
+        recordedOn: "2026-11-13",
+        kind: "recorded",
+      }),
+    ];
+    await seed(page, [...STAGE0, ...STAGE6]);
+    await page.goto("/");
+    const box6 = claimBox(page, 6);
+    // The contract needs the stage 5 badge first, and the card says so.
+    await expect(box6).toContainText("Claim the stage 5 badge first.");
+    await expect(box6.getByRole("button", { name: /Claim/ })).toHaveCount(0);
+
+    // Hold stages 0 to 5 (as if claimed one by one), then the stage 6 claim goes through.
+    await claimBox(page, 0).getByRole("button", { name: "Claim the stage 0 badge" }).click();
+    await expect(claimBox(page, 0)).toContainText("Stage 0 badge claimed");
+    await page.evaluate(() => {
+      const [first] = JSON.parse(localStorage.getItem("bon:demo-badges:v1")!) as {
+        owner: string;
+        mintedAtMs: number;
+      }[];
+      const held = [0, 1, 2, 3, 4, 5].map((stage) => ({
+        owner: first!.owner,
+        stage,
+        mintedAtMs: first!.mintedAtMs,
+      }));
+      localStorage.setItem("bon:demo-badges:v1", JSON.stringify(held));
+    });
+    await page.reload();
+    await box6.getByRole("button", { name: "Claim the stage 6 badge" }).click();
+    await expect(box6).toContainText("Stage 6 badge claimed");
   });
 
   test("the claim card works on a phone and with reduced motion", async ({ page }) => {
@@ -197,6 +241,6 @@ test("plays lessons 0.1 to 0.3 in demo mode, then claims the stage 0 badge and s
   await box.getByRole("link", { name: "My book" }).click();
   const shelf = page.getByRole("list", { name: "My badges" });
   await expect(shelf.locator('[data-stage="0"]')).toContainText("Claimed");
-  await expect(page.getByText("1 of 6 claimed.")).toBeVisible();
+  await expect(page.getByText("1 of 7 claimed.")).toBeVisible();
   expect(errors).toEqual([]);
 });

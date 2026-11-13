@@ -26,6 +26,7 @@ if (typeof window !== "undefined") {
       completions: () => progress.completions(),
       isComplete: (id: string) => progress.isComplete(id),
       resumeTarget: () => progress.resumeTarget(),
+      exam: (...args: Parameters<Progress["exam"]>) => progress.exam(...args),
     }),
   };
 }
@@ -36,4 +37,4 @@ export function useProgress(): ProgressState {
 }
 
 export type { Progress } from "./store";
-export type { CompletionRecord, Position, ProgressState, Route } from "./types";
+export type { CompletionRecord, ExamRecord, Position, ProgressState, Route } from "./types";

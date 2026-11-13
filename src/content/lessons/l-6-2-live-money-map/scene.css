@@ -1,0 +1,213 @@
+/* Lesson 6.2: the live money map. One state, a flat page (2D) or the pop-up book (3D). */
+.money {
+  position: absolute;
+  top: var(--head-h, 112px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--bar-reserve, 88px) + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .money {
+    top: var(--head-h, 104px);
+    left: 448px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    gap: 12px;
+  }
+}
+.money p,
+.money-panel p {
+  margin: 0;
+}
+
+/* ---------- flat page ---------- */
+.money-2d {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 6px;
+}
+.money-2d svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 46vh;
+}
+/* "Not yet": a short shake. Two names, so a second early click plays it again. */
+.money-shake0 {
+  animation: money-shake0 0.45s ease-out;
+}
+.money-shake1 {
+  animation: money-shake1 0.45s ease-out;
+}
+@keyframes money-shake0 {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+@keyframes money-shake1 {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+.money.still .money-shake0,
+.money.still .money-shake1 {
+  animation: none;
+}
+
+/* ---------- facts (both views) ---------- */
+.money-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: 500 14px var(--ui);
+}
+.money-dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 2px 12px;
+  margin: 0;
+}
+.money-dl dt {
+  font-weight: 700;
+}
+.money-dl dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.money-status {
+  padding: 4px 8px;
+  border-left: 4px solid var(--accent);
+  background: var(--card);
+  font-weight: 600;
+}
+.money-status.done {
+  border-left-color: var(--green);
+}
+.money-lock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.money-lock input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.money-proposal {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.money-example {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mute);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.money-tally {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.money-bar {
+  display: flex;
+  height: 12px;
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  background: var(--card);
+  overflow: hidden;
+}
+.money-bar-yes {
+  background: var(--green);
+}
+.money-bar-no {
+  background: var(--red);
+}
+.money-side {
+  color: var(--mute);
+  font-size: 13px;
+}
+.money-note {
+  color: var(--mute);
+  font-size: 13px;
+}
+.money-note.not-yet {
+  color: var(--ink);
+  border-left: 4px solid var(--accent);
+  padding-left: 6px;
+}
+
+/* ---------- 3D: the facts in the book scene's panel ---------- */
+.money-panel .money-facts.compact {
+  max-height: min(30vh, 250px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+@media (min-width: 1100px) {
+  .money-panel .money-facts.compact {
+    max-height: min(27vh, 236px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .money-shake0,
+  .money-shake1 {
+    animation: none;
+  }
+}
+
+/* ---------- lesson 6.2 extras ---------- */
+.money-recorded {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mute);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.money-trade {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+/* The intent flows: dashes running from the NEAR Intents area. They stop under reduced motion. */
+.money-flow {
+  animation: money-flow 1.2s linear 3;
+}
+@keyframes money-flow {
+  to {
+    stroke-dashoffset: -36;
+  }
+}
+.money.still .money-flow {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .money-flow {
+    animation: none;
+  }
+}

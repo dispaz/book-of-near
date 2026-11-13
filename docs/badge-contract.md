@@ -57,6 +57,7 @@ The contract trusts whoever holds the claim key, so the Worker that signs must:
 - **Check evidence first** (stage finished, exam score), then sign. Never sign a rarity the client chose.
   `worker/src/claim.ts` does this on testnet: each transaction must be sent by the learner (or the name they made in 1.1, or the fresh parent 3.1 made for an implicit account, proved by its `create_account` hash) and be the kind the lesson sends (0.3 and 2.1: one Transfer; 1.2: AddKey then DeleteKey; 3.1: DeployContract to a contract under the learner's account; 4.1: a call to the MPC signer). One hash may not stand for two pieces of evidence in one claim. The body is capped at 4 KB, and an RPC failure answers 502, never "not found".
 - **Stage 5 is signed with no testnet lookup** (issue #85, a deliberate decision for a testnet learning badge). Lessons 5.1 and 5.2 send no transaction, so there is nothing on chain to check: `case 5` in `checkEvidence` returns at once. The only on-chain gate is the contract's "previous badge first" rule. Stage 4 needs a real lesson 4.1 call to `v1.signer-prod.testnet`, so in effect the Worker signs stage 5 for any account that already holds the stage 4 badge. Lesson 5.1's `attestationHash` is not used as evidence: the client reports it, and the Worker cannot verify it (it is a hash of a quote fetched in the browser, not a transaction it can look up), so checking it would add no real gate.
+- **Stage 6 is signed with no testnet lookup** (issue #87). Lesson 6.1's vote is a practice vote and 6.2 reads recorded data, so nothing is sent on chain: `case 6` returns at once. The Worker still requires the rule's evidence keys (6.1's `voteCast`, 6.2's `pair`), which the client reports and which prove nothing on chain. As with stage 5, the real gate is the contract's "previous badge first" rule, back to 4.1's chain signature.
 - Keep the claim secret key only in Worker secrets.
 
 Operators must deploy with the single-step `with-init-call new` below. `new` has no access check of its own, so a deploy followed by a separate `new` call could be front-run.
@@ -87,7 +88,7 @@ The art for stages 5 (Enclave), 6 (Citizen) and 7 (Book of NEAR) is in `public/b
 node scripts/deploy-badge.mjs art --keys stage-5,stage-6,stage-7
 ```
 
-The contract has eight stages, but the app opens a claim only for a stage with a rule in `src/badges/rules.ts`. Today that is stages 0 to 5 (stage 5 since issue #85). `CLAIMABLE_BADGES` (the stages with a rule) and `DEMO_STAGE_COUNT` are both 6, so the shelf counts "N of 6 claimed" in demo mode and on testnet. Stages 6 and 7 have lessons but no rule yet, so they show "Badge not available yet" and no claim card. A stage with no lessons would show "Not open yet"; none is left. The contract requires each previous stage's badge, so stage 7 cannot be claimed until stage 6 has a rule and a claimed badge.
+The contract has eight stages, but the app opens a claim only for a stage with a rule in `src/badges/rules.ts`. Today that is stages 0 to 6 (stage 5 since issue #85, stage 6 since #87). `CLAIMABLE_BADGES` (the stages with a rule) and `DEMO_STAGE_COUNT` are both 7, so the shelf counts "N of 7 claimed" in demo mode and on testnet. Stage 7 has lessons but no rule yet, so it shows "Badge not available yet" and no claim card. A stage with no lessons would show "Not open yet"; none is left. The contract requires each previous stage's badge, so stage 7 cannot be claimed until it has a rule and stage 6's badge is claimed.
 
 First real claim (stage 0, Worker run locally): learner `bon-learner-mwe61s8i.testnet`, evidence transfer `AQ63WVtJWPYtAzFka5XgRc5miHEuZkYZD3gtYrRpgyPY`, `claim_stage` `EAuadk9PtuXBfee1fMx32okJyo6t2xCMbwJkumk8XJ1o` → token `1`. The image shows on explorers once `https://book-of-near.pages.dev/badges/stage-0.svg` is deployed.
 
@@ -124,15 +125,41 @@ For mainnet repeat with a mainnet account and a different claim key (out of scop
 
 ## The app side (issue #68)
 
-- **Rules in one place:** `src/badges/rules.ts` lists each stage's required lessons (only lessons that exist; a test keeps the list equal to the open lessons) and the evidence keys checked. Stage 0: 0.3's `txHash`. Stage 1: 1.1's `txHash` + `accountId` and 1.2's `addKeyTxHash` + `txHash`. Stage 2: 2.1's `txHash`. Stage 3: 3.1's `txHash` + `contractId`. Stage 4: 4.1's `mpcTxHash`. Stage 5: lessons 5.1 and 5.2, no evidence (see Worker requirements). A tested-out lesson counts as finished, but an evidence lesson still needs its evidence.
+- **Rules in one place:** `src/badges/rules.ts` lists each stage's required lessons (only lessons that exist; a test keeps the list equal to the open lessons) and the evidence keys checked. Stage 0: 0.3's `txHash`. Stage 1: 1.1's `txHash` + `accountId` and 1.2's `addKeyTxHash` + `txHash`. Stage 2: 2.1's `txHash`. Stage 3: 3.1's `txHash` + `contractId`. Stage 4: 4.1's `mpcTxHash`. Stage 5: lessons 5.1 and 5.2, no evidence (see Worker requirements). Stage 6: 6.1's `voteCast` (a practice vote) and 6.2's `pair` (the recorded trade), both accepted in demo mode. A tested-out lesson counts as finished, but an evidence lesson still needs its evidence.
 - **Worker `POST /claim`** (`worker/src/claim.ts`): rate-limited per IP, per account and in total; checks the evidence on testnet with RPC `tx` (the transaction exists, succeeded and was sent by the learner, by the name the learner made in 1.1, or for 3.1 by the contract's parent; 1.1 must be the learner's own `create_account` for that name; 1.2 must add and delete a key; 3.1 must deploy to the named contract; 4.1 must call `v1.signer-prod.testnet`). Then it signs `stage_message` with a 5-minute expiry it chooses itself.
 - **Chain interface:** `claimBadge`, `badgesOf`, `hasBadge`, `badgeContractId` (`docs/chain.md`). DemoChain runs a simulated badge contract with the same rules (one per stage, previous stage, signature, expiry against block time, no deposit). Demo claims are signed in the browser with a public demo key; demo badges are kept in localStorage (`bon:demo-badges:v1`) so a reload keeps them.
 - **UI:** the claim card at the end of each stage on the contents page and under "Lesson done" on a stage's last lesson (not yet / ready / claiming / claimed / failed); `/my-book` (the shelf); `/check?account=...` (anyone's badges, no login).
 - **Art:** `npm run badges:art` (`scripts/badges-art.mjs`) writes `public/badges/stage-<n>.svg` and `art.json` (base64 sha256 per file); `node scripts/deploy-badge.mjs art` sends `set_art`. Dev preview: `npm run dev`, then `/badges-preview`.
 - **No nonce in the claim:** the contract's message has none. A replayed claim is refused because the stage is already claimed, and an unused claim dies after 5 minutes.
 
+## The final exam (issue #28)
+
+Page `/exam` (pill "Final exam" on the contents page). Code in `src/exam/`, Worker route `POST /exam` (`worker/src/exam.ts`). It is a form, so it is 2D only: there is no scene to switch to, and nothing moves (reduced motion needs no change).
+
+- **Routes.** `general` (newcomers and veterans) and `developer` (`src/exam/routes.ts`). 15 questions each, a fixed set (`src/exam/bank.ts`), no question shared. Every question comes from a lesson's own check, with the options reordered. The general route has no stage 3 question; the developer route has five.
+- **Gate (the spec's rule).** The exam opens when the practice account holds every stage badge its route requires, read with `Chain.hasBadge` (demo contract in demo mode, testnet contract in testnet mode; the Worker reads `has_badge` on testnet again before grading). General: stages 0, 1, 2. Developer: stages 0 to 4. Why not stage 4 for general: the contract mints stage `n` only to a holder of `n - 1`, so a learner who skips the optional builder stage 3 can never hold stage 4. Lesson 7.1 is not part of the gate.
+- **Pass mark.** 80%, 12 of 15. Retakes are unlimited in the app (the Worker allows 10 attempts per account per UTC day). Every answer is explained after grading.
+- **Answer key.** `src/exam/answerKey.ts`. App code may only load it with `import()` (unit test), so Vite puts it in its own chunk. Testnet mode does not load it: the Worker grades. Demo mode has no network by rule, so it loads that chunk at the moment it grades a demo exam. The e2e test checks that no script the page downloads before grading holds the key, and that the chunk demo grading loads does (so the check can fail). After every graded attempt the explanations show the right answers, by design.
+- **The key is not a secret.** It is in the public repo, the Worker returns every `answer` and `why` after any graded attempt, and the demo chunk is a public asset. Keeping it off the page before grading only stops a casual peek. A testnet receipt is worth something because the Worker signs it (after re-reading the badges on testnet) and because the final claim checks that signature and the badge gate, not because the key is hidden.
+- **Result.** Kept in the progress store (`bon:v1`, field `exams`), one record per route, mode and account (key `examKey(route, mode, accountId)` in `src/progress/store.ts`): `{ route, accountId, mode, score, total, passed, takenAt, attempts, receipt? }`. Within one slot a pass is never replaced by a fail or a lower pass. A result in another mode or for another account sits beside it, so a high demo pass can never hide a lower testnet pass and its Worker-signed receipt. Read it with `progress.exam(route, mode, accountId)`.
+- **Receipt (the evidence for #29).** A pass is signed over one line:
+
+  ```
+  bon-exam-v1|<contract>|<account>|<route>|<score>|<total>|<passed_at_ms>
+  ```
+
+  Testnet: by the Worker with `CLAIM_SIGNING_KEY`, at the Worker's own time. Demo: in the browser with the public demo claim key, so it is worth nothing outside this browser. The `bon-exam-v1` prefix never equals a `bon-badge-v1` claim, so the contract cannot take a receipt for a mint claim.
+
+### What #29 needs from this
+
+1. Owner, once (not run): `set_route("general", [0, 1, 2])` and `set_route("developer", [0, 1, 2, 3, 4])` on the testnet contract, so `claim_final` accepts the same routes the exam gates on.
+2. A Worker route for the final claim that takes `{ accountId, route, receipt }` from `progress.exam(route, "testnet", accountId)`, verifies the receipt's signature against the claim key's public key and its fields (`examMessage` in `src/exam/grade.ts`), computes the rarity from the score and the other facts it can check, and signs `bon-badge-v1|...|final|<route>|<rarity>|<expires_at_ms>`. Demo mode does the same with the demo key and the demo contract.
+3. A `claimFinal` on the Chain interface (DemoChain and TestnetChain) next to `claimBadge`, and a final claim card on `/exam` after a pass.
+4. `POST /exam` does not prove that the caller controls the account. Anyone can send answers for any account id that holds the badges and get a receipt for it. The receipt only says "this account's badges were held and these answers scored this much".
+5. So the final claim must bind the receipt to the caller. `claim_final` mints to the predecessor, so the claim path (the Worker's final claim route, the contract, or both) must check that the receipt's account equals the account that signs the `claim_final` transaction (the predecessor). A receipt for someone else's account must not mint a badge to the caller.
+
 ## Not done here
 
 - Day rollover of the daily cap: the sandbox clock is wall-clock time, so a new UTC day cannot be reached in a test. The logic (`day != self.day` resets the counter) is covered only by reading.
 - The optional transferable collector twin of the final badge.
-- The final badge (exam route, rarity) in the app: #28, #29.
+- The final badge (rarity, `claim_final`) in the app: #29. The exam it builds on is above (#28).

@@ -1,4 +1,13 @@
-import { ROUTES, type CompletionRecord, type Position, type ProgressState, type Route } from "./types";
+import type { ChainMode } from "../app/types";
+import type { ExamRoute } from "../exam/routes";
+import {
+  ROUTES,
+  type CompletionRecord,
+  type ExamRecord,
+  type Position,
+  type ProgressState,
+  type Route,
+} from "./types";
 
 /** Versioned so a future format can ignore or migrate old data. */
 export const STORAGE_KEY = "bon:v1";
@@ -18,6 +27,13 @@ export interface Progress {
   recordPosition(lessonId: string, step: number): void;
   /** Where "Continue where you left off" points, or null before any lesson was opened. */
   resumeTarget(): Position | null;
+  /**
+   * Stores a final exam attempt (issue #28) and returns the record kept for its route, mode and
+   * account (`keepBest`). Another mode or account never touches that record.
+   */
+  recordExam(result: Omit<ExamRecord, "attempts">): ExamRecord;
+  /** The kept final exam record for this route, mode and account, or null before the first attempt. */
+  exam(route: ExamRoute, mode: ChainMode, accountId: string): ExamRecord | null;
   subscribe(fn: () => void): () => void;
   /** Immutable state, replaced on every change (for useSyncExternalStore). */
   snapshot(): ProgressState;
@@ -26,6 +42,44 @@ export interface Progress {
 }
 
 const empty = (): ProgressState => ({ v: 1, route: null, completions: [], position: null, evidence: {} });
+
+const isExamRecord = (r: unknown): r is ExamRecord => {
+  const e = r as Partial<ExamRecord> | null;
+  return (
+    !!e &&
+    (e.route === "general" || e.route === "developer") &&
+    (e.mode === "demo" || e.mode === "testnet") &&
+    typeof e.accountId === "string" &&
+    Number.isInteger(e.score) &&
+    Number.isInteger(e.total) &&
+    typeof e.passed === "boolean" &&
+    Number.isInteger(e.attempts)
+  );
+};
+
+/** Where an exam record is filed in `ProgressState.exams`: one slot per route, mode and account. */
+export const examKey = (route: ExamRoute, mode: ChainMode, accountId: string): string =>
+  `${route}|${mode}|${accountId}`;
+
+/** Only well-formed exam records, filed under their own key, survive a reload; none leaves the field out. */
+function parseExams(raw: unknown): Pick<ProgressState, "exams"> {
+  if (!raw || typeof raw !== "object") return {};
+  const exams: NonNullable<ProgressState["exams"]> = {};
+  for (const [key, rec] of Object.entries(raw as Record<string, unknown>))
+    if (isExamRecord(rec) && examKey(rec.route, rec.mode, rec.accountId) === key) exams[key] = rec;
+  return Object.keys(exams).length ? { exams } : {};
+}
+
+/**
+ * The record kept after an attempt on the same route, mode and account: a pass is never replaced by a
+ * fail or a lower pass, otherwise the newest attempt wins. Attempts always count up. Callers only
+ * pass a `prev` from the same slot (`examKey`); a different mode or account starts its own record.
+ */
+export function keepBest(prev: ExamRecord | undefined, next: Omit<ExamRecord, "attempts">): ExamRecord {
+  const attempts = (prev?.attempts ?? 0) + 1;
+  if (prev?.passed && (!next.passed || next.score < prev.score)) return { ...prev, attempts };
+  return { ...next, attempts };
+}
 
 function parse(raw: string | null): ProgressState {
   if (!raw) return empty();
@@ -41,6 +95,7 @@ function parse(raw: string | null): ProgressState {
         : [],
       position: pos && typeof pos.lessonId === "string" && Number.isInteger(pos.step) ? pos : null,
       evidence: d.evidence && typeof d.evidence === "object" ? d.evidence : {},
+      ...parseExams(d.exams),
     };
   } catch {
     return empty();
@@ -108,6 +163,16 @@ export function createProgress(storage: KeyValueStorage | null): Progress {
       commit({ ...state, position: { lessonId, step } });
     },
     resumeTarget: () => (state.position ? { ...state.position } : null),
+    recordExam: (result) => {
+      const key = examKey(result.route, result.mode, result.accountId);
+      const kept = keepBest(state.exams?.[key], result);
+      commit({ ...state, exams: { ...state.exams, [key]: kept } });
+      return { ...kept };
+    },
+    exam: (route, mode, accountId) => {
+      const r = state.exams?.[examKey(route, mode, accountId)];
+      return r ? { ...r } : null;
+    },
     subscribe: (fn) => {
       listeners.add(fn);
       return () => void listeners.delete(fn);
