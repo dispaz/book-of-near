@@ -4,6 +4,7 @@ import { useChain } from "../chain/ChainContext";
 import { isValidAccountId } from "../chain/accountId";
 import type { StageBadge } from "../chain/types";
 import { BadgeShelf } from "./BadgeShelf";
+import { STAGE_BADGES } from "./config";
 import "./badges.css";
 
 type Load = { s: "loading" } | { s: "done"; badges: StageBadge[] } | { s: "error"; text: string };
@@ -51,7 +52,9 @@ export function MyBookPage() {
         {load.s === "done" ? (
           <>
             <p className="badge-count">
-              {count === 0 ? "No badges yet. Finish stage 0 to claim the first." : `${count} of 5 claimed.`}
+              {count === 0
+                ? "No badges yet. Finish stage 0 to claim the first."
+                : `${count} of ${STAGE_BADGES} claimed.`}
             </p>
             <BadgeShelf badges={load.badges} label="My badges" dates={chain.network === "testnet"} />
             {account ? (
@@ -135,7 +138,7 @@ export function CheckerPage() {
           <>
             <p className="badge-count">
               <code>{asked}</code> holds{" "}
-              {load.badges.length === 0 ? "no badges" : `${load.badges.length} of 5 badges`}.
+              {load.badges.length === 0 ? "no badges" : `${load.badges.length} of ${STAGE_BADGES} badges`}.
             </p>
             <BadgeShelf
               badges={load.badges}

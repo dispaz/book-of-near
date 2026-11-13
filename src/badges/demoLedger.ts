@@ -4,6 +4,7 @@
  * Storage errors are swallowed: the badges then last for the visit only.
  */
 import type { DemoBadgeSeed } from "../chain/demo/badges";
+import { STAGE_BADGES } from "./config";
 
 export const DEMO_BADGES_KEY = "bon:demo-badges:v1";
 
@@ -17,7 +18,7 @@ export function loadDemoBadges(storage: Pick<Storage, "getItem"> | null = safeSt
         typeof b.owner === "string" &&
         Number.isInteger(b.stage) &&
         b.stage >= 0 &&
-        b.stage < 5 &&
+        b.stage < STAGE_BADGES &&
         typeof b.mintedAtMs === "number",
     );
   } catch {

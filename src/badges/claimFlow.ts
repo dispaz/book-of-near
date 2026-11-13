@@ -69,8 +69,10 @@ async function workerClaim(
 /**
  * For end-to-end tests and curious reviewers: `__bookOfNear.badges.replayLastClaim()` sends the last
  * signed claim again, straight to the contract, and returns its refusal ("ok" if it was accepted).
+ * Dev server and e2e builds only (`VITE_E2E=1`, set by playwright.config.ts): never in a release build.
  */
 function exposeReplay(chain: Chain, claim: StageClaim) {
+  if (!import.meta.env.DEV && import.meta.env.VITE_E2E !== "1") return;
   if (typeof window === "undefined") return;
   const w = window as unknown as { __bookOfNear?: Record<string, unknown> };
   w.__bookOfNear = {

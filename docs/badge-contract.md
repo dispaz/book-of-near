@@ -55,6 +55,7 @@ The contract trusts whoever holds the claim key, so the Worker that signs must:
 - **Rate-limit signing** per account and per IP. The global daily cap is a denial-of-service lever: anyone who can get claims signed can use up the day's mints.
 - **Sign short expiries** (minutes, not days) and never accept an `expires_at_ms` from the client.
 - **Check evidence first** (stage finished, exam score), then sign. Never sign a rarity the client chose.
+  `worker/src/claim.ts` does this on testnet: each transaction must be sent by the learner (or the name they made in 1.1, or the fresh parent 3.1 made for an implicit account, proved by its `create_account` hash) and be the kind the lesson sends (0.3 and 2.1: one Transfer; 1.2: AddKey then DeleteKey; 3.1: DeployContract to a contract under the learner's account; 4.1: a call to the MPC signer). One hash may not stand for two pieces of evidence in one claim. The body is capped at 4 KB, and an RPC failure answers 502, never "not found".
 - Keep the claim secret key only in Worker secrets.
 
 Operators must deploy with the single-step `with-init-call new` below. `new` has no access check of its own, so a deploy followed by a separate `new` call could be front-run.

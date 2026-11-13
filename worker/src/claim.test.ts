@@ -28,6 +28,8 @@ const ok = (signerId: string, receiverId: string, actions: TxInfo["actions"] = [
   ok: true,
   actions,
 });
+/** Lesson 0.3's transaction: one Transfer action. */
+const transfer = (signerId: string, receiverId: string) => ok(signerId, receiverId, [{ type: "Transfer" }]);
 
 function lookup(txs: Record<string, TxInfo>): TxLookup & { asked: string[] } {
   const asked: string[] = [];
@@ -61,7 +63,7 @@ describe("claim (POST /claim): checks evidence on testnet, then signs", () => {
       {
         contractId: CONTRACT,
         signingKey: k.secret,
-        lookup: lookup({ T0: ok(ME, "book-of-near.testnet") }),
+        lookup: lookup({ T0: transfer(ME, "book-of-near.testnet") }),
         now: NOW,
       },
     );
@@ -111,7 +113,7 @@ describe("claim (POST /claim): checks evidence on testnet, then signs", () => {
     const k = await testKey();
     const txs = {
       ...stage1Txs,
-      TR: ok(ME, "x.testnet"),
+      TR: transfer(ME, "x.testnet"),
       DEP: ok("me-name.testnet", "counter.me-name.testnet", [{ type: "DeployContract" }]),
       MPC: ok(ME, "v1.signer-prod.testnet", [{ type: "FunctionCall", methodName: "sign" }]),
     };
@@ -126,6 +128,79 @@ describe("claim (POST /claim): checks evidence on testnet, then signs", () => {
       expect((await claim({ accountId: ME, stage, evidence: ev }, deps)).status).toBe(200);
     const wrongContract = { ...ev, "l-3-1-deploy-a-contract": { txHash: "DEP", contractId: "evil.testnet" } };
     expect((await claim({ accountId: ME, stage: 3, evidence: wrongContract }, deps)).status).toBe(403);
+  });
+
+  it("stage 3 refuses someone else's deploy, even when the evidence names its parent", async () => {
+    const k = await testKey();
+    const txs = { ...stage1Txs, ALICE: ok("alice.testnet", "x.alice.testnet", [{ type: "DeployContract" }]) };
+    const deps = { contractId: CONTRACT, signingKey: k.secret, lookup: lookup(txs), now: NOW };
+    const ev = {
+      ...stage1Evidence,
+      "l-3-1-deploy-a-contract": { txHash: "ALICE", contractId: "x.alice.testnet" },
+    };
+    expect((await claim({ accountId: ME, stage: 3, evidence: ev }, deps)).status).toBe(403);
+  });
+
+  it("stage 3 accepts a deploy from a parent the learner made in 3.1 (an implicit account has no sub-accounts)", async () => {
+    const k = await testKey();
+    const made = ok(ME, "testnet", [
+      { type: "FunctionCall", methodName: "create_account", args: { new_account_id: "bon-abc.testnet" } },
+    ]);
+    const txs = {
+      ...stage1Txs,
+      PARENT: made,
+      DEP: ok("bon-abc.testnet", "counter.bon-abc.testnet", [{ type: "DeployContract" }]),
+      ALICE: ok("alice.testnet", "x.alice.testnet", [{ type: "DeployContract" }]),
+    };
+    const deps = { contractId: CONTRACT, signingKey: k.secret, lookup: lookup(txs), now: NOW };
+    const ev = (e: Record<string, string>) => ({ ...stage1Evidence, "l-3-1-deploy-a-contract": e });
+    const good = ev({ txHash: "DEP", contractId: "counter.bon-abc.testnet", parentTxHash: "PARENT" });
+    expect((await claim({ accountId: ME, stage: 3, evidence: good }, deps)).status).toBe(200);
+    // A parent-creation tx that made a different name does not vouch for alice.testnet.
+    const bad = ev({ txHash: "ALICE", contractId: "x.alice.testnet", parentTxHash: "PARENT" });
+    expect((await claim({ accountId: ME, stage: 3, evidence: bad }, deps)).status).toBe(403);
+  });
+
+  it("stages 0 and 2 need the one-transfer transaction lessons 0.3 and 2.1 really use", async () => {
+    const k = await testKey();
+    const txs = {
+      CALL: ok(ME, "x.testnet", [{ type: "FunctionCall", methodName: "anything" }]),
+      KEY: ok(ME, ME, [{ type: "AddKey" }]),
+    };
+    const deps = { contractId: CONTRACT, signingKey: k.secret, lookup: lookup(txs), now: NOW };
+    for (const h of ["CALL", "KEY"]) {
+      const s0 = { "l-0-3-send-a-transaction": { txHash: h } };
+      const s2 = { "l-2-1-follow-across-shards": { txHash: h } };
+      expect((await claim({ accountId: ME, stage: 0, evidence: s0 }, deps)).status).toBe(403);
+      expect((await claim({ accountId: ME, stage: 2, evidence: s2 }, deps)).status).toBe(403);
+    }
+  });
+
+  it("refuses one hash used for two lessons' evidence in the same claim", async () => {
+    const k = await testKey();
+    const both = ok("me-name.testnet", "me-name.testnet", [{ type: "AddKey" }, { type: "DeleteKey" }]);
+    const deps = {
+      contractId: CONTRACT,
+      signingKey: k.secret,
+      lookup: lookup({ ...stage1Txs, BOTH: both }),
+      now: NOW,
+    };
+    const ev = { ...stage1Evidence, "l-1-2-function-call-key": { addKeyTxHash: "BOTH", txHash: "BOTH" } };
+    const r = await claim({ accountId: ME, stage: 1, evidence: ev }, deps);
+    expect(r.status).toBe(403);
+    expect((r.body as { error: string }).error).toMatch(/more than once/);
+  });
+
+  it("answers 502, not 'not found', when testnet RPC fails", async () => {
+    const k = await testKey();
+    const down: TxLookup = {
+      tx: () => Promise.reject(new Error("rpc down")),
+    };
+    const r = await claim(
+      { accountId: ME, stage: 0, evidence: { "l-0-3-send-a-transaction": { txHash: "T0" } } },
+      { contractId: CONTRACT, signingKey: k.secret, lookup: down, now: NOW },
+    );
+    expect(r.status).toBe(502);
   });
 
   it("refuses a bad request", async () => {
@@ -158,10 +233,29 @@ describe("POST /claim route", () => {
     expect((await handle(req(), env, { counters: memoryCounters() })).status).toBe(503);
   });
 
+  it("refuses a body over 4 KB (413) and one that is not JSON (400)", async () => {
+    const k = await testKey();
+    const e = { ...env, CLAIM_SIGNING_KEY: k.secret, BADGE_CONTRACT_ID: CONTRACT };
+    const o = { counters: memoryCounters(), lookup: lookup({}), now: () => NOW };
+    const post = (body: string) =>
+      new Request("https://worker.example/claim", {
+        method: "POST",
+        headers: { origin: "https://book-of-near.pages.dev", "cf-connecting-ip": "1.2.3.4" },
+        body,
+      });
+    const big = JSON.stringify({ accountId: ME, stage: 0, evidence: { pad: { x: "a".repeat(5000) } } });
+    expect((await handle(post(big), e, o)).status).toBe(413);
+    expect((await handle(post("{not json"), e, o)).status).toBe(400);
+  });
+
   it("is rate-limited per address", async () => {
     const k = await testKey();
     const e = { ...env, CLAIM_SIGNING_KEY: k.secret, BADGE_CONTRACT_ID: CONTRACT };
-    const o = { counters: memoryCounters(), lookup: lookup({ T0: ok(ME, "x.testnet") }), now: () => NOW };
+    const o = {
+      counters: memoryCounters(),
+      lookup: lookup({ T0: transfer(ME, "x.testnet") }),
+      now: () => NOW,
+    };
     const statuses = [];
     for (let i = 0; i < 3; i++) statuses.push((await handle(req(), e, o)).status);
     expect(statuses).toEqual([200, 200, 429]);

@@ -6,7 +6,7 @@
  *   GET  /health   { ok, faucet }
  * Secrets (never in the repo): FAUCET_ACCOUNT_ID, FAUCET_PRIVATE_KEY, CLAIM_SIGNING_KEY, optional ONECLICK_JWT. See README.md.
  */
-import { claim, rpcLookup, type TxLookup } from "./claim";
+import { claim, MAX_CLAIM_BODY_BYTES, rpcLookup, type TxLookup } from "./claim";
 import { faucet, type FaucetSender } from "./faucet";
 import { MAX_QUOTE_BODY_BYTES, quote, type Fetch } from "./intents";
 import { kvCounters, memoryCounters, takeSlot, type CounterStore, type KvLike } from "./limits";
@@ -183,9 +183,13 @@ export async function handle(request: Request, env: Env, o: Overrides = {}): Pro
   if (url.pathname === "/claim" && request.method === "POST") {
     if (!env.CLAIM_SIGNING_KEY || !env.BADGE_CONTRACT_ID)
       return json(503, { error: "Badge claims are not set up yet." }, origin);
+    const tooBig = () => json(413, { error: "The claim request is too big." }, origin);
+    if (Number(request.headers.get("content-length") ?? 0) > MAX_CLAIM_BODY_BYTES) return tooBig();
+    const text = await request.text();
+    if (new TextEncoder().encode(text).length > MAX_CLAIM_BODY_BYTES) return tooBig();
     let body: unknown;
     try {
-      body = await request.json();
+      body = JSON.parse(text);
     } catch {
       return json(400, { error: "Send JSON." }, origin);
     }

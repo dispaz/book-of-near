@@ -8,6 +8,9 @@ import { CLAIM_TTL_MS, stageMessage } from "../../src/badges/message";
 import { lessonNumber, ruleFor } from "../../src/badges/rules";
 import { b58decode, b64encode, b64urlEncode } from "./bytes";
 
+/** A claim body is a few hashes: anything bigger is refused before it is parsed. */
+export const MAX_CLAIM_BODY_BYTES = 4 * 1024;
+
 export interface TxAction {
   type: string;
   methodName?: string;
@@ -55,10 +58,13 @@ const refuse = (text: string): never => {
   throw new Refused(text);
 };
 
-/** The first sender in `senders` that really sent `hash`, or a refusal naming the lesson. */
+/**
+ * The first sender in `senders` that really sent `hash`, or a refusal naming the lesson. A lookup that
+ * throws (RPC down) is not "not found": it propagates and `claim` answers 502.
+ */
 async function findTx(lookup: TxLookup, hash: string, senders: string[], lessonId: string): Promise<TxInfo> {
   for (const s of new Set(senders)) {
-    const t = await lookup.tx(hash, s).catch(() => null);
+    const t = await lookup.tx(hash, s);
     if (t && t.signerId === s) {
       if (!t.ok) refuse(`The transaction from lesson ${lessonNumber(lessonId)} failed on testnet.`);
       return t;
@@ -70,53 +76,82 @@ async function findTx(lookup: TxLookup, hash: string, senders: string[], lessonI
 }
 
 /** Lesson 1.1: the learner's own `create_account` call that made the name. Returns the name. */
-async function verifiedName(lookup: TxLookup, account: string, ev: Evidence): Promise<string | null> {
+async function verifiedName(find: Find, account: string, ev: Evidence): Promise<string | null> {
   const e = ev["l-1-1-claim-your-name"];
   if (!e?.txHash || !isAccount(e.accountId)) return null;
-  const t = await findTx(lookup, e.txHash, [account], "l-1-1-claim-your-name");
-  const made = t.actions.some(
-    (a) => a.methodName === "create_account" && a.args?.new_account_id === e.accountId,
-  );
-  if (!made) refuse("The name from lesson 1.1 was not made by your account.");
+  const t = await find(e.txHash, [account], "l-1-1-claim-your-name");
+  if (!madeName(t, e.accountId!)) refuse("The name from lesson 1.1 was not made by your account.");
   return e.accountId!;
 }
 
 const parentOf = (id: string) => id.slice(id.indexOf(".") + 1);
 
+/** `t` is a `create_account` call that made `name`. */
+const madeName = (t: TxInfo, name: string) =>
+  t.actions.some((a) => a.methodName === "create_account" && a.args?.new_account_id === name);
+
+/** `id` is one of the learner's own accounts, or a sub-account of one. */
+const isOwn = (id: string, mine: string[]) => mine.some((m) => id === m || id.endsWith(`.${m}`));
+
+/** Lesson 0.3 sends one Transfer and nothing else; lesson 2.1 follows that same transaction. */
+const isTransfer = (t: TxInfo) => t.actions.length === 1 && t.actions[0]!.type === "Transfer";
+
+type Find = (hash: string, senders: string[], lessonId: string) => Promise<TxInfo>;
+
+/** `findTx` for one claim: each hash may stand for one piece of evidence only. */
+function finder(lookup: TxLookup): Find {
+  const used = new Set<string>();
+  return (hash, senders, lessonId) => {
+    if (used.has(hash))
+      refuse(`The same transaction is given more than once (lesson ${lessonNumber(lessonId)}).`);
+    used.add(hash);
+    return findTx(lookup, hash, senders, lessonId);
+  };
+}
+
 async function checkStage(stage: number, account: string, ev: Evidence, lookup: TxLookup) {
-  const named = stage >= 1 ? await verifiedName(lookup, account, ev) : null;
+  const find = finder(lookup);
+  const named = stage >= 1 ? await verifiedName(find, account, ev) : null;
   const mine = named ? [account, named] : [account];
   switch (stage) {
-    case 0:
-      await findTx(lookup, ev["l-0-3-send-a-transaction"]!.txHash!, mine, "l-0-3-send-a-transaction");
+    case 0: {
+      const t = await find(ev["l-0-3-send-a-transaction"]!.txHash!, mine, "l-0-3-send-a-transaction");
+      if (!isTransfer(t)) refuse("Lesson 0.3's transaction is not a transfer.");
       return;
+    }
     case 1: {
       if (!named) refuse("Claim your name in lesson 1.1.");
       const e = ev["l-1-2-function-call-key"]!;
-      const add = await findTx(lookup, e.addKeyTxHash!, mine, "l-1-2-function-call-key");
-      const del = await findTx(lookup, e.txHash!, mine, "l-1-2-function-call-key");
+      const add = await find(e.addKeyTxHash!, mine, "l-1-2-function-call-key");
+      const del = await find(e.txHash!, mine, "l-1-2-function-call-key");
       if (!add.actions.some((a) => a.type === "AddKey") || !del.actions.some((a) => a.type === "DeleteKey"))
         refuse("Lesson 1.2's transactions do not add and delete a key.");
       return;
     }
-    case 2:
-      await findTx(lookup, ev["l-2-1-follow-across-shards"]!.txHash!, mine, "l-2-1-follow-across-shards");
+    case 2: {
+      const t = await find(ev["l-2-1-follow-across-shards"]!.txHash!, mine, "l-2-1-follow-across-shards");
+      if (!isTransfer(t)) refuse("Lesson 2.1's transaction is not the transfer from lesson 0.3.");
       return;
+    }
     case 3: {
       const e = ev["l-3-1-deploy-a-contract"]!;
-      const t = await findTx(
-        lookup,
-        e.txHash!,
-        [...mine, parentOf(e.contractId!)],
-        "l-3-1-deploy-a-contract",
-      );
+      // Only the learner's own accounts count as senders, and the contract must live under one of them.
+      // For an implicit account, 3.1 makes a fresh parent first: it counts only when the learner's own
+      // `create_account` call made it (parentTxHash).
+      const owners = [...mine];
+      const parent = parentOf(e.contractId!);
+      if (!isOwn(e.contractId!, owners) && e.parentTxHash) {
+        const p = await find(e.parentTxHash, mine, "l-3-1-deploy-a-contract");
+        if (madeName(p, parent)) owners.push(parent);
+      }
+      if (!isOwn(e.contractId!, owners)) refuse("Lesson 3.1's contract is not under your account.");
+      const t = await find(e.txHash!, owners, "l-3-1-deploy-a-contract");
       if (t.receiverId !== e.contractId || !t.actions.some((a) => a.type === "DeployContract"))
         refuse("Lesson 3.1's transaction does not deploy your contract.");
       return;
     }
     case 4: {
-      const t = await findTx(
-        lookup,
+      const t = await find(
         ev["l-4-1-one-account-every-chain"]!.mpcTxHash!,
         mine,
         "l-4-1-one-account-every-chain",
