@@ -23,6 +23,11 @@ BADGE_CONTRACT_ID = "badges.bon-badges-mwe57oab.testnet"
 CLAIM_PER_IP_DAILY = "20"
 CLAIM_PER_ACCOUNT_DAILY = "10"
 CLAIM_GLOBAL_DAILY = "500"
+# Final exam (POST /exam): attempts per IP address, per account and in total per UTC day. Every attempt
+# counts, graded or refused.
+EXAM_PER_IP_DAILY = "30"
+EXAM_PER_ACCOUNT_DAILY = "10"
+EXAM_GLOBAL_DAILY = "2000"
 
 # Counters for the rate limits. Create the namespace once with
 #   npx wrangler kv namespace create FAUCET_LIMITS

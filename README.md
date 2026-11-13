@@ -86,7 +86,7 @@ Stage 7, Book of NEAR (capstone)
 - **7.1 Trace one intent end to end.** **Authorize intent**, follow it through your shard, the contract and settlement, then **Verify foreign settlement**. It replays your own 4.2 quote, or a recorded intent.
 - **7.2 The honest scoreboard.** Open the Accounts, Scalability, Speed and Liquidity cards and weigh NEAR against Ethereum, Solana and Cosmos, weak spots included.
 
-In progress at submission time, not part of this submission: the final exam.
+In progress at submission time, not part of this submission: the final badge (#29).
 
 ### Badges, "My book" and `/check`
 
@@ -99,6 +99,23 @@ In progress at submission time, not part of this submission: the final exam.
 | Open the contents before a stage is finished | The stage's card has no claim button yet; it lists what is missing. |
 
 Stage badges 0 to 7 can be claimed. Each needs the stage's lessons finished and the previous stage's badge. Stages 0 to 4 also need evidence from the learner's own transactions: 0.3's transfer, 1.1's account and 1.2's key, 2.1's transfer, 3.1's deploy, 4.1's Chain Signatures request. Stage 5 (lessons 5.1 and 5.2) sends nothing on chain, so it needs no transaction evidence; the contract still requires the stage 4 badge first (`src/badges/rules.ts`). Stage 6 (lessons 6.1 and 6.2) works the same way: a practice vote and recorded data, no transaction evidence, and the stage 5 badge first. Stage 7 (lessons 7.1 and 7.2) is the same: the traced intent settled and all four scoreboard cards opened, no transaction evidence, and the stage 6 badge first. A stage done in demo mode cannot claim a testnet badge; the card says why.
+
+### Final exam (`/exam`)
+
+Two routes, 15 fixed questions each, all taken from the lessons' own checks. The **general route** needs the stage 0, 1 and 2 badges; the **developer route** needs stages 0 to 4 (the contract mints stage n only to a holder of stage n - 1, so stage 4 is reachable only through the optional builder stage 3). The pass mark is 80%: 12 of 15.
+
+| Do | See |
+| --- | --- |
+| On the contents page, press the **Final exam** pill without the stage 2 badge | "The exam is locked", with each required badge marked "held" or "not yet", and a link back to claim them. |
+| Claim the missing badge, then open **Final exam** again | The 15 questions of the general route. |
+| Pick **Developer route** | The address gains `?route=developer`; it stays locked until you also hold the stage 3 and 4 badges. |
+| Press **Hand in my answers** with questions blank | "Answer every question first. 15 are still blank." Nothing is graded. |
+| Answer and hand in with 11 right | "Not passed yet", "You need 12 of 15", and every answer marked right or wrong with the right option and why it is right. |
+| Press **Take the exam again**, answer 12 or more right | "You passed the final exam". The result and its signed receipt are saved in this browser; the page shows your kept result and attempt count after a reload. A later fail never replaces a pass. |
+
+Retakes are unlimited in the app (the Worker allows 10 graded attempts per account per day). In demo mode the exam is graded in the browser and the receipt is signed with the public demo key, so it counts only in that browser. In testnet mode the Worker grades it (`POST /exam`): it re-reads the route's badges on testnet, grades, and signs a receipt for a pass with the claim key. Results are kept per route, mode and account, so a demo pass never stands in for a testnet one.
+
+The answer key is not secret. It is in this public repo, demo mode downloads it (as a separate chunk, only when it grades), and every graded attempt shows the right answers. A testnet pass is worth something because the Worker signs the receipt after checking the badges, not because the answers are hidden. The final badge (#29), which will check that receipt, is not built yet.
 
 ### Testnet mode
 
@@ -142,7 +159,7 @@ Tracks entered: `["open", "nfts", "security"]`. Explorer links use https://testn
 - **One `Chain` interface** (`src/chain/types.ts`) for everything on chain. Lessons never call RPC, wallets or SDKs directly; they call `useChain()`. Two implementations: `DemoChain` (deterministic, in the browser, no network; the default) and `TestnetChain` (`src/chain/testnet/`, near-kit for keys and signing, its own Borsh encoder, an RPC fallback list led by FastNEAR). A unit test (`src/chain/noNetworkImports.test.ts`) checks that the Chain interface files (`types.ts`, `errors.ts`, `shards.ts`, `units.ts`, `accountId.ts`, `ops.ts`) import no network code.
 - **Lessons are folders**: `src/content/lessons/<id>/manifest.ts` (steps, captions, check questions, honest take) plus lazy `Scene.tsx` / `Scene3D.tsx`. Stages are `src/content/stages/<n>-<slug>/stage.ts`. Both are found automatically. The researched copy is in `docs/lessons/stage-<n>/`.
 - **Scene kit** (`src/scene-kit/`): the ink style (black outlines, paper white, one accent per stage), SVG objects for 2D, and the 3D pop-up book (`BookScene`, react-three-fiber): objects rise from the right-hand page, step text is printed on the left page on wide screens, canvases draw only when something moves. See `docs/book-scene.md`.
-- **Cloudflare Worker** (`worker/`): `POST /faucet` (funds a practice account, rate-limited per IP and per day), `POST /intents/quote` (proxy to NEAR Intents 1Click, dry quotes, NEAR to USDC only), `POST /claim` (checks a learner's testnet evidence, then signs a 5-minute badge claim), `GET /health`. Keys live only in Worker secrets.
+- **Cloudflare Worker** (`worker/`): `POST /faucet` (funds a practice account, rate-limited per IP and per day), `POST /intents/quote` (proxy to NEAR Intents 1Click, dry quotes, NEAR to USDC only), `POST /claim` (checks a learner's testnet evidence, then signs a 5-minute badge claim), `POST /exam` (checks the route's badges on testnet, grades the final exam and signs a receipt for a pass), `GET /health`. Keys live only in Worker secrets.
 - **Badge contract** (`contracts/badge/`): Rust, see above.
 
 ## Tests
@@ -204,7 +221,7 @@ Diff of everything built during the hackathon: https://github.com/dispaz/book-of
 - **Testnet badge claims need our Worker.** The live site's testnet claim works only once the Worker is deployed with its claim signing key. The real claim above was made with the Worker running locally.
 - **Not every lesson was walked on live testnet.** 0.3, 3.1 and 4.1 were run end to end on testnet in the app; the chain calls of the other lessons are covered by the testnet contract suite, and their UI by demo-mode e2e tests.
 - **4.1 does not broadcast to Sepolia**: a derived address starts with 0 ETH. **4.2 shows one best quote**, not competing solver bids (1Click returns one). **3.2 runs on the simulated chain** in both modes. **5.1's tutor answers are pre-written** (NEAR AI chat needs an API key); the attestation check is real. **6.1's vote is a practice vote.** **6.2's figures are recorded** (13 Nov 2026), not live.
-- **No final exam or final badge yet.**
+- **No final badge yet.**
 - The public testnet faucet fallback limits accounts per IP address, so a reviewer may hit it; demo mode always works.
 
 ### Not part of this submission (present in the code, not verified live)
