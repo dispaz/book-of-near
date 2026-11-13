@@ -34,9 +34,14 @@ export function ExamPage() {
   const chain = useChain();
   const state = useProgress();
   const [params, setParams] = useSearchParams();
-  const route: ExamRoute = isExamRoute(params.get("route"))
-    ? (params.get("route") as ExamRoute)
-    : examRouteFor(state.route);
+  const asked = params.get("route");
+  // Local state, so the route radio follows a pick at once; the address (?route=) follows it.
+  const [route, setRoute] = useState<ExamRoute>(() =>
+    isExamRoute(asked) ? asked : examRouteFor(state.route),
+  );
+  useEffect(() => {
+    if (isExamRoute(asked)) setRoute(asked);
+  }, [asked]);
   const info = EXAM_ROUTE_INFO[route];
   const questions = questionsFor(route);
   const mark = passMark(questions.length);
@@ -142,7 +147,10 @@ export function ExamPage() {
                   type="radio"
                   name="exam-route"
                   checked={route === r}
-                  onChange={() => setParams({ route: r }, { replace: true })}
+                  onChange={() => {
+                    setRoute(r);
+                    setParams({ route: r }, { replace: true });
+                  }}
                 />
                 <span>
                   <strong>{EXAM_ROUTE_INFO[r].name}</strong>
