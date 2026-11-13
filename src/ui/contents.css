@@ -1,0 +1,398 @@
+/* The contents page: the first spread of the book, on the same desk as the lessons (see .lesson in
+   ink.css). Wide screens show two pages (title page | contents) with the spine between them; narrower
+   ones show one page holding both. Picking a lesson riffles leaves over the right page (.page-turn). */
+.contents-book {
+  --book-gap: 12px;
+  --shade: color-mix(in srgb, var(--ink) 13%, transparent);
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  height: calc(100% - 2 * var(--book-gap));
+  margin: var(--book-gap) calc(var(--book-gap) + 6px) var(--book-gap) var(--book-gap);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1.5px solid var(--ink);
+  border-radius: 4px 14px 14px 4px;
+  background: linear-gradient(90deg, var(--shade) 0, transparent 28px), var(--page);
+  box-shadow:
+    2px 2px 0 var(--page),
+    3px 3px 0 var(--ink),
+    5px 5px 0 var(--page),
+    6px 6px 0 var(--ink),
+    0 18px 40px color-mix(in srgb, var(--ink) 20%, transparent);
+}
+.book-leaf {
+  padding: 28px clamp(20px, 5vw, 56px) 20px;
+}
+.book-leaf.left {
+  padding-bottom: 0;
+}
+.book-leaf.left .folio {
+  display: none;
+}
+.title-page {
+  max-width: 560px;
+}
+.title-page h1 {
+  margin: 0 0 12px;
+  font: 700 clamp(40px, 7vw, 76px) / 1 var(--serif);
+  letter-spacing: -0.01em;
+}
+.title-page .lede {
+  margin: 0;
+}
+.title-page .resume {
+  margin: 20px 0 6px;
+}
+.title-page .path-bar {
+  margin: 10px 0 0;
+}
+.title-note {
+  margin: 18px 0 0;
+  font: 600 20px/1.2 var(--hand);
+  color: var(--mute);
+}
+.folio {
+  margin: 28px 0 0;
+  text-align: center;
+  font: 600 20px var(--hand);
+  color: var(--mute);
+}
+
+@media (min-width: 1100px) {
+  /* The open book: two pages, each scrolling on its own, the spine shaded between them. */
+  .contents-book {
+    grid-template-columns: 1fr 1fr;
+    overflow: hidden;
+    margin-left: calc(var(--book-gap) + 6px);
+    border-radius: 14px;
+    background: var(--page);
+    box-shadow:
+      2px 2px 0 var(--page),
+      3px 3px 0 var(--ink),
+      5px 5px 0 var(--page),
+      6px 6px 0 var(--ink),
+      -2px 2px 0 var(--page),
+      -3px 3px 0 var(--ink),
+      -5px 5px 0 var(--page),
+      -6px 6px 0 var(--ink),
+      0 18px 40px color-mix(in srgb, var(--ink) 20%, transparent);
+  }
+  .book-leaf {
+    position: relative;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 48px clamp(32px, 4.5vw, 72px) 24px;
+    display: flex;
+    flex-direction: column;
+  }
+  .book-leaf.left {
+    padding-bottom: 24px;
+    background: linear-gradient(270deg, var(--shade) 0, transparent 40px);
+    border-right: 1.5px solid color-mix(in srgb, var(--ink) 30%, transparent);
+  }
+  .book-leaf.left .folio {
+    display: block;
+  }
+  .book-leaf.right {
+    background: linear-gradient(90deg, var(--shade) 0, transparent 40px);
+  }
+  .book-leaf .folio {
+    margin-top: auto;
+    padding-top: 28px;
+  }
+  /* A frame like a book's title page, the words in the middle of it. */
+  .title-page {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-self: center;
+    width: 100%;
+    max-width: 600px;
+    padding: 40px 36px;
+    border: 1.5px solid var(--ink);
+    outline: 1.5px solid var(--ink);
+    outline-offset: 5px;
+    border-radius: 2px;
+    align-items: center;
+    text-align: center;
+  }
+  .title-page .lede {
+    max-width: 40ch;
+  }
+  .title-page .path-bar {
+    justify-content: center;
+  }
+  /* A small ink rule under the title. */
+  .title-page h1::after {
+    content: "";
+    display: block;
+    width: 64px;
+    height: 6px;
+    margin: 18px auto 0;
+    border: 1.5px solid var(--ink);
+    border-radius: 3px;
+    background: var(--ink);
+  }
+  .toc {
+    width: 100%;
+    max-width: 640px;
+    align-self: center;
+  }
+}
+
+/* ---------- The table of contents ---------- */
+.toc-heading {
+  margin: 0 0 18px;
+  padding-bottom: 8px;
+  border-bottom: 1.5px solid var(--ink);
+  font: 700 30px var(--serif);
+}
+.book-leaf.left + .book-leaf.right .toc-heading {
+  margin-top: 0;
+}
+.toc .stage-card {
+  margin: 0 0 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.toc .stage-head .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+}
+/* The stage's accent, as an ink-ringed dot before its number. */
+.toc .stage-head .eyebrow::before {
+  content: "";
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: var(--stage-accent, var(--accent));
+}
+.toc .stage-card h2 {
+  margin: 8px 0 0;
+  font-size: 21px;
+}
+.stage-link {
+  text-decoration: none;
+  background-image: linear-gradient(var(--stage-accent, var(--accent)), var(--stage-accent, var(--accent)));
+  background-size: 0 3px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.2s;
+}
+.stage-link:hover,
+.stage-link:focus-visible {
+  background-size: 100% 3px;
+}
+.toc .stage-card .lessons {
+  margin-top: 6px;
+  gap: 1px;
+}
+.toc .lesson-chip {
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 8px;
+  margin: 0 -8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font-size: 17px;
+  line-height: 1.3;
+  transition: background-color 0.15s;
+}
+.toc a.lesson-chip:hover,
+.toc a.lesson-chip:focus-visible {
+  background: color-mix(in srgb, var(--stage-accent, var(--accent)) 18%, transparent);
+}
+.toc a.lesson-chip .chip-body {
+  flex: 0 1 auto;
+}
+.toc a.lesson-chip {
+  align-items: flex-end;
+}
+.toc .lesson-chip .num {
+  flex: none;
+  align-self: flex-start;
+  min-width: 2.4em;
+  padding-top: 0.25em;
+}
+/* Dots from the title to the page count, as in a printed table of contents. */
+.toc .leader {
+  flex: 1 1 16px;
+  min-width: 16px;
+  align-self: flex-end;
+  margin-bottom: 0.4em;
+  border-bottom: 2px dotted color-mix(in srgb, var(--ink) 38%, transparent);
+}
+.toc .chip-pages {
+  flex: none;
+  font: 600 19px/1 var(--hand);
+  color: var(--mute);
+}
+.toc .lesson-chip .chip-state {
+  align-self: center;
+}
+.toc .lesson-chip.locked {
+  align-items: center;
+  color: var(--mute);
+  font-style: italic;
+}
+.toc .lesson-chip.locked:hover,
+.toc .lesson-chip.locked[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--stage-accent, var(--accent)) 10%, transparent);
+  border-radius: 8px;
+}
+.toc .card-panel {
+  margin: 2px 0 8px 2.4em;
+  border: 1.5px dashed var(--ink);
+  border-radius: 10px;
+  font-style: normal;
+}
+.toc .claim-badge,
+.toc .stage-card > :last-child:not(.lessons) {
+  margin-top: 10px;
+}
+
+/* ---------- Turning to a lesson ---------- */
+/* Over the right page: the leaves, and under them the lesson's opening page, which fills the book once
+   they have turned. On one page (phones) it covers the whole book frame. */
+.page-turn {
+  position: fixed;
+  inset: var(--book-gap) calc(var(--book-gap) + 6px) var(--book-gap) var(--book-gap);
+  z-index: 40;
+  overflow: hidden;
+  border-radius: 4px 14px 14px 4px;
+  perspective: 2600px;
+  --half: 0%;
+}
+@media (min-width: 1100px) {
+  .page-turn {
+    position: absolute;
+    inset: 0;
+    overflow: visible;
+    border-radius: 14px;
+    --half: 50%;
+  }
+}
+.turn-target {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: var(--half);
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 32px clamp(20px, 5vw, 64px);
+  text-align: center;
+  border-radius: inherit;
+  background:
+    linear-gradient(var(--accent), var(--accent)) top / 100% 10px no-repeat,
+    linear-gradient(90deg, var(--shade) 0, transparent 34px),
+    var(--page);
+  transition: left 0.38s cubic-bezier(0.55, 0, 0.3, 1);
+}
+.page-turn.landed .turn-target {
+  left: 0;
+  z-index: 99;
+}
+.turn-target > p {
+  margin: 0;
+}
+.turn-kicker {
+  font: 700 12px var(--ui);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.turn-target > .turn-number {
+  margin-top: 8px;
+  font: 600 28px/1 var(--hand);
+}
+.turn-title {
+  max-width: 18ch;
+  font: 700 clamp(30px, 4vw, 52px) / 1.05 var(--serif);
+  text-wrap: balance;
+}
+.turn-summary {
+  max-width: 42ch;
+  font: italic 500 clamp(16px, 1.6vw, 19px) / 1.4 var(--serif);
+}
+.turn-leaf {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--half);
+  right: 0;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  animation: leaf-turn var(--leaf-ms, 560ms) cubic-bezier(0.45, 0.05, 0.3, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger, 95ms));
+}
+@keyframes leaf-turn {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(-180deg);
+  }
+}
+/* A leaf is a printed page: faint lines of text, the spine's shadow, an ink edge. */
+.leaf-front,
+.leaf-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: 0 14px 14px 0;
+}
+.leaf-front {
+  background:
+    linear-gradient(90deg, var(--shade) 0, transparent 40px),
+    repeating-linear-gradient(transparent 0 20px, color-mix(in srgb, var(--ink) 8%, transparent) 20px 23px)
+      center / calc(100% - 140px) calc(100% - 200px) no-repeat,
+    var(--page);
+  box-shadow: inset -1.5px 0 0 var(--ink);
+}
+.leaf-back {
+  transform: rotateY(180deg);
+  border-radius: 14px 0 0 14px;
+  background:
+    linear-gradient(270deg, var(--shade) 0, transparent 40px),
+    repeating-linear-gradient(transparent 0 20px, color-mix(in srgb, var(--ink) 8%, transparent) 20px 23px)
+      center / calc(100% - 140px) calc(100% - 200px) no-repeat,
+    var(--page);
+  box-shadow: inset 1.5px 0 0 var(--ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .turn-leaf {
+    display: none;
+  }
+  .turn-target {
+    transition: none;
+  }
+}
+
+/* The lesson that the pages turned to fades in over the opening page. */
+.lesson[data-turned] > :not(.book-cover) {
+  animation: turned-in 0.35s ease-out both;
+}
+@keyframes turned-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lesson[data-turned] > * {
+    animation: none;
+  }
+}

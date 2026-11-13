@@ -34,5 +34,6 @@ export const LESSON_TOPICS: Coverage = {
   "l-4-3-old-bridge-vs-near": ["Omni Bridge", "Confidential Intents"],
   "l-5-1-private-ai": ["TEEs and", "NEAR AI Cloud", "User-owned AI"],
   "l-5-2-agent-with-no-owner": ["Shade Agents"],
+  "l-6-1-vote-on-a-proposal": ["House of Stake"],
   "l-7-1-trace-an-intent": ["Capstone: trace"],
 };

@@ -1,0 +1,193 @@
+/* Lesson 7.2: the honest scoreboard. One state, a flat board (2D) or the pop-up book (3D). */
+.hsb {
+  position: absolute;
+  top: var(--head-h, 112px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--bar-reserve, 88px) + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .hsb {
+    top: var(--head-h, 104px);
+    left: 448px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    gap: 12px;
+  }
+}
+.hsb p,
+.hsb-panel p {
+  margin: 0;
+}
+
+/* ---------- flat board ---------- */
+.hsb-2d {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 6px;
+}
+.hsb-2d svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 40vh;
+}
+.hsb-bar {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  transition: transform 0.6s ease-in-out;
+}
+.hsb-name {
+  font: 600 16px var(--ui);
+  fill: var(--ink);
+}
+.hsb-verdict-label {
+  font:
+    22px Caveat,
+    cursive;
+  fill: var(--ink);
+}
+.hsb-card-title {
+  font: 600 15px var(--ui);
+  fill: var(--ink);
+}
+/* "Not yet": a short shake. Two names, so a second early click plays it again. */
+.hsb-shake0 {
+  animation: hsb-shake0 0.45s ease-out;
+}
+.hsb-shake1 {
+  animation: hsb-shake1 0.45s ease-out;
+}
+@keyframes hsb-shake0 {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+@keyframes hsb-shake1 {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+.hsb.still .hsb-bar {
+  transition: none;
+}
+.hsb.still .hsb-shake0,
+.hsb.still .hsb-shake1 {
+  animation: none;
+}
+
+/* ---------- facts (both views) ---------- */
+.hsb-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: 500 14px var(--ui);
+}
+.hsb-designs {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hsb-status {
+  padding: 4px 8px;
+  border-left: 4px solid var(--accent);
+  background: var(--card);
+  font-weight: 600;
+}
+.hsb-board {
+  border-collapse: collapse;
+  width: 100%;
+}
+.hsb-board caption {
+  caption-side: top;
+  text-align: left;
+  padding-bottom: 4px;
+  font-size: 13px;
+  color: var(--mute);
+}
+.hsb-board caption strong {
+  color: var(--ink);
+}
+.hsb-board th,
+.hsb-board td {
+  padding: 4px 6px;
+  border-top: 1px solid var(--ink);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.hsb-board th {
+  white-space: nowrap;
+}
+.hsb-verdict {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.hsb-verdict.v-leads {
+  color: var(--green);
+}
+.hsb-verdict.v-not-compared {
+  color: var(--mute);
+  font-weight: 500;
+}
+.hsb-src {
+  color: var(--mute);
+  font-size: 12px;
+}
+.hsb-note {
+  color: var(--mute);
+  font-size: 13px;
+}
+.hsb-note.not-yet {
+  color: var(--ink);
+  border-left: 4px solid var(--accent);
+  padding-left: 6px;
+}
+
+/* ---------- 3D: the facts in the book scene's panel ---------- */
+.hsb-panel .hsb-facts.compact {
+  max-height: min(30vh, 250px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+@media (min-width: 1100px) {
+  .hsb-panel .hsb-facts.compact {
+    max-height: min(27vh, 236px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hsb-bar {
+    transition: none;
+  }
+  .hsb-shake0,
+  .hsb-shake1 {
+    animation: none;
+  }
+}

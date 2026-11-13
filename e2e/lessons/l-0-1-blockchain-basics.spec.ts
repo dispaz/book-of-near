@@ -160,6 +160,11 @@ test.describe(`lesson ${ID}`, () => {
     await expect(page).toHaveURL(new RegExp(`/lesson/${ID}`));
     await expect(page.getByTestId("mode-pill")).toHaveText("Demo mode");
     await expect(scene(page)).toBeVisible({ timeout: LOAD_3D });
+    // Turned to from the contents, the lesson shows its 2D page first and then grows the 3D scene out of
+    // it (as after the cover). Wait for that, so the walk does not pick a 2D object as it turns 3D.
+    await expect(scene(page)).toHaveAttribute("data-view", process.env.E2E_NO_3D === "1" ? "2d" : "3d", {
+      timeout: LOAD_3D,
+    });
     await walk(page);
     expect(errors).toEqual([]);
   });
