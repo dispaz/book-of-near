@@ -109,14 +109,15 @@ describe("withTopicCards", () => {
 
 describe("the real curriculum", () => {
   const covered = CURRICULUM.topics.filter((t) => coveredBy(t.name, LESSON_TOPICS));
-  // Stage 5 (Enclave) is parked (docs/progress.md, #30): its topics get no card. Stage 6 (Citizen) is
-  // back with lesson 6.1 (#86). To restore stage 5, re-add its stage folder and empty this list.
-  const PARKED_STAGES = [5];
+  // No stage is parked any more (docs/progress.md, #30): stage 5 came back with lesson 5.1 (#84) and
+  // stage 6 with lesson 6.1 (#86). To park a stage again, remove its stage folder and list it here.
+  const PARKED_STAGES: number[] = [];
   const shown = CURRICULUM.topics.filter((t) => !covered.includes(t) && !PARKED_STAGES.includes(t.stage));
 
   it("has no registered stage for the parked ones", () => {
     for (const n of PARKED_STAGES) expect(registry.stages.map((s) => s.id)).not.toContain(n);
-    expect(CURRICULUM.topics.filter((t) => PARKED_STAGES.includes(t.stage))).toHaveLength(4);
+    expect(CURRICULUM.topics.filter((t) => PARKED_STAGES.includes(t.stage))).toHaveLength(0);
+    for (const n of [5, 6]) expect(registry.stages.map((s) => s.id)).toContain(n);
   });
 
   it("maps every coverage entry to one real lesson and exactly one topic", () => {
