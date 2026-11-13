@@ -4,6 +4,7 @@
  * after a step, and each object's own pick animation. Pure, so it is unit tested.
  */
 import type { Object3D } from "three";
+import { swell } from "../../../scene-kit/reaction";
 import { PEOPLE, shortHash, START, type Balances, type Block } from "./ledger";
 import { BLOCKS, CHECK, HASH, HONEST, LINKS, SEND, TAMPER } from "./useLedgerLesson";
 
@@ -44,9 +45,6 @@ export function blockPick(step: number, height: number, sent: boolean): BlockPic
 
 export const NOTEBOOK_PICK_SECONDS = 0.7;
 export const BLOCK_PICK_SECONDS = 0.8;
-
-/** 0 → 1 → 0 over the pick, eased at both ends. */
-const swell = (t: number, seconds: number) => Math.sin(Math.PI * Math.min(1, t / seconds));
 
 /**
  * A notebook's pick: it slides forward and tilts up towards the reader, showing its ledger lines, then

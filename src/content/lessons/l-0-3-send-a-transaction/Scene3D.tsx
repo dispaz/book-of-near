@@ -4,7 +4,7 @@
  * the shared state from useTransaction: every move follows a real phase event from the chain.
  * Loaded lazily from Scene.tsx, so the 2D view never downloads three.js.
  */
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { Line } from "@react-three/drei";
 import type { Group } from "three";
 import {
@@ -28,6 +28,7 @@ import {
   type Vec3,
   useAnimatedFrame,
   useBoxSize,
+  type PickMotion,
 } from "../../../scene-kit";
 import { useMediaQuery } from "../../../ui/hooks";
 import { duration, near, short, TRANSFER_FEE } from "./tx";
@@ -46,6 +47,17 @@ import {
   SENDER,
   shotFor,
 } from "./layout3d";
+import { MOTIONS, reactionsFor, type Reaction } from "./reactions";
+
+/** Pickable props for one object's reaction (rule 10a): its step action, a "not yet" hint or a detail. */
+type PickReaction = { onPick?: () => void; disabledHint?: string; detail?: string; pickMotion: PickMotion };
+const pickFor = (r: Reaction, action: () => void, pickMotion: PickMotion): PickReaction => ({
+  onPick: r.act ? action : undefined,
+  disabledHint: r.hint,
+  detail: r.detail,
+  pickMotion,
+});
+const noAction = () => undefined;
 
 /** Where the envelope rests after each phase. */
 const ENVELOPE_AT: Record<"none" | Light, Vec3> = {
@@ -67,7 +79,7 @@ export default function Scene3D({
   reducedMotion: boolean;
 }) {
   const { step, lit, events, me, receiver, selfSend } = tx;
-  const [picked, setPicked] = useState<"me" | "receiver" | null>(null);
+  const react = reactionsFor(tx);
   const phone = useMediaQuery("(max-width: 899px)");
   // Fit the step's objects into the 3D window, whatever its size (desktop, tablet, phone).
   const box = useRef<HTMLDivElement>(null);
@@ -118,7 +130,6 @@ export default function Scene3D({
         state={tx.state}
         status={tx.status ?? ""}
         description={description}
-        onMiss={() => setPicked(null)}
         minDistance={3}
         maxDistance={140}
       >
@@ -129,8 +140,7 @@ export default function Scene3D({
           size={ACCT}
           name={tx.senderNow !== null ? balance(tx.senderNow, tx.stage) : "…"}
           pickLabel="Your practice account"
-          selected={picked === "me"}
-          onPick={() => setPicked((p) => (p === "me" ? null : "me"))}
+          {...pickFor(react.sender, noAction, MOTIONS.account)}
         />
         <Label position={[SENDER[0], 0.25, SENDER[2] + ACCT / 2 + 0.45]} variant="small">
           {phone || !me ? "you" : `you · ${short(me.accountId, 6, 4)}`}
@@ -147,28 +157,11 @@ export default function Scene3D({
           color={COLORS.blue}
           name={selfSend ? "you again" : tx.receiverNow !== null ? near(tx.receiverNow) : "…"}
           pickLabel="Receiver account"
-          selected={picked === "receiver"}
-          onPick={() => setPicked((p) => (p === "receiver" ? null : "receiver"))}
+          {...pickFor(react.receiver, noAction, MOTIONS.account)}
         />
         <Label position={[RECEIVER[0], 0.25, RECEIVER[2] + ACCT / 2 + 0.45]} variant="small">
           {phone || !receiver ? "receiver" : short(receiver, 10, 6)}
         </Label>
-        {picked ? (
-          <Label
-            position={[
-              picked === "me" ? SENDER[0] : RECEIVER[0],
-              0.25,
-              (picked === "me" ? SENDER : RECEIVER)[2] + 1.6,
-            ]}
-            variant="hint"
-          >
-            {picked === "me"
-              ? `your practice account ${me ? short(me.accountId, 6, 4) : ""}`
-              : selfSend
-                ? "the same account: you send to yourself"
-                : `the app's return account ${receiver ? short(receiver, 10, 6) : ""}`}
-          </Label>
-        ) : null}
         {amount ? (
           <Traveller
             to={coinMoved ? [RECEIVER[0], ACCT + 0.08, RECEIVER[2]] : [SENDER[0], ACCT + 0.08, SENDER[2]]}
@@ -185,22 +178,26 @@ export default function Scene3D({
 
         {/* Your device: where the transaction is built and signed, with no network. */}
         <Desk
-          onPick={tx.canBuild ? tx.build : undefined}
+          pick={pickFor(react.device, tx.build, MOTIONS.device)}
           hint={step === BUILD && !tx.built ? "press Build" : undefined}
           quiet={quiet}
         />
         <group position={[DESK[0] - 1.2, 0.75, DESK[2] - 0.3]} scale={0.6}>
-          <Key
-            rotation={[0, -0.5, tx.signed ? -1.3 : -0.3]}
-            name={step === SIGN ? "your private key" : undefined}
-            pickLabel="Sign with your private key"
-            onPick={tx.canSign ? tx.sign : undefined}
-          />
+          <Pickable
+            label="Sign with your private key"
+            anchor={[0, 0.4, 0]}
+            {...pickFor(react.key, tx.sign, MOTIONS.key)}
+          >
+            <Key
+              rotation={[0, -0.5, tx.signed ? -1.3 : -0.3]}
+              name={step === SIGN ? "your private key" : undefined}
+            />
+          </Pickable>
         </group>
 
         {/* The RPC node: a server that passes the transaction into the network. */}
         <RpcNode
-          onPick={tx.canSend ? tx.send : undefined}
+          pick={pickFor(react.node, tx.send, MOTIONS.node)}
           failed={failed && phase === "broadcast"}
           quiet={quiet}
         />
@@ -336,7 +333,7 @@ function Envelope({ sealed, failed, blank }: { sealed: boolean; failed: boolean;
 }
 
 /** A low slab: your device. Pick it to build the transaction on the Build step. */
-function Desk({ onPick, hint, quiet }: { onPick?: () => void; hint?: string; quiet: boolean }) {
+function Desk({ pick, hint, quiet }: { pick: PickReaction; hint?: string; quiet: boolean }) {
   const ink = useInk(COLORS.slab);
   const slab = (
     <group>
@@ -359,19 +356,15 @@ function Desk({ onPick, hint, quiet }: { onPick?: () => void; hint?: string; qui
   return (
     <group position={DESK}>
       <SoftShadow position={[0, 0, 0.2]} size={[2.7, 1.9]} />
-      {onPick ? (
-        <Pickable label="Build the transaction" onPick={onPick} anchor={[0, 0.4, 0]}>
-          {slab}
-        </Pickable>
-      ) : (
-        slab
-      )}
+      <Pickable label="Build the transaction" anchor={[0, 0.4, 0]} {...pick}>
+        {slab}
+      </Pickable>
     </group>
   );
 }
 
 /** A server tower with an antenna. Pick it to send on the Send step. */
-function RpcNode({ onPick, failed, quiet }: { onPick?: () => void; failed: boolean; quiet: boolean }) {
+function RpcNode({ pick, failed, quiet }: { pick: PickReaction; failed: boolean; quiet: boolean }) {
   const body = useInk(failed ? "#f4c9c4" : COLORS.contract);
   const dark = useInk(INK);
   const tower = (
@@ -400,13 +393,9 @@ function RpcNode({ onPick, failed, quiet }: { onPick?: () => void; failed: boole
   return (
     <group position={NODE}>
       <SoftShadow position={[0, 0, 0.3]} size={[2.1, 1.4]} />
-      {onPick ? (
-        <Pickable label="Send to the RPC node" onPick={onPick} anchor={[0, NODE_H / 2, 0]}>
-          {tower}
-        </Pickable>
-      ) : (
-        tower
-      )}
+      <Pickable label="Send to the RPC node" anchor={[0, NODE_H / 2, 0]} {...pick}>
+        {tower}
+      </Pickable>
     </group>
   );
 }

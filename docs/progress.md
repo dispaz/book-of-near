@@ -517,6 +517,15 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Script "Reactions" table updated to what was built. E2E: 5 new "3d reactions" tests (focus, pick plays and settles, not-yet hint, detail, reduced motion).
 - Gate (merged with main): lint, typecheck, unit 758, 0.1 spec + render-on-demand 40 passed (GPU, `E2E_WORKERS=2`).
 
+## 2026-11-13 · Lesson 0.3: clickable 3D objects react (Closes #58)
+
+- Five pickable objects, each with its own pick motion (`reactions.ts`, unit tested): the two accounts swell and rise, the device slab thumps (Build), the key tips down and stamps (Sign), the RPC tower rocks (Send). Each always has its step action, a "not yet" hint (Build before step 2, Sign before built or before step 4, Send before signed or before step 5) or a detail after its step (balances, built fields and nonce, transaction ID, the node that passed it on), so it stays pickable as the state moves.
+- The accounts' own selection disc and "whose is it" label are gone: the kit's hover ring is the only ring, the detail slip says whose it is. The key is wrapped in its own `Pickable` so it is pickable on every step.
+- Script `docs/lessons/stage-0/0.3.md` "Reactions" table rewritten to match what is built.
+- E2E (`l-0-3-send-a-transaction.spec.ts`, "3d reactions"): focus marks hover, early picks show hints, a pick plays then settles, details after each step, reduced motion shows the detail with no motion.
+- Gate (merged with main): lint, typecheck, unit 774, e2e 0.3 + render-on-demand + badges 44 passed / 2 skipped (@testnet) (GPU, `E2E_WORKERS=2`).
+- Review fixes (PR #82): the device on step 2 says "still loading" (a hint) until the accounts load; "Building…", "Signing…" and "Sending…" show only while that action runs, otherwise an honest hint ("Sign/Send the transaction first", "wait a moment"); the device's detail adds the recent block hash; `swell` moved into the scene kit (`reaction.ts`), used by 0.1 and 0.3. Gate: lint, typecheck, unit 781, e2e 0.1 + 0.3 + render-on-demand + badges 69 passed / 2 skipped (@testnet).
+
 ## 2026-11-13 · Lesson 0.2: clickable 3D objects react (Closes #57)
 
 - Every clickable object plays its own `pickMotion` (not the kit's hop). Private key: turns (step 2), rises and stamps (step 6). Seed words: nod into the key. Address blocks: jump and flip. Message card: squash. Bin: rocks. The lesson had no ring of its own, so only the kit's hover ring shows.

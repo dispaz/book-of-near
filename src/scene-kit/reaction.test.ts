@@ -7,8 +7,18 @@ import {
   pickNote,
   reactionPose,
   REST_POSE,
+  swell,
   type ReactionInput,
 } from "./reaction";
+
+describe("swell", () => {
+  it("goes 0 → 1 → 0 over the given seconds and stays 0 after", () => {
+    expect(swell(0, 0.6)).toBe(0);
+    expect(swell(0.3, 0.6)).toBeCloseTo(1);
+    expect(swell(0.6, 0.6)).toBeCloseTo(0);
+    expect(swell(2, 0.6)).toBeCloseTo(0);
+  });
+});
 
 const rest: ReactionInput = { hover: 0, press: 0, nope: -1, reducedMotion: false };
 

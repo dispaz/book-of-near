@@ -2,7 +2,20 @@ import { generateKeyPairSync } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { base58 } from "@scure/base";
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3dUnless2d } from "./helpers";
+import {
+  answerCheck,
+  completionOf,
+  countDrawnFrames,
+  expectFocusMarksHover,
+  expectNotYetHint,
+  expectPickDetail,
+  expectPickPlaysAndSettles,
+  LOAD_3D,
+  nextStep,
+  pickButton,
+  seedRoute,
+  slow3dUnless2d,
+} from "./helpers";
 
 // Walks lesson 0.3 in demo mode (no wallet, no network): build, fee, sign, send, watch the pipeline,
 // open the explorer, check, honest take. The demo practice account is the fixed key from the script.
@@ -449,8 +462,96 @@ test.describe(`lesson ${ID}: both views`, () => {
     await expect(labels(page).filter({ hasText: "stopwatch: final in 3.25 s" })).toBeVisible();
     await expect(labels(page).filter({ hasText: "block #200000001" })).toBeVisible();
     // Picking an account says whose it is.
-    await page.getByRole("button", { name: "Receiver account" }).press("Enter");
-    await expect(labels(page).filter({ hasText: "the app's return account" })).toBeVisible();
+    await expectPickDetail(
+      page,
+      "Receiver account",
+      "The app's return account book-of-near.testnet: 100.01 NEAR.",
+    );
+  });
+
+  // Clickable objects react (docs/book-scene.md rule 10a; the script's "Reactions" table).
+  const open3d = async (page: Page) => {
+    await page.goto(`/lesson/${ID}?view=3d`);
+    await expect(page.getByTestId("practice-balance")).toHaveText("5 NEAR");
+    await expect(page.locator(".stx-3d canvas")).toHaveCount(1, { timeout: LOAD_3D });
+  };
+
+  test("3d reactions: keyboard focus on a pick button marks its object hovered", async ({ page }) => {
+    await open3d(page);
+    for (const name of ["Your practice account", "Build the transaction", "Sign with your private key"])
+      await expectFocusMarksHover(page, name);
+  });
+
+  test("3d reactions: early picks say 'not yet' and change nothing", async ({ page }) => {
+    await open3d(page);
+    await expectNotYetHint(page, "Build the transaction", "Not yet: you build the transaction on step 2.");
+    await expectNotYetHint(page, "Sign with your private key", "Build the transaction first (step 2).");
+    await expectNotYetHint(page, "Send to the RPC node", "Sign the transaction first (step 4).");
+    await expect(light(page, "built")).toHaveAttribute("data-lit", "false");
+  });
+
+  test("3d reactions: a pick plays the object's own animation, then the canvas settles", async ({ page }) => {
+    await page.addInitScript(countDrawnFrames);
+    await open3d(page);
+    await expect(page.locator(".sk-stage")).toHaveAttribute("data-camera", "still", { timeout: LOAD_3D });
+    await expectPickPlaysAndSettles(page, "Your practice account");
+    await expect(pickButton(page, "Your practice account")).toHaveAttribute(
+      "data-detail",
+      /^Your practice account cf4342.+: 5 NEAR\.$/,
+    );
+  });
+
+  test("3d reactions: after its step, each object shows a detail", async ({ page }) => {
+    await page.addInitScript(countDrawnFrames);
+    await open3d(page);
+    await nextStep(page);
+    await pickButton(page, "Build the transaction").press("Enter");
+    await expect(light(page, "built")).toHaveAttribute("data-lit", "true");
+    await expectPickDetail(
+      page,
+      "Build the transaction",
+      /^Built on your device: transfer 0\.01 NEAR to book-of-near\.testnet, nonce \d+, recent block hash \S+\.$/,
+    );
+    await expectPickPlaysAndSettles(page, "Build the transaction");
+    await nextStep(page);
+    await expectNotYetHint(page, "Sign with your private key", "Not yet: you sign on step 4.");
+    await dock(page).getByRole("button", { name: "Got it" }).click();
+    await nextStep(page);
+    await pickButton(page, "Sign with your private key").press("Enter");
+    await expect(light(page, "signed")).toHaveAttribute("data-lit", "true");
+    await expectPickDetail(
+      page,
+      "Sign with your private key",
+      /^Signed on your device with your private key\. Transaction ID: \S+\.$/,
+    );
+    await nextStep(page);
+    await pickButton(page, "Send to the RPC node").press("Enter");
+    await expect(light(page, "broadcast")).toHaveAttribute("data-lit", "true", { timeout: 30_000 });
+    await expectPickDetail(page, "Send to the RPC node", /^Passed to the validators by a demo node/);
+  });
+
+  test("3d reactions under reduced motion: hover still marks, a pick shows its detail with no motion", async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({ reducedMotion: "reduce" });
+    const page = await ctx.newPage();
+    await seedRoute(page);
+    await open3d(page);
+    await expectFocusMarksHover(page, "Receiver account");
+    const account = pickButton(page, "Receiver account");
+    await account.evaluate((el) => {
+      const w = window as unknown as { __pickSeen: string[] };
+      w.__pickSeen = [];
+      new MutationObserver(() => w.__pickSeen.push(el.getAttribute("data-pick") ?? "")).observe(el, {
+        attributes: true,
+        attributeFilter: ["data-pick"],
+      });
+    });
+    await account.press("Enter");
+    await expect(account).toHaveAttribute("data-detail", /^The app's return account/);
+    const seen = await page.evaluate(() => (window as unknown as { __pickSeen: string[] }).__pickSeen);
+    expect(seen).not.toContain("playing");
+    await ctx.close();
   });
 
   test("without WebGL the lesson runs in 2D with no view switch", async ({ page }) => {
