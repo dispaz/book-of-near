@@ -59,15 +59,16 @@ Recorded in demo mode on the production build (`localStorage bon:cover=off` skip
 | --- | --- | --- | --- | --- | --- |
 | 1 | 0:00 | 10 s | Title and problem | Contents spread, then the book cover | "Learning NEAR is hard: docs assume you know crypto, explainers are static. Book of NEAR lets you do the real thing." |
 | 2 | 0:10 | 10 s | Opening quiz | `/start`: three questions, the path appears | "Three questions pick your path: newcomer, veteran or developer." |
-| 3 | 0:20 | 15 s | A transaction on paper (0.3) | Build, Sign, Send; the five lights reach Final | "Build, sign and send a transaction, and watch it become final in about two seconds." |
+| 3 | 0:20 | 15 s | A transaction on paper (0.3) | Build, Sign, Send; the five lights reach Final | "Build, sign and send a transaction, and watch it become final in a couple of seconds." |
 | 4 | 0:35 | 15 s | The limited key (1.2) | Give the app a key; the three attacks refused with reasons | "Give an app a key that can do only one thing. When it is hacked, the chain refuses everything else." |
-| 5 | 0:50 | 25 s | Across shards in 3D (2.1) | Switch 2D to 3D; follow the receipts hop by hop | "Switch to 3D and follow your transaction across shards, chunks and blocks." |
-| 6 | 1:15 | 15 s | Deploy a contract (3.1) | Deploy, Increment, the failing callback's receipts | "Deploy a contract in one click, call it, and watch a cross-contract callback catch a failure." |
-| 7 | 1:30 | 25 s | One account signs for Ethereum (4.1) | Derive the address, request the MPC signature, the signer recovers | "Your NEAR account signs an Ethereum transaction with Chain Signatures. The signature recovers to your derived address." |
-| 8 | 1:55 | 10 s | Badge and "My book" | Claim the stage 0 badge, the shelf | "Finish a stage and claim a badge NFT on NEAR testnet. Every lesson ends with an honest take." |
-| 9 | 2:05 | 5 s | End card | `book-of-near.pages.dev`, "Built at NEAR HACKATHON" | "Try it: book-of-near.pages.dev. Demo mode needs no wallet." |
+| 5 | 0:50 | 20 s | Across shards in 3D (2.1) | Switch 2D to 3D; follow the receipts hop by hop | "Switch to 3D and follow your transaction across shards, chunks and blocks." |
+| 6 | 1:10 | 15 s | Deploy a contract (3.1) | Deploy, Increment, the failing callback's receipts | "Deploy a contract in one click, call it, and watch a cross-contract callback catch a failure." |
+| 7 | 1:25 | 20 s | One account signs for Ethereum (4.1) | Derive the address, request the MPC signature, the signer recovers | "Your NEAR account signs an Ethereum transaction with Chain Signatures. The signature recovers to your derived address." |
+| 8 | 1:45 | 10 s | An intent quote (4.2) | Fetch the quote; amount in, amount out, fees, time estimate | "Ask for a cross-chain swap with an intent: a real, signed quote from NEAR Intents, with no money moved." |
+| 9 | 1:55 | 10 s | Badge and "My book" | Claim the stage 0 badge, the shelf | "Finish a stage and claim a badge NFT on NEAR testnet. Every lesson ends with an honest take." |
+| 10 | 2:05 | 5 s | End card | `book-of-near.pages.dev`, "Built at NEAR HACKATHON" | "Try it: book-of-near.pages.dev. Demo mode needs no wallet." |
 
-Total: 2:10. If the cut runs long, shorten shot 5 first (to 20 s).
+Total: 2:10. If the cut runs long, shorten shot 1 or 2 first (to 8 s).
 
 ## Owner checklist
 

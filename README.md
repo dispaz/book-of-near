@@ -57,7 +57,7 @@ Stage 1, Named (first steps on NEAR)
 Stage 2, Nightshade (under the hood)
 
 - **2.1 Follow your transaction across shards.** Load your 0.3 transaction (or a recorded one) and follow it hop by hop (**Next hop**, **Follow next receipt**) across shards, chunks and blocks, then see where the time went.
-- **2.2 A call that takes several blocks.** **Send cross-contract order** and watch one call split into receipts over several blocks; **Inspect gas** shows the gas each contract burnt (all of it is burned); **Simulate out-of-stock failure** shows the callback.
+- **2.2 A call that takes several blocks.** **Send cross-contract order** and watch one call split into receipts over several blocks; **Inspect gas** shows the gas each contract burnt, and that all of it is burned; none goes to the contract; **Simulate out-of-stock failure** shows the callback.
 
 Stage 3, Wasm (builder)
 
@@ -68,7 +68,7 @@ Stage 3, Wasm (builder)
 Stage 4, Any Chain (chain abstraction)
 
 - **4.1 One account, every chain.** **Derive Ethereum address** from your NEAR account and a path (**Try another path** gives another address), **Prepare payload** for a Sepolia transfer, **Request signature (MPC)** from the signing network, and **Verify signer**: the signature recovers to your derived address. The signed transaction is not broadcast (the derived address has no Sepolia ETH).
-- **4.2 Swap across chains with an intent.** **Fetch live intent quote**: a dry quote for NEAR to USDC on Arbitrum from NEAR Intents 1Click (recorded in demo mode, live in testnet mode; no money moves). **Inspect quote breakdown**, **Simulate solver execution**, then **Finish on verified quote**.
+- **4.2 Swap across chains with an intent.** **Fetch live intent quote**: a dry, read-only quote for NEAR to USDC on Arbitrum from the mainnet 1Click API (Intents has no testnet; recorded in demo mode, fetched live in testnet mode; no money moves). **Inspect quote breakdown**, **Simulate solver execution**, then **Finish on verified quote**.
 - **4.3 Old bridge vs the NEAR way.** **Compare workflow steps** side by side, **Inspect asset backing** of a wrapped token, **Trigger simulated vault exploit**, then **Inspect confidential shield**.
 
 Stage 5, Enclave (user-owned AI and privacy)
@@ -94,13 +94,13 @@ In progress at submission time, not part of this submission: lessons 5.2 and 6.2
 | Press **Claim the stage 0 badge** | "Stage 0 badge claimed" with the badge art. In demo mode the claim is signed in the browser and checked by a simulated copy of the contract's rules. |
 | Open **My book** (`/my-book`) | A shelf of eight slots: claimed badges, "Not claimed yet" for stages 1 to 4, "Badge not available yet" for 5 to 7. Badges survive a reload. |
 | Open **Open in the badge checker**, or `/check` | Look up any account's badges, no login. In testnet mode it reads the contract on testnet. |
-| Claim before finishing a stage | The claim is refused, and the card lists what is missing. |
+| Open the contents before a stage is finished | The stage's card has no claim button yet; it lists what is missing. |
 
 Stage badges 0 to 4 can be claimed. Each needs the stage's lessons finished, the previous stage's badge, and evidence from the learner's own transactions: 0.3's transfer, 1.1's account and 1.2's key, 2.1's transfer, 3.1's deploy, 4.1's Chain Signatures request (`src/badges/rules.ts`). A stage done in demo mode cannot claim a testnet badge; the card says why.
 
 ### Testnet mode
 
-Press **Use testnet** on any lesson page (or open a lesson with `?mode=testnet`). The app makes a practice account in your browser: a throwaway key in `localStorage`, funded by our Worker faucet if `VITE_WORKER_URL` is set, otherwise by NEAR's public testnet helper (which limits accounts per IP address). If no faucet answers, the app says so and offers to stay in demo mode. Testnet NEAR has no value. Lessons that need no chain (0.1, 0.2, 4.3 except its quote, 6.1, 7.1, 7.2) behave the same in both modes; 2.2 opens a recorded real testnet call; 3.2 always runs on the simulated chain.
+Press **Use testnet** on any lesson page (or open a lesson with `?mode=testnet`). The app makes a practice account in your browser: a throwaway key in `localStorage`, funded by our Worker faucet if `VITE_WORKER_URL` is set, otherwise by NEAR's public testnet helper (which limits accounts per IP address). If no faucet answers, the app says so and offers to stay in demo mode. Testnet NEAR has no value. Lessons that need no chain (0.1, 0.2, 4.3 except its quote, 6.1, 7.1, 7.2) behave the same in both modes; 2.2 opens a recorded real testnet call; 3.2 always runs on the simulated chain. In testnet mode, 4.2 and 4.3 fetch a dry, read-only quote from the mainnet 1Click API (Intents has no testnet); nothing is signed or sent on mainnet.
 
 Claiming a testnet badge also needs the Worker's `/claim` route deployed with its signing key (see "Honest limitations").
 
@@ -115,7 +115,7 @@ Tracks entered: `["open", "nfts", "security"]`. Explorer links use https://testn
 
 | Lesson | What happened | Transaction |
 | --- | --- | --- |
-| 0.3 | A transfer from a practice account (an opt-in `@testnet` e2e run of the app), followed to final in about 2.5 to 3 s | [`695B3sz…JjRo`](https://testnet.nearblocks.io/txns/695B3szeohzeJujekYRNnuEcog5wHctX13LLHDB5JjRo) |
+| 0.3 | A 0.01 NEAR transfer from a practice account to itself (an opt-in `@testnet` e2e run of the app), followed to final in about 2.5 to 3 s | [`695B3sz…JjRo`](https://testnet.nearblocks.io/txns/695B3szeohzeJujekYRNnuEcog5wHctX13LLHDB5JjRo) |
 | Faucet | Our Worker funded a fresh practice account | [`FYDGYXs…K1Mh`](https://testnet.nearblocks.io/txns/FYDGYXsSxBMyMH7RiFvcBNCuYUGrs2Yum77NgXndK1Mh) |
 | 3.1 | Create account + transfer + add key + deploy, in one transaction, from the app | [`AoWApW2…m64R`](https://testnet.nearblocks.io/txns/AoWApW2aUJuffasnFxtVS17MB5wAXH7MU7jFpo16m64R) |
 | 3.1 | A call whose cross-contract callback sees the failure | [`2gxK7E8…wBMm`](https://testnet.nearblocks.io/txns/2gxK7E8KUBjGh11fbgH4uacEHvcyJsbexq1UDRTxwBMm) |
@@ -128,7 +128,7 @@ Tracks entered: `["open", "nfts", "security"]`. Explorer links use https://testn
 - Contract: [`badges.bon-badges-mwe57oab.testnet`](https://testnet.nearblocks.io/address/badges.bon-badges-mwe57oab.testnet) (Rust, near-sdk 5.11, `contracts/badge/`). NEP-171 with NEP-177 metadata and NEP-297 events. Badges are non-transferable, one per account per stage, need the previous stage, and are minted only with an ed25519 claim signed by our Worker after it checked the learner's own testnet transactions. The contract pays storage, so the learner pays only gas. Details: `docs/badge-contract.md`.
 - Deploy transaction: [`3WJ3Rgw…bwwp`](https://testnet.nearblocks.io/txns/3WJ3Rgw2ca7wXpVxJF3jyu9pmx3DUL98pvRsqBHKbwwp).
 - A real claim: practice account `bon-learner-mwe61s8i.testnet` sent a transfer, the Worker checked it and signed a claim, and [`claim_stage` `EAuadk9…XJ1o`](https://testnet.nearblocks.io/txns/EAuadk9PtuXBfee1fMx32okJyo6t2xCMbwJkumk8XJ1o) minted token `1` ("Book of NEAR: Stage 0"). A claim with no evidence was refused, and the same claim again was refused ("already claimed").
-- In the app: the claim card, "My book" (`/my-book`) and the public checker (`/check`), covered by `e2e/badges.spec.ts` in demo mode. 8 sandbox tests for the contract (`npm run test:badge`, needs Rust).
+- In the app: the claim card, "My book" (`/my-book`) and the public checker (`/check`), covered by `e2e/badges.spec.ts` in demo mode. 19 sandbox tests for the contract (`npm run test:badge`, needs Rust).
 
 ### `security` (bonus): a key that can do only one thing
 
@@ -137,7 +137,7 @@ Tracks entered: `["open", "nfts", "security"]`. Explorer links use https://testn
 
 ## Architecture in brief
 
-- **One `Chain` interface** (`src/chain/types.ts`) for everything on chain. Lessons never call RPC, wallets or SDKs directly; they call `useChain()`. Two implementations: `DemoChain` (deterministic, in the browser, no network; the default) and `TestnetChain` (`src/chain/testnet/`, near-kit for keys and signing, its own Borsh encoder, an RPC fallback list led by FastNEAR). A unit test checks that demo mode imports no network code.
+- **One `Chain` interface** (`src/chain/types.ts`) for everything on chain. Lessons never call RPC, wallets or SDKs directly; they call `useChain()`. Two implementations: `DemoChain` (deterministic, in the browser, no network; the default) and `TestnetChain` (`src/chain/testnet/`, near-kit for keys and signing, its own Borsh encoder, an RPC fallback list led by FastNEAR). A unit test (`src/chain/noNetworkImports.test.ts`) checks that the Chain interface files (`types.ts`, `errors.ts`, `shards.ts`, `units.ts`, `accountId.ts`, `ops.ts`) import no network code.
 - **Lessons are folders**: `src/content/lessons/<id>/manifest.ts` (steps, captions, check questions, honest take) plus lazy `Scene.tsx` / `Scene3D.tsx`. Stages are `src/content/stages/<n>-<slug>/stage.ts`. Both are found automatically. The researched copy is in `docs/lessons/stage-<n>/`.
 - **Scene kit** (`src/scene-kit/`): the ink style (black outlines, paper white, one accent per stage), SVG objects for 2D, and the 3D pop-up book (`BookScene`, react-three-fiber): objects rise from the right-hand page, step text is printed on the left page on wide screens, canvases draw only when something moves. See `docs/book-scene.md`.
 - **Cloudflare Worker** (`worker/`): `POST /faucet` (funds a practice account, rate-limited per IP and per day), `POST /intents/quote` (proxy to NEAR Intents 1Click, dry quotes, NEAR to USDC only), `POST /claim` (checks a learner's testnet evidence, then signs a 5-minute badge claim), `GET /health`. Keys live only in Worker secrets.
@@ -186,13 +186,13 @@ External services: NEAR testnet RPC (FastNEAR, NEAR Foundation), NEAR's public t
 
 ## Baseline: what existed before the hackathon
 
-Commits before 1 Nov 2026 00:00 UTC are docs only: the spec, the tickets, the curriculum map and a single-file HTML design prototype (`docs/prototype/ink-stage.html`). No app code. The tag `pre-hackathon` marks the last of them (`ab3a53e`, 31 Oct 2026). All app, Worker and contract code was written from 1 Nov.
+Commits before 1 Nov 2026 00:00 UTC are docs only: the spec, the tickets, the curriculum map (`docs/curriculum/book-of-near-map.html`, an HTML page with a small inline script) and a design prototype (`docs/prototype/ink-stage.html`, a single HTML file with inline JavaScript, not used by the app). No app code. The tag `pre-hackathon` marks the last of them (`ab3a53e`, 31 Oct 2026). All app, Worker and contract code was written from 1 Nov.
 
 Diff of everything built during the hackathon: https://github.com/dispaz/book-of-near/compare/pre-hackathon...hackathon-submission
 
 ## Other chains and other projects
 
-- **Other chains (rule Q-002):** lesson 4.1 derives an **Ethereum Sepolia** address from a NEAR account and has NEAR's Chain Signatures sign a Sepolia transfer (signed and verified, not broadcast). Lessons 4.2 and 4.3 show dry quotes for NEAR to **USDC on Arbitrum** from NEAR Intents 1Click (read-only; nothing is sent to Arbitrum), and 7.1 replays such a quote. There is no existing product on another chain; everything here was built for NEAR during the window.
+- **Other chains (rule Q-002):** lesson 4.1 derives an **Ethereum Sepolia** address from a NEAR account and has NEAR's Chain Signatures sign a Sepolia transfer (signed and verified, not broadcast). Lessons 4.2 and 4.3 show a dry, read-only quote for NEAR to **USDC on Arbitrum** from the mainnet 1Click API (Intents has no testnet; nothing is sent to Arbitrum or mainnet), and 7.1 replays such a quote. There is no existing product on another chain; everything here was built for NEAR during the window.
 - **Other hackathon projects (rule Q-015):** none.
 
 ## Honest limitations
@@ -207,7 +207,7 @@ Diff of everything built during the hackathon: https://github.com/dispaz/book-of
 
 ### Not part of this submission (present in the code, not verified live)
 
-- **Mainnet wallet sign-in** (`@hot-labs/near-connect`, page `/wallet`, reachable only by typing the URL) and the **optional tiny real mainnet swap** offered at the end of lesson 4.2 behind "Use my own wallet". By default both use a simulated demo wallet. A real mainnet sign-in and signature were never tested.
+- **Mainnet wallet sign-in** (`@hot-labs/near-connect`, page `/wallet`) and the **optional tiny real mainnet swap** at the end of lesson 4.2 ("Use my own wallet"). Both are switched off in the default build behind `VITE_ENABLE_MAINNET` (off unless set). A real mainnet sign-in and signature were never tested.
 - **Mainnet badge minting**: not built.
 
 ## More documents
