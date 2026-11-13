@@ -509,6 +509,14 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - `npm run new-lesson -- … --book` scaffolds a `REACTIONS` table in `Scene3D.tsx` and a reactions e2e test (checked by scaffolding a throwaway lesson and running its spec); `docs/lesson-template.md` has the script's "Reactions" table shape. Docs: `docs/book-scene.md` rule 10a, `docs/scene-kit.md`.
 - Per-lesson retrofits stay in #56–#64.
 
+## 2026-11-13 · Lesson 0.1: clickable 3D objects react (Closes #56)
+
+- Notebooks and blocks pass their own `pickMotion` (pure, in `reactions.ts`, unit tested): a notebook slides forward and tilts up; a block lifts and unfolds. This replaces the kit's hop, so it no longer stacks on the lesson's bob.
+- Hints and details (`blockPick` per step): blocks at step 2 say "Send the transaction first" (then "Press Next to open the block"); notebooks show their balances once a copy is open; the ledgers beside the chain (steps 2 to 6) show that copy's balances; blocks from step 4 show "Block #1: Ana->Ben 3, hash cfb1f067, previous hash ec402b30". Block #1 at step 6 has no pick (the amount field is the action).
+- One ring: the lesson's own selection disc is gone (the open lid or cover shows selection); only the edit ring at step 6 stays, on a block that is not pickable there.
+- Script "Reactions" table updated to what was built. E2E: 5 new "3d reactions" tests (focus, pick plays and settles, not-yet hint, detail, reduced motion).
+- Gate (merged with main): lint, typecheck, unit 758, 0.1 spec + render-on-demand 40 passed (GPU, `E2E_WORKERS=2`).
+
 ## 2026-11-13 · Lesson 0.3: clickable 3D objects react (Closes #58)
 
 - Five pickable objects, each with its own pick motion (`reactions.ts`, unit tested): the two accounts swell and rise, the device slab thumps (Build), the key tips down and stamps (Sign), the RPC tower rocks (Send). Each always has its step action, a "not yet" hint (Build before step 2, Sign before built or before step 4, Send before signed or before step 5) or a detail after its step (balances, built fields and nonce, transaction ID, the node that passed it on), so it stays pickable as the state moves.
