@@ -539,3 +539,10 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - `STAGE_BADGES = 8`: My book and the checker show eight slots; stages 5 and 6 (no lessons) show "Not open yet", 7 (a lesson, no rule) "Badge not available yet"; the count is "N of 5" (`CLAIMABLE_BADGES`, equal to the demo contract's stage count).
 - Testnet: `set_art` for stage-0 to stage-4 with the new hashes (`docs/badge-contract.md`). `set_stage_count(8)` and art for 5 to 7 are left to the owner (`node scripts/deploy-badge.mjs stage-count 8`).
 - Screenshots: `docs/screenshots/badges-near/`. Gate: lint, typecheck, unit tests, `e2e/badges.spec.ts`.
+
+## 2026-11-13 · The contents page is the book's first spread, with a page turn into lessons
+
+- `ContentsPage` sits on the same desk as the lessons, as an open book. Wide screens (≥1100px) show a spread: a framed title page on the left (title, lede, the "Start reading" / "Continue" button, path pills, lessons read) and the table of contents on the right (stage dot and heading, each lesson with dotted leaders and its page count, locked topics in italics). Each page scrolls on its own. Phones and tablets get one page with both. Styles: `src/ui/contents.css`.
+- Picking a lesson, a stage heading (it opens the stage's first unread lesson, `stageEntry`) or the resume button turns the pages (`PageTurn`): 3 to 8 leaves riffle over (more for lessons further into the book, `leafCount`), uncovering the lesson's opening page (stage, lesson number, title, summary), which then fills the book. The lesson page then opens at its first page with no closed cover (navigation state `{ turned: true }`), and 3D still grows out of the 2D page. The scene starts loading while the pages turn. A Cmd/Ctrl click still opens a new tab; reduced motion skips the turn.
+- A lesson opened by its address still starts as a closed book.
+- E2E: `e2e/contents-book.spec.ts` (spread, page turn past the cover, stage pick, reduced motion, address still closed, phone without sideways scroll). Unit: `src/ui/contents.test.ts`.
