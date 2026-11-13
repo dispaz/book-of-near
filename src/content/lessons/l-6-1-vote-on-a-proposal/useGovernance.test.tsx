@@ -23,6 +23,8 @@ describe("lesson 6.1's shared state", () => {
     expect(setGate).toHaveBeenLastCalledWith(true);
     act(() => view.result.current.setMonths(48));
     expect(view.result.current.months).toBe(48);
+    act(() => view.result.current.setMonths(99));
+    expect(view.result.current.months).toBe(48);
   });
 
   it("a pick too early notes the hint and does nothing", () => {
@@ -48,10 +50,10 @@ describe("lesson 6.1's shared state", () => {
     view.rerender({ s: VOTE });
     act(() => view.result.current.vote("yes"));
     act(() => view.result.current.vote("no"));
-    expect(view.result.current.ballot).toEqual({ choice: "yes", power: 400 });
+    expect(view.result.current.ballot).toEqual({ choice: "yes", power: 300 });
     expect(setGate).toHaveBeenLastCalledWith(true);
     expect(reportEvidence).toHaveBeenCalledTimes(1);
-    expect(reportEvidence).toHaveBeenCalledWith(expect.objectContaining({ kind: "practice", power: "400" }));
+    expect(reportEvidence).toHaveBeenCalledWith(expect.objectContaining({ kind: "practice", power: "300" }));
   });
 
   it("opened at a later step, fills in the earlier ones without recording a vote", () => {

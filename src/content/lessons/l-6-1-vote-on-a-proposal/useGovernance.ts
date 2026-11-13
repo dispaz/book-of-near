@@ -1,5 +1,5 @@
 /**
- * The ONE state of lesson 6.1, shared by the 2D and the 3D view: the lock length, whether the learner set
+ * The ONE state of lesson 6.1, shared by the 2D and the 3D view: how long the NEAR has been locked, whether the learner set
  * a lock and read the proposal, their practice ballot and what they picked last. Nothing here touches a
  * network or a wallet, so it works the same in demo and testnet mode. No three.js here.
  */
@@ -14,13 +14,11 @@ import {
   vePower,
   type Ballot,
   type Choice,
-  type Gov,
+  type GovState,
   type Obj,
   type Reaction,
 } from "./governance";
 import { INSPECT, LOCK, VOTE } from "./steps";
-
-export * from "./steps";
 
 export type Governance = ReturnType<typeof useGovernance>;
 
@@ -63,7 +61,7 @@ export function useGovernance({
     if (step === VOTE) setGate(!!ballot);
   }, [step, locked, reviewed, ballot, setGate]);
 
-  const gov: Gov = { step, months, locked, reviewed, ballot };
+  const gov: GovState = { step, months, locked, reviewed, ballot };
   const latest = useRef(gov);
   useLayoutEffect(() => {
     latest.current = gov;

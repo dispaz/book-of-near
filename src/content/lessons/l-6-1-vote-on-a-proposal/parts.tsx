@@ -5,6 +5,7 @@
  */
 import { useId, type ReactNode } from "react";
 import {
+  breakdown,
   fmt,
   LOCKED,
   MAX_MONTHS,
@@ -12,10 +13,12 @@ import {
   PICK_LABELS,
   PROPOSAL,
   tally,
-  times,
+  timeLocked,
+  unlockCost,
   vePower,
 } from "./governance";
-import { HALL, INSPECT, LOCK, STAKE, VOTE, type Governance } from "./useGovernance";
+import { HALL, INSPECT, LOCK, STAKE, VOTE } from "./steps";
+import type { Governance } from "./useGovernance";
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -28,7 +31,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 
 /** What a pick that did the step's action says. */
 const ACT_NOTES = {
-  lock: "The gauge moved to the next lock length.",
+  lock: "The gauge moved on a year. The extra veNEAR grew.",
   review: "Unrolled. Read the proposal below.",
   vote: "Stamped. Your vote is in the tally.",
 } as const;
@@ -53,8 +56,8 @@ export function Tally({ m }: { m: Governance }) {
         aria-valuenow={Math.min(100, t.quorumPct)}
         aria-valuetext={`${t.quorumPct}% of the ${fmt(t.quorum)} veNEAR quorum`}
       >
-        <span className="gov-bar-yes" style={{ width: `${(t.yes / t.quorum) * 100}%` }} />
-        <span className="gov-bar-no" style={{ width: `${(t.no / t.quorum) * 100}%` }} />
+        <span className="gov-bar-yes" style={{ width: `${t.yesBar * 100}%` }} />
+        <span className="gov-bar-no" style={{ width: `${t.noBar * 100}%` }} />
       </div>
       <p className="gov-side">
         Quorum: {t.quorumPct}% of {fmt(t.quorum)} veNEAR {t.reached ? "(reached)" : "(not reached yet)"}.
@@ -83,17 +86,19 @@ export function Facts({
       {step === STAKE ? (
         <dl className="gov-dl" data-testid="staking">
           <Row label="Delegated">50 NEAR (an example)</Row>
-          <Row label="Rewards">about 5% a year</Row>
-          <Row label="Unstaking">4 epochs, about 48 hours</Row>
+          <Row label="Rewards">a few percent a year</Row>
+          <Row label="Unstaking">4 epochs, a little over a day</Row>
           <Row label="Who holds it">the pool's contract, not the validator</Row>
         </dl>
       ) : null}
 
       {step === LOCK ? (
         <div className="gov-lock">
+          <p className="gov-status">
+            {LOCKED} NEAR locked: {LOCKED} veNEAR at once, one for each NEAR.
+          </p>
           <label htmlFor={slider}>
-            Lock duration: <strong data-testid="lock-months">{m.months}</strong> month
-            {m.months === 1 ? "" : "s"}
+            Time locked: <strong data-testid="lock-months">{timeLocked(m.months)}</strong>
           </label>
           <input
             id={slider}
@@ -102,12 +107,19 @@ export function Facts({
             max={MAX_MONTHS}
             step={1}
             value={m.months}
+            aria-valuetext={timeLocked(m.months)}
             onChange={(e) => m.setMonths(Number(e.target.value))}
           />
           <p className={`gov-status${m.locked ? " done" : ""}`} data-testid="ve-power">
-            {LOCKED} NEAR × {times(m.months)} = {fmt(vePower(m.months))} veNEAR
+            {breakdown(m.months)}
           </p>
-          <p className="gov-side">This lesson's model: 1× at 1 month, rising evenly to 4× at 48 months.</p>
+          <p className="gov-side" data-testid="unlock-cost">
+            {unlockCost(m.months)}
+          </p>
+          <p className="gov-side">
+            Mainnet setting: the extra grows by half the locked NEAR each year. The House of Stake docs say it
+            stops at 4 years.
+          </p>
         </div>
       ) : null}
 

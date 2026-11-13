@@ -17,5 +17,7 @@ export const QUORUM = { x: 1.4, z: 0.05, length: 3.6, width: 0.32 } as const;
 export const STAMPS = { yes: [0.7, 0, 1.6] as Vec3, no: [2.6, 0, 1.6] as Vec3 } as const;
 export const STAMPS_CENTER: Vec3 = [1.65, 0, 1.6];
 
-/** The gauge: how tall its column stands per 1× of voting power. */
-export const GAUGE_UNIT = 0.45;
+/** The gauge: how tall its column stands per 100 veNEAR (the 100 locked NEAR). */
+export const GAUGE_UNIT = 0.6;
+/** The marks on the gauge's board, in veNEAR: up to the 4-year cap (300 for 100 NEAR at 50% a year). */
+export const GAUGE_TICKS = [100, 200, 300] as const;

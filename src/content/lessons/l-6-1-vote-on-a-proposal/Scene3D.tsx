@@ -35,19 +35,34 @@ import type { SceneProps } from "../../../app/types";
 import stage from "../../stages/6-citizen/stage";
 import {
   describe,
+  extraVe,
+  fmt,
+  LOCKED,
+  MAX_VE,
   MOTIONS,
-  multiplier,
   PICK_LABELS,
+  stampColors,
   tally,
-  times,
+  vePower,
   type Choice,
   type Obj,
   type Reaction,
 } from "./governance";
-import { FIGURE, GAUGE, GAUGE_UNIT, POOL, QUORUM, SCROLL, STAMPS, STAMPS_CENTER } from "./layout";
+import {
+  FIGURE,
+  GAUGE,
+  GAUGE_TICKS,
+  GAUGE_UNIT,
+  POOL,
+  QUORUM,
+  SCROLL,
+  STAMPS,
+  STAMPS_CENTER,
+} from "./layout";
 import { Facts } from "./parts";
 import { tourFor, type Target } from "./tour";
-import { CHECK, HALL, INSPECT, LOCK, STAKE, VOTE, type Governance } from "./useGovernance";
+import { CHECK, HALL, INSPECT, LOCK, STAKE, VOTE } from "./steps";
+import type { Governance } from "./useGovernance";
 
 const ACCENT = stage.accent;
 /** The page needs room in front for the names under the front objects. */
@@ -224,17 +239,22 @@ function Figure({ m, compact }: { m: Governance; compact: boolean }) {
   );
 }
 
+/** The extra column never scales to 0 (a flat matrix); below this it is hidden instead. */
+const FLAT = 0.001;
+
 /**
- * The veNEAR gauge: a paper board with marks at 1× to 4× and a column that rises to the multiplier. The
- * column grows towards a new length (render on demand: it settles); reduced motion jumps there.
+ * The veNEAR gauge: a paper board with marks at 100, 200 and 300 veNEAR. The bottom block is the 100
+ * veNEAR the 100 locked NEAR gives at once; the accent column on top is the extra, grown with time
+ * locked. The extra grows towards a new height (render on demand: it settles); reduced motion jumps there.
  */
 function Gauge({ months, lit }: { months: number; lit: boolean }) {
   const { reducedMotion } = useStage();
   const board = useInk(COLORS.paper);
-  const fill = useInk(lit ? ACCENT : COLORS.slab);
+  const base = useInk(COLORS.slab);
+  const fill = useInk(lit ? ACCENT : COLORS.paper);
   const ink = useInk(INK);
   const column = useRef<Mesh>(null);
-  const target = GAUGE_UNIT * multiplier(months);
+  const target = Math.max(FLAT, (GAUGE_UNIT * extraVe(months)) / LOCKED);
   useAnimatedFrame((_, dt) => {
     const c = column.current;
     if (!c) return false;
@@ -242,10 +262,11 @@ function Gauge({ months, lit }: { months: number; lit: boolean }) {
     const next = reducedMotion ? target : now + (target - now) * Math.min(1, dt * 8);
     const done = Math.abs(next - target) < 0.002;
     c.scale.y = done ? target : next;
-    c.position.y = 0.12 + c.scale.y / 2;
+    c.position.y = 0.12 + GAUGE_UNIT + c.scale.y / 2;
+    c.visible = c.scale.y > FLAT * 2;
     return !done;
   });
-  const h = GAUGE_UNIT * 4 + 0.3;
+  const h = (GAUGE_UNIT * MAX_VE) / LOCKED + 0.3;
   return (
     <group>
       {/* Plinth. */}
@@ -258,22 +279,28 @@ function Gauge({ months, lit }: { months: number; lit: boolean }) {
         <boxGeometry args={[0.8, h, 0.06]} />
         <Outline />
       </mesh>
-      {[1, 2, 3, 4].map((k) => (
-        <mesh key={k} position={[0.25, 0.12 + GAUGE_UNIT * k, -0.11]} material={ink}>
+      {GAUGE_TICKS.map((k) => (
+        <mesh key={k} position={[0.25, 0.12 + (GAUGE_UNIT * k) / LOCKED, -0.11]} material={ink}>
           <boxGeometry args={[0.18, 0.03, 0.01]} />
         </mesh>
       ))}
-      {/* The column: unit height, scaled to the multiplier. */}
+      {/* The 100 veNEAR for the 100 locked NEAR: there at once. */}
+      <mesh position={[-0.08, 0.12 + GAUGE_UNIT / 2, 0]} material={base}>
+        <boxGeometry args={[0.3, GAUGE_UNIT, 0.24]} />
+        <Outline />
+      </mesh>
+      {/* The extra veNEAR: unit height, scaled to the extra. Gone on unlock. */}
       <mesh
         ref={column}
-        position={[-0.08, 0.12 + GAUGE_UNIT / 2, 0]}
-        scale={[1, GAUGE_UNIT, 1]}
+        position={[-0.08, 0.12 + GAUGE_UNIT + FLAT / 2, 0]}
+        scale={[1, FLAT, 1]}
+        visible={false}
         material={fill}
       >
         <boxGeometry args={[0.3, 1, 0.24]} />
         <Outline />
       </mesh>
-      <Label position={[0, 0.12 + h + 0.4, 0]}>{`veNEAR ${times(months)}`}</Label>
+      <Label position={[0, 0.12 + h + 0.4, 0]}>{`${fmt(vePower(months))} veNEAR`}</Label>
     </group>
   );
 }
@@ -286,8 +313,8 @@ function Quorum({ m }: { m: Governance }) {
   const no = useInk(COLORS.red);
   const ink = useInk(INK);
   const L = QUORUM.length;
-  const ly = (t.yes / t.quorum) * L;
-  const ln = (t.no / t.quorum) * L;
+  const ly = t.yesBar * L;
+  const ln = t.noBar * L;
   const x0 = QUORUM.x - L / 2;
   return (
     <group position={[0, 0, QUORUM.z]}>
@@ -314,8 +341,7 @@ function Quorum({ m }: { m: Governance }) {
 
 /** A ballot stamp: a wooden handle on a block whose face reads YES or NO. Inked once it is your vote. */
 function Ballot({ choice, mine, ready }: { choice: Choice; mine: boolean; ready: boolean }) {
-  const ink = choice === "yes" ? COLORS.green : COLORS.red;
-  const tint = choice === "yes" ? COLORS.greenTint : COLORS.redTint;
+  const { ink, tint } = stampColors(choice);
   const wood = useInk(COLORS.kraft);
   const block = useInk(mine ? ink : ready ? ACCENT : tint);
   return (

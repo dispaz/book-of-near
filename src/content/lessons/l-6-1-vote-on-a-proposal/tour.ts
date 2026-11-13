@@ -3,9 +3,7 @@
  * each with a caption. It only moves the camera; it never acts for the learner. Pure, unit tested.
  */
 import type { Shot } from "../../../scene-kit/bookLayout";
-import { CHECK, HALL, INSPECT, LOCK, STAKE, VOTE } from "./steps";
-
-export { CHECK };
+import { HALL, INSPECT, LOCK, STAKE, VOTE } from "./steps";
 
 /** What a tour shot looks at. */
 export type Target =
@@ -29,7 +27,7 @@ export function tourFor(step: number): Shot<Target>[] {
     case STAKE:
       return [ALL, shot("pool", "the staking pool's mailbox. Your NEAR stays yours.")];
     case LOCK:
-      return [ALL, shot("gauge", "the veNEAR gauge. A longer lock fills it higher.")];
+      return [ALL, shot("gauge", "the veNEAR gauge. The longer the NEAR stays locked, the higher it fills.")];
     case INSPECT:
       return [ALL, shot("scroll", "Proposal #42, an example, and its quorum bar.")];
     case VOTE:

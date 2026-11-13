@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CHECK, tourFor } from "./tour";
+import { CHECK } from "./steps";
+import { tourFor } from "./tour";
 
 describe("tourFor", () => {
   it("gives every step before the check a short tour that starts with the whole figure", () => {

@@ -4,7 +4,8 @@ import { SceneAction, SceneActionGroup } from "../../../ui/SceneAction";
 import { Check, HonestTake, type CheckQuestion } from "../../../lesson-kit";
 import Scene2D from "./Scene2D";
 import { fmt, vePower } from "./governance";
-import { CHECK, HONEST, INSPECT, VOTE, useGovernance } from "./useGovernance";
+import { CHECK, HONEST, INSPECT, VOTE } from "./steps";
+import { useGovernance } from "./useGovernance";
 import "./scene.css";
 
 /** The 3D view (a pop-up book scene) loads only when the learner picks 3D, so 2D never downloads three.js. */
@@ -16,7 +17,7 @@ const QUESTIONS: CheckQuestion[] = [
     prompt: "What is the main purpose of the veNEAR (vote-escrow) model?",
     options: [
       {
-        text: "To give more voting power to people who lock their tokens for longer.",
+        text: "To give more voting power to people who keep their NEAR locked longer.",
         correct: true,
       },
       {
@@ -25,14 +26,14 @@ const QUESTIONS: CheckQuestion[] = [
       },
       {
         text: "To burn half of all liquid NEAR.",
-        why: "Locking does not burn tokens: they come back when the lock ends.",
+        why: "Locking does not burn tokens: you can unlock them, after a 45-day wait.",
       },
     ],
   },
   {
     prompt: "You unstake NEAR you delegated to a validator. When can you spend it?",
     options: [
-      { text: "After an unbonding period of 4 epochs, about 48 hours.", correct: true },
+      { text: "After an unbonding period of 4 epochs, a little over a day.", correct: true },
       {
         text: "At once, in the next block.",
         why: "Proof of Stake security needs a waiting time before staked NEAR is free.",
@@ -44,15 +45,15 @@ const QUESTIONS: CheckQuestion[] = [
     ],
   },
   {
-    prompt: "A rich trader borrows 1,000,000 NEAR for 10 minutes. Can they take over veNEAR governance?",
+    prompt: "A trader borrows 1,000,000 NEAR for 10 minutes to sway a House of Stake vote. What stops them?",
     options: [
       {
-        text: "No: the most voting power goes to tokens locked for years, not for minutes.",
+        text: "Locked NEAR takes 45 days to unlock, so they cannot get it back out to repay a 10-minute loan.",
         correct: true,
       },
       {
-        text: "Yes: the richest account always wins.",
-        why: "How long tokens are locked weighs heavily on voting power.",
+        text: "Nothing: the richest account always wins.",
+        why: "Locked, the borrowed NEAR would count 1:1 at once. But it would then be stuck for 45 days, long after the loan is due.",
       },
       {
         text: "Yes: loans get around smart contracts.",
@@ -118,17 +119,18 @@ export default function Scene(props: SceneProps) {
       ) : null}
       {step === HONEST ? (
         <HonestTake
-          comparedWith={["Ethereum", "Cosmos"]}
+          comparedWith={[
+            "Ethereum, where protocol changes are agreed by rough consensus among developers and token holders do not vote on them",
+            "Cosmos, where staked ATOM votes directly on chain upgrades, with a 21-day unbonding period",
+          ]}
           // docs/lessons/stage-6/6.1.md, section 4.
           strengths={[
-            "Rewards long-term commitment: voting power needs tokens locked over time, so a quick loan of tokens cannot buy a vote.",
+            "Hard to rent a vote: voting power needs locked NEAR, and locked NEAR takes 45 days to come out, so a short loan cannot vote and be repaid. Power also grows with time locked, which favours people who stay.",
             "Decisions carry out themselves: an approved DAO proposal pays out on chain, straight from the treasury contract.",
-            "Compared with Ethereum, where protocol changes are agreed by rough consensus among developers and token holders do not vote on them, and DAOs mostly vote off chain (Snapshot) and pay out with a multisig (Safe).",
           ]}
           weaknesses={[
-            "Locked money: a long lock for the most voting power means you cannot sell in a sudden market crash or emergency.",
+            "Slow to exit: more voting power costs you the waiting period. Unlocking takes 45 days, so you cannot react quickly to a market crash or emergency, and unlocking any amount wipes all the extra veNEAR you built up.",
             "Few voters: reaching quorum often takes a lot of rallying, and most small holders do not vote.",
-            "Compared with Cosmos, where staked ATOM votes directly on chain upgrades, with a 21-day unbonding period.",
           ]}
         />
       ) : null}

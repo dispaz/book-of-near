@@ -14,7 +14,7 @@ export default {
   needsChain: false,
   // Both views draw one state (useGovernance); the 3D view is a pop-up book scene (Scene3D), loaded lazily.
   views: ["2d", "3d"],
-  summary: "Lock NEAR for voting power, read a proposal and cast a practice vote.",
+  summary: "Lock NEAR for veNEAR voting power, read a proposal and cast a practice vote.",
   steps: [
     {
       caption: "A network with no CEO still has to make decisions. Who decides how NEAR changes?",
@@ -25,13 +25,13 @@ export default {
     {
       caption: "Delegate your NEAR to a validator: you earn rewards and help secure the network.",
       explain:
-        "A validator runs a node that keeps NEAR's Proof of Stake network secure. You can delegate (lend the weight of) your NEAR to any validator's staking pool and earn about 5% a year. Your NEAR stays in the pool's contract, not with the validator. When you unstake, it unlocks after 4 epochs, about 48 hours.",
+        "A validator runs a node that keeps NEAR's Proof of Stake network secure. You can delegate (lend the weight of) your NEAR to any validator's staking pool and earn rewards of a few percent a year. Your NEAR stays in the pool's contract, not with the validator. When you unstake, it unlocks after 4 epochs (an epoch is a fixed run of blocks), a little over a day.",
       explainAt: "pool",
     },
     {
       caption: "Why should long-term believers have a louder voice than day traders?",
       explain:
-        "The House of Stake is NEAR's governance body for people who lock their NEAR. Locking gives you veNEAR (vote-escrow NEAR): voting power that grows with how long you lock. In this lesson's model, 100 NEAR locked for 1 month gives 1× the voting power; locked for 4 years (48 months), 4×. Move the slider or pick the gauge.",
+        "The House of Stake is NEAR's governance for people who lock their NEAR. Locking gives you veNEAR (vote-escrow NEAR), its voting power. There is no lock length to pick: 100 NEAR locked gives 100 veNEAR at once. While it stays locked, extra veNEAR grows. On mainnet the extra grows by half the locked NEAR each year, and the docs say it stops at 4 years. Unlock any amount and you lose all the extra, and the NEAR waits 45 days before you can take it out. Move the slider or pick the gauge.",
       explainAt: "gauge",
       action: { label: "set a lock", gate: true },
     },
@@ -43,7 +43,7 @@ export default {
       action: { label: "review the proposal", gate: true },
     },
     {
-      caption: "Cast your weighted vote. Your veNEAR is added to the tally.",
+      caption: "Cast your weighted vote. This is a practice vote: it changes this page only.",
       explain:
         "Your vote counts with the veNEAR you set on step 3. On a real DAO, each vote is a transaction recorded on chain. Here it is a practice vote: it moves this page's tally and quorum bar, and sends nothing.",
       explainAt: "stamps",

@@ -20,9 +20,9 @@ import {
 const ID = "l-6-1-vote-on-a-proposal";
 const TITLE = "Read and vote on a proposal";
 const ANSWERS = [
-  "To give more voting power to people who lock their tokens for longer.",
-  "After an unbonding period of 4 epochs, about 48 hours.",
-  "No: the most voting power goes to tokens locked for years, not for minutes.",
+  "To give more voting power to people who keep their NEAR locked longer.",
+  "After an unbonding period of 4 epochs, a little over a day.",
+  "Locked NEAR takes 45 days to unlock, so they cannot get it back out to repay a 10-minute loan.",
 ];
 
 test.beforeEach(async ({ page }, info) => {
@@ -38,17 +38,21 @@ async function go(page: Page, caption: string | RegExp) {
   await expect(page.getByTestId("caption")).toContainText(caption);
 }
 
-/** From the town hall to "Lesson done", voting YES with 100 NEAR locked for 48 months. */
+/** From the town hall to "Lesson done", voting YES with 100 NEAR locked for 4 years. */
 async function walk(page: Page) {
   await expect(page.getByTestId("caption")).toContainText("Who decides how NEAR changes?");
   await go(page, "Delegate your NEAR to a validator");
-  await expect(page.getByTestId("staking")).toContainText("4 epochs, about 48 hours");
+  await expect(page.getByTestId("staking")).toContainText("4 epochs, a little over a day");
 
   await go(page, "long-term believers");
   await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
-  await expect(page.getByTestId("ve-power")).toHaveText("100 NEAR × 1× = 100 veNEAR");
-  await page.getByRole("slider", { name: /Lock duration/ }).fill("48");
-  await expect(page.getByTestId("ve-power")).toHaveText("100 NEAR × 4× = 400 veNEAR");
+  await expect(page.getByTestId("ve-power")).toHaveText("100 veNEAR");
+  await page.getByRole("slider", { name: /Time locked/ }).fill("48");
+  await expect(page.getByTestId("ve-power")).toHaveText("100 veNEAR + 200 extra = 300 veNEAR");
+  await expect(page.getByTestId("lock-months")).toHaveText("4 years");
+  await expect(page.getByTestId("unlock-cost")).toHaveText(
+    "Unlock now: the 200 extra veNEAR is gone, your 100 NEAR stops counting and waits 45 days before you can take it out.",
+  );
   await expect(scene(page)).toHaveAttribute("data-scene-state", /months:48;locked:yes/);
 
   await go(page, "Read Proposal #42");
@@ -62,9 +66,9 @@ async function walk(page: Page) {
   await expect(page.getByRole("button", { name: "Next step" })).toBeDisabled();
   await dock(page).getByRole("button", { name: "Vote YES" }).click();
   await expect(page.getByTestId("vote-status")).toHaveText(
-    "Practice vote: +400 veNEAR YES. Nothing was sent to a chain.",
+    "Practice vote: +300 veNEAR YES. Nothing was sent to a chain.",
   );
-  await expect(page.getByTestId("tally")).toContainText("300,400 veNEAR voted, 400 of it yours");
+  await expect(page.getByTestId("tally")).toContainText("300,300 veNEAR voted, 300 of it yours");
   await expect(scene(page)).toHaveAttribute("data-scene-state", /vote:yes/);
 
   await go(page, "Three questions");
@@ -80,7 +84,7 @@ async function walk(page: Page) {
 const RECORD = {
   stage: 6,
   mode: "demo",
-  evidence: { proposalId: "42", voteCast: "true", choice: "yes", power: "400", kind: "practice" },
+  evidence: { proposalId: "42", voteCast: "true", choice: "yes", power: "300", kind: "practice" },
 };
 
 for (const view of ["2d", "3d"] as const)
@@ -122,7 +126,7 @@ test.describe(`lesson ${ID}`, () => {
     await expect(note).toHaveAttribute("data-not-yet", "yes");
     await expect(note).toContainText("Inspect the proposal first.");
     await page.getByRole("button", { name: "The staking pool" }).press("Enter");
-    await expect(note).toContainText("4 epochs, about 48 hours");
+    await expect(note).toContainText("4 epochs, a little over a day");
     await go(page, "Delegate");
     await go(page, "long-term believers");
     await page.getByRole("button", { name: "The veNEAR gauge" }).press("Enter");
@@ -133,7 +137,7 @@ test.describe(`lesson ${ID}`, () => {
     await go(page, "Cast your weighted vote");
     await page.getByRole("button", { name: "The NO stamp" }).press("Enter");
     await expect(scene(page)).toHaveAttribute("data-scene-state", /vote:no/);
-    await expect(page.getByTestId("vote-status")).toContainText("+170 veNEAR NO");
+    await expect(page.getByTestId("vote-status")).toContainText("+150 veNEAR NO");
     await page.getByRole("button", { name: "The YES stamp" }).press("Enter");
     await expect(note).toContainText("You voted NO.");
   });
@@ -158,7 +162,7 @@ test.describe(`lesson ${ID}`, () => {
 
   test("2D to 3D keeps the lock and the vote", async ({ page }) => {
     await page.goto(`/lesson/${ID}?view=2d&step=3`);
-    await page.getByRole("slider", { name: /Lock duration/ }).fill("24");
+    await page.getByRole("slider", { name: /Time locked/ }).fill("24");
     await page.getByRole("group", { name: "Scene view" }).getByRole("button", { name: "3D" }).click();
     await expect(scene(page)).toHaveAttribute("data-view", "3d", { timeout: LOAD_3D });
     await expect(scene(page)).toHaveAttribute("data-scene-state", /months:24;locked:yes/);
@@ -180,7 +184,7 @@ test.describe("3D book scene", () => {
     await expect(page.locator("main.lesson")).toHaveAttribute("data-spread", "");
     await expect(page.locator(".book-page")).toHaveCSS("transform", /matrix3d/);
     // The slider still works with the words printed.
-    await page.getByRole("slider", { name: /Lock duration/ }).fill("36");
+    await page.getByRole("slider", { name: /Time locked/ }).fill("36");
     await expect(scene(page)).toHaveAttribute("data-scene-state", /months:36/);
 
     const caption = page.getByTestId("tour-caption");
@@ -216,7 +220,7 @@ test.describe("3D book scene", () => {
     const stage = page.locator(".book-scene .sk-stage");
     await expect(stage).toHaveAttribute("data-camera", "still", { timeout: LOAD_3D });
     await expectSettled(page);
-    await page.getByRole("slider", { name: /Lock duration/ }).fill("48");
+    await page.getByRole("slider", { name: /Time locked/ }).fill("48");
     await expectSettled(page);
   });
 
@@ -238,7 +242,7 @@ test.describe("3D book scene", () => {
     // Staking mailbox: always a detail.
     await expectFocusMarksHover(page, "The staking pool");
     await expectPickPlaysAndSettles(page, "The staking pool");
-    await expectPickDetail(page, "The staking pool", /4 epochs, about 48 hours/);
+    await expectPickDetail(page, "The staking pool", /4 epochs, a little over a day/);
     // Proposal scroll and ballot stamps: not yet on step 3.
     await expectNotYetHint(page, "Proposal #42", "Not yet: you read the proposal on step 4.");
     await expectNotYetHint(page, "The YES stamp", "Inspect the proposal first.");
@@ -248,7 +252,11 @@ test.describe("3D book scene", () => {
     await page.getByRole("button", { name: "Proposal #42" }).press("Enter");
     await expect(scene(page)).toHaveAttribute("data-scene-state", /reviewed:yes/);
     await expectPickDetail(page, "Proposal #42", /62% yes, 38% no/);
-    await expectPickDetail(page, "The veNEAR gauge", "100 NEAR locked for 12 months: 170 veNEAR (1.7×).");
+    await expectPickDetail(
+      page,
+      "The veNEAR gauge",
+      "100 NEAR locked for 1 year: 100 veNEAR + 50 extra = 150 veNEAR. Unlocking loses the extra.",
+    );
     await expectNotYetHint(page, "The NO stamp", "Not yet: you vote on step 5.");
   });
 

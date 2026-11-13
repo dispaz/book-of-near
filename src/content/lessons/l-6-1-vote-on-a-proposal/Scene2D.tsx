@@ -8,10 +8,23 @@ import { SvgLabel, SvgPickable } from "../../../scene-kit/svg";
 import { SvgMailbox, SvgScroll } from "../../../scene-kit/svg/objects";
 import { COLORS, INK } from "../../../scene-kit/theme";
 import stage from "../../stages/6-citizen/stage";
-import { describe, multiplier, PICK_LABELS, tally, times, type Choice, type Obj } from "./governance";
-import { FIGURE, GAUGE, POOL, QUORUM, SCROLL, STAMPS } from "./layout";
+import {
+  describe,
+  extraVe,
+  fmt,
+  LOCKED,
+  MAX_VE,
+  PICK_LABELS,
+  stampColors,
+  tally,
+  vePower,
+  type Choice,
+  type Obj,
+} from "./governance";
+import { FIGURE, GAUGE, GAUGE_TICKS, POOL, QUORUM, SCROLL, STAMPS } from "./layout";
 import { Facts } from "./parts";
-import { CHECK, HALL, INSPECT, LOCK, STAKE, VOTE, type Governance } from "./useGovernance";
+import { CHECK, HALL, INSPECT, LOCK, STAKE, VOTE } from "./steps";
+import type { Governance } from "./useGovernance";
 
 const ACCENT = stage.accent;
 /** SVG units per world unit. */
@@ -111,13 +124,18 @@ function Page({ m }: { m: Governance }) {
   );
 }
 
-/** The veNEAR gauge: a board with marks at 1× to 4× and a column that fills to the multiplier. */
+/**
+ * The veNEAR gauge: a board with marks at 100, 200 and 300 veNEAR. The bottom block is the 100 veNEAR the
+ * 100 locked NEAR gives at once; the accent column on top is the extra, grown with time locked.
+ */
 function SvgGauge({ m }: { m: Governance }) {
   const x = px(GAUGE[0]);
   const base = pz(GAUGE[2]) + 50;
-  const unit = 26;
-  const h = unit * 4 + 14;
-  const fill = unit * multiplier(m.months);
+  /** SVG units per 100 veNEAR. */
+  const unit = 35;
+  const h = (unit * MAX_VE) / LOCKED + 14;
+  const extra = (unit * extraVe(m.months)) / LOCKED;
+  const lit = m.step === LOCK || m.locked;
   return (
     <SvgPickable
       label={PICK_LABELS.gauge}
@@ -135,33 +153,46 @@ function SvgGauge({ m }: { m: Governance }) {
         stroke={INK}
         strokeWidth={2.5}
       />
-      {[1, 2, 3, 4].map((k) => (
+      {GAUGE_TICKS.map((k) => (
         <g key={k}>
           <line
             x1={x + 12}
             x2={x + 22}
-            y1={base - unit * k}
-            y2={base - unit * k}
+            y1={base - (unit * k) / LOCKED}
+            y2={base - (unit * k) / LOCKED}
             stroke={INK}
             strokeWidth={2}
           />
-          <text x={x + 30} y={base - unit * k + 4} fontSize={11} fontFamily="var(--ui)" fill={INK}>
-            {`${k}×`}
+          <text x={x + 30} y={base - (unit * k) / LOCKED + 4} fontSize={11} fontFamily="var(--ui)" fill={INK}>
+            {k}
           </text>
         </g>
       ))}
+      {/* The 100 veNEAR for the 100 locked NEAR: there at once. */}
       <rect
-        className="gov-fill"
         x={x - 16}
-        y={base - fill}
+        y={base - unit}
         width={24}
-        height={fill}
-        fill={m.step === LOCK || m.locked ? ACCENT : COLORS.slab}
+        height={unit}
+        fill={COLORS.slab}
         stroke={INK}
         strokeWidth={2}
       />
+      {/* The extra veNEAR, grown with time locked. Gone on unlock. */}
+      {extra > 0 ? (
+        <rect
+          className="gov-fill"
+          x={x - 16}
+          y={base - unit - extra}
+          width={24}
+          height={extra}
+          fill={lit ? ACCENT : COLORS.paper}
+          stroke={INK}
+          strokeWidth={2}
+        />
+      ) : null}
       <SvgLabel x={x} y={base - h - 12}>
-        {`veNEAR ${times(m.months)}`}
+        {`${fmt(vePower(m.months))} veNEAR`}
       </SvgLabel>
     </SvgPickable>
   );
@@ -174,8 +205,8 @@ function SvgQuorum({ m }: { m: Governance }) {
   const len = QUORUM.length * SCALE;
   const y = pz(QUORUM.z);
   const hgt = 16;
-  const yes = (t.yes / t.quorum) * len;
-  const no = (t.no / t.quorum) * len;
+  const yes = t.yesBar * len;
+  const no = t.noBar * len;
   return (
     <g aria-hidden="true">
       <rect x={x0} y={y} width={len} height={hgt} fill={COLORS.paper} stroke={INK} strokeWidth={2} />
@@ -195,8 +226,7 @@ function SvgBallot({ m, choice }: { m: Governance; choice: Choice }) {
   const x = px(at[0]);
   const y = pz(at[2]) + 26;
   const mine = m.ballot?.choice === choice;
-  const ink = choice === "yes" ? COLORS.green : COLORS.red;
-  const tint = choice === "yes" ? COLORS.greenTint : COLORS.redTint;
+  const { ink, tint } = stampColors(choice);
   return (
     <SvgPickable
       label={PICK_LABELS[choice]}
