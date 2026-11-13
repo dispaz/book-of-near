@@ -1,13 +1,15 @@
 import { readdirSync } from "node:fs";
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
-import { STAGE_RULES } from "../src/badges/rules";
+import { CLAIMABLE_BADGES, STAGE_RULES } from "../src/badges/rules";
+import { ANSWER_KEY } from "../src/exam/answerKey";
+import { questionsFor } from "../src/exam/bank";
 import { WALKS } from "./judge/walks";
 
 /**
  * The judge's path (issue #31): what an AI reviewer does after `npm install && npm run dev`. One fresh
  * browser profile, demo mode, no wallet. It takes the opening quiz, opens every shipped lesson from the
  * contents and walks it to Finish in the 2D view, claims every claimable stage badge, checks My book and
- * the public checker, and reaches the 2D/3D switch. The list reporter prints one line per lesson.
+ * the public checker, passes the final exam, and reaches the 2D/3D switch. The list reporter prints one line per lesson.
  *
  * Demo-mode parity: the whole run must make NO request outside the app's own origin (no RPC, Worker,
  * DefiLlama, NEAR AI or 1Click). Every outside request is blocked and recorded, and the test that made it
@@ -115,7 +117,7 @@ test("My book shows every claimed badge, and the public checker agrees", async (
   await page.goto("/my-book");
   const shelf = page.getByRole("list", { name: "My badges" });
   for (const n of claimable) await expect(shelf.locator(`[data-stage="${n}"]`)).toContainText("Claimed");
-  await expect(page.getByText(`${claimable.length} of ${claimable.length} claimed.`)).toBeVisible();
+  await expect(page.getByText(`${claimable.length} of ${CLAIMABLE_BADGES} claimed.`)).toBeVisible();
 
   await page.getByRole("link", { name: "Open in the badge checker" }).click();
   await expect(page).toHaveURL(/\/check/);
@@ -131,6 +133,30 @@ test("My book shows every claimed badge, and the public checker agrees", async (
   await account.fill("Not A Name");
   await page.getByRole("button", { name: "Check", exact: true }).click();
   await expect(page.getByRole("alert")).toHaveText("That is not a NEAR account name.");
+});
+
+test("the final exam opens with the badges held, and all 15 right answers pass it", async () => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Final exam" }).click();
+  await expect(page).toHaveURL(/\/exam/);
+  await expect(page.getByRole("heading", { name: "The final exam" })).toBeVisible();
+  // The general route needs the stage 0 to 2 badges, claimed above.
+  const form = page.locator('form[data-exam-state="open"]');
+  await expect(form).toBeVisible();
+  const questions = questionsFor("general");
+  await expect(form.locator("fieldset.quiz-q")).toHaveCount(questions.length);
+  for (const q of questions)
+    await form
+      .locator(`fieldset[data-question="${q.id}"]`)
+      .getByRole("radio", { name: q.options[ANSWER_KEY[q.id]!.answer], exact: true })
+      .check();
+  await page.getByRole("button", { name: "Hand in my answers" }).click();
+  // Demo grading loads the answer key chunk from the app's own origin: the network guard allows it.
+  await expect(page.locator(".exam-result")).toHaveAttribute("data-exam-state", "passed");
+  await expect(page.getByRole("heading", { name: "You passed the final exam" })).toBeVisible();
+  await expect(page.locator(".exam-result")).toContainText(
+    `${questions.length} of ${questions.length} right`,
+  );
 });
 
 // The title avoids the word "3D": E2E_NO_3D=1 leaves out tests named so, and this one has a no-WebGL branch.

@@ -460,7 +460,8 @@ export async function play52(page: Page) {
 
 // ---------- stage 6 ----------
 
-export async function play61(page: Page) {
+/** Votes `choice` (YES by default; the README says "Vote YES or no"). One vote per voter. */
+export async function play61(page: Page, choice: "yes" | "no" = "yes") {
   await nextStep(page);
   await nextStep(page);
   await page.getByRole("slider", { name: /Time locked/ }).fill("48");
@@ -469,8 +470,11 @@ export async function play61(page: Page) {
   await dockButton(page, "Review proposal").click();
   await expect(page.getByTestId("proposal-details")).toBeVisible();
   await nextStep(page);
-  await dockButton(page, "Vote YES").click();
-  await state(page, /vote:yes/);
+  await dockButton(page, `Vote ${choice.toUpperCase()}`).click();
+  await expect(page.getByTestId("vote-status")).toHaveText(
+    `Practice vote: +300 veNEAR ${choice.toUpperCase()}. Nothing was sent to a chain.`,
+  );
+  await state(page, new RegExp(`vote:${choice}`));
   await nextStep(page);
   await answerCheck(page, [
     "To give more voting power to people who keep their NEAR locked longer.",
@@ -479,6 +483,31 @@ export async function play61(page: Page) {
   ]);
   await nextStep(page);
   await finish(page, "l-6-1-vote-on-a-proposal");
+}
+
+export async function play62(page: Page) {
+  await nextStep(page);
+  await dockButton(page, "Compare the two USDCs").click();
+  await expect(page.getByTestId("supplies")).toContainText("79.3 million");
+  await nextStep(page);
+  await dockButton(page, "Read the oracle").click();
+  await expect(page.getByTestId("oracle")).toContainText("too old");
+  await nextStep(page);
+  await dockButton(page, "Trade 100 USDC").click();
+  await expect(page.getByTestId("trade")).toContainText("100.09 USDt");
+  await dockButton(page, "Trade 100,000 USDC").click();
+  await state(page, /trade:100000/);
+  await nextStep(page);
+  await dockButton(page, "Show the flows").click();
+  await state(page, /flows:yes/);
+  await nextStep(page);
+  await answerCheck(page, [
+    "Circle issues it on NEAR itself, so no bridge stands between you and Circle.",
+    "Refuse it as too old, and wait for a fresh signed update.",
+    "A stable pool's curve keeps same-value tokens near 1:1; a simple pool's price moves as a big trade drains one side.",
+  ]);
+  await nextStep(page);
+  await finish(page, "l-6-2-live-money-map");
 }
 
 // ---------- stage 7 ----------
@@ -524,8 +553,8 @@ export async function play72(page: Page) {
 }
 
 /**
- * Every shipped lesson, in book order, with its walk. One line per lesson: lesson 6.2 (PR #101) and the
- * final exam (PR #102) each add one line here once they are on main.
+ * Every shipped lesson, in book order, with its walk. One line per lesson (a judge-path test fails if a
+ * lesson folder has none). The final exam is walked separately, after the badge claims.
  */
 export const WALKS: [lessonId: string, walk: (page: Page) => Promise<unknown>][] = [
   ["l-0-1-blockchain-basics", play01],
@@ -545,6 +574,7 @@ export const WALKS: [lessonId: string, walk: (page: Page) => Promise<unknown>][]
   ["l-5-1-private-ai", play51],
   ["l-5-2-agent-with-no-owner", play52],
   ["l-6-1-vote-on-a-proposal", play61],
+  ["l-6-2-live-money-map", play62],
   ["l-7-1-trace-an-intent", play71],
   ["l-7-2-honest-scoreboard", play72],
 ];
