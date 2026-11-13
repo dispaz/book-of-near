@@ -168,6 +168,11 @@ async function checkStage(stage: number, account: string, ev: Evidence, lookup: 
       // keys (checked in `claim`) show the steps were done; the contract refuses stage 6 until the account
       // holds stage 5, so the badge still rests on the earlier stages' on-chain work.
       return;
+    case 7:
+      // Nothing on testnet to check: 7.1 replays an intent (its `txHash` is a mainnet swap, a demo hash
+      // or the recorded replay id) and 7.2 reads a recorded scoreboard. The evidence keys (checked in
+      // `claim`) show both were done; the contract refuses stage 7 until the account holds stage 6.
+      return;
   }
 }
 
