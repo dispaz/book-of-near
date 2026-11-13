@@ -113,10 +113,10 @@ test.describe(`lesson ${ID}`, () => {
     expect(Math.abs(sum - all)).toBeLessThanOrEqual(0.02);
     await expect(gas).toContainText("shop.demo.testnet");
     await expect(page.getByTestId("gas-burned")).toHaveText("all of it");
-    await expect(page.getByTestId("gas-history")).toContainText("Until protocol version 86");
+    await expect(page.getByTestId("gas-history")).toContainText("Up to and including protocol version 86");
     await expect(gas).not.toContainText("70%");
     await expect(page.getByTestId("caption")).toContainText(
-      `burnt ${all.toFixed(2)} Tgas, and all of it was burned`,
+      `burnt ${all.toFixed(2)} Tgas of gas, and the NEAR paid for it was destroyed`,
     );
   });
 

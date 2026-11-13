@@ -187,7 +187,6 @@ function Meter({ c }: { c: CallState }) {
   const x = px(METER.center[0]) - w / 2;
   const y = pz(METER.center[2]) - h / 2 + 10;
   const parts = c.call ? meterParts(c.call) : null;
-  const starts = parts?.map((_, i) => parts.slice(0, i).reduce((s, p) => s + p.frac, 0)) ?? [];
   return (
     <g data-explain="meter">
       <SvgPickable
@@ -197,23 +196,23 @@ function Meter({ c }: { c: CallState }) {
       >
         <rect x={x} y={y} width={w} height={h} rx={8} className="xcc-bar" />
         {parts
-          ? parts.map((p, i) => {
-              const last = i === parts.length - 1;
+          ? parts.map((p) => {
+              const end = p.align === "end";
               return (
                 <g key={p.label}>
                   <rect
-                    x={x + w * starts[i]!}
+                    x={x + w * p.start}
                     y={y}
                     width={w * p.frac}
                     height={h}
                     rx={8}
                     className="xcc-bar-burn"
                   />
-                  {i === 0 || last ? (
+                  {p.showLabel ? (
                     <text
-                      x={last && i > 0 ? x + w : x}
+                      x={end ? x + w : x}
                       y={y - 6}
-                      textAnchor={last && i > 0 ? "end" : "start"}
+                      textAnchor={end ? "end" : "start"}
                       className="xcc-svg-label small"
                     >
                       {p.label}

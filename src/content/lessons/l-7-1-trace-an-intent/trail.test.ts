@@ -115,7 +115,7 @@ describe("pickResult", () => {
   });
   it("the verifier says all its gas is burned (the 30% contract reward ended with protocol version 87)", () => {
     const note = pickResult("verifier", { ...base, step: CONTRACT, authorized: true }).note;
-    expect(note).toMatch(/all the gas it burns is burned/i);
+    expect(note).toMatch(/NEAR paid for its gas is destroyed; none goes to the contract/);
     expect(note).not.toMatch(/30%|70%/);
   });
   it("where the USDC lands starts the settlement at step 5", () => {

@@ -132,7 +132,6 @@ export default function Scene(props: SceneProps) {
             "No rollback across receipts. When a called contract fails, the caller's changes stay. Recovering needs careful callback code that restores state and refunds money.",
             "Slower round trips. Every hop between contracts waits for a later block, about a second each. Ethereum finishes a chain of calls inside one transaction.",
             "Callbacks can starve. If the attached gas runs out before the callback, it never runs and state can get stuck. Builders must keep gas for it.",
-            "Ethereum's calls are synchronous and atomic: if any call fails, the whole transaction reverts.",
           ]}
         />
       ) : null}

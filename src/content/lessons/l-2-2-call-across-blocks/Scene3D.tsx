@@ -2,7 +2,7 @@
  * Lesson 2.2 in 3D: a pop-up book scene (docs/book-scene.md). On the right page: contract A and
  * contract B as scrolls (the gear turns while a receipt runs on them), the action receipt at step 2,
  * the block row (a parcel for the transaction, then a slip per receipt, one block each) and, at step 4,
- * the gas meter split 70 / 30. Every object is a pick that runs the step's action or shows a detail. It
+ * the gas meter, one part per contract, all of it burned. Every object is a pick that runs the step's action or shows a detail. It
  * only draws the shared state from useCrossCall. Loaded lazily from Scene.tsx.
  */
 import { useRef } from "react";
@@ -269,17 +269,12 @@ function Meter({ c }: { c: CallState }) {
   const [cx, , cz] = METER.center;
   const len = METER.length;
   const parts = c.call ? meterParts(c.call) : null;
-  const starts = parts?.map((_, i) => parts.slice(0, i).reduce((s, p) => s + p.frac, 0)) ?? [];
   return (
     <group position={[cx, 0, cz]}>
       <Pickable label="Gas meter: inspect the gas" onPick={c.pickMeter} anchor={[0, 0.4, 0]}>
         {parts ? (
-          parts.map((p, i) => (
-            <mesh
-              key={p.label}
-              position={[-len / 2 + len * (starts[i]! + p.frac / 2), 0.08, 0]}
-              material={burn}
-            >
+          parts.map((p) => (
+            <mesh key={p.label} position={[-len / 2 + len * (p.start + p.frac / 2), 0.08, 0]} material={burn}>
               <boxGeometry args={[len * p.frac, 0.16, METER.depth]} />
               <Outline />
             </mesh>
@@ -291,18 +286,17 @@ function Meter({ c }: { c: CallState }) {
           </mesh>
         )}
       </Pickable>
-      {parts ? (
-        <>
-          <Label position={[-len / 2 + 1.4, 0.3, -0.45]} variant="small">
-            {parts[0]!.label}
+      {parts
+        ?.filter((p) => p.showLabel)
+        .map((p) => (
+          <Label
+            key={p.label}
+            position={p.align === "start" ? [-len / 2 + 1.4, 0.3, -0.45] : [len / 2 - 1.4, 0.3, 0.5]}
+            variant="small"
+          >
+            {p.label}
           </Label>
-          {parts.length > 1 ? (
-            <Label position={[len / 2 - 1.4, 0.3, 0.5]} variant="small">
-              {parts[parts.length - 1]!.label}
-            </Label>
-          ) : null}
-        </>
-      ) : null}
+        ))}
       <Anchor name="meter" position={[-len / 2 + 0.4, 0.3, 0]} />
     </group>
   );

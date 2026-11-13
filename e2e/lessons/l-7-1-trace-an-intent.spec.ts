@@ -55,7 +55,7 @@ async function walk(page: Page) {
 
   await go(page, "Layer 4");
   await expect(page.getByTestId("gas-burned")).toHaveText("all of it");
-  await expect(page.getByTestId("gas-to-contract")).toContainText("until protocol version 86");
+  await expect(page.getByTestId("gas-to-contract")).toContainText("up to and including protocol version 86");
   await expect(page.getByTestId("gas-split")).not.toContainText("70%");
   await expect(trail(page).getByRole("link", { name: /Back to Lesson 3.1/ })).toBeVisible();
 

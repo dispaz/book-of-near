@@ -73,6 +73,19 @@ describe("a cross-contract call read from the chain", () => {
     expect(parts.reduce((s, p) => s + p.frac, 0)).toBeCloseTo(1);
     for (const p of parts) expect(p.frac).toBeGreaterThanOrEqual(0.2);
     expect(parts[0]!.label).toContain(formatTgas(g.byContract[0]!.gas));
+    expect(parts.map((p) => [p.start, p.showLabel, p.align])).toEqual([
+      [0, true, "start"],
+      [parts[0]!.frac, true, "end"],
+    ]);
+  });
+
+  it("gives a third contract its own letter and keeps its label off the crowded bar", async () => {
+    const { call } = await order();
+    const extra = { ...contractHops(call)[1]!, to: "third.demo.testnet", index: 99 };
+    const parts = meterParts({ ...call, hops: [...call.hops, extra] });
+    expect(parts.map((p) => p.label.split(" burned")[0])).toEqual(["A · buyer", "B · shop", "C · third"]);
+    expect(parts.map((p) => p.showLabel)).toEqual([true, false, true]);
+    expect(parts[2]!.start + parts[2]!.frac).toBeCloseTo(1);
   });
 
   it("gives the learner's numbers for the captions", async () => {

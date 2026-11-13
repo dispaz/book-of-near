@@ -49,9 +49,9 @@ export default {
       action: { label: "{orderAction}", gate: true },
     },
     {
-      caption: "The contracts burnt {gasSpent} Tgas, and all of it was burned for good.",
+      caption: "The contracts burnt {gasSpent} Tgas of gas, and the NEAR paid for it was destroyed.",
       explain:
-        "Each receipt burns the gas its work used, and that gas is paid in NEAR. Burned means destroyed: no account receives it, not even the contract whose code ran. Until protocol version 86, the contract got 30% of it. From version 87, all of it is burned.",
+        "Each receipt burns the gas its work used, and that gas is paid for in NEAR. The NEAR is destroyed: no account receives it, not even the contract whose code ran. Up to and including protocol version 86 (a version of NEAR's rules), the contract got 30% of it. From version 87, none.",
       explainAt: "meter",
       action: { label: "inspect the gas", gate: true },
     },

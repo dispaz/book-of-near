@@ -58,7 +58,7 @@ export function Facts({ m, compact = false }: { m: Capstone; compact?: boolean }
             all of it
           </Row>
           <Row label="Gas to the contract" testId="gas-to-contract">
-            none (until protocol version 86, the contract got 30%)
+            none (up to and including protocol version 86, the contract got 30%)
           </Row>
         </dl>
       ) : null}
