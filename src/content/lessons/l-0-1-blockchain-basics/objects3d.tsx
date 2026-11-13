@@ -20,6 +20,7 @@ import {
   useAnimatedFrame,
 } from "../../../scene-kit";
 import { STAGE_ACCENTS, withAlpha } from "../../../scene-kit/theme";
+import { blockMotion, notebookMotion } from "./reactions";
 
 // ---------- layout (world units) ----------
 export const CHAIN_Z = 1.4;
@@ -66,7 +67,10 @@ function bounce(u: number) {
   return n * (u -= 2.625 / d) * u + 0.984375;
 }
 
-/** A ring on the ground under a selected or edited object. */
+/** The pick props a lesson object takes: `onPick`, or just a "not yet" hint or a detail (rule 10a). */
+export type LessonPick = { label: string; onPick?: () => void; disabledHint?: string; detail?: string };
+
+/** A ring on the ground under the block being edited. */
 function Ring({ radius, color = COLORS.orange }: { radius: number; color?: string }) {
   return (
     <group rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
@@ -238,7 +242,8 @@ export function Ledger({
   rows: PageRow[] | null;
   hint?: boolean;
   reducedMotion: boolean;
-  pick?: { label: string; onPick: () => void };
+  /** Makes the ledger pickable; it reacts with its own pick (`notebookMotion`), rule 10a. */
+  pick?: LessonPick;
 }) {
   const { flat } = useStage();
   const pages = useInk(CARD);
@@ -297,9 +302,8 @@ export function Ledger({
     <group position={position} scale={scale}>
       <group ref={slide}>
         <SoftShadow position={[-W * 0.25, 0, 0.12]} size={[W * 2.6, D * 1.5]} />
-        {pick && open ? <Ring radius={W * 0.62} /> : null}
         {pick ? (
-          <Pickable label={pick.label} selected={open} onPick={pick.onPick} anchor={[0, STAND_H, 0]}>
+          <Pickable {...pick} selected={open} pickMotion={notebookMotion} anchor={[0, STAND_H, 0]}>
             {book}
           </Pickable>
         ) : (
@@ -339,7 +343,8 @@ export function LedgerBlock({
   hint?: boolean;
   drop?: boolean;
   reducedMotion: boolean;
-  pick?: { label: string; onPick: () => void; selected: boolean };
+  /** Makes the block pickable; it reacts with its own pick (`blockMotion`), rule 10a. */
+  pick?: LessonPick & { selected?: boolean };
   /** Tags that hang off the block (its card). */
   children?: ReactNode;
 }) {
@@ -398,9 +403,11 @@ export function LedgerBlock({
     <group position={position} scale={scale}>
       <group ref={fall} position={[0, falling ? 5 : 0, 0]}>
         <SoftShadow position={[0, 0, 0.2]} size={[BW * 1.9, BD * 1.6]} />
-        {ring || pick?.selected ? <Ring radius={1.05} /> : null}
+        {/* Only the edit ring: an open block shows it is selected by its open lid, and the kit's hover
+            ring is the one ring a pickable block gets. */}
+        {ring ? <Ring radius={1.05} /> : null}
         {pick ? (
-          <Pickable label={pick.label} selected={pick.selected} onPick={pick.onPick} anchor={[0, BH / 2, 0]}>
+          <Pickable {...pick} pickMotion={blockMotion} anchor={[0, BH / 2, 0]}>
             {box}
           </Pickable>
         ) : (

@@ -19,7 +19,8 @@ import {
   useAnimatedFrame,
 } from "../../../scene-kit";
 import { tourFor, type TourTarget } from "./tour";
-import { PEOPLE, shortHash, START, type Chain, type Person, type Tx } from "./ledger";
+import { PEOPLE, shortHash, START, type Block, type Chain, type Person, type Tx } from "./ledger";
+import { balancesDetail, blockDetail, blockPick } from "./reactions";
 import { AUTO_TAMPER_NOTE, BlockDetails, COMPARE_RESULT, EditAmount, useHotLines } from "./parts";
 import {
   BD,
@@ -36,6 +37,7 @@ import {
   LedgerBlock,
   Slip,
   Tag,
+  type LessonPick,
   type PageRow,
   type TagPlace,
 } from "./objects3d";
@@ -428,7 +430,12 @@ function Notebooks({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMo
           rows={m.opened === p ? rowsOf(START) : null}
           hint={m.opened === null}
           reducedMotion={reducedMotion}
-          pick={{ label: `Open ${p}'s notebook`, onPick: () => m.openNotebook(p) }}
+          pick={{
+            label: `Open ${p}'s notebook`,
+            onPick: () => m.openNotebook(p),
+            // Once a copy has been opened (the step is done), each one also reads out its balances.
+            detail: m.opened !== null ? balancesDetail(START) : undefined,
+          }}
         />
       ))}
     </>
@@ -477,6 +484,7 @@ function Ledgers({ m, g, reducedMotion }: { m: LedgerLesson; g: Geo; reducedMoti
           open
           rows={rows(p)}
           reducedMotion={reducedMotion}
+          pick={{ label: `${p}'s ledger`, detail: balancesDetail(tamper && p === "Ben" ? m.benBal : m.bal) }}
         />
       ))}
     </>
@@ -560,7 +568,21 @@ function ChainBlocks({
   const explore = step === HONEST;
   const pickable = step === BLOCKS || step === HASH || explore;
   const selected = step === HASH ? 1 : explore ? m.peek : m.selected;
-  const pickFn = explore ? m.peekBlock : m.pickBlock;
+  const sent = m.chain.length >= 2;
+  /** What picking block `b` does at this step (rule 10a, reactions.ts). */
+  const pickOf = (b: Block, hash: string): (LessonPick & { selected?: boolean }) | undefined => {
+    const r = blockPick(step, b.height, sent);
+    const h = b.height;
+    if (r.kind === "none") return undefined;
+    if (r.kind === "not-yet") return { label: `Block #${h}`, disabledHint: r.hint };
+    if (r.kind === "detail") return { label: `Block #${h}`, detail: blockDetail(b, hash) };
+    return {
+      label: `Open block #${h}`,
+      selected: selected === h,
+      onPick: () => (r.kind === "peek" ? m.peekBlock(h) : m.pickBlock(h)),
+      detail: r.kind === "open" && r.detail ? blockDetail(b, hash) : undefined,
+    };
+  };
   const editing = step === TAMPER;
   const first = g.block(0);
   const second = g.block(1);
@@ -595,15 +617,7 @@ function ChainBlocks({
               }
               drop={drops(b.height)}
               reducedMotion={reducedMotion}
-              pick={
-                pickable
-                  ? {
-                      label: `Open block #${b.height}`,
-                      selected: selected === b.height,
-                      onPick: () => pickFn(b.height),
-                    }
-                  : undefined
-              }
+              pick={pickOf(b, hash)}
             >
               <Anchor name={`block-${b.height}`} position={[0, BH, 0]} />
               <Tag position={card.at} place={card.place} className={`block${!ok ? " bad" : ""}`}>
