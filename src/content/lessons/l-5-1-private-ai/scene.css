@@ -1,0 +1,311 @@
+/* Lesson 5.1: ask a private AI and verify it. One state, a flat page (2D) or the pop-up book (3D). */
+.pai {
+  position: absolute;
+  top: var(--head-h, 112px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--bar-reserve, 88px) + var(--dock-h, 44%) + 10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family: var(--ui);
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  .pai {
+    top: var(--head-h, 104px);
+    left: 448px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    gap: 12px;
+  }
+}
+.pai p,
+.pai-panel p {
+  margin: 0;
+}
+.pai code,
+.pai-panel code {
+  font:
+    600 13px ui-monospace,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- flat page ---------- */
+.pai-2d {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 6px;
+}
+.pai-2d svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 46vh;
+}
+.pai-move {
+  transition: transform 0.9s ease-in-out;
+}
+.pai-box {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.pai-lid {
+  fill: var(--paper-2);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+.pai-plain {
+  stroke: var(--ink);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.pai-perimeter {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+.pai-perimeter.on {
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-dasharray: none;
+}
+.pai-chip {
+  fill: var(--ink);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.pai-pins line {
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+.pai-lock {
+  fill: var(--accent);
+  stroke: var(--card);
+  stroke-width: 2;
+}
+.pai-shackle {
+  fill: none;
+  stroke: var(--card);
+  stroke-width: 2.5;
+}
+.pai-svg-note {
+  font: 600 13px var(--ui);
+  fill: var(--mute);
+}
+.pai-svg-note.mid {
+  text-anchor: middle;
+}
+/* "Not yet": a short shake. A pick: a short pulse. Two names each, so a second click plays it again. */
+.pai-shake0 {
+  animation: pai-shake0 0.45s ease-out;
+}
+.pai-shake1 {
+  animation: pai-shake1 0.45s ease-out;
+}
+.pai-pulse0 {
+  animation: pai-pulse0 0.5s ease-out;
+}
+.pai-pulse1 {
+  animation: pai-pulse1 0.5s ease-out;
+}
+.pai-shake0,
+.pai-shake1,
+.pai-pulse0,
+.pai-pulse1 {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes pai-shake0 {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+@keyframes pai-shake1 {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+@keyframes pai-pulse0 {
+  40% {
+    transform: scale(1.06);
+  }
+}
+@keyframes pai-pulse1 {
+  40% {
+    transform: scale(1.06);
+  }
+}
+.pai.still .pai-move {
+  transition: none;
+}
+.pai.still .pai-shake0,
+.pai.still .pai-shake1,
+.pai.still .pai-pulse0,
+.pai.still .pai-pulse1 {
+  animation: none;
+}
+
+/* ---------- facts (both views) ---------- */
+.pai-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: 500 14px var(--ui);
+}
+.pai-dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 2px 12px;
+  margin: 0;
+}
+.pai-dl dt {
+  font-weight: 700;
+}
+.pai-dl dd {
+  margin: 0;
+  min-width: 0;
+}
+.pai-ram-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+.pai-ram {
+  margin: 0;
+  padding: 6px 8px;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  background: var(--card);
+}
+.pai-ram figcaption {
+  font-weight: 700;
+  font-size: 13px;
+}
+.pai-ram pre {
+  margin: 4px 0 0;
+  font:
+    600 12px ui-monospace,
+    Menlo,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.pai-ram.sealed {
+  border-left: 4px solid var(--accent);
+}
+.pai-ram.plain {
+  border-left: 4px solid var(--red);
+}
+.pai-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pai-q {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 4px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px 12px 2px 12px;
+  background: var(--paper-2);
+  font-weight: 600;
+}
+.pai-a {
+  max-width: 95%;
+  min-height: 3em;
+  padding: 6px 10px;
+  border: 1.5px solid var(--ink);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px 12px 12px 2px;
+  background: var(--card);
+}
+.pai-checks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pai-checks li.ok span {
+  color: var(--green);
+  font-weight: 800;
+}
+.pai-checks li.bad span {
+  color: var(--red);
+  font-weight: 800;
+}
+.pai-line {
+  font-weight: 600;
+}
+.pai-note {
+  color: var(--mute);
+  font-size: 13px;
+}
+.pai-note.not-yet {
+  color: var(--ink);
+  border-left: 4px solid var(--accent);
+  padding-left: 6px;
+}
+.pai-warn {
+  padding: 4px 8px;
+  border-left: 4px solid var(--red);
+  background: var(--card);
+  color: var(--red);
+  font-weight: 600;
+}
+.pai-ok {
+  padding: 4px 8px;
+  border-left: 4px solid var(--green);
+  background: var(--card);
+  font-weight: 700;
+}
+
+/* ---------- 3D: the facts in the book scene's panel ---------- */
+.pai-panel .pai-facts.compact {
+  max-height: min(30vh, 250px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+@media (min-width: 1100px) {
+  .pai-panel .pai-facts.compact {
+    max-height: min(27vh, 236px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pai-move {
+    transition: none;
+  }
+  .pai-shake0,
+  .pai-shake1,
+  .pai-pulse0,
+  .pai-pulse1 {
+    animation: none;
+  }
+}

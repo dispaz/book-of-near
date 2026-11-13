@@ -28,7 +28,7 @@ object. Promote a colour to a token once a second file needs it.
 |---|---|---|
 | Ink base | `--ink` `#16141f`, `--page` `#f3efe4` (`PAGE`), `--card` `#fffdf7` (`CARD`) | Outlines, text, the book's pages, slips and cards on the page. |
 | App neutrals | `--paper` `#f2f1e9` (NEAR off-white), `--paper-2` `#f7f6f0`, `--mute` `#625f57` | App background, raised panels, secondary text. Warm, like NEAR's "blacks, whites and warm grays". |
-| Stage accents | `STAGE_ACCENTS`: 0 orange `#ff8a3d`, 1 blue `#5f7bff`, 2 pink `#ff5fa2`, 3 cerulean `#1e9bd7`, 4 violet `#9a70f7`, 7 ochre `#c9a227` | One per stage, set as `--accent` on the lesson. Meaning in figures, primary buttons, the step card's edge. |
+| Stage accents | `STAGE_ACCENTS`: 0 orange `#ff8a3d`, 1 blue `#5f7bff`, 2 pink `#ff5fa2`, 3 cerulean `#1e9bd7`, 4 violet `#9a70f7`, 5 orchid `#c86bd6`, 7 ochre `#c9a227` | One per stage, set as `--accent` on the lesson. Meaning in figures, primary buttons, the step card's edge. |
 | Meaning | `--green` `#2fa36b` (pass), `--red` `#d8433b` (fail), tints in `COLORS` | Verdicts and checks only. |
 | NEAR brand | `--near-green` `#00ec97`, `--near-black` `#000000`, `--near-off-white` `#f2f1e9`, `--near-forest` `#145c43` | NEAR things: coins, the book's cloth and ribbon, the setting. |
 
