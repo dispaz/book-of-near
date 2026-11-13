@@ -8,7 +8,7 @@ import {
   type ComponentType,
   type CSSProperties,
 } from "react";
-import { Link, useParams, useSearchParams } from "react-router";
+import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import { registry } from "../app/registry";
 import { useChainMode } from "../chain/ChainContext";
 import { ModeSwitch } from "../chain/ModeSwitch";
@@ -26,6 +26,7 @@ import { progress } from "../progress";
 import { FinishLesson, useRecordPosition } from "../progress/FinishLesson";
 import { StepNote } from "./StepNote";
 import { BookCover, startsClosed } from "./BookCover";
+import { turnedHere } from "./contents";
 import { IntroContext, LessonIdContext, SpreadContext } from "../app/intro";
 import { Summary } from "./Summary";
 import { TopicCardPage } from "./TopicCard";
@@ -67,6 +68,19 @@ export function LessonPage() {
 function Lesson({ lesson }: { lesson: LessonManifest }) {
   const stage = registry.stageOf(lesson.id)!;
   const [params, setParams] = useSearchParams();
+  // Arrived by turning the pages from the contents: the book is already open at this lesson.
+  const location = useLocation();
+  const [turned] = useState(() => turnedHere(location.state));
+  // Only this visit counts: wipe the mark from the history entry, so a reload (or coming back to this
+  // entry later) opens the lesson as its address does, closed. React Router keeps it in `usr`.
+  useEffect(() => {
+    if (!turned) return;
+    try {
+      window.history.replaceState({ ...window.history.state, usr: null }, "");
+    } catch {
+      // Not fatal: the cover is just skipped once more.
+    }
+  }, [turned]);
   const last = lesson.steps.length - 1;
   const step = Math.min(last, Math.max(0, Number(params.get("step") ?? "1") - 1 || 0));
   const reducedMotion = useReducedMotion();
@@ -149,8 +163,8 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
   });
   // The closed book. After it opens, a lesson that will show 3D first shows its 2D page for a moment,
   // then the 3D scene grows out of it (IntroContext).
-  const [closed, setClosed] = useState(() => startsClosed(params.get("step")));
-  const [pageFirst, setPageFirst] = useState(closed);
+  const [closed, setClosed] = useState(() => !turned && startsClosed(params.get("step")));
+  const [pageFirst, setPageFirst] = useState(closed || turned);
   const opened_ = useCallback(() => setClosed(false), []);
   useEffect(() => {
     if (closed || !pageFirst) return;
@@ -161,7 +175,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
   const wanted = lesson.needsWebGL ? "3d" : twoViews && glAvailable ? chosenView : "2d";
   const view = twoViews && pageFirst ? "2d" : wanted;
   // The 3D view grows out of the page when the learner has just seen 2D (or the book just opened).
-  const [shown2d, setShown2d] = useState(closed);
+  const [shown2d, setShown2d] = useState(closed || turned);
   const grow = view === "3d" && shown2d;
   useEffect(() => {
     if (view === "2d") setShown2d(true);
@@ -250,6 +264,7 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
       style={{ "--accent": stage.accent } as CSSProperties}
       data-lesson={lesson.id}
       data-spread={spread ? "" : undefined}
+      data-turned={turned ? "" : undefined}
     >
       <LessonIdContext.Provider value={lesson.id}>
         <IntroContext.Provider value={intro}>
