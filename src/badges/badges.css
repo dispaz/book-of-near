@@ -1,0 +1,155 @@
+/* Badges: the claim card at the end of a stage, the shelf in My book and the checker. Ink style. */
+
+.badge-art {
+  display: block;
+  border-radius: 50%;
+}
+
+.badge-empty {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border: 2px dashed var(--mute);
+  border-radius: 50%;
+  font-family: var(--serif);
+  font-size: 28px;
+  color: var(--mute);
+  background: var(--paper-2);
+}
+
+.claim-badge {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.claim-badge.claim-ready,
+.claim-badge.claim-claimed {
+  border-color: var(--ink);
+  box-shadow: 3px 3px 0 var(--stage-accent, var(--accent));
+}
+
+.claim-art {
+  flex: none;
+}
+
+.claim-body {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.claim-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.claim-text {
+  margin: 0;
+  color: var(--ink);
+}
+
+.claim-missing {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.badge-shelf {
+  list-style: none;
+  margin: 16px 0;
+  padding: 16px 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 16px;
+  border-bottom: 6px solid var(--ink);
+  background: var(--card);
+  border-radius: 12px 12px 0 0;
+}
+
+.badge-slot {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.badge-slot .badge-art,
+.badge-slot .badge-empty {
+  width: 96px;
+  height: 96px;
+}
+
+.badge-slot.held .badge-art {
+  filter: drop-shadow(3px 3px 0 var(--stage-accent, var(--accent)));
+}
+
+.badge-name {
+  font-weight: 700;
+}
+
+.badge-state {
+  font-size: 14px;
+  color: var(--mute);
+}
+
+.badge-count,
+.badge-account {
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+
+.checker-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 16px 0;
+}
+
+.checker-form label {
+  font-weight: 700;
+}
+
+.checker-form input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+}
+
+@media (max-width: 480px) {
+  .claim-badge {
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .claim-badge.claim-claimed .badge-art {
+    animation: badge-stamp 360ms ease-out;
+  }
+}
+
+@keyframes badge-stamp {
+  from {
+    transform: scale(1.25) rotate(-8deg);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}

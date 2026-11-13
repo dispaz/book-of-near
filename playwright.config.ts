@@ -88,6 +88,8 @@ export default defineConfig({
     ? undefined
     : {
         command: `npm run build && npx vite preview --port ${port} --strictPort`,
+        // Test-only hooks (e.g. __bookOfNear.badges.replayLastClaim) are built in only with this flag.
+        env: { VITE_E2E: "1" },
         url: baseURL,
         reuseExistingServer: false,
         timeout: 120_000,

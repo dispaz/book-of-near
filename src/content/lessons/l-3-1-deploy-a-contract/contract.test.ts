@@ -88,6 +88,13 @@ describe("evidenceOf: what the completion record keeps", () => {
       callbackTxHash: "C",
     });
   });
+  // An implicit account has no sub-accounts, so 3.1 makes a fresh parent first. The badge claim needs
+  // that creation hash to trust the parent as the learner's (worker/src/claim.ts, stage 3).
+  it("carries the hash of the parent the lesson made", () => {
+    expect(
+      evidenceOf({ deployed: true, contractId: id, deployTx: "D", callbackTx: null, parentTx: "P" }),
+    ).toEqual({ contractId: id, txHash: "D", parentTxHash: "P" });
+  });
   // Found on testnet: a named practice account keeps its counter, so a second visit finds it deployed
   // with no deploy hash in this visit. The record must still keep the contract and the new callback.
   it("still reports a contract found from an earlier visit", () => {

@@ -25,7 +25,8 @@
     "build:counter": "node scripts/build-counter.mjs",
     "build:artifact": "node scripts/build-artifact.mjs",
     "build:badge": "node scripts/build-badge.mjs",
-    "test:badge": "npm run build:badge && cargo test --manifest-path contracts/badge/sandbox-tests/Cargo.toml"
+    "test:badge": "npm run build:badge && cargo test --manifest-path contracts/badge/sandbox-tests/Cargo.toml",
+    "badges:art": "node scripts/badges-art.mjs"
   },
   "dependencies": {
     "@fontsource/caveat": "^5.3.0",

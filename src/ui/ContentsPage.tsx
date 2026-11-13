@@ -1,10 +1,13 @@
 import type { CSSProperties } from "react";
-import { Link } from "react-router";
+import { useEffect } from "react";
+import { Link, useLocation } from "react-router";
 import { registry } from "../app/registry";
 import { useProgress } from "../progress";
 import { isOpen, isOptionalStage, ROUTE_INFO, startLesson } from "../progress/routes";
 import "../progress/progress.css";
 import { LockedCard } from "./TopicCard";
+import { ClaimBadge } from "../badges/ClaimBadge";
+import { ruleFor } from "../badges/rules";
 
 const TickIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true" className="chip-icon tick">
@@ -15,6 +18,18 @@ const TickIcon = () => (
 /** The book's table of contents: every stage with its lessons; planned ones and backlog topics as locked cards. */
 export function ContentsPage() {
   const { route, completions, position } = useProgress();
+  const { hash } = useLocation();
+  // "Claim the stage N badge" at the end of a stage links here: bring its card into view.
+  useEffect(() => {
+    if (!hash.startsWith("#stage-")) return;
+    let tries = 0;
+    const t = window.setInterval(() => {
+      const el = document.getElementById(hash.slice(1));
+      if (el || ++tries > 20) window.clearInterval(t);
+      el?.scrollIntoView({ block: "center" });
+    }, 100);
+    return () => window.clearInterval(t);
+  }, [hash]);
   const done = new Set(completions.map((c) => c.lessonId));
   const resume = position ? registry.lessons.get(position.lessonId) : undefined;
   const canResume = !!resume && isOpen(resume);
@@ -41,6 +56,12 @@ export function ContentsPage() {
           ) : null}
           <Link className="pill" to="/start">
             Change my path
+          </Link>
+          <Link className="pill" to="/my-book">
+            My book
+          </Link>
+          <Link className="pill" to="/check">
+            Badge checker
           </Link>
           {route && route !== "newcomer" && !stage0Done ? (
             <Link className="pill" to="/test-out">
@@ -115,6 +136,9 @@ export function ContentsPage() {
                     );
                   })}
                 </ul>
+                {ruleFor(s.id) && open.length > 0 && finished > 0 ? (
+                  <ClaimBadge stage={s.id} accent={s.accent} />
+                ) : null}
               </section>
             );
           })}

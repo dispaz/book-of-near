@@ -1,0 +1,96 @@
+import { describe, expect, it } from "vitest";
+import { registry } from "../app/registry";
+import { isOpen } from "../progress/routes";
+import type { CompletionRecord } from "../progress/types";
+import { claimReadiness, STAGE_RULES } from "./rules";
+
+const rec = (
+  lessonId: string,
+  mode: "demo" | "testnet",
+  evidence?: Record<string, string>,
+): CompletionRecord => ({
+  lessonId,
+  stage: Number(lessonId.split("-")[1]),
+  route: "newcomer",
+  mode,
+  completedAt: "2026-11-12T00:00:00.000Z",
+  ...(evidence ? { evidence } : {}),
+});
+
+const stage0 = (mode: "demo" | "testnet") => [
+  rec("l-0-1-blockchain-basics", mode),
+  rec("l-0-2-make-a-wallet", mode),
+  rec("l-0-3-send-a-transaction", mode, { txHash: "H0" }),
+];
+
+describe("STAGE_RULES: the required lessons, in one place", () => {
+  it("lists every lesson a learner can open in stages 0 to 4, and nothing planned", () => {
+    for (const rule of STAGE_RULES) {
+      const stage = registry.stages.find((s) => s.id === rule.stage)!;
+      const open = stage.lessons.filter(isOpen).map((l) => l.id);
+      expect(rule.lessons).toEqual(open);
+    }
+    expect(STAGE_RULES.map((r) => r.stage)).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it("asks each evidence lesson for keys it really reports", () => {
+    expect(STAGE_RULES[0]!.evidence).toEqual([
+      { lessonId: "l-0-3-send-a-transaction", keys: ["txHash"], todo: expect.any(String) },
+    ]);
+    expect(STAGE_RULES[1]!.evidence.map((e) => [e.lessonId, e.keys])).toEqual([
+      ["l-1-1-claim-your-name", ["txHash", "accountId"]],
+      ["l-1-2-function-call-key", ["addKeyTxHash", "txHash"]],
+    ]);
+  });
+});
+
+describe("claimReadiness", () => {
+  it("is ready for stage 0 once its lessons are done and 0.3 has its transaction", () => {
+    expect(claimReadiness(0, stage0("demo"), "demo")).toEqual({ ready: true, missing: [] });
+  });
+
+  it("names the lessons still to finish", () => {
+    const r = claimReadiness(0, [rec("l-0-1-blockchain-basics", "demo")], "demo");
+    expect(r.ready).toBe(false);
+    expect(r.missing.map((m) => [m.lessonId, m.reason])).toEqual([
+      ["l-0-2-make-a-wallet", "not-finished"],
+      ["l-0-3-send-a-transaction", "not-finished"],
+    ]);
+    expect(r.missing[0]!.text).toMatch(/Finish lesson 0\.2/);
+  });
+
+  it("asks for the transaction when 0.3 was tested out (no evidence)", () => {
+    const tested = stage0("demo").map((c) => ({ ...c, testedOut: true, evidence: undefined }));
+    const r = claimReadiness(0, tested, "demo");
+    expect(r.missing).toEqual([
+      { lessonId: "l-0-3-send-a-transaction", reason: "no-evidence", text: expect.stringMatching(/0\.3/) },
+    ]);
+  });
+
+  it("refuses a testnet badge for a stage done only in demo mode, and says why", () => {
+    const r = claimReadiness(0, stage0("demo"), "testnet");
+    expect(r.ready).toBe(false);
+    expect(r.missing[0]).toMatchObject({ lessonId: "l-0-3-send-a-transaction", reason: "demo-only" });
+    expect(r.missing[0]!.text).toMatch(/demo mode/);
+    expect(claimReadiness(0, stage0("testnet"), "testnet").ready).toBe(true);
+  });
+
+  it("stage 1 needs the name (1.1) and the key's add and delete (1.2)", () => {
+    const base = [
+      rec("l-1-1-claim-your-name", "demo", { txHash: "A", accountId: "me.testnet" }),
+      rec("l-1-3-inside-a-transaction", "demo"),
+    ];
+    const noKey = claimReadiness(
+      1,
+      [...base, rec("l-1-2-function-call-key", "demo", { txHash: "D" })],
+      "demo",
+    );
+    expect(noKey.missing.map((m) => m.reason)).toEqual(["no-evidence"]);
+    const all = claimReadiness(
+      1,
+      [...base, rec("l-1-2-function-call-key", "demo", { txHash: "D", addKeyTxHash: "K" })],
+      "demo",
+    );
+    expect(all.ready).toBe(true);
+  });
+});

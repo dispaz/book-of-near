@@ -4,6 +4,7 @@ import { registry } from "../app/registry";
 import type { ChainMode, LessonManifest } from "../app/types";
 import { progress, useProgress } from ".";
 import { nextLesson } from "./routes";
+import { ruleFor } from "../badges/rules";
 import "./progress.css";
 
 /** Remembers the lesson and step the learner has open, for "Continue where you left off". */
@@ -60,9 +61,16 @@ export function FinishLesson({
             Next: {next.title}
           </Link>
         ) : null}
-        <Link className="btn" to="/">
-          Back to contents
-        </Link>
+        {/* The stage's last lesson: the way back to the contents leads to the stage's badge card. */}
+        {ruleFor(lesson.stage)?.lessons.at(-1) === lesson.id ? (
+          <Link className="btn" to={`/#stage-${lesson.stage}-badge`}>
+            Claim the stage {lesson.stage} badge
+          </Link>
+        ) : (
+          <Link className="btn" to="/">
+            Back to contents
+          </Link>
+        )}
       </div>
     </div>
   );

@@ -87,11 +87,14 @@ export function evidenceOf(v: {
   contractId: AccountId | null;
   deployTx: string | null;
   callbackTx: string | null;
+  /** The `create_account` hash of a parent the lesson made (implicit accounts): the badge claim checks it. */
+  parentTx?: string | null;
 }): Record<string, string> | null {
   if (!v.deployed || !v.contractId) return null;
   return {
     contractId: v.contractId,
     ...(v.deployTx ? { txHash: v.deployTx } : {}),
     ...(v.callbackTx ? { callbackTxHash: v.callbackTx } : {}),
+    ...(v.parentTx ? { parentTxHash: v.parentTx } : {}),
   };
 }

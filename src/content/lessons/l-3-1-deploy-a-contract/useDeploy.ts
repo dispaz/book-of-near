@@ -69,6 +69,8 @@ export function useDeploy({
   const [me, setMe] = useState<PracticeAccount | null>(null);
   const [parent, setParent] = useState<Parent | null>(null);
   const [parentMade, setParentMade] = useState(false);
+  /** The hash of the `create_account` call that made a fresh parent (implicit accounts only). */
+  const [parentTx, setParentTx] = useState<string | null>(null);
   const [exportsList, setExportsList] = useState<string[]>(KNOWN_EXPORTS);
   const [unrolled, setUnrolled] = useState(false);
   const [deployTx, setDeployTx] = useState<string | null>(null);
@@ -169,9 +171,9 @@ export function useDeploy({
   const evidenceRef = useRef(reportEvidence);
   evidenceRef.current = reportEvidence;
   useEffect(() => {
-    const ev = evidenceOf({ deployed, contractId, deployTx, callbackTx });
+    const ev = evidenceOf({ deployed, contractId, deployTx, callbackTx, parentTx });
     if (ev) evidenceRef.current?.(ev);
-  }, [deployed, deployTx, contractId, callbackTx]);
+  }, [deployed, deployTx, contractId, callbackTx, parentTx]);
 
   async function refresh(id: string) {
     const v = await chain.viewAccount(id);
@@ -211,6 +213,7 @@ export function useDeploy({
         const made = await createNamedAccount(chain, parent.id, key, PARENT_FUNDING, send);
         if (failed(made)) return;
         setParentMade(true);
+        setParentTx(made.transaction.hash);
       }
       const key = await chain.newKeyPair();
       const out = await chain.sendTransaction(

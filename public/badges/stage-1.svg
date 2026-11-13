@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Book of NEAR, stage 1 badge: Named">
+  <title>Book of NEAR: Stage 1 (Named)</title>
+  <circle cx="256" cy="256" r="240" fill="#f2f1e9" stroke="#16141f" stroke-width="12"/>
+  <circle cx="256" cy="256" r="214" fill="none" stroke="#5f7bff" stroke-width="10"/>
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#16141f" stroke-width="4" stroke-dasharray="1 14" stroke-linecap="round"/>
+  <path d="M150 150 h170 a20 20 0 0 1 20 20 v120 a20 20 0 0 1 -20 20 h-170 l-46 -80 z" fill="#5f7bff" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
+  <circle cx="142" cy="230" r="12" fill="#fffdf7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M188 206 h110 M188 248 h80" fill="none" stroke="#16141f" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M342 318 L404 260 M378 284 l18 18 M394 270 l14 14" fill="none" stroke="#16141f" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="318" cy="340" r="38" fill="#fffdf7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
+  <circle cx="318" cy="340" r="11" fill="#f2f1e9" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M120 392 h272 l-18 30 l18 30 h-272 l18 -30 z" fill="#fffdf7" stroke="#16141f" stroke-width="10" stroke-linejoin="round"/>
+  <text x="256" y="434" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="40" font-weight="700" letter-spacing="4" fill="#16141f">STAGE 1</text>
+</svg>
