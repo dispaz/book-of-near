@@ -74,7 +74,7 @@ type Modules = Record<string, { default: LessonManifest }>;
 /**
  * Adds the cards to the lesson modules for `buildRegistry`. A written lesson whose id is a card's id
  * replaces that card, so `npm run new-lesson -- <card id> ...` fills a card in. Cards of a stage that is
- * not registered (6 Citizen is parked, see docs/progress.md #30) are skipped.
+ * not registered (none are parked now; see docs/progress.md #30) are skipped.
  */
 export function withTopicCards(
   lessonModules: Modules,

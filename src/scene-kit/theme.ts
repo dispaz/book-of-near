@@ -38,6 +38,8 @@ export const COLORS = {
   ochre: "#c9a227",
   /** Stage 5. An orchid: clear of NEAR green and of stage 2 pink and stage 4 violet. */
   orchid: "#c86bd6",
+  /** Stage 6. An olive: civic and earthy, well clear of NEAR green. */
+  olive: "#8f9e2a",
   /** The "pass" mark (checks, verdicts). Not a NEAR colour. */
   green: "#2fa36b",
   red: "#d8433b",
@@ -70,6 +72,7 @@ export const STAGE_ACCENTS = {
   3: COLORS.cerulean,
   4: COLORS.violet,
   5: COLORS.orchid,
+  6: COLORS.olive,
   7: COLORS.ochre,
 } as const;
 
