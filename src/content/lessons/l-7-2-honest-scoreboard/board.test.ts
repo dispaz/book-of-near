@@ -49,6 +49,26 @@ describe("the scoreboard data", () => {
     for (const d of DIMS) expect(CHAINS.filter((c) => verdictOf(d.id, c.id) === "leads")).toHaveLength(1);
   });
 
+  it("links only the source pages checked with curl on 13 Nov 2026 (old docs paths 404 or redirect)", () => {
+    expect(Object.fromEntries(Object.entries(SOURCES).map(([tag, s]) => [tag, s.url]))).toEqual({
+      "near-keys": "https://docs.near.org/protocol/accounts-contracts/access-keys",
+      "eth-accounts": "https://ethereum.org/en/developers/docs/accounts/",
+      "solana-docs": "https://solana.com/docs",
+      "near-architecture": "https://docs.near.org/protocol/network/architecture",
+      "near-sharding": "https://docs.near.org/protocol/network/validators",
+      "eth-danksharding": "https://ethereum.org/en/roadmap/danksharding/",
+      "anza-hardware": "https://docs.anza.xyz/operations/requirements",
+      "cosmos-docs": "https://docs.cosmos.network/",
+      "near-finality": "https://docs.near.org/integrations/blocks-and-finality",
+      "eth-pos": "https://ethereum.org/en/developers/docs/consensus-mechanisms/pos/",
+      "near-cross-contract": "https://docs.near.org/smart-contracts/anatomy/crosscontract",
+      "near-reentrancy": "https://docs.near.org/smart-contracts/security/cross-contract-calls/reentrancy",
+      "near-intents": "https://docs.near.org/chain-abstraction/intents/overview",
+      "eth-defi": "https://ethereum.org/en/defi/",
+      defillama: "https://defillama.com/chains",
+    });
+  });
+
   it("does not teach the 30% gas rebate (removed in protocol version 87)", () => {
     const all = JSON.stringify(CELLS) + JSON.stringify(CHAINS);
     expect(all).not.toMatch(/30%|rebate/);

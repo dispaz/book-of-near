@@ -112,7 +112,7 @@ export const CELLS: Record<DimId, Record<ChainId, Cell>> = {
     near: {
       verdict: "leads",
       note: "Sharded: state and work are split across shards (testnet had 10 when we checked on 1 Nov 2026), and validators check chunks without storing every shard.",
-      sources: ["near-sharding"],
+      sources: ["near-architecture", "near-sharding"],
     },
     ethereum: {
       verdict: "trade-off",
@@ -255,13 +255,23 @@ export function describeBoard(active: DimId | null): string {
 
 /** The topic file's sources, by tag (docs/lessons/stage-7/7.2-topic.md). */
 export const SOURCES: Record<string, { name: string; url: string }> = {
-  "near-keys": { name: "NEAR docs, Access keys", url: "https://docs.near.org/protocol/access-keys" },
+  "near-keys": {
+    name: "NEAR docs, Access keys",
+    url: "https://docs.near.org/protocol/accounts-contracts/access-keys",
+  },
   "eth-accounts": {
     name: "ethereum.org, Accounts",
     url: "https://ethereum.org/en/developers/docs/accounts/",
   },
   "solana-docs": { name: "Solana docs", url: "https://solana.com/docs" },
-  "near-sharding": { name: "NEAR docs, Sharding", url: "https://docs.near.org/protocol/sharding" },
+  "near-architecture": {
+    name: "NEAR docs, Architectural overview",
+    url: "https://docs.near.org/protocol/network/architecture",
+  },
+  "near-sharding": {
+    name: "NEAR docs, Validators",
+    url: "https://docs.near.org/protocol/network/validators",
+  },
   "eth-danksharding": {
     name: "ethereum.org, Danksharding",
     url: "https://ethereum.org/en/roadmap/danksharding/",
@@ -281,15 +291,15 @@ export const SOURCES: Record<string, { name: string; url: string }> = {
   },
   "near-cross-contract": {
     name: "NEAR docs, Cross-contract calls",
-    url: "https://docs.near.org/build/smart-contracts/anatomy/cross-contract",
+    url: "https://docs.near.org/smart-contracts/anatomy/crosscontract",
   },
   "near-reentrancy": {
     name: "NEAR docs, Security: reentrancy",
-    url: "https://docs.near.org/smart-contracts/security/reentrancy",
+    url: "https://docs.near.org/smart-contracts/security/cross-contract-calls/reentrancy",
   },
   "near-intents": {
     name: "NEAR docs, NEAR Intents",
-    url: "https://docs.near.org/build/chain-abstraction/intents",
+    url: "https://docs.near.org/chain-abstraction/intents/overview",
   },
   "eth-defi": { name: "ethereum.org, DeFi", url: "https://ethereum.org/en/defi/" },
   defillama: { name: "DefiLlama, chain TVL", url: "https://defillama.com/chains" },

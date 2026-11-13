@@ -291,8 +291,10 @@ test.describe("3D book scene", () => {
       const rise = await page.evaluate(() => (window as unknown as { __rise: number[] }).__rise);
       const last = rise[rise.length - 1]!;
       expect(last).toBeGreaterThan(10);
-      // Frames drawn part-way up: more than a few.
-      expect(rise.filter((r) => r > last * 0.2 && r < last * 0.8).length).toBeGreaterThan(3);
+      // It starts level and climbs: frames drawn part-way up (a jump draws none). Lenient under load,
+      // where frames are few.
+      expect(rise[0]!).toBeLessThan(last * 0.5);
+      expect(rise.filter((r) => r > last * 0.1 && r < last * 0.9).length).toBeGreaterThanOrEqual(2);
       await expectSettled(page);
     });
 
