@@ -97,6 +97,31 @@ describe("claim (POST /claim): checks evidence on testnet, then signs", () => {
     expect((r.body as { error: string }).error).toMatch(/lesson 0\.3/);
   });
 
+  it("stage 6: signs with 6.1's practice vote and 6.2's recorded trade, looks nothing up, refuses without them", async () => {
+    const k = await testKey();
+    const deps = { contractId: CONTRACT, signingKey: k.secret, lookup: lookup({}), now: NOW };
+    const evidence = {
+      "l-6-1-vote-on-a-proposal": { proposalId: "42", voteCast: "true", kind: "practice" },
+      "l-6-2-live-money-map": { pair: "USDC/USDt", amountIn: "100000", kind: "recorded" },
+    };
+    const r = await claim({ accountId: ME, stage: 6, evidence }, deps);
+    expect(r.status).toBe(200);
+    const body = r.body as { expiresAtMs: number; signature: string };
+    expect(await k.verify(body.signature, stageMessage(CONTRACT, ME, 6, body.expiresAtMs))).toBe(true);
+    expect(deps.lookup.asked).toEqual([]);
+
+    const noTrade = await claim(
+      {
+        accountId: ME,
+        stage: 6,
+        evidence: { "l-6-1-vote-on-a-proposal": evidence["l-6-1-vote-on-a-proposal"] },
+      },
+      deps,
+    );
+    expect(noTrade.status).toBe(403);
+    expect((noTrade.body as { error: string }).error).toMatch(/lesson 6\.2/);
+  });
+
   it("stage 1: the name made by the learner, and the key added and deleted on that name", async () => {
     const k = await testKey();
     const deps = { contractId: CONTRACT, signingKey: k.secret, lookup: lookup(stage1Txs), now: NOW };
@@ -140,8 +165,8 @@ describe("claim (POST /claim): checks evidence on testnet, then signs", () => {
     expect(body.stage).toBe(5);
     expect(await k.verify(body.signature, stageMessage(CONTRACT, ME, 5, body.expiresAtMs))).toBe(true);
     expect(look.asked).toEqual([]);
-    // Stages 6 and 7 have no rule yet.
-    for (const stage of [6, 7])
+    // Stage 7 has no rule yet.
+    for (const stage of [7])
       expect((await claim({ accountId: ME, stage, evidence: {} }, deps)).status).toBe(400);
   });
 

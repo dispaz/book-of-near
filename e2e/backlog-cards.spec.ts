@@ -19,10 +19,11 @@ test.describe("backlog topic cards", () => {
     await expect(stage5.getByRole("link", { name: /An agent with no owner/ })).toHaveCount(1);
     await expect(stage5.getByRole("button", { name: /Shade Agents/ })).toHaveCount(0);
     await expect(stage5.getByRole("button", { name: /TEEs and remote attestation/ })).toHaveCount(0);
-    // Stage 6 is back with lesson 6.1 (#86); its DeFi map topic stays a locked card until 6.2.
+    // Stage 6 has lessons 6.1 (#86) and 6.2 (#87); the DeFi map card made way for 6.2.
     const stage6 = page.getByRole("region", { name: /Stage 6\b/ });
     await expect(stage6.getByRole("link", { name: /Read and vote on a proposal/ })).toHaveCount(1);
-    await expect(stage6.getByRole("button", { name: /DeFi map/ })).toBeVisible();
+    await expect(stage6.getByRole("link", { name: /The live money map/ })).toHaveCount(1);
+    await expect(stage6.getByRole("button", { name: /DeFi map/ })).toHaveCount(0);
     await expect(page.getByRole("button", { name: /House of Stake/ })).toHaveCount(0);
     const stage7 = page.getByRole("region", { name: /Stage 7/ });
     // The capstone (#26) is ready, so stage 7 is no longer "Coming later".

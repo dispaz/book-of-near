@@ -40,7 +40,7 @@ A first visit opens a three-question quiz at `/start` that picks a path (newcome
 | Turn on "reduce motion" in your OS, or open `?webgl=0` | Animations stop (outline and colour changes only). Without WebGL the lesson stays in 2D, and every scene has a text version. |
 | Reach the last step | The **Honest take**: NEAR's strengths and weaknesses for that topic. Then **Finish lesson**. |
 
-### The lessons (19, all on `main`)
+### The lessons (20, all on `main`)
 
 Stage 0, Blank Page (crypto foundations)
 
@@ -79,13 +79,14 @@ Stage 5, Enclave (user-owned AI and privacy)
 Stage 6, Citizen (ecosystem and governance)
 
 - **6.1 Read and vote on a proposal.** Lock NEAR for veNEAR voting power with a slider, **Review proposal** and **Vote YES** or no. A practice vote: nothing is sent to a chain.
+- **6.2 The live money map.** **Compare the two USDCs** (native USDC 79.3 million, bridged USDC.e 14.6 million), **Read the oracle** (its stored NEAR price is from August, and `get_price` refuses it as too old), then **Trade 100,000 USDC** in a stable pool (about 1:1) and a simple pool (10.9% over the starting price), and **Show the flows** of NEAR Intents. Every figure was recorded on 13 Nov 2026 and is labelled "Not live data"; nothing is sent.
 
 Stage 7, Book of NEAR (capstone)
 
 - **7.1 Trace one intent end to end.** **Authorize intent**, follow it through your shard, the contract and settlement, then **Verify foreign settlement**. It replays your own 4.2 quote, or a recorded intent.
 - **7.2 The honest scoreboard.** Open the Accounts, Scalability, Speed and Liquidity cards and weigh NEAR against Ethereum, Solana and Cosmos, weak spots included.
 
-In progress at submission time, not part of this submission: lesson 6.2, the final exam, and badges for stages 6 and 7 (their shelf slots say "Badge not available yet").
+In progress at submission time, not part of this submission: the final exam and the stage 7 badge (its shelf slot says "Badge not available yet").
 
 ### Badges, "My book" and `/check`
 
@@ -93,15 +94,15 @@ In progress at submission time, not part of this submission: lesson 6.2, the fin
 | --- | --- |
 | Finish lessons 0.1 to 0.3 in demo mode, then open the contents (`/`) | The stage 0 card says "Your badge is ready". |
 | Press **Claim the stage 0 badge** | "Stage 0 badge claimed" with the badge art. In demo mode the claim is signed in the browser and checked by a simulated copy of the contract's rules. |
-| Open **My book** (`/my-book`) | A shelf of eight slots, counted "of 6": claimed badges, "Not claimed yet" for the rest of stages 0 to 5, "Badge not available yet" for 6 and 7. Badges survive a reload. |
+| Open **My book** (`/my-book`) | A shelf of eight slots, counted "of 7": claimed badges, "Not claimed yet" for the rest of stages 0 to 6, "Badge not available yet" for stage 7. Badges survive a reload. |
 | Open **Open in the badge checker**, or `/check` | Look up any account's badges, no login. In testnet mode it reads the contract on testnet. |
 | Open the contents before a stage is finished | The stage's card has no claim button yet; it lists what is missing. |
 
-Stage badges 0 to 5 can be claimed. Each needs the stage's lessons finished and the previous stage's badge. Stages 0 to 4 also need evidence from the learner's own transactions: 0.3's transfer, 1.1's account and 1.2's key, 2.1's transfer, 3.1's deploy, 4.1's Chain Signatures request. Stage 5 (lessons 5.1 and 5.2) sends nothing on chain, so it needs no transaction evidence; the contract still requires the stage 4 badge first (`src/badges/rules.ts`). A stage done in demo mode cannot claim a testnet badge; the card says why.
+Stage badges 0 to 6 can be claimed. Each needs the stage's lessons finished and the previous stage's badge. Stages 0 to 4 also need evidence from the learner's own transactions: 0.3's transfer, 1.1's account and 1.2's key, 2.1's transfer, 3.1's deploy, 4.1's Chain Signatures request. Stage 5 (lessons 5.1 and 5.2) sends nothing on chain, so it needs no transaction evidence; the contract still requires the stage 4 badge first (`src/badges/rules.ts`). Stage 6 (lessons 6.1 and 6.2) works the same way: a practice vote and recorded data, no transaction evidence, and the stage 5 badge first. A stage done in demo mode cannot claim a testnet badge; the card says why.
 
 ### Testnet mode
 
-Press **Use testnet** on any lesson page (or open a lesson with `?mode=testnet`). The app makes a practice account in your browser: a throwaway key in `localStorage`, funded by our Worker faucet if `VITE_WORKER_URL` is set, otherwise by NEAR's public testnet helper (which limits accounts per IP address). If no faucet answers, the app says so and offers to stay in demo mode. Testnet NEAR has no value. Lessons that need no chain (0.1, 0.2, 4.3 except its quote, 6.1, 7.1, 7.2) behave the same in both modes; 2.2 opens a recorded real testnet call; 3.2 always runs on the simulated chain. In testnet mode, 4.2 and 4.3 fetch a dry, read-only quote from the mainnet 1Click API (Intents has no testnet); nothing is signed or sent on mainnet.
+Press **Use testnet** on any lesson page (or open a lesson with `?mode=testnet`). The app makes a practice account in your browser: a throwaway key in `localStorage`, funded by our Worker faucet if `VITE_WORKER_URL` is set, otherwise by NEAR's public testnet helper (which limits accounts per IP address). If no faucet answers, the app says so and offers to stay in demo mode. Testnet NEAR has no value. Lessons that need no chain (0.1, 0.2, 4.3 except its quote, 6.1, 6.2, 7.1, 7.2) behave the same in both modes; 2.2 opens a recorded real testnet call; 3.2 always runs on the simulated chain. In testnet mode, 4.2 and 4.3 fetch a dry, read-only quote from the mainnet 1Click API (Intents has no testnet); nothing is signed or sent on mainnet.
 
 Claiming a testnet badge also needs the Worker's `/claim` route deployed with its signing key (see "Honest limitations").
 
@@ -111,7 +112,7 @@ Tracks entered: `["open", "nfts", "security"]`. Explorer links use https://testn
 
 ### `open`: an interactive NEAR course with real testnet actions
 
-- 19 lessons, each in 2D and 3D, all runnable in demo mode (one e2e spec per lesson in `e2e/lessons/`).
+- 20 lessons, each in 2D and 3D, all runnable in demo mode (one e2e spec per lesson in `e2e/lessons/`).
 - Real testnet runs through the same code (`TestnetChain`), with these transactions (from `docs/progress.md` and `docs/spikes-seed.md`):
 
 | Lesson | What happened | Transaction |
@@ -126,7 +127,7 @@ Tracks entered: `["open", "nfts", "security"]`. Explorer links use https://testn
 
 ### `nfts`: badges that gate on proof of learning
 
-- Contract: [`badges.bon-badges-mwe57oab.testnet`](https://testnet.nearblocks.io/address/badges.bon-badges-mwe57oab.testnet) (Rust, near-sdk 5.11, `contracts/badge/`). NEP-171 with NEP-177 metadata and NEP-297 events. Badges are non-transferable, one per account per stage, need the previous stage, and are minted only with an ed25519 claim signed by our Worker after it checked the learner's own testnet transactions. The contract pays storage, so the learner pays only gas. Details: `docs/badge-contract.md`.
+- Contract: [`badges.bon-badges-mwe57oab.testnet`](https://testnet.nearblocks.io/address/badges.bon-badges-mwe57oab.testnet) (Rust, near-sdk 5.11, `contracts/badge/`). NEP-171 with NEP-177 metadata and NEP-297 events. Badges are non-transferable, one per account per stage, need the previous stage, and are minted only with an ed25519 claim signed by our Worker after it checked the learner's own testnet transactions (stages 0 to 4; stages 5 and 6 have none to check). The contract pays storage, so the learner pays only gas. Details: `docs/badge-contract.md`.
 - Deploy transaction: [`3WJ3Rgw…bwwp`](https://testnet.nearblocks.io/txns/3WJ3Rgw2ca7wXpVxJF3jyu9pmx3DUL98pvRsqBHKbwwp).
 - A real claim: practice account `bon-learner-mwe61s8i.testnet` sent a transfer, the Worker checked it and signed a claim, and [`claim_stage` `EAuadk9…XJ1o`](https://testnet.nearblocks.io/txns/EAuadk9PtuXBfee1fMx32okJyo6t2xCMbwJkumk8XJ1o) minted token `1` ("Book of NEAR: Stage 0"). A claim with no evidence was refused, and the same claim again was refused ("already claimed").
 - In the app: the claim card, "My book" (`/my-book`) and the public checker (`/check`), covered by `e2e/badges.spec.ts` in demo mode. 19 sandbox tests for the contract (`npm run test:badge`, needs Rust).
@@ -202,8 +203,8 @@ Diff of everything built during the hackathon: https://github.com/dispaz/book-of
 - **Demo mode uses recorded or simulated data.** DemoChain is deterministic; RPC timings (3.3), the 1Click quote (4.2), the attestation report (5.1) and some example transactions are recorded from real runs and labelled as such. Demo badges are kept in your browser only.
 - **Testnet badge claims need our Worker.** The live site's testnet claim works only once the Worker is deployed with its claim signing key. The real claim above was made with the Worker running locally.
 - **Not every lesson was walked on live testnet.** 0.3, 3.1 and 4.1 were run end to end on testnet in the app; the chain calls of the other lessons are covered by the testnet contract suite, and their UI by demo-mode e2e tests.
-- **4.1 does not broadcast to Sepolia**: a derived address starts with 0 ETH. **4.2 shows one best quote**, not competing solver bids (1Click returns one). **3.2 runs on the simulated chain** in both modes. **5.1's tutor answers are pre-written** (NEAR AI chat needs an API key); the attestation check is real. **6.1's vote is a practice vote.**
-- **No final exam or final badge yet**, and no stage 6 or 7 badges.
+- **4.1 does not broadcast to Sepolia**: a derived address starts with 0 ETH. **4.2 shows one best quote**, not competing solver bids (1Click returns one). **3.2 runs on the simulated chain** in both modes. **5.1's tutor answers are pre-written** (NEAR AI chat needs an API key); the attestation check is real. **6.1's vote is a practice vote.** **6.2's figures are recorded** (13 Nov 2026), not live.
+- **No final exam or final badge yet**, and no stage 7 badge.
 - The public testnet faucet fallback limits accounts per IP address, so a reviewer may hit it; demo mode always works.
 
 ### Not part of this submission (present in the code, not verified live)

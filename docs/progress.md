@@ -592,6 +592,24 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - E2E: 2D and 3D walks, reduced motion, `?webgl=0`, phone, 2D to 3D keeps state, 0 idle frames, rule 10a reactions, and the stage 5 badge claim in demo mode.
 - Review fixes: `docs/badge-contract.md` brought up to date (the contract reports `get_stage_count = 8`; `STAGE_COUNT` in `scripts/deploy-badge.mjs` is 8; the shelf counts "of 6"; stages 6 and 7 say "Badge not available yet"; stage 5 is signed with no lookup, a deliberate testnet decision, and 5.1's client-reported `attestationHash` is not evidence). Step 5 names the signer contract `v1.signer-prod.testnet`; the measurements note says the model skips the key-provider digest; a `docs/scene-objects.md` row for the stage 5 enclave.
 
+## 2026-11-13 · Lesson 6.2: The live money map; stage 6 badge (Closes #87)
+
+- `l-6-2-live-money-map`: 7 steps from the script, 2D and 3D on one state (`useMoneyMap`). The money map on the right page: oracle booth (`RpcWindow`), NEAR Intents area (`ChainArea`), Rhea Lend ledger (`Ledger`), USDC mailbox (`Mailbox`) and two pool basins (stable and simple). Gates: compare the two USDCs, read the oracle, trade 100,000 USDC.
+- **Recorded data only**, read once on 13 Nov 2026 with no keys: DefiLlama (chain TVL, matching lesson 7.2; Rhea Lend, Rhea Dex and NEAR Intents TVL; NEAR Intents volume; NEAR price) and NEAR mainnet view calls (native USDC vs USDC.e supply; `pyth-oracle.near`; Rhea pools #6416 and #4512 with `get_return` quotes). Every step shows "Recorded on 13 Nov 2026. Not live data." Nothing is fetched at run time, and there is no live refresh (it was optional).
+- The topic was rewritten from primary sources. Changes:
+  - Ref Finance and Burrow are now Rhea (Rhea Dex, Rhea Lend).
+  - Stable-swap is the StableSwap curve, not `x + y`.
+  - **Pyth Core no longer supports NEAR**: the stored NEAR/USD price dates from 25 Aug 2026, and `get_price` returns null. The oracle step now teaches that a price has an age.
+  - The MEV and gas-fee comparisons and the "backed 1:1 in bank reserves" claim were dropped (not proven).
+  - The swap uses real recorded quotes instead of a made-up 99.98. The constant-product formula on pool #4512's recorded reserves reproduces those quotes exactly (unit tested).
+- Rule 10a: each object has its own `pickMotion`, a "not yet" hint and a detail (`money.ts`, unit tested). The script has a Reactions table.
+- Stage 6 badge: a rule in `src/badges/rules.ts` covering 6.1 and 6.2, with evidence `voteCast` (practice vote) and `pair` (recorded trade). Both are accepted in demo mode.
+  - Worker `/claim` has a `case 6` with nothing on chain to check, plus a test.
+  - `DEMO_STAGE_COUNT` and `CLAIMABLE_BADGES` are now 7 (stages 0 to 6, after #85's stage 5), so My book counts "of 7". The contract needs the stage 5 badge first, and the claim card says so.
+- The stage 6 "DeFi map" locked card is gone (`coverage.ts`).
+- E2E covers: a walk in 2D and 3D, reduced motion, `?webgl=0`, the phone layout, 2D to 3D keeping the trade, 0 idle frames (the flows settle), rule 10a in 2D and 3D, and the stage 6 badge in demo mode (refused before stage 5, claimed after). The lesson is also on the render-on-demand list.
+- Review fixes: the stage 6 README matches the lesson (recorded data, Rhea Dex and Rhea Lend, a stored price has an age). "Rhea's biggest USDC/NEAR pool" (all 9,018 `v2.ref-finance.near` pools scanned, in the topic) with a note that a router can split a big trade; "about 0.01%"; the Pyth quote is the NEAR sentence only; tether.to is the USDt source. The Honest take and map labels are built from `money.ts`. 3D hint and detail picks now update the shared state like 2D (new `Pickable` `onNotYet`).
+
 ## 2026-11-13 · Testnet-only build: mainnet behind `VITE_ENABLE_MAINNET` (Refs #66)
 
 - The submission is testnet only. New build flag `VITE_ENABLE_MAINNET` (`src/app/flags.ts`), off by default. With it off: lesson 4.2 step 5 offers only the dry-run finish and the demo wallet's simulated swap, with "This build is testnet only: the real swap is switched off." (no "Use my own wallet", no mainnet buttons); `/wallet` shows a short testnet-only note; `WalletPanel` hides the switch; the NEAR Connect loader is dead code, so its chunk is not built. `MainnetWalletProvider` stays mounted because 4.2 uses its demo wallet. With the flag on, everything is as before.
