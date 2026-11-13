@@ -516,3 +516,10 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - One ring: the lesson's own selection disc is gone (the open lid or cover shows selection); only the edit ring at step 6 stays, on a block that is not pickable there.
 - Script "Reactions" table updated to what was built. E2E: 5 new "3d reactions" tests (focus, pick plays and settles, not-yet hint, detail, reduced motion).
 - Gate (merged with main): lint, typecheck, unit 758, 0.1 spec + render-on-demand 40 passed (GPU, `E2E_WORKERS=2`).
+
+## 2026-11-13 · Lesson 0.2: clickable 3D objects react (Closes #57)
+
+- Every clickable object plays its own `pickMotion` (not the kit's hop). Private key: turns (step 2), rises and stamps (step 6). Seed words: nod into the key. Address blocks: jump and flip. Message card: squash. Bin: rocks. The lesson had no ring of its own, so only the kit's hover ring shows.
+- Hints and details come from one pure `reactionsFor(step, state)` in `wallet3d.ts` (unit tested; never a key value): empty places say "Generate a key pair first", the key "Write a message first", the address "Turn it into an address first", the card "Sign the message first"; after each step the object shows a fact (BIP-39 / SLIP-10 path, 64 hex, 42 characters, 64-byte signature, "0 keys left").
+- Script "Reactions" table updated to what was built. E2E: 2 new tests (focus, picks play and settle, early hints, details; reduced motion keeps hints and details with no pick motion).
+- Gate (merged with main): lint, typecheck, unit tests, 0.2 spec + render-on-demand (GPU, `E2E_WORKERS=2`).
