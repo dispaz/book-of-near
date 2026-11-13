@@ -25,13 +25,13 @@ const stage0 = (mode: "demo" | "testnet") => [
 ];
 
 describe("STAGE_RULES: the required lessons, in one place", () => {
-  it("lists every lesson a learner can open in stages 0 to 6, and nothing planned", () => {
+  it("lists every lesson a learner can open in stages 0 to 7, and nothing planned", () => {
     for (const rule of STAGE_RULES) {
       const stage = registry.stages.find((s) => s.id === rule.stage)!;
       const open = stage.lessons.filter(isOpen).map((l) => l.id);
       expect(rule.lessons).toEqual(open);
     }
-    expect(STAGE_RULES.map((r) => r.stage)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    expect(STAGE_RULES.map((r) => r.stage)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
   });
 
   it("asks each evidence lesson for keys it really reports", () => {
@@ -46,8 +46,8 @@ describe("STAGE_RULES: the required lessons, in one place", () => {
 });
 
 describe("CLAIMABLE_BADGES: the total My book and the checker show", () => {
-  it("counts the stages with a rule (0 to 6), the same stages the demo contract knows", () => {
-    expect(CLAIMABLE_BADGES).toBe(7);
+  it("counts the stages with a rule (0 to 7), the same stages the demo contract knows", () => {
+    expect(CLAIMABLE_BADGES).toBe(8);
     expect(STAGE_RULES.map((r) => r.stage)).toEqual([...Array(CLAIMABLE_BADGES).keys()]);
     expect(DEMO_STAGE_COUNT).toBe(CLAIMABLE_BADGES);
   });
@@ -148,6 +148,46 @@ describe("stage 6: a practice vote and recorded data, accepted in demo mode", ()
     const r = claimReadiness(6, stage6("demo").slice(0, 1), "demo");
     expect(r.missing).toEqual([
       { lessonId: "l-6-2-live-money-map", reason: "not-finished", text: "Finish lesson 6.2." },
+    ]);
+  });
+});
+
+describe("stage 7: the settled trace and the read scoreboard, no testnet transaction", () => {
+  const stage7 = (mode: "demo" | "testnet") => [
+    rec("l-7-1-trace-an-intent", mode, {
+      capstoneComplete: "true",
+      mode,
+      txHash: "recorded-demo-intent",
+      intentSource: "recorded",
+      mpcVerified: "false",
+      stagesTraced: "0,1,2,3,4",
+      ownLayers: "none",
+    }),
+    rec("l-7-2-honest-scoreboard", mode, { scoreboardReviewed: "true", recordedOn: "2026-11-13" }),
+  ];
+
+  it("needs lessons 7.1 and 7.2 and asks for no transaction hash", () => {
+    const rule = STAGE_RULES.find((r) => r.stage === 7)!;
+    expect(rule.lessons).toEqual(["l-7-1-trace-an-intent", "l-7-2-honest-scoreboard"]);
+    expect(rule.evidence.map((e) => [e.lessonId, e.keys])).toEqual([
+      ["l-7-1-trace-an-intent", ["capstoneComplete"]],
+      ["l-7-2-honest-scoreboard", ["scoreboardReviewed"]],
+    ]);
+  });
+
+  it("is ready once 7.1 is settled and 7.2 is read, even with the recorded intent", () => {
+    expect(claimReadiness(7, stage7("demo"), "demo")).toEqual({ ready: true, missing: [] });
+    expect(claimReadiness(7, stage7("testnet"), "testnet")).toEqual({ ready: true, missing: [] });
+  });
+
+  it("asks for each lesson's step when it was tested out, and names 7.2 when only 7.1 is done", () => {
+    const tested = stage7("demo").map((c) => ({ ...c, evidence: undefined }));
+    expect(claimReadiness(7, tested, "demo").missing.map((m) => m.text)).toEqual([
+      "Trace the intent to its settlement in lesson 7.1.",
+      "Open all four scoreboard cards in lesson 7.2.",
+    ]);
+    expect(claimReadiness(7, stage7("demo").slice(0, 1), "demo").missing).toEqual([
+      { lessonId: "l-7-2-honest-scoreboard", reason: "not-finished", text: "Finish lesson 7.2." },
     ]);
   });
 });

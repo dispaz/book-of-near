@@ -86,7 +86,6 @@ Stage 7, Book of NEAR (capstone)
 - **7.1 Trace one intent end to end.** **Authorize intent**, follow it through your shard, the contract and settlement, then **Verify foreign settlement**. It replays your own 4.2 quote, or a recorded intent.
 - **7.2 The honest scoreboard.** Open the Accounts, Scalability, Speed and Liquidity cards and weigh NEAR against Ethereum, Solana and Cosmos, weak spots included.
 
-In progress at submission time, not part of this submission: the stage 7 badge (its shelf slot says "Badge not available yet").
 
 ### Badges, "My book" and `/check`
 
@@ -94,11 +93,11 @@ In progress at submission time, not part of this submission: the stage 7 badge (
 | --- | --- |
 | Finish lessons 0.1 to 0.3 in demo mode, then open the contents (`/`) | The stage 0 card says "Your badge is ready". |
 | Press **Claim the stage 0 badge** | "Stage 0 badge claimed" with the badge art. In demo mode the claim is signed in the browser and checked by a simulated copy of the contract's rules. |
-| Open **My book** (`/my-book`) | A shelf of eight slots, counted "of 7": claimed badges, "Not claimed yet" for the rest of stages 0 to 6, "Badge not available yet" for stage 7. Badges survive a reload. |
+| Open **My book** (`/my-book`) | A shelf of eight slots, counted "of 8": claimed badges, and "Not claimed yet" for the rest of stages 0 to 7. Badges survive a reload. |
 | Open **Open in the badge checker**, or `/check` | Look up any account's badges, no login. In testnet mode it reads the contract on testnet. |
 | Open the contents before a stage is finished | The stage's card has no claim button yet; it lists what is missing. |
 
-Stage badges 0 to 6 can be claimed. Each needs the stage's lessons finished and the previous stage's badge. Stages 0 to 4 also need evidence from the learner's own transactions: 0.3's transfer, 1.1's account and 1.2's key, 2.1's transfer, 3.1's deploy, 4.1's Chain Signatures request. Stage 5 (lessons 5.1 and 5.2) sends nothing on chain, so it needs no transaction evidence; the contract still requires the stage 4 badge first (`src/badges/rules.ts`). Stage 6 (lessons 6.1 and 6.2) works the same way: a practice vote and recorded data, no transaction evidence, and the stage 5 badge first. A stage done in demo mode cannot claim a testnet badge; the card says why.
+Stage badges 0 to 7 can be claimed. Each needs the stage's lessons finished and the previous stage's badge. Stages 0 to 4 also need evidence from the learner's own transactions: 0.3's transfer, 1.1's account and 1.2's key, 2.1's transfer, 3.1's deploy, 4.1's Chain Signatures request. Stage 5 (lessons 5.1 and 5.2) sends nothing on chain, so it needs no transaction evidence; the contract still requires the stage 4 badge first (`src/badges/rules.ts`). Stage 6 (lessons 6.1 and 6.2) works the same way: a practice vote and recorded data, no transaction evidence, and the stage 5 badge first. Stage 7 (lessons 7.1 and 7.2) is the same: the traced intent settled and all four scoreboard cards opened, no transaction evidence, and the stage 6 badge first. A stage done in demo mode cannot claim a testnet badge; the card says why.
 
 ### Final exam (`/exam`)
 
@@ -148,7 +147,7 @@ Tracks entered: `["open", "nfts", "security"]`. Explorer links use https://testn
 
 ### `nfts`: badges that gate on proof of learning
 
-- Contract: [`badges.bon-badges-mwe57oab.testnet`](https://testnet.nearblocks.io/address/badges.bon-badges-mwe57oab.testnet) (Rust, near-sdk 5.11, `contracts/badge/`). NEP-171 with NEP-177 metadata and NEP-297 events. Badges are non-transferable, one per account per stage, need the previous stage, and are minted only with an ed25519 claim signed by our Worker after it checked the learner's own testnet transactions (stages 0 to 4; stages 5 and 6 have none to check). The contract pays storage, so the learner pays only gas. Details: `docs/badge-contract.md`.
+- Contract: [`badges.bon-badges-mwe57oab.testnet`](https://testnet.nearblocks.io/address/badges.bon-badges-mwe57oab.testnet) (Rust, near-sdk 5.11, `contracts/badge/`). NEP-171 with NEP-177 metadata and NEP-297 events. Badges are non-transferable, one per account per stage, need the previous stage, and are minted only with an ed25519 claim signed by our Worker after it checked the stage's evidence. Stage 0: 0.3's transfer. Stage 1: the name made in 1.1, and 1.2's key added and deleted on it. Stage 2: 2.1's transfer. Stage 3: 3.1's deploy under the learner's account. Stage 4: 4.1's request to the MPC signer. Each is looked up on testnet and must be sent by the learner. Stages 5, 6 and 7 send nothing on chain, so the Worker checks only that the lessons' evidence keys are there (`docs/badge-contract.md`); the contract still needs the previous badge first. The contract pays storage, so the learner pays only gas. Details: `docs/badge-contract.md`.
 - Deploy transaction: [`3WJ3Rgw…bwwp`](https://testnet.nearblocks.io/txns/3WJ3Rgw2ca7wXpVxJF3jyu9pmx3DUL98pvRsqBHKbwwp).
 - A real claim: practice account `bon-learner-mwe61s8i.testnet` sent a transfer, the Worker checked it and signed a claim, and [`claim_stage` `EAuadk9…XJ1o`](https://testnet.nearblocks.io/txns/EAuadk9PtuXBfee1fMx32okJyo6t2xCMbwJkumk8XJ1o) minted token `1` ("Book of NEAR: Stage 0"). A claim with no evidence was refused, and the same claim again was refused ("already claimed").
 - In the app: the claim card, "My book" (`/my-book`) and the public checker (`/check`), covered by `e2e/badges.spec.ts` in demo mode. 19 sandbox tests for the contract (`npm run test:badge`, needs Rust).
@@ -225,7 +224,7 @@ Diff of everything built during the hackathon: https://github.com/dispaz/book-of
 - **Testnet badge claims need our Worker.** The live site's testnet claim works only once the Worker is deployed with its claim signing key. The real claim above was made with the Worker running locally.
 - **Not every lesson was walked on live testnet.** 0.3, 3.1 and 4.1 were run end to end on testnet in the app; the chain calls of the other lessons are covered by the testnet contract suite, and their UI by demo-mode e2e tests.
 - **4.1 does not broadcast to Sepolia**: a derived address starts with 0 ETH. **4.2 shows one best quote**, not competing solver bids (1Click returns one). **3.2 runs on the simulated chain** in both modes. **5.1's tutor answers are pre-written** (NEAR AI chat needs an API key); the attestation check is real. **6.1's vote is a practice vote.** **6.2's figures are recorded** (13 Nov 2026), not live.
-- **No stage 7 badge yet.** The final badge works in demo mode; on testnet it needs the Worker's `/final` route and the owner's `set_route` call. Its rarity uses only the score and the pass time, not the real swap or hint use (nothing on testnet proves them).
+- **The final badge on testnet** needs the Worker's `/final` route and the owner's `set_route` call; it works in demo mode. Its rarity uses only the score and the pass time, not the real swap or hint use (nothing on testnet proves them).
 - The public testnet faucet fallback limits accounts per IP address, so a reviewer may hit it; demo mode always works.
 
 ### Not part of this submission (present in the code, not verified live)

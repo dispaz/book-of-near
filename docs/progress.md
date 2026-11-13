@@ -633,6 +633,13 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - Tests: `src/exam/exam.test.ts`, store tests, `worker/src/exam.test.ts`, `e2e/exam.spec.ts` (locked, unlock by claiming the last badge, developer route locked, blank answers, fail then retake then pass, a later fail keeps the pass, phone + keyboard + reduced motion).
 - Review fixes: the e2e key check now looks for the key's own `why` text (the old marker constant was tree-shaken out, so the check could never fail), waits for every script body, and has a positive control (the chunk demo grading loads holds the key). Proved by importing the key statically: the test failed, then reverted. Exam results are kept per route, mode and account (`examKey`, `progress.exam(route, mode, accountId)`), so a demo 15/15 no longer hides a testnet 13/15 and its Worker-signed receipt. Docs and comments say plainly that the key is not secret: a receipt's worth rests on the Worker signature and the badge gate, and #29 must bind the receipt's account to the `claim_final` predecessor. Worker: one prologue for `/claim` and `/exam`, one RPC fallback loop (`worker/src/rpc.ts`).
 
+## 2026-11-13 · Stage 7 badge (Refs #13)
+
+- Stage 7 rule in `src/badges/rules.ts`: lessons 7.1 and 7.2, evidence keys only (7.1's `capstoneComplete`, 7.2's `scoreboardReviewed`). 7.1's `txHash` is not asked for: it is the 4.2 swap (NEAR Intents is mainnet), a demo-wallet hash or the recorded replay id, never a testnet transaction the Worker could look up. Worker `case 7` in `checkStage` returns at once, like stages 5 and 6; stage 8 and unknown stages get 400. The contract's "previous badge first" rule is the real gate.
+- `CLAIMABLE_BADGES` and `DEMO_STAGE_COUNT` are 8; My book counts "of 8". The stage 7 card says "Claim the stage 6 badge first." until stage 6 is held. New e2e: claim stage 7 in demo mode after 0 to 6.
+- `docs/badge-contract.md`: stage 7 under Worker requirements; `set_stage_count(8)` and `set_art` for stages 5 to 7 recorded with full hashes (checked on testnet RPC, all `SuccessValue`); `case 5` in `checkStage` is now named in the docs (a doc-only rename). README and `docs/submission.md`: stages 0 to 7 claimable, what the Worker checks per stage, only the final badge (#29) in progress.
+- Lesson 5.2: "key-provider digest" now reads "one more measurement: a hash of the service that gives the enclave its keys" (script in step).
+
 ## 2026-11-13 · Final badge, testnet edition (Closes #29)
 
 - Owner decision: testnet only. No mainnet mint, no mainnet contract; the issue's mainnet boxes are deferred.
