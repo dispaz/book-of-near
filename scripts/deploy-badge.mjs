@@ -19,7 +19,7 @@ import { Near, generateKey } from "near-kit";
 import { selectArt } from "./badges-art.mjs";
 
 const BASE_URI = "https://book-of-near.pages.dev/badges";
-const STAGE_COUNT = 5;
+const STAGE_COUNT = 8;
 const DAILY_CAP = 200;
 
 const args = process.argv.slice(2);

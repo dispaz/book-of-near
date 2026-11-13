@@ -49,7 +49,7 @@ export default {
     {
       caption: "The agent asks its contract for an Ethereum signature.",
       explain:
-        "The agent calls request_signature with the path ethereum-1 and the hash of an Ethereum transaction. The agent contract checks that the agent is still valid, then calls sign on the signing network (v1.signer). The contract is the caller, so the Ethereum address belongs to the agent contract and the path, not to the agent's key. The funds stay put when an agent restarts or is replaced, and several agents can share them.",
+        "The agent calls request_signature with the path ethereum-1 and the hash of an Ethereum transaction. The agent contract checks that the agent is still valid, then calls sign on the signer contract (v1.signer-prod.testnet on testnet). The contract is the caller, so the Ethereum address belongs to the agent contract and the path, not to the agent's key. The funds stay put when an agent restarts or is replaced, and several agents can share them.",
       explainAt: "signer",
       action: { label: "run the agent", gate: true },
     },

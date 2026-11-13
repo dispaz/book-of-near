@@ -96,7 +96,7 @@ export function Facts({ m, compact = false }: { m: AgentLesson; compact?: boolea
             </dl>
             <p className="nao-note" data-testid="measurements-source">
               Example values: the real measurements from the NEAR AI Cloud quote recorded on {RECORDED_ON}{" "}
-              (lesson 5.1). The PPID is an example. {MODEL_NOTE}
+              (lesson 5.1). The PPID is an example. This model skips the key-provider digest. {MODEL_NOTE}
             </p>
           </>
         ) : (

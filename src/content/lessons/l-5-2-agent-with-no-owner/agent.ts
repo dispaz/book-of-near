@@ -44,8 +44,6 @@ export type Act = "openEnv" | "boot" | "register" | "devSign" | "copy" | "run";
 export type Reaction = { act?: Act; hint?: string; detail?: string };
 
 export const short = (s: string, n = 8) => (s.length > 2 * n + 1 ? `${s.slice(0, n)}…${s.slice(-n)}` : s);
-/** "0x1234…345678": an Ethereum address, shortened. */
-export const shortAddress = (a: string) => `${a.slice(0, 8)}…${a.slice(-6)}`;
 const attackDone = (s: LessonState) => !!s.devRefused && s.copyRefused;
 
 export function reactionsFor(s: LessonState): Record<Obj, Reaction> {
@@ -115,7 +113,7 @@ function signer(s: LessonState): Reaction {
 function eth(s: LessonState): Reaction {
   if (s.run.status === "done")
     return {
-      detail: `${shortAddress(s.run.address)}: derived from ${AGENT_CONTRACT} and the path ${AGENT_PATH}, not from the agent's key. It stays the same when the agent restarts.`,
+      detail: `${short(s.run.address, 6)}: derived from ${AGENT_CONTRACT} and the path ${AGENT_PATH}, not from the agent's key. It stays the same when the agent restarts.`,
     };
   if (s.run.status === "running") return { detail: "Deriving the contract's address…" };
   if (s.step < RUN || !s.registered || !attackDone(s))

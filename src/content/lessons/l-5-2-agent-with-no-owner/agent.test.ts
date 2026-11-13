@@ -67,7 +67,7 @@ describe("reactionsFor: every object acts, says 'not yet', or shows a detail (ru
     expect(r.enclave.detail).toContain("abababab…abababab");
     expect(r.contract.detail).toMatch(/genuine quote, approved measurements, approved PPID/);
     expect(r.signer.detail).toContain("agent.example.testnet");
-    expect(r.eth.detail).toContain("0x123456…345678");
+    expect(r.eth.detail).toContain("0x1234…345678");
   });
 
   it("has a reaction for every object at every step", () => {

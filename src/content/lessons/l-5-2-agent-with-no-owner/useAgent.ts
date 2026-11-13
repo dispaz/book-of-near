@@ -190,7 +190,6 @@ export function useAgent({
   return {
     ...lessonState,
     network: chain.network,
-    contract,
     regChecks,
     copy,
     call,
@@ -208,7 +207,6 @@ export function useAgent({
     pick,
     passed,
     pass: () => setPassed(true),
-    reducedMotion,
     state,
   };
 }
