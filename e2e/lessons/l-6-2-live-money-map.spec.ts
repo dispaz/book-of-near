@@ -247,6 +247,16 @@ test.describe("3D book scene", () => {
     await expectNotYetHint(page, "The oracle booth", "Not yet: you read the oracle on step 3.");
     await expectNotYetHint(page, "The stable pool", "Read the oracle first.");
     await expectNotYetHint(page, "The NEAR Intents area", "Trade in the pools first.");
+    // As in 2D, every pick (a hint or a detail too) is recorded in the shared state: the object is selected.
+    await expect(page.getByRole("button", { name: "The NEAR Intents area" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expectPickDetail(page, "The Rhea Lend ledger", /Rhea Lend/);
+    await expect(page.getByRole("button", { name: "The Rhea Lend ledger" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
 
     await nextStep(page);
     await expectFocusMarksHover(page, "The oracle booth");
