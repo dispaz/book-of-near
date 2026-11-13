@@ -56,9 +56,9 @@ The contract trusts whoever holds the claim key, so the Worker that signs must:
 - **Sign short expiries** (minutes, not days) and never accept an `expires_at_ms` from the client.
 - **Check evidence first** (stage finished, exam score), then sign. Never sign a rarity the client chose.
   `worker/src/claim.ts` does this on testnet: each transaction must be sent by the learner (or the name they made in 1.1, or the fresh parent 3.1 made for an implicit account, proved by its `create_account` hash) and be the kind the lesson sends (0.3 and 2.1: one Transfer; 1.2: AddKey then DeleteKey; 3.1: DeployContract to a contract under the learner's account; 4.1: a call to the MPC signer). One hash may not stand for two pieces of evidence in one claim. The body is capped at 4 KB, and an RPC failure answers 502, never "not found".
-- **Stage 5 is signed with no testnet lookup** (issue #85, a deliberate decision for a testnet learning badge). Lessons 5.1 and 5.2 send no transaction, so there is nothing on chain to check: `case 5` in `checkStage` returns at once. The only on-chain gate is the contract's "previous badge first" rule. Stage 4 needs a real lesson 4.1 call to `v1.signer-prod.testnet`, so in effect the Worker signs stage 5 for any account that already holds the stage 4 badge. Lesson 5.1's `attestationHash` is not used as evidence: the client reports it, and the Worker cannot verify it (it is a hash of a quote fetched in the browser, not a transaction it can look up), so checking it would add no real gate.
-- **Stage 6 is signed with no testnet lookup** (issue #87). Lesson 6.1's vote is a practice vote and 6.2 reads recorded data, so nothing is sent on chain: `case 6` returns at once. The Worker still requires the rule's evidence keys (6.1's `voteCast`, 6.2's `pair`), which the client reports and which prove nothing on chain. As with stage 5, the real gate is the contract's "previous badge first" rule, back to 4.1's chain signature.
-- **Stage 7 is signed with no testnet lookup** (issue #13). Lesson 7.1 replays an intent and 7.2 reads a recorded scoreboard, so nothing is sent on testnet: `case 7` returns at once. 7.1 does record a `txHash`, but it is the learner's 4.2 swap (NEAR Intents runs on mainnet), a demo-wallet hash or the recorded replay id `recorded-demo-intent`, never a testnet transaction the Worker could look up, so the rule does not ask for it. The Worker requires the rule's evidence keys (7.1's `capstoneComplete`, 7.2's `scoreboardReviewed`), which the client reports and which prove nothing on chain. The real gate is again the contract's "previous badge first" rule, back to 4.1's chain signature. Stage 8 and any other stage without a rule are refused with 400.
+- **Stage 5 is signed with no stage-specific lookup** (issue #85, a deliberate decision for a testnet learning badge). Lessons 5.1 and 5.2 send no transaction, so there is nothing on chain to check: `case 5` in `checkStage` returns at once. The only on-chain gate is the contract's "previous badge first" rule. Stage 4 needs a real lesson 4.1 call to `v1.signer-prod.testnet`, so in effect the Worker signs stage 5 for any account that already holds the stage 4 badge. Lesson 5.1's `attestationHash` is not used as evidence: the client reports it, and the Worker cannot verify it (it is a hash of a quote fetched in the browser, not a transaction it can look up), so checking it would add no real gate.
+- **Stage 6 is signed with no stage-specific lookup** (issue #87). Lesson 6.1's vote is a practice vote and 6.2 reads recorded data, so nothing is sent on chain: `case 6` returns at once. The Worker still requires the rule's evidence keys (6.1's `voteCast`, 6.2's `pair`), which the client reports and which prove nothing on chain. As with stage 5, the real gate is the contract's "previous badge first" rule, back to 4.1's chain signature.
+- **Stage 7 is signed with no stage-specific lookup** (issue #13). Lesson 7.1 replays an intent and 7.2 reads a recorded scoreboard, so nothing is sent on testnet: `case 7` returns at once. 7.1 does record a `txHash`, but it is the learner's 4.2 swap (NEAR Intents runs on mainnet), a demo-wallet hash or the recorded replay id `recorded-demo-intent`, never a testnet transaction the Worker could look up, so the rule does not ask for it. The Worker requires the rule's evidence keys (7.1's `capstoneComplete`, 7.2's `scoreboardReviewed`), which the client reports and which prove nothing on chain. The real gate is again the contract's "previous badge first" rule, back to 4.1's chain signature. Stage 8 and any other stage without a rule are refused with 400.
 - Keep the claim secret key only in Worker secrets.
 
 Operators must deploy with the single-step `with-init-call new` below. `new` has no access check of its own, so a deploy followed by a separate `new` call could be front-run.
@@ -122,7 +122,7 @@ For local dev, `worker/.dev.vars` already holds `CLAIM_SIGNING_KEY` and `BADGE_C
 
 To rotate the claim key: generate a pair, `set_claim_key` as the owner (old signatures stop working at once), then `wrangler secret put CLAIM_SIGNING_KEY`.
 
-For mainnet repeat with a mainnet account and a different claim key (out of scope for the hackathon, #29).
+For mainnet repeat with a mainnet account and a different claim key (out of scope for the hackathon: the final badge is testnet only, #29).
 
 ## The app side (issue #68)
 
@@ -151,7 +151,7 @@ Page `/exam` (pill "Final exam" on the contents page). Code in `src/exam/`, Work
 
   Testnet: by the Worker with `CLAIM_SIGNING_KEY`, at the Worker's own time. Demo: in the browser with the public demo claim key, so it is worth nothing outside this browser. The `bon-exam-v1` prefix never equals a `bon-badge-v1` claim, so the contract cannot take a receipt for a mint claim.
 
-### What #29 needs from this
+### What #29 needed from this (done, see "The final badge (issue #29)" below)
 
 1. Owner, once (not run): `set_route("general", [0, 1, 2])` and `set_route("developer", [0, 1, 2, 3, 4])` on the testnet contract, so `claim_final` accepts the same routes the exam gates on.
 2. A Worker route for the final claim that takes `{ accountId, route, receipt }` from `progress.exam(route, "testnet", accountId)`, verifies the receipt's signature against the claim key's public key and its fields (`examMessage` in `src/exam/grade.ts`), computes the rarity from the score and the other facts it can check, and signs `bon-badge-v1|...|final|<route>|<rarity>|<expires_at_ms>`. Demo mode does the same with the demo key and the demo contract.
@@ -159,8 +159,38 @@ Page `/exam` (pill "Final exam" on the contents page). Code in `src/exam/`, Work
 4. `POST /exam` does not prove that the caller controls the account. Anyone can send answers for any account id that holds the badges and get a receipt for it. The receipt only says "this account's badges were held and these answers scored this much".
 5. So the final claim must bind the receipt to the caller. `claim_final` mints to the predecessor, so the claim path (the Worker's final claim route, the contract, or both) must check that the receipt's account equals the account that signs the `claim_final` transaction (the predecessor). A receipt for someone else's account must not mint a badge to the caller.
 
+## The final badge (issue #29)
+
+**Testnet only (owner decision).** There is no mainnet edition, no mainnet contract and no mainnet mint. The issue's mainnet boxes are deferred.
+
+- **Rarity** (`src/badges/final.ts` `rarityFor`, shared by the Worker and demo mode). Only facts in the signed exam receipt count: the score sets the tier (12 of 15 or less: `common`; 13 or 14: `rare`; 15: `epic`), and a pass inside the event window raises it one tier, so `legendary` is 15 of 15 inside the window. The event window is the hackathon, 1 Nov 2026 00:00 UTC to the end of 14 Nov 2026 UTC (`EVENT_WINDOW`), checked against the receipt's `passed_at_ms`, which is the Worker's own clock. The spec's two other inputs are not used, because nothing on testnet proves them: the optional real swap (lesson 4.2 sends it on mainnet; the app keeps only what the browser reports) and "the key challenge without hints" (hint use is recorded in the browser only). Using them would let a learner raise their own rarity. Demo time is set inside the hackathon (from 1 Nov 2026), so a demo pass always gets the extra tier.
+- **Worker `POST /final`** (`worker/src/final.ts`). Body `{ accountId, route, receipt }`, the receipt from `progress.exam(route, "testnet", accountId)`. It goes through `signedPrologue` (2 KB cap, origin, per-IP, per-account and total daily limits: `FINAL_PER_IP_DAILY` 10, `FINAL_PER_ACCOUNT_DAILY` 5, `FINAL_GLOBAL_DAILY` 300), then checks: the receipt's fields (`receiptProblem`: this badge contract, this account, this route, 15 questions, a pass) and its signature against the public half of its own `CLAIM_SIGNING_KEY`. Then it signs `final_message` with the rarity it worked out and a 5-minute expiry it chose. Answers `{ contractId, accountId, route, rarity, expiresAtMs, signature }`, or 403 with the reason. It does not read testnet: the contract itself checks the route's stage badges and one final badge per account, so a wasted signature mints nothing.
+- **Binding to the caller (checked in `lib.rs`).** `claim_final` sets `account = env::predecessor_account_id()` and rebuilds `final_message(account, route, rarity, expires_at_ms)` before `ed25519_verify`. So a claim signed for account A only verifies when A itself sends the transaction; anyone else gets "Invalid claim signature", and nothing can mint to a different account. No contract change was needed. `src/badges/final.test.ts` reads `lib.rs` and checks both the format string (same bytes as `finalMessage`) and that `claim_final` passes the predecessor. The demo contract does the same, and a unit test sends a claim signed for another account and gets "Invalid claim signature".
+- **Chain interface.** `claimFinal(claim)` sends `claim_final({ route, rarity, expires_at_ms, signature })` with no deposit; `finalBadgeOf(accountId)` reads the `extra.kind === "final"` token from `nft_tokens_for_owner`. DemoChain's badge contract has `claim_final`, `has_final_badge` and `get_route` with the contract's rules, except the daily mint cap, and the same routes as the exam gate; demo final badges are kept in `localStorage` (`bon:demo-final:v1`).
+- **UI.** A claim card on `/exam` under a pass (and on later visits while the kept result is a pass): ready (with the rarity and why), claiming, claimed, failed. `/my-book` and `/check` show a final badge slot under the stage shelf.
+- **Art.** `npm run badges:art` also writes `public/badges/final-<rarity>.svg` (a book with a seal; one to four stars, the ring and the ribbon tell the tiers apart without colour) and their hashes in `art.json`.
+- **Daily cap.** `claim_final` calls the same `count_mint` as `claim_stage`, so it counts against the contract's `daily_cap` (the sandbox test `daily_cap_stops_minting` covers that check on `claim_stage`), and the Worker's `FINAL_GLOBAL_DAILY` caps signatures.
+
+### Owner steps for the testnet final badge (not run by the agent)
+
+On 13 Nov 2026, `get_route({"route":"general"})` and `get_route({"route":"developer"})` on `badges.bon-badges-mwe57oab.testnet` (view calls through `https://rpc.testnet.fastnear.com`) both returned `null`: no route is set, so `claim_final` panics "Unknown route" until the owner runs, from the checkout whose `worker/.dev.vars` holds `BADGE_OWNER_ID` and `BADGE_OWNER_PRIVATE_KEY`:
+
+```
+node scripts/deploy-badge.mjs routes
+```
+
+It sends `set_route({ route: "general", stages: [0, 1, 2] })` and `set_route({ route: "developer", stages: [0, 1, 2, 3, 4] })` as the owner (the lists come from `src/exam/routes.ts`) and prints the two transaction hashes. Check afterwards:
+
+```
+curl -s https://rpc.testnet.fastnear.com -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"badges.bon-badges-mwe57oab.testnet","method_name":"get_route","args_base64":"eyJyb3V0ZSI6ImdlbmVyYWwifQ=="}}'
+```
+
+(`eyJyb3V0ZSI6ImdlbmVyYWwifQ==` is `{"route":"general"}`; the `result` bytes should decode to `[0,1,2]`.)
+
+The final badge art goes up with `node scripts/deploy-badge.mjs art --keys final-common,final-rare,final-epic,final-legendary` (without it the token has no `media`; the app shows its own copy of the art either way). The Worker needs a redeploy (`npx wrangler deploy` in `worker/`) for `POST /final`; the claim key is the same `CLAIM_SIGNING_KEY`.
+
 ## Not done here
 
 - Day rollover of the daily cap: the sandbox clock is wall-clock time, so a new UTC day cannot be reached in a test. The logic (`day != self.day` resets the counter) is covered only by reading.
 - The optional transferable collector twin of the final badge.
-- The final badge (rarity, `claim_final`) in the app: #29. The exam it builds on is above (#28).
+- The final badge on mainnet, and the "testnet edition, upgrade later" path: deferred (testnet-only submission).

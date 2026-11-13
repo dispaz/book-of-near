@@ -10,9 +10,9 @@
 import { base64 } from "@scure/base";
 import { isValidAccountId } from "../accountId";
 import { ChainError } from "../errors";
-import { readHasBadge, readStageBadges, sendStageClaim } from "../badges";
+import { readFinalBadge, readHasBadge, readStageBadges, sendFinalClaim, sendStageClaim } from "../badges";
 import { TESTNET_BADGE_CONTRACT } from "../../badges/config";
-import type { StageClaim } from "../../badges/message";
+import type { FinalClaim, StageClaim } from "../../badges/message";
 import { DELEGATE_VALIDITY_BLOCKS } from "../ops";
 import type {
   DelegateRequest,
@@ -33,6 +33,7 @@ import type {
   RpcProbe,
   SendOptions,
   StageBadge,
+  FinalBadge,
   ShardId,
   ShardLayout,
   SignedTransaction,
@@ -140,6 +141,14 @@ export class TestnetChain implements Chain {
 
   hasBadge(accountId: AccountId, stage: number): Promise<boolean> {
     return readHasBadge(this, this.badgeContract, accountId, stage);
+  }
+
+  claimFinal(claim: FinalClaim, options?: SendOptions): Promise<TxOutcome> {
+    return sendFinalClaim(this, this.badgeContract, claim, options);
+  }
+
+  finalBadgeOf(accountId: AccountId): Promise<FinalBadge | null> {
+    return readFinalBadge(this, this.badgeContract, accountId);
   }
 
   async returnAccount(): Promise<AccountId> {

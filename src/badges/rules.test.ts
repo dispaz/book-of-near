@@ -46,7 +46,7 @@ describe("STAGE_RULES: the required lessons, in one place", () => {
 });
 
 describe("CLAIMABLE_BADGES: the total My book and the checker show", () => {
-  it("counts the stages with a rule (0 to 6), the same stages the demo contract knows", () => {
+  it("counts the stages with a rule (0 to 7), the same stages the demo contract knows", () => {
     expect(CLAIMABLE_BADGES).toBe(8);
     expect(STAGE_RULES.map((r) => r.stage)).toEqual([...Array(CLAIMABLE_BADGES).keys()]);
     expect(DEMO_STAGE_COUNT).toBe(CLAIMABLE_BADGES);

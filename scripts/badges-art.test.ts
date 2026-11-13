@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { COLORS, NEAR, STAGE_ACCENTS } from "../src/scene-kit/theme";
 // @ts-expect-error plain ESM script without types
-import { badgeSvg, NAMES, selectArt, writeArt } from "./badges-art.mjs";
+import { badgeSvg, finalSvg, NAMES, RARITIES, selectArt, writeArt } from "./badges-art.mjs";
 import { registry } from "../src/app/registry";
 import { STAGE_BADGE_NAMES, STAGE_BADGES } from "../src/badges/config";
 
@@ -71,8 +71,14 @@ describe("badges:art", () => {
   it("records a sha256 (base64) per file for set_art, matching the bytes written", async () => {
     const dir = mkdtempSync(join(tmpdir(), "badges-"));
     const list = writeArt(dir) as { key: string; media: string; sha256: string }[];
-    expect(list.map((a) => a.key)).toEqual(STAGES.map((s) => `stage-${s}`));
-    expect(new Set(list.map((a) => a.sha256)).size).toBe(8);
+    expect(list.map((a) => a.key)).toEqual([
+      ...STAGES.map((s) => `stage-${s}`),
+      "final-common",
+      "final-rare",
+      "final-epic",
+      "final-legendary",
+    ]);
+    expect(new Set(list.map((a) => a.sha256)).size).toBe(12);
     const { createHash } = await import("node:crypto");
     for (const a of list) {
       const bytes = readFileSync(join(dir, a.media));
@@ -85,11 +91,34 @@ describe("badges:art", () => {
     const committed = JSON.parse(
       readFileSync(join(__dirname, "..", "public", "badges", "art.json"), "utf8"),
     ) as { media: string }[];
-    expect(committed).toHaveLength(8);
+    expect(committed).toHaveLength(12);
     for (const s of STAGES) {
       const file = readFileSync(join(__dirname, "..", "public", "badges", `stage-${s}.svg`), "utf8");
       expect(badgeSvg(s), `stage ${s}`).toBe(file);
     }
+    for (const r of RARITIES as string[]) {
+      const file = readFileSync(join(__dirname, "..", "public", "badges", `final-${r}.svg`), "utf8");
+      expect(finalSvg(r), r).toBe(file);
+    }
+  });
+});
+
+describe("final badge art (issue #29)", () => {
+  it("draws one valid SVG per rarity the contract accepts, in NEAR's palette, told apart without colour", () => {
+    expect(RARITIES).toEqual(["common", "rare", "epic", "legendary"]);
+    const near = new Set(Object.values(NEAR).map((v) => v.toLowerCase()));
+    (RARITIES as string[]).forEach((r, i) => {
+      const svg = finalSvg(r) as string;
+      const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
+      expect(doc.getElementsByTagName("parsererror"), r).toHaveLength(0);
+      expect(
+        [...hexes(svg)].filter((h) => !near.has(h)),
+        r,
+      ).toEqual([]);
+      expect(svg).toContain(r.toUpperCase());
+      expect(svg.match(/data-part="star"/g)).toHaveLength(i + 1);
+    });
+    expect(() => finalSvg("mythic")).toThrow(/Unknown rarity/);
   });
 });
 

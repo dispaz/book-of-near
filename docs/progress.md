@@ -637,5 +637,16 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 
 - Stage 7 rule in `src/badges/rules.ts`: lessons 7.1 and 7.2, evidence keys only (7.1's `capstoneComplete`, 7.2's `scoreboardReviewed`). 7.1's `txHash` is not asked for: it is the 4.2 swap (NEAR Intents is mainnet), a demo-wallet hash or the recorded replay id, never a testnet transaction the Worker could look up. Worker `case 7` in `checkStage` returns at once, like stages 5 and 6; stage 8 and unknown stages get 400. The contract's "previous badge first" rule is the real gate.
 - `CLAIMABLE_BADGES` and `DEMO_STAGE_COUNT` are 8; My book counts "of 8". The stage 7 card says "Claim the stage 6 badge first." until stage 6 is held. New e2e: claim stage 7 in demo mode after 0 to 6.
-- `docs/badge-contract.md`: stage 7 under Worker requirements; `set_stage_count(8)` and `set_art` for stages 5 to 7 recorded with full hashes (checked on testnet RPC, all `SuccessValue`); `case 5` now named in `checkStage`. README and `docs/submission.md`: stages 0 to 7 claimable, what the Worker checks per stage, only the final exam in progress.
-- Lesson 5.2: "key-provider digest" now reads "one more measurement: a fingerprint of the service that gives the enclave its keys" (script in step).
+- `docs/badge-contract.md`: stage 7 under Worker requirements; `set_stage_count(8)` and `set_art` for stages 5 to 7 recorded with full hashes (checked on testnet RPC, all `SuccessValue`); `case 5` in `checkStage` is now named in the docs (a doc-only rename). README and `docs/submission.md`: stages 0 to 7 claimable, what the Worker checks per stage, only the final badge (#29) in progress.
+- Lesson 5.2: "key-provider digest" now reads "one more measurement: a hash of the service that gives the enclave its keys" (script in step).
+
+## 2026-11-13 · Final badge, testnet edition (Closes #29)
+
+- Owner decision: testnet only. No mainnet mint, no mainnet contract; the issue's mainnet boxes are deferred.
+- Rarity (`src/badges/final.ts`, shared by the Worker and demo mode): the signed score sets the tier (12 of 15 common, 13 or 14 rare, 15 epic) and a pass inside the hackathon window (1 to 14 Nov 2026 UTC, the receipt's Worker-signed `passed_at_ms`) raises it one tier. The real swap and "no hints" are not used: nothing on testnet proves them.
+- Worker `POST /final` (`worker/src/final.ts`, through `signedPrologue`): checks the receipt's fields (contract, account, route, total, a pass) and its signature with the claim key's public half, then signs `final_message` with a 5-minute expiry. Limits `FINAL_*_DAILY` in `wrangler.toml`.
+- Binding: `lib.rs` `claim_final` rebuilds the message with the predecessor, so a claim only verifies for the account that sends it. No contract change. A unit test reads `lib.rs` to check the format bytes and the predecessor.
+- Chain interface: `claimFinal`, `finalBadgeOf` (DemoChain and TestnetChain). The demo contract has `claim_final`, `has_final_badge`, `get_route`; demo finals persist in `bon:demo-final:v1`.
+- UI: claim card on `/exam` after a pass; final badge slot in My book and on `/check`. Art: `public/badges/final-<rarity>.svg` from `npm run badges:art`.
+- Owner step (not run): `get_route` on the testnet contract returned `null` for both routes on 13 Nov, so `node scripts/deploy-badge.mjs routes` (new) is needed before a testnet final claim; optional `art --keys final-common,final-rare,final-epic,final-legendary`; Worker redeploy for `/final`.
+- Tests: `src/badges/final.test.ts`, `worker/src/final.test.ts` (valid, forged, other contract, other account, failed exam, route, limits), badges-art tests, e2e "pass, claim the final badge, see it in My book and the checker".

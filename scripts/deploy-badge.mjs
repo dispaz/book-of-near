@@ -9,7 +9,10 @@
  *       is generated. Every secret is written to the --vars file (git-ignored), never printed.
  *   node scripts/deploy-badge.mjs settings [--vars ...]   re-applies daily cap, base URI, claim key, stage count.
  *   node scripts/deploy-badge.mjs art [--keys stage-0,stage-4] [--vars ...]
- *       set_art for every entry of public/badges/art.json (stage-0..7), or only the --keys listed.
+ *       set_art for every entry of public/badges/art.json (stage-0..7, final-<rarity>), or only the --keys listed.
+ *   node scripts/deploy-badge.mjs routes [--vars ...]
+ *       set_route for each final exam route (src/exam/routes.ts): general [0,1,2], developer [0,1,2,3,4].
+ *       Without them `claim_final` panics with "Unknown route".
  *
  * Reads and writes the --vars file (default worker/.dev.vars): BADGE_OWNER_ID, BADGE_OWNER_PRIVATE_KEY,
  * BADGE_CONTRACT_ID, CLAIM_SIGNING_KEY, CLAIM_PUBLIC_KEY.
@@ -17,6 +20,13 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { Near, generateKey } from "near-kit";
 import { selectArt } from "./badges-art.mjs";
+
+/**
+ * The stages each final exam route needs, as `set_route` sets them. A copy of `requiredBadges` in
+ * src/exam/routes.ts (not imported: Node before 22.18 cannot run .ts files); deploy-badge.test.ts
+ * keeps the two equal.
+ */
+const ROUTES = { general: [0, 1, 2], developer: [0, 1, 2, 3, 4] };
 
 const BASE_URI = "https://book-of-near.pages.dev/badges";
 const STAGE_COUNT = 8;
@@ -148,10 +158,23 @@ async function stageCount() {
   console.log(`set_stage_count(${n}): ${hashOf(r)}`);
 }
 
-const run = { deploy, settings: () => settings(readVars()), art, "stage-count": stageCount }[cmd];
+/** `routes`: the owner sets the stages each final exam route needs (`set_route`), as the app's exam gate does. */
+async function routes() {
+  const vars = readVars();
+  const near = await owner(vars);
+  for (const [route, stages] of Object.entries(ROUTES)) {
+    const r = await near
+      .transaction(vars.BADGE_OWNER_ID)
+      .functionCall(vars.BADGE_CONTRACT_ID, "set_route", { route, stages }, { gas: "30 Tgas" })
+      .send();
+    console.log(`set_route(${route}, [${stages.join(",")}]): ${hashOf(r)}`);
+  }
+}
+
+const run = { deploy, settings: () => settings(readVars()), art, routes, "stage-count": stageCount }[cmd];
 if (!run) {
   console.log(
-    "usage: node scripts/deploy-badge.mjs deploy|settings|art|stage-count <n> [--keys ...] [--vars worker/.dev.vars]",
+    "usage: node scripts/deploy-badge.mjs deploy|settings|art|routes|stage-count <n> [--keys ...] [--vars worker/.dev.vars]",
   );
   process.exit(1);
 }

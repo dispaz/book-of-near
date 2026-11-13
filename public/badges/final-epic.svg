@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Book of NEAR, final badge: epic" data-rarity="epic">
+  <title>Book of NEAR: Final badge (epic)</title>
+  <circle cx="256" cy="256" r="240" fill="#f2f1e9" stroke="#000000" stroke-width="12"/>
+  <circle cx="256" cy="256" r="214" fill="none" stroke="#00ec97" stroke-width="12"/>
+  <circle cx="256" cy="256" r="192" fill="none" stroke="#000000" stroke-width="4"/>
+  <path d="M164 150 h176 a12 12 0 0 1 12 12 v196 h-188 z" fill="#145c43" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M164 358 h188 v20 h-176 a12 12 0 0 1 -12 -12 z" fill="#f2f1e9" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M190 150 v208" fill="none" stroke="#000000" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="272" cy="248" r="52" fill="#00ec97" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <circle cx="272" cy="248" r="36" fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="1 10" stroke-linecap="round"/>
+  <path d="M252 250 l14 14 l26 -30" fill="none" stroke="#000000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path data-part="star" d="M200.0 82.0 L205.3 94.7 L219.0 95.8 L208.6 104.8 L211.8 118.2 L200.0 111.0 L188.2 118.2 L191.4 104.8 L181.0 95.8 L194.7 94.7 Z" fill="#00ec97" stroke="#000000" stroke-width="6" stroke-linejoin="round"/>
+  <path data-part="star" d="M256.0 82.0 L261.3 94.7 L275.0 95.8 L264.6 104.8 L267.8 118.2 L256.0 111.0 L244.2 118.2 L247.4 104.8 L237.0 95.8 L250.7 94.7 Z" fill="#00ec97" stroke="#000000" stroke-width="6" stroke-linejoin="round"/>
+  <path data-part="star" d="M312.0 82.0 L317.3 94.7 L331.0 95.8 L320.6 104.8 L323.8 118.2 L312.0 111.0 L300.2 118.2 L303.4 104.8 L293.0 95.8 L306.7 94.7 Z" fill="#00ec97" stroke="#000000" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M110 392 h292 l-18 30 l18 30 h-292 l18 -30 z" fill="#f2f1e9" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+  <text x="256" y="434" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-weight="700" letter-spacing="2" fill="#000000">EPIC</text>
+</svg>

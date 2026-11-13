@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * `npm run badges:art`: draws the eight stage badges (0 to 7) as SVG in the book's ink style (black
+ * `npm run badges:art`: draws the eight stage badges (0 to 7) and the four final badge tiers as SVG in the book's ink style (black
  * outline on paper-white) in NEAR's own palette into public/badges/, and writes public/badges/art.json
  * with each file's base64 sha256 for the contract's `set_art` (`node scripts/deploy-badge.mjs art`).
  * The art is code: revise a motif here and re-run; nothing else changes.
@@ -242,6 +242,56 @@ export function badgeSvg(stage) {
 `;
 }
 
+/** The final badge's tiers (contracts/badge `claim_final`), lowest first. */
+export const RARITIES = ["common", "rare", "epic", "legendary"];
+
+/** A five-point star centred on (cx, cy). */
+function star(cx, cy, r, fill) {
+  const pts = [];
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const rr = i % 2 ? r * 0.45 : r;
+    pts.push(`${(cx + rr * Math.cos(a)).toFixed(1)} ${(cy + rr * Math.sin(a)).toFixed(1)}`);
+  }
+  return `<path data-part="star" d="M${pts.join(" L")} Z" ${shape(fill, 6)}/>`;
+}
+
+/**
+ * The final badge for one tier: a closed book with a seal on its cover. The tier shows in three ways
+ * that need no colour: one to four stars, the ring (single for common, doubled from rare up, green
+ * filled band for legendary) and its name on the ribbon.
+ */
+export function finalSvg(rarity) {
+  const tier = RARITIES.indexOf(rarity);
+  if (tier < 0) throw new Error(`Unknown rarity: ${rarity}`);
+  const n = tier + 1;
+  const stars = [...Array(n).keys()]
+    .map((i) => star(256 + (i - (n - 1) / 2) * 56, 102, 20, tier >= 2 ? GREEN : PAPER))
+    .join("\n  ");
+  const ring =
+    tier === 3
+      ? `<circle cx="256" cy="256" r="214" fill="none" stroke="${GREEN}" stroke-width="26"/>`
+      : `<circle cx="256" cy="256" r="214" fill="none" stroke="${GREEN}" stroke-width="12"/>`;
+  const inner =
+    tier >= 1 ? `\n  <circle cx="256" cy="256" r="192" fill="none" stroke="${INK}" stroke-width="4"/>` : "";
+  const label = rarity.toUpperCase();
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Book of NEAR, final badge: ${rarity}" data-rarity="${rarity}">
+  <title>Book of NEAR: Final badge (${rarity})</title>
+  <circle cx="256" cy="256" r="240" fill="${PAPER}" stroke="${INK}" stroke-width="12"/>
+  ${ring}${inner}
+  <path d="M164 150 h176 a12 12 0 0 1 12 12 v196 h-188 z" ${shape(FOREST)}/>
+  <path d="M164 358 h188 v20 h-176 a12 12 0 0 1 -12 -12 z" ${shape(PAPER)}/>
+  <path d="M190 150 v208" ${lineW(6)}/>
+  <circle cx="272" cy="248" r="52" ${shape(GREEN)}/>
+  <circle cx="272" cy="248" r="36" fill="none" stroke="${INK}" stroke-width="5" stroke-dasharray="1 10" stroke-linecap="round"/>
+  <path d="M252 250 l14 14 l26 -30" ${line}/>
+  ${stars}
+  <path d="M110 392 h292 l-18 30 l18 30 h-292 l18 -30 z" ${shape(PAPER)}/>
+  <text x="256" y="434" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-weight="700" letter-spacing="2" fill="${INK}">${label}</text>
+</svg>
+`;
+}
+
 export const sha256b64 = (text) => createHash("sha256").update(text, "utf8").digest("base64");
 
 /** Write every badge and art.json into `dir`; returns the art.json entries. */
@@ -252,6 +302,11 @@ export function writeArt(dir) {
     const svg = badgeSvg(s);
     writeFileSync(join(dir, `stage-${s}.svg`), svg);
     list.push({ key: `stage-${s}`, media: `stage-${s}.svg`, sha256: sha256b64(svg) });
+  }
+  for (const r of RARITIES) {
+    const svg = finalSvg(r);
+    writeFileSync(join(dir, `final-${r}.svg`), svg);
+    list.push({ key: `final-${r}`, media: `final-${r}.svg`, sha256: sha256b64(svg) });
   }
   writeFileSync(join(dir, "art.json"), JSON.stringify(list, null, 2) + "\n");
   return list;
