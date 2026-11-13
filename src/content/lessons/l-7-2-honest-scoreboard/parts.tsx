@@ -51,7 +51,6 @@ export function Facts({ m, compact = false }: { m: Scoreboard; compact?: boolean
           <tbody>
             {CHAINS.map((c) => {
               const cell = CELLS[active][c.id];
-              const src = cell.source ? SOURCES[cell.source] : undefined;
               return (
                 <tr key={c.id} data-chain={c.id} data-verdict={cell.verdict}>
                   <th scope="row">{c.name}</th>
@@ -61,14 +60,17 @@ export function Facts({ m, compact = false }: { m: Scoreboard; compact?: boolean
                   <td>
                     {cell.note}
                     {cell.unverified ? <span className="unverified"> (unverified)</span> : null}
-                    {src ? (
-                      <>
-                        {" "}
-                        <a href={src.url} target="_blank" rel="noreferrer" className="hsb-src">
-                          {src.name}
-                        </a>
-                      </>
-                    ) : null}
+                    {(cell.sources ?? []).map((tag) => {
+                      const src = SOURCES[tag];
+                      return src ? (
+                        <span key={tag}>
+                          {" "}
+                          <a href={src.url} target="_blank" rel="noreferrer" className="hsb-src">
+                            {src.name}
+                          </a>
+                        </span>
+                      ) : null;
+                    })}
                   </td>
                 </tr>
               );

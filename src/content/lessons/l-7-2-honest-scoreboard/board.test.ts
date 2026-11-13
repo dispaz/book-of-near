@@ -34,7 +34,8 @@ describe("the scoreboard data", () => {
         const cell = CELLS[d.id][c.id];
         expect(cell.note.length).toBeGreaterThan(10);
         expect(cell.note).not.toMatch(/\/10\b/);
-        if (cell.verdict !== "not compared") expect(SOURCES[cell.source!]?.url).toMatch(/^https:\/\//);
+        if (cell.verdict !== "not compared") expect(cell.sources?.length).toBeGreaterThan(0);
+        for (const tag of cell.sources ?? []) expect(SOURCES[tag]?.url).toMatch(/^https:\/\//);
       }
   });
 
@@ -82,36 +83,67 @@ describe("pillarHeight", () => {
 
 describe("reaction: what a pick does (rule 10a)", () => {
   it("the step's own card opens its dimension", () => {
-    expect(reaction({ kind: "card", dim: "accounts" }, { step: ACCOUNTS, explored: none })).toEqual({
+    expect(
+      reaction({ kind: "card", dim: "accounts" }, { step: ACCOUNTS, explored: none, active: null }),
+    ).toEqual({
       act: "accounts",
     });
   });
 
   it("a card for a later step says not yet", () => {
-    const r = reaction({ kind: "card", dim: "liquidity" }, { step: ACCOUNTS, explored: none });
+    const r = reaction({ kind: "card", dim: "liquidity" }, { step: ACCOUNTS, explored: none, active: null });
     expect(r.act).toBeUndefined();
     expect(r.hint).toBe("Not yet: this card opens at step 5.");
   });
 
   it("an explored card opens again and shows its detail", () => {
-    const r = reaction({ kind: "card", dim: "accounts" }, { step: SCALING, explored: new Set(["accounts"]) });
+    const r = reaction(
+      { kind: "card", dim: "accounts" },
+      { step: SCALING, explored: new Set(["accounts"]), active: null },
+    );
     expect(r.act).toBe("accounts");
     expect(r.detail).toMatch(/NEAR leads/);
   });
 
   it("a pillar says not yet while the step's card is closed, and gives its note after", () => {
     const pillar = { kind: "pillar", chain: "near" } as const;
-    expect(reaction(pillar, { step: SCALING, explored: new Set(["accounts"]) }).hint).toBe(
+    expect(reaction(pillar, { step: SCALING, explored: new Set(["accounts"]), active: null }).hint).toBe(
       "Open the Scalability card first.",
     );
-    const r = reaction(pillar, { step: SCALING, explored: new Set(["accounts", "scaling"]) });
+    const r = reaction(pillar, {
+      step: SCALING,
+      explored: new Set(["accounts", "scaling"]),
+      active: "scaling",
+    });
     expect(r.detail).toBe(`NEAR, scalability: ${CELLS.scaling.near.note}`);
   });
 
-  it("a pillar shows the chain's core idea and trade-off on the first page and after the board", () => {
+  it("a pillar shows the chain's core idea and trade-off when no card is open", () => {
     const pillar = { kind: "pillar", chain: "solana" } as const;
-    expect(reaction(pillar, { step: MYTH, explored: none }).detail).toMatch(/^Solana: .*Trade-off: /);
-    expect(reaction(pillar, { step: CHECK, explored: exploredBy(CHECK) }).detail).toMatch(/^Solana: /);
+    expect(reaction(pillar, { step: MYTH, explored: none, active: null }).detail).toMatch(
+      /^Solana: .*Trade-off: /,
+    );
+  });
+
+  it("a pillar's note describes the open card, the same card its height shows", () => {
+    const pillar = { kind: "pillar", chain: "near" } as const;
+    // Back at an earlier card to compare, during the scalability step.
+    const r = reaction(pillar, {
+      step: SCALING,
+      explored: new Set(["accounts", "scaling"]),
+      active: "accounts",
+    });
+    expect(r.detail).toBe(`NEAR, accounts: ${CELLS.accounts.near.note}`);
+    // After the board, the last card stays open.
+    expect(reaction(pillar, { step: CHECK, explored: exploredBy(CHECK), active: "liquidity" }).detail).toBe(
+      `NEAR, liquidity: ${CELLS.liquidity.near.note}`,
+    );
+  });
+
+  it("does not rank Solana as the fastest, nor claim NEAR rules out reentrancy", () => {
+    expect(CELLS.execution.solana.note).not.toMatch(/fastest/i);
+    expect(CELLS.execution.near.note).not.toMatch(/no reentrancy/i);
+    expect(CELLS.scaling.cosmos.unverified).toBe(true);
   });
 });
 

@@ -30,13 +30,13 @@ export default {
     {
       caption: "Dimension 2: scalability. Shards, rollups, or one big state?",
       explain:
-        "NEAR splits state and work across shards. Ethereum gave up on shards that run code; its plan adds cheap data space for rollups. Solana runs one large shared state, which asks a lot of validator hardware. Cosmos adds whole new chains.",
+        "NEAR splits state and work across shards. Ethereum's plan adds data space for rollups instead of shards that run code. Solana runs one large shared state, which asks a lot of validator hardware. Cosmos adds whole new chains.",
       action: { label: "open the Scalability card", gate: true },
     },
     {
       caption: "Dimension 3: speed and atomicity. Here NEAR accepts a real trade-off.",
       explain:
-        "Solana runs a call across many accounts in one fast transaction. On NEAR, a call to another contract travels as a receipt and runs in a later block. That rules out reentrancy (a contract being called again before it finishes), but a chain of calls takes several blocks and cannot roll back as one.",
+        "Solana runs a call across many accounts in one atomic (all-or-nothing) transaction. On NEAR, a call to another contract travels as a receipt (a message) and runs in a later block, so a chain of calls takes several blocks and cannot roll back as one. Within one function call nothing can re-enter, but other calls can run between a call and its callback. So a contract must update its state before it makes the call.",
       action: { label: "open the Speed card", gate: true },
     },
     {

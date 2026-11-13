@@ -46,10 +46,6 @@ describe("lesson 7.2's shared state", () => {
   it("reports the completion evidence once the learner opens the last card", () => {
     const { view, reportEvidence } = mount(LIQUIDITY);
     act(() => view.result.current.open("liquidity"));
-    expect(reportEvidence).toHaveBeenCalledWith({
-      scoreboardReviewed: "true",
-      favoriteTradeoff: "chain-abstraction",
-      recordedOn: "13 Nov 2026",
-    });
+    expect(reportEvidence).toHaveBeenCalledWith({ scoreboardReviewed: "true", recordedOn: "13 Nov 2026" });
   });
 });

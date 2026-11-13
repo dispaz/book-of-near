@@ -2,7 +2,7 @@ import { lazy, Suspense } from "react";
 import type { SceneProps } from "../../../app/types";
 import { SceneAction } from "../../../ui/SceneAction";
 import { Check, HonestTake, type CheckQuestion } from "../../../lesson-kit";
-import { dimForStep, dimOf } from "./board";
+import { dimForStep, dimOf, RECORDED_ON, TVL } from "./board";
 import Scene2D from "./Scene2D";
 import { CHECK, HONEST, useScoreboard } from "./useScoreboard";
 import "./scene.css";
@@ -47,7 +47,7 @@ const QUESTIONS: CheckQuestion[] = [
     ],
   },
   {
-    prompt: "Why does Solana ask more of its validators' hardware than a sharded chain does?",
+    prompt: "Why does Solana ask a lot of its validators' hardware?",
     options: [
       {
         text: "Every validator runs one large shared state, with no shards to split the work.",
@@ -107,13 +107,13 @@ export default function Scene(props: SceneProps) {
           comparedWith={["Ethereum", "Solana", "Cosmos"]}
           // docs/lessons/stage-7/7.2.md, section 4.
           strengths={[
-            "Clear trade-offs: knowing what each chain gives up stops you from building on the wrong one.",
-            "Where NEAR is strong: onboarding (readable names, scoped keys) and reaching other chains (Chain Signatures, NEAR Intents). If those are your bottleneck, NEAR fits.",
+            "Onboarding: readable account names and scoped keys are part of the protocol, with no contract wallet needed.",
+            "Reaching other chains: Chain Signatures and NEAR Intents let a NEAR account use other chains' liquidity. If that is your bottleneck, NEAR fits.",
             "Built-in sharding: NEAR adds capacity by adding shards, and validators check chunks without storing every shard.",
           ]}
           weaknesses={[
             "No free lunch: shards make calls between contracts asynchronous. They take several blocks and do not roll back as one.",
-            "Much less money: on 13 Nov 2026 DefiLlama counted about $162 million locked in NEAR DeFi, against about $39.4 billion on Ethereum and $5.0 billion on Solana.",
+            `Much less money: on ${RECORDED_ON} DefiLlama counted ${TVL.near} locked in NEAR DeFi, against ${TVL.ethereum} on Ethereum and ${TVL.solana} on Solana.`,
             "Network effects: Ethereum's capital and Solana's retail trading are hard to compete with. NEAR needs builders to keep choosing it.",
           ]}
         />

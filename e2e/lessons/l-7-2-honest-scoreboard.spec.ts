@@ -95,7 +95,7 @@ async function walk(page: Page) {
 const RECORD = {
   stage: 7,
   mode: "demo",
-  evidence: { scoreboardReviewed: "true", favoriteTradeoff: "chain-abstraction", recordedOn: "13 Nov 2026" },
+  evidence: { scoreboardReviewed: "true", recordedOn: "13 Nov 2026" },
 };
 
 for (const view of ["2d", "3d"] as const)
@@ -258,6 +258,42 @@ test.describe("3D book scene", () => {
     }) => {
       await expectPickPlaysAndSettles(page, "The Scalability card");
       await expect(scene(page)).toHaveAttribute("data-scene-state", /explored:accounts,scaling/);
+    });
+
+    test("opening a card from the dock eases the pillars over several frames, then the canvas rests", async ({
+      page,
+    }) => {
+      // NEAR leads on scalability, so its pillar grows; Ethereum's (a trade-off) stays level. Each name
+      // rides on top of its column. Sample how far NEAR's name stands above Ethereum's on screen, frame by
+      // frame (the camera may move too, but it moves both). Easing passes through the heights in between;
+      // a jump goes straight to the end.
+      await expectSettled(page);
+      await page.evaluate(() => {
+        const w = window as unknown as { __rise: number[] };
+        w.__rise = [];
+        const anchorOf = (name: string) =>
+          [...document.querySelectorAll(".sk-stage .sk-label")]
+            .find((el) => el.textContent === name)
+            ?.closest<HTMLElement>(".sk-anchor");
+        const near = anchorOf("NEAR");
+        const other = anchorOf("Ethereum");
+        const y = (el: HTMLElement) => Number(/,\s*(-?[\d.]+)px/.exec(el.style.transform)?.[1] ?? NaN);
+        const end = performance.now() + 2500;
+        const sample = () => {
+          if (near && other) w.__rise.push(y(other) - y(near));
+          if (performance.now() < end) requestAnimationFrame(sample);
+        };
+        requestAnimationFrame(sample);
+      });
+      await dock(page).getByRole("button", { name: "Open the Scalability card" }).click();
+      await expect(scene(page)).toHaveAttribute("data-scene-state", /^dim:scaling;/);
+      await page.waitForTimeout(2600);
+      const rise = await page.evaluate(() => (window as unknown as { __rise: number[] }).__rise);
+      const last = rise[rise.length - 1]!;
+      expect(last).toBeGreaterThan(10);
+      // Frames drawn part-way up: more than a few.
+      expect(rise.filter((r) => r > last * 0.2 && r < last * 0.8).length).toBeGreaterThan(3);
+      await expectSettled(page);
     });
 
     test("after the step, every pillar and card shows its detail", async ({ page }) => {

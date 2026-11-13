@@ -5,7 +5,7 @@
  * pick of a pillar bounces it and shows that chain's note. Only draws the shared state from
  * useScoreboard. Loaded lazily from Scene.tsx.
  */
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { RoundedBox } from "@react-three/drei";
 import type { Group, Object3D } from "three";
 import {
@@ -140,7 +140,7 @@ export default function Scene3D({
 }
 
 /** Rule 10a's props for an object: its hint at this step, or its detail. */
-function react(m: Scoreboard, o: Obj) {
+function reactionProps(m: Scoreboard, o: Obj) {
   const r = m.reactionOf(o);
   return r.hint ? { disabledHint: r.hint } : { detail: r.detail };
 }
@@ -166,7 +166,7 @@ function Figure({ m, compact }: { m: Scoreboard; compact: boolean }) {
             small={compact}
             label={pickName(o)}
             onPick={() => m.pick(o)}
-            {...react(m, o)}
+            {...reactionProps(m, o)}
           />
         );
       })}
@@ -182,7 +182,7 @@ function Figure({ m, compact }: { m: Scoreboard; compact: boolean }) {
             active={m.active === d.id}
             label={pickName(o)}
             onPick={() => m.pick(o)}
-            {...react(m, o)}
+            {...reactionProps(m, o)}
           />
         );
       })}
@@ -240,6 +240,9 @@ function Pillar({
   const { reducedMotion } = useStage();
   const ink = useInk(color, true);
   const col = useRef<Group>(null);
+  const tops = useRef<Group>(null);
+  // The first height only: after that the frame callback owns scale.y (a prop would jump it at once).
+  const [start] = useState(height);
   useAnimatedFrame((_, dt) => {
     const g = col.current;
     if (!g) return false;
@@ -247,6 +250,8 @@ function Pillar({
     const next = reducedMotion ? height : now + (height - now) * Math.min(1, dt * 7);
     const done = Math.abs(height - next) < 0.005;
     g.scale.y = done ? height : next;
+    // The name and the verdict ride on top of the column as it grows or sinks.
+    if (tops.current) tops.current.position.y = g.scale.y;
     return !done;
   });
   return (
@@ -260,7 +265,7 @@ function Pillar({
         detail={detail}
         pickMotion={bounce}
       >
-        <group ref={col} scale={[1, height, 1]}>
+        <group ref={col} scale={[1, start, 1]}>
           <RoundedBox
             args={[PILLAR_W, 1, PILLAR_W]}
             radius={0.06}
@@ -272,14 +277,16 @@ function Pillar({
           </RoundedBox>
         </group>
       </Pickable>
-      <Label position={[0, height + (verdict ? 0.95 : 0.6), 0]} variant={small ? "small" : "hand"}>
-        {name}
-      </Label>
-      {verdict ? (
-        <Label position={[0, height + 0.45, 0]} variant="small">
-          {verdict}
+      <group ref={tops} position={[0, start, 0]}>
+        <Label position={[0, verdict ? 0.95 : 0.6, 0]} variant={small ? "small" : "hand"}>
+          {name}
         </Label>
-      ) : null}
+        {verdict ? (
+          <Label position={[0, 0.45, 0]} variant="small">
+            {verdict}
+          </Label>
+        ) : null}
+      </group>
     </group>
   );
 }

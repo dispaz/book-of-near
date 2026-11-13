@@ -4,7 +4,7 @@
  * recorded data (RECORDED_ON), never live; anything we could not re-check is marked `unverified`.
  * No scores out of ten: a verdict per cell (leads, trade-off, trails) and a note that says why.
  */
-import { ACCOUNTS, CHECK, EXECUTION, LIQUIDITY, MYTH, SCALING } from "./steps";
+import { ACCOUNTS, EXECUTION, LIQUIDITY, MYTH, SCALING } from "./steps";
 
 export * from "./steps";
 
@@ -14,6 +14,13 @@ export type Verdict = "leads" | "trade-off" | "trails" | "not compared";
 
 /** The day the numbers on the board were read from their sources (DefiLlama, the docs). */
 export const RECORDED_ON = "13 Nov 2026";
+
+/** DeFi TVL read from DefiLlama on RECORDED_ON (topic: "Recorded TVL"). Cosmos is not compared. */
+export const TVL = {
+  ethereum: "about $39.4 billion",
+  solana: "about $5.0 billion",
+  near: "about $162 million",
+} as const;
 
 export interface Chain {
   id: ChainId;
@@ -72,11 +79,13 @@ export const DIMS: Dim[] = [
 export interface Cell {
   verdict: Verdict;
   note: string;
-  /** Source tag in the topic file. */
-  source?: string;
+  /** Source tags in the topic file (SOURCES). */
+  sources?: string[];
   /** We could not re-check it against its source on RECORDED_ON. */
   unverified?: boolean;
 }
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const NOT_COMPARED = (why: string): Cell => ({ verdict: "not compared", note: `Not compared here: ${why}` });
 
@@ -85,76 +94,77 @@ export const CELLS: Record<DimId, Record<ChainId, Cell>> = {
     near: {
       verdict: "leads",
       note: "Readable names are built in. One account holds many keys, and a function-call key may call only one contract, with a gas allowance.",
-      source: "near-keys",
+      sources: ["near-keys"],
     },
     ethereum: {
       verdict: "trade-off",
       note: "Accounts are 0x hex addresses. Smart-account features (ERC-4337, EIP-7702) need contract wallets and bundlers.",
-      source: "eth-accounts",
+      sources: ["eth-accounts"],
     },
     solana: {
       verdict: "trade-off",
       note: "Accounts are Base58 public keys. Each token sits in its own associated token account, an extra step.",
-      source: "solana-docs",
+      sources: ["solana-docs"],
     },
     cosmos: NOT_COMPARED("our sources say nothing about Cosmos accounts."),
   },
   scaling: {
     near: {
       verdict: "leads",
-      note: "Sharded: state and work are split across shards (testnet had 10 when we checked), and validators check chunks without storing every shard.",
-      source: "near-sharding",
+      note: "Sharded: state and work are split across shards (testnet had 10 when we checked on 1 Nov 2026), and validators check chunks without storing every shard.",
+      sources: ["near-sharding"],
     },
     ethereum: {
       verdict: "trade-off",
       note: "Scales with rollups. Its danksharding plan adds cheap data space (blobs) for rollups, not shards that run code.",
-      source: "eth-danksharding",
+      sources: ["eth-danksharding"],
     },
     solana: {
       verdict: "trade-off",
       note: "One global state, run in parallel. Fast, but Anza's validator guide asks for 12 CPU cores (24 threads) or more.",
-      source: "anza-hardware",
+      sources: ["anza-hardware"],
     },
     cosmos: {
       verdict: "trade-off",
-      note: "Scales by adding chains: over 200 run on its stack, linked by IBC. Each one keeps its own validators.",
-      source: "cosmos-docs",
+      note: "Scales by adding chains: over 200 run on its stack, linked by IBC. Each chain has its own validators, so security is split between chains.",
+      sources: ["cosmos-docs"],
+      unverified: true,
     },
   },
   execution: {
     solana: {
       verdict: "leads",
-      note: "The fastest of the four: a call across many accounts runs in one transaction. Solana's docs give about 400 ms per block.",
-      source: "solana-docs",
+      note: "A call across many accounts runs in one atomic transaction. Solana's docs give about 400 ms per block.",
+      sources: ["solana-docs"],
       unverified: true,
     },
     near: {
       verdict: "trade-off",
-      note: "A block every 0.6 to 1 s (NEAR's docs give both). Each hop between contracts is a receipt in a later block: no reentrancy inside a call, but no rollback across hops.",
-      source: "near-finality",
+      note: "A block every 0.6 to 1 s, final after about 1.2 s. Each hop between contracts is a receipt in a later block, and the hops do not roll back together. Other calls can run before the callback, so a contract updates its state before it calls out.",
+      sources: ["near-finality", "near-cross-contract", "near-reentrancy"],
     },
     ethereum: {
       verdict: "trade-off",
       note: "12-second slots. Calls between contracts run inside one atomic transaction, which is also where reentrancy bugs come from.",
-      source: "eth-pos",
+      sources: ["eth-pos"],
     },
     cosmos: NOT_COMPARED("every Cosmos chain sets its own block time."),
   },
   liquidity: {
     ethereum: {
       verdict: "leads",
-      note: "About $39.4 billion locked in DeFi: the most capital, custody and developer attention by far.",
-      source: "defillama",
+      note: `${cap(TVL.ethereum)} locked in DeFi: the most capital, custody and developer attention by far.`,
+      sources: ["defillama", "eth-defi"],
     },
     solana: {
       verdict: "trade-off",
-      note: "About $5.0 billion locked in DeFi, with heavy retail trading on its exchanges.",
-      source: "defillama",
+      note: `${cap(TVL.solana)} locked in DeFi, with heavy retail trading on its exchanges.`,
+      sources: ["defillama"],
     },
     near: {
       verdict: "trails",
-      note: "About $162 million locked in DeFi. NEAR leans on NEAR Intents and Chain Signatures to reach other chains' liquidity instead.",
-      source: "defillama",
+      note: `${cap(TVL.near)} locked in DeFi. NEAR leans on NEAR Intents and Chain Signatures to reach other chains' liquidity instead.`,
+      sources: ["defillama", "near-intents"],
     },
     cosmos: NOT_COMPARED("Cosmos is many chains, and one hub's figure would mislead."),
   },
@@ -188,6 +198,8 @@ export type Obj = { kind: "card"; dim: DimId } | { kind: "pillar"; chain: ChainI
 export interface BoardState {
   step: number;
   explored: ReadonlySet<DimId>;
+  /** The card open on the board: the pillars stand at its verdicts, and a pillar's note is its row. */
+  active: DimId | null;
 }
 
 export interface Reaction {
@@ -214,10 +226,10 @@ export function reaction(obj: Obj, s: BoardState): Reaction {
     return { hint: `Not yet: this card opens at step ${d.step + 1}.` };
   }
   const chain = chainOf(obj.chain);
-  if (s.step === MYTH || s.step >= CHECK) return { detail: pillarSummary(chain) };
   if (stepDim && !s.explored.has(stepDim)) return { hint: `Open the ${dimOf(stepDim).title} card first.` };
-  const dim = stepDim ?? "accounts";
-  return { detail: `${chain.name}, ${dimOf(dim).short}: ${CELLS[dim][obj.chain].note}` };
+  // The note describes the same card as the pillar's height; with no card open, the chain's design.
+  if (s.step === MYTH || !s.active) return { detail: pillarSummary(chain) };
+  return { detail: `${chain.name}, ${dimOf(s.active).short}: ${CELLS[s.active][obj.chain].note}` };
 }
 
 /** The scene's state in one string, for tests (`data-scene-state`). */
@@ -267,5 +279,18 @@ export const SOURCES: Record<string, { name: string; url: string }> = {
     name: "ethereum.org, Proof-of-stake",
     url: "https://ethereum.org/en/developers/docs/consensus-mechanisms/pos/",
   },
+  "near-cross-contract": {
+    name: "NEAR docs, Cross-contract calls",
+    url: "https://docs.near.org/build/smart-contracts/anatomy/cross-contract",
+  },
+  "near-reentrancy": {
+    name: "NEAR docs, Security: reentrancy",
+    url: "https://docs.near.org/smart-contracts/security/reentrancy",
+  },
+  "near-intents": {
+    name: "NEAR docs, NEAR Intents",
+    url: "https://docs.near.org/build/chain-abstraction/intents",
+  },
+  "eth-defi": { name: "ethereum.org, DeFi", url: "https://ethereum.org/en/defi/" },
   defillama: { name: "DefiLlama, chain TVL", url: "https://defillama.com/chains" },
 };

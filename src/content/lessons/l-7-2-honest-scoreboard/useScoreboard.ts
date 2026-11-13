@@ -66,17 +66,13 @@ export function useScoreboard({
     setExplored(next);
     if (!reported.current && DIMS.every((d) => next.has(d.id))) {
       reported.current = true;
-      reportEvidence?.({
-        scoreboardReviewed: "true",
-        favoriteTradeoff: "chain-abstraction",
-        recordedOn: RECORDED_ON,
-      });
+      reportEvidence?.({ scoreboardReviewed: "true", recordedOn: RECORDED_ON });
     }
   };
 
-  const latest = useRef({ step, explored });
+  const latest = useRef({ step, explored, active });
   useLayoutEffect(() => {
-    latest.current = { step, explored };
+    latest.current = { step, explored, active };
   });
 
   /** A pick opens the card, or shows a hint or a detail (both views; 3D's Pickable shows them too). */
@@ -89,6 +85,7 @@ export function useScoreboard({
   const same = (a: Obj, b: Obj) =>
     a.kind === b.kind &&
     (a.kind === "card" ? a.dim === (b as typeof a).dim : a.chain === (b as typeof a).chain);
+  const isPicked = (o: Obj) => !!picked && same(picked.what, o);
 
   return {
     step,
@@ -98,10 +95,10 @@ export function useScoreboard({
     pick,
     picked,
     /** What a pick of this object would do now: 3D passes it to Pickable as `disabledHint` / `detail`. */
-    reactionOf: (o: Obj) => reaction(o, { step, explored }),
-    isPicked: (o: Obj) => !!picked && same(picked.what, o),
+    reactionOf: (o: Obj) => reaction(o, { step, explored, active }),
+    isPicked,
     /** The last pick was this object, too early: both views shake it and show the hint. */
-    notYet: (o: Obj) => !!picked && same(picked.what, o) && !!picked.reaction.hint,
+    notYet: (o: Obj) => isPicked(o) && !!picked?.reaction.hint,
     passed,
     pass: () => setPassed(true),
     state: stateOf({ step, active, explored }),
