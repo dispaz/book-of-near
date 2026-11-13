@@ -1,5 +1,18 @@
 import { expect, test, type Page } from "@playwright/test";
-import { answerCheck, completionOf, LOAD_3D, nextStep, seedRoute, slow3dUnless2d } from "./helpers";
+import {
+  answerCheck,
+  completionOf,
+  countDrawnFrames,
+  expectFocusMarksHover,
+  expectNotYetHint,
+  expectPickDetail,
+  expectPickPlaysAndSettles,
+  LOAD_3D,
+  nextStep,
+  pickButton,
+  seedRoute,
+  slow3dUnless2d,
+} from "./helpers";
 
 // Lesson 0.1 in demo mode (no wallet, no network). Hashes are the fixtures from docs/lessons/stage-0/0.1.md.
 const ID = "l-0-1-blockchain-basics";
@@ -375,5 +388,81 @@ test.describe(`lesson ${ID}: switching views`, () => {
     await viewButton(page, "3D").click();
     await expect(page.locator(".sk-stage canvas")).toBeVisible({ timeout: LOAD_3D });
     await expect.poll(() => scripts.some((s) => s.includes("WebGLRenderer"))).toBe(true);
+  });
+});
+
+// Clickable 3D objects react (docs/book-scene.md rule 10a): one check per row of the script's
+// "Reactions" table (docs/lessons/stage-0/0.1.md).
+test.describe(`lesson ${ID}: 3d reactions`, () => {
+  const still = (page: Page) =>
+    expect(page.locator(".sk-stage")).toHaveAttribute("data-camera", "still", { timeout: LOAD_3D });
+
+  test("3d reactions: keyboard focus on a notebook or a block marks it hovered", async ({ page }) => {
+    await page.goto(`/lesson/${ID}?view=3d`);
+    await still(page);
+    await expectFocusMarksHover(page, "Open Ana's notebook");
+    await page.goto(`/lesson/${ID}?view=3d&step=3`);
+    await still(page);
+    await expectFocusMarksHover(page, "Open block #1");
+  });
+
+  test("3d reactions: picking a notebook, then a block, plays its own animation and settles", async ({
+    page,
+  }) => {
+    await page.addInitScript(countDrawnFrames);
+    await page.goto(`/lesson/${ID}?view=3d`);
+    await still(page);
+    await expectPickPlaysAndSettles(page, "Open Cora's notebook");
+    await expect(page.getByTestId("notebook-Cora")).toContainText("Ana 10");
+    await page.goto(`/lesson/${ID}?view=3d&step=3`);
+    await still(page);
+    await expectPickPlaysAndSettles(page, "Open block #1");
+    await expect(page.getByRole("region", { name: "Block #1" })).toContainText("Ana->Ben 3");
+  });
+
+  test("3d reactions: a block picked before the transaction is sent says 'not yet'", async ({ page }) => {
+    await page.goto(`/lesson/${ID}?view=3d&step=2`);
+    await still(page);
+    await expectNotYetHint(page, "Block #0", "Send the transaction first");
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /blocks:1/);
+  });
+
+  test("3d reactions: after their step, notebooks, ledgers and blocks show a detail", async ({ page }) => {
+    await page.goto(`/lesson/${ID}?view=3d`);
+    await still(page);
+    await pickButton(page, "Open Ana's notebook").press("Enter");
+    await expectPickDetail(page, "Open Ben's notebook", "Balances: Ana 10, Ben 5, Cora 0");
+    await page.goto(`/lesson/${ID}?view=3d&step=3`);
+    await still(page);
+    await expectPickDetail(page, "Ben's ledger", "Balances: Ana 7, Ben 8, Cora 0");
+    await page.goto(`/lesson/${ID}?view=3d&step=5`);
+    await still(page);
+    await expectPickDetail(page, "Block #1", "Block #1: Ana->Ben 3, hash cfb1f067, previous hash ec402b30");
+  });
+
+  test("3d reactions under reduced motion: focus still marks, a pick plays no motion", async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({ reducedMotion: "reduce" });
+    const page = await ctx.newPage();
+    await seedRoute(page);
+    await page.goto(`/lesson/${ID}?view=3d&step=5`);
+    await expect(scene(page)).toHaveAttribute("data-view", "3d", { timeout: LOAD_3D });
+    const block = pickButton(page, "Block #1");
+    await expect(block).toBeAttached({ timeout: LOAD_3D });
+    await expectFocusMarksHover(page, "Block #1");
+    await block.evaluate((el) => {
+      const w = window as unknown as { __pickSeen: string[] };
+      w.__pickSeen = [];
+      new MutationObserver(() => w.__pickSeen.push(el.getAttribute("data-pick") ?? "")).observe(el, {
+        attributes: true,
+        attributeFilter: ["data-pick"],
+      });
+    });
+    await block.press("Enter");
+    await expect(block).toHaveAttribute("data-detail", /^Block #1: Ana->Ben 3/);
+    const seen = await page.evaluate(() => (window as unknown as { __pickSeen: string[] }).__pickSeen);
+    expect(seen).not.toContain("playing");
+    await ctx.close();
   });
 });
