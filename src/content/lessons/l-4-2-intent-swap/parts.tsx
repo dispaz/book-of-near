@@ -204,8 +204,9 @@ export function FinishPanel({ m }: { m: IntentSwap }) {
           dock's height steady, so the margin note above it does not jump. */}
       {offer.kind === "enough" && rs.status !== "ended" ? (
         <p data-testid="swap-where">
-          The USDC stays in your NEAR Intents account ({VERIFIER_CONTRACT}), not on Arbitrum. You withdraw it
-          separately.
+          {usingReal
+            ? `The USDC stays in your NEAR Intents account (${VERIFIER_CONTRACT}), not on Arbitrum. You withdraw it separately.`
+            : `In a real swap, the USDC would stay in your NEAR Intents account (${VERIFIER_CONTRACT}), not on Arbitrum. Here nothing moves.`}
         </p>
       ) : null}
       {offer.kind === "enough" ? (

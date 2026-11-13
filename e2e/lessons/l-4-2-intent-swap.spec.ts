@@ -162,9 +162,10 @@ test.describe(`lesson ${ID}`, () => {
     // The demo wallet has 25 simulated NEAR: offered.
     await dock(page).getByRole("button", { name: "Connect the demo wallet" }).click();
     await expect(offer).toHaveAttribute("data-offer", "offered");
-    // Before the button: the real swap's USDC stays in NEAR Intents, not on Arbitrum.
+    // Before the button: where a real swap's USDC would go. The demo wallet only simulates, so the words
+    // must not read as if this swap were real.
     await expect(page.getByTestId("swap-where")).toHaveText(
-      "The USDC stays in your NEAR Intents account (intents.near), not on Arbitrum. You withdraw it separately.",
+      "In a real swap, the USDC would stay in your NEAR Intents account (intents.near), not on Arbitrum. Here nothing moves.",
     );
     await page.getByTestId("swap-real").click();
     // The wallet seam shows the amount and waits for Confirm.

@@ -95,6 +95,11 @@ export function MainnetWalletProvider({
         setReal(null);
         return;
       }
+      if (!ENABLE_MAINNET) {
+        // No button offers this in the testnet-only build; if something still asks, say why plainly.
+        setNotice("This build is testnet only, so the app is still using the simulated demo wallet.");
+        return;
+      }
       setLoading(true);
       loadMainnetWallet().then(
         (w) => {
