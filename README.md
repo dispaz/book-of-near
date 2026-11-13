@@ -2,7 +2,7 @@
 
 An interactive course that teaches NEAR from zero, as a pop-up book you can touch. Each lesson is a scene in black ink on paper, in 2D and 3D. You make a key, send a transaction, give an app a key that can do only one thing, follow a transaction across shards and sign an Ethereum transaction from a NEAR account. Every lesson ends with an "Honest take": what NEAR does well and what it does badly. Finishing a stage lets you claim a non-transferable NFT badge on NEAR testnet.
 
-Built solo for the NEAR Hackathon 2026 (build window 1 Nov 00:00 UTC to 14 Nov 23:59 UTC). **This submission is testnet only.**
+Built solo for the NEAR Hackathon 2026 (build window 1 Nov 00:00 UTC to 14 Nov 23:59 UTC). **This submission is testnet only:** the default build has every mainnet path switched off (build flag `VITE_ENABLE_MAINNET`, off unless set to `true`).
 
 - **Live demo:** https://book-of-near.pages.dev (demo mode by default; no wallet needed)
 - **Repository:** https://github.com/dispaz/book-of-near
@@ -40,7 +40,7 @@ A first visit opens a three-question quiz at `/start` that picks a path (newcome
 | Turn on "reduce motion" in your OS, or open `?webgl=0` | Animations stop (outline and colour changes only). Without WebGL the lesson stays in 2D, and every scene has a text version. |
 | Reach the last step | The **Honest take**: NEAR's strengths and weaknesses for that topic. Then **Finish lesson**. |
 
-### The lessons (18, all on `main`)
+### The lessons (19, all on `main`)
 
 Stage 0, Blank Page (crypto foundations)
 
@@ -75,6 +75,8 @@ Stage 5, Enclave (user-owned AI and privacy)
 
 - **5.1 Ask a private AI and verify it.** **Read the memory as root** on a normal server and in an enclave, **Send prompt** (the tutor's answers are pre-written), **Fetch attestation quote** from NEAR AI Cloud (recorded in demo mode, fresh in testnet mode) and **Verify in my browser**; **Change one byte and verify again** fails.
 
+- **5.2 An agent with no owner.** **Open the .env file** to see a bot whose key anyone with the file can use. **Start the agent**: it makes its own key inside the enclave. **Register the agent** with the agent contract (its checks run in the browser, written from the reference contract, with measurements recorded from 5.1's quote). **Sign as the developer** is refused ("Agent not registered"), and **Register a changed copy** fails ("Attestation verification failed"). **Run the agent**: it asks `v1.signer-prod.testnet` to sign for the contract's Ethereum address; nothing is sent.
+
 Stage 6, Citizen (ecosystem and governance)
 
 - **6.1 Read and vote on a proposal.** Lock NEAR for veNEAR voting power with a slider, **Review proposal** and **Vote YES** or no. A practice vote: nothing is sent to a chain.
@@ -84,7 +86,7 @@ Stage 7, Book of NEAR (capstone)
 - **7.1 Trace one intent end to end.** **Authorize intent**, follow it through your shard, the contract and settlement, then **Verify foreign settlement**. It replays your own 4.2 quote, or a recorded intent.
 - **7.2 The honest scoreboard.** Open the Accounts, Scalability, Speed and Liquidity cards and weigh NEAR against Ethereum, Solana and Cosmos, weak spots included.
 
-In progress at submission time, not part of this submission: lessons 5.2 and 6.2, and badges for stages 5, 6 and 7 (their shelf slots say "Badge not available yet").
+In progress at submission time, not part of this submission: lesson 6.2, the final exam, and badges for stages 6 and 7 (their shelf slots say "Badge not available yet").
 
 ### Badges, "My book" and `/check`
 
@@ -92,11 +94,11 @@ In progress at submission time, not part of this submission: lessons 5.2 and 6.2
 | --- | --- |
 | Finish lessons 0.1 to 0.3 in demo mode, then open the contents (`/`) | The stage 0 card says "Your badge is ready". |
 | Press **Claim the stage 0 badge** | "Stage 0 badge claimed" with the badge art. In demo mode the claim is signed in the browser and checked by a simulated copy of the contract's rules. |
-| Open **My book** (`/my-book`) | A shelf of eight slots: claimed badges, "Not claimed yet" for stages 1 to 4, "Badge not available yet" for 5 to 7. Badges survive a reload. |
+| Open **My book** (`/my-book`) | A shelf of eight slots, counted "of 6": claimed badges, "Not claimed yet" for the rest of stages 0 to 5, "Badge not available yet" for 6 and 7. Badges survive a reload. |
 | Open **Open in the badge checker**, or `/check` | Look up any account's badges, no login. In testnet mode it reads the contract on testnet. |
 | Open the contents before a stage is finished | The stage's card has no claim button yet; it lists what is missing. |
 
-Stage badges 0 to 4 can be claimed. Each needs the stage's lessons finished, the previous stage's badge, and evidence from the learner's own transactions: 0.3's transfer, 1.1's account and 1.2's key, 2.1's transfer, 3.1's deploy, 4.1's Chain Signatures request (`src/badges/rules.ts`). A stage done in demo mode cannot claim a testnet badge; the card says why.
+Stage badges 0 to 5 can be claimed. Each needs the stage's lessons finished and the previous stage's badge. Stages 0 to 4 also need evidence from the learner's own transactions: 0.3's transfer, 1.1's account and 1.2's key, 2.1's transfer, 3.1's deploy, 4.1's Chain Signatures request. Stage 5 (lessons 5.1 and 5.2) sends nothing on chain, so it needs no transaction evidence; the contract still requires the stage 4 badge first (`src/badges/rules.ts`). A stage done in demo mode cannot claim a testnet badge; the card says why.
 
 ### Testnet mode
 
@@ -110,7 +112,7 @@ Tracks entered: `["open", "nfts", "security"]`. Explorer links use https://testn
 
 ### `open`: an interactive NEAR course with real testnet actions
 
-- 18 lessons, each in 2D and 3D, all runnable in demo mode (one e2e spec per lesson in `e2e/lessons/`).
+- 19 lessons, each in 2D and 3D, all runnable in demo mode (one e2e spec per lesson in `e2e/lessons/`).
 - Real testnet runs through the same code (`TestnetChain`), with these transactions (from `docs/progress.md` and `docs/spikes-seed.md`):
 
 | Lesson | What happened | Transaction |
@@ -202,7 +204,7 @@ Diff of everything built during the hackathon: https://github.com/dispaz/book-of
 - **Testnet badge claims need our Worker.** The live site's testnet claim works only once the Worker is deployed with its claim signing key. The real claim above was made with the Worker running locally.
 - **Not every lesson was walked on live testnet.** 0.3, 3.1 and 4.1 were run end to end on testnet in the app; the chain calls of the other lessons are covered by the testnet contract suite, and their UI by demo-mode e2e tests.
 - **4.1 does not broadcast to Sepolia**: a derived address starts with 0 ETH. **4.2 shows one best quote**, not competing solver bids (1Click returns one). **3.2 runs on the simulated chain** in both modes. **5.1's tutor answers are pre-written** (NEAR AI chat needs an API key); the attestation check is real. **6.1's vote is a practice vote.**
-- **No final exam or final badge yet**, and no stage 5 to 7 badges.
+- **No final exam or final badge yet**, and no stage 6 or 7 badges.
 - The public testnet faucet fallback limits accounts per IP address, so a reviewer may hit it; demo mode always works.
 
 ### Not part of this submission (present in the code, not verified live)
