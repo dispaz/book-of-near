@@ -148,7 +148,7 @@ function Page({ m }: { m: PrivateAi }) {
             color={ACCENT}
 
             stamped={m.asked !== null}
-            name="your prompt"
+            name="a prompt"
           />
         </g>
       ) : null}
@@ -238,7 +238,7 @@ function SvgEnclave({ x, y, holds, attested }: { x: number; y: number; holds: bo
       <path d={`M${x - 7},${y - 14} v-6 a7,7 0 0 1 14,0 v6`} className="pai-shackle" />
       {holds ? (
         <text x={x} y={y + 50} className="pai-svg-note mid">
-          your prompt, sealed
+          a prompt, sealed
         </text>
       ) : null}
       <SvgLabel x={x} y={y - 66} variant="small">

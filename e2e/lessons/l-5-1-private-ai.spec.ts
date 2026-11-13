@@ -77,7 +77,7 @@ async function walk(page: Page) {
   await expect(next(page)).toBeDisabled();
   await dock(page).getByRole("button", { name: "Verify in my browser" }).click();
   await expect(page.getByTestId("verdict")).toHaveText(
-    "Verified: a genuine Intel TDX enclave, checked in your browser.",
+    "Verified: signed by Intel TDX hardware, checked in your browser.",
   );
   await expect(page.getByTestId("verify-checks").locator('li[data-ok="yes"]')).toHaveCount(8);
   await expect(page.getByTestId("verify-checks")).toContainText("not in debug mode");

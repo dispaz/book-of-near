@@ -56,7 +56,7 @@ const HEADS: [string, string] = ["Stage 5", "Ask a private AI and verify it"];
 const FIGURES = [
   "Fig. 1  Two places your prompt can go",
   "Fig. 2  Root tries both memories",
-  "Fig. 3  Your prompt, sealed in the enclave",
+  "Fig. 3  Where a prompt goes: sealed in the enclave",
   "Fig. 4  The chip's signed quote",
   "Fig. 5  Checked up to Intel's root",
   "Fig. 6  Private AI on NEAR",
@@ -372,7 +372,7 @@ function EnclaveBox({ attested, holds, compact }: { attested: boolean; holds: bo
       </mesh>
       {compact ? null : (
         <Label position={[0, 0.05, 1.2]} variant="small">
-          {holds ? "enclave · your prompt, sealed" : "enclave (Intel TDX)"}
+          {holds ? "enclave · a prompt, sealed" : "enclave (Intel TDX)"}
         </Label>
       )}
     </group>

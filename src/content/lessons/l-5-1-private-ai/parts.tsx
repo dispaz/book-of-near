@@ -137,7 +137,7 @@ export function Facts({ m, compact = false }: { m: PrivateAi; compact?: boolean 
           </ul>
           <p className={m.verified ? "pai-ok" : "pai-warn"} role="status" data-testid="verdict">
             {m.verified
-              ? "Verified: a genuine Intel TDX enclave, checked in your browser."
+              ? "Verified: signed by Intel TDX hardware, checked in your browser."
               : "Not verified: a check failed."}
           </p>
           {m.tamper ? (
