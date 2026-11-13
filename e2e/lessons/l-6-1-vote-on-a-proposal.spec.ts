@@ -22,7 +22,7 @@ const TITLE = "Read and vote on a proposal";
 const ANSWERS = [
   "To give more voting power to people who keep their NEAR locked longer.",
   "After an unbonding period of 4 epochs, a little over a day.",
-  "Locked NEAR takes 45 days to unlock, so they cannot get it back out to repay a 10-minute loan.",
+  "Voting power is fixed when the vote opens, and locked NEAR takes 45 days to come out.",
 ];
 
 test.beforeEach(async ({ page }, info) => {

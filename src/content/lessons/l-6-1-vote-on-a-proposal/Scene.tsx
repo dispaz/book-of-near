@@ -48,16 +48,16 @@ const QUESTIONS: CheckQuestion[] = [
     prompt: "A trader borrows 1,000,000 NEAR for 10 minutes to sway a House of Stake vote. What stops them?",
     options: [
       {
-        text: "Locked NEAR takes 45 days to unlock, so they cannot get it back out to repay a 10-minute loan.",
+        text: "Voting power is fixed when the vote opens, and locked NEAR takes 45 days to come out.",
         correct: true,
       },
       {
         text: "Nothing: the richest account always wins.",
-        why: "Locked, the borrowed NEAR would count 1:1 at once. But it would then be stuck for 45 days, long after the loan is due.",
+        why: "Voting power is fixed when the vote opens, so NEAR locked during the vote does not count. NEAR locked earlier cannot come out for 45 days, long after a 10-minute loan is due.",
       },
       {
-        text: "Yes: loans get around smart contracts.",
-        why: "The contract's rules apply to every account the same way.",
+        text: "The loan contract blocks the vote.",
+        why: "A loan contract does not see votes. The veNEAR rules stop it: power is fixed when the vote opens, and unlocking takes 45 days.",
       },
     ],
   },
@@ -125,11 +125,12 @@ export default function Scene(props: SceneProps) {
           ]}
           // docs/lessons/stage-6/6.1.md, section 4.
           strengths={[
-            "Hard to rent a vote: voting power needs locked NEAR, and locked NEAR takes 45 days to come out, so a short loan cannot vote and be repaid. Power also grows with time locked, which favours people who stay.",
+            "Hard to rent a vote: voting power is fixed when a vote opens, so NEAR locked during the vote does not count, and NEAR locked earlier takes 45 days to come out, so a short loan cannot vote and be repaid. Power also grows with time locked, which favours people who stay.",
             "Decisions carry out themselves: an approved DAO proposal pays out on chain, straight from the treasury contract.",
           ]}
           weaknesses={[
-            "Slow to exit: more voting power costs you the waiting period. Unlocking takes 45 days, so you cannot react quickly to a market crash or emergency, and unlocking any amount wipes all the extra veNEAR you built up.",
+            "Slow to exit: voting power costs you a 45-day wait to exit, so you cannot react quickly to a market crash or emergency, and unlocking any amount wipes all the extra veNEAR you built up.",
+            "Early lockers count more: at mainnet's rate, NEAR locked for 2 years has twice the voting power of NEAR locked today.",
             "Few voters: reaching quorum often takes a lot of rallying, and most small holders do not vote.",
           ]}
         />
