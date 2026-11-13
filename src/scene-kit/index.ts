@@ -50,12 +50,15 @@ export {
   Key,
   Label,
   Outline,
+  isPickable,
   Pickable,
   ShardSlab,
   SoftShadow,
   useInk,
+  type PickMotion,
   type PickProps,
 } from "./primitives";
+export { hopPose, HOP_SECONDS, type PickNote } from "./reaction";
 export {
   ActionCard,
   AppScreen,

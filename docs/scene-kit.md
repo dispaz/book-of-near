@@ -37,6 +37,15 @@ less than 6 px; a longer move is an orbit drag. Each pickable also gets an invis
 button named `pickLabel` that sits on the object: keyboard and screen-reader users (and Playwright) pick
 with it (`getByRole("button", { name: "Ben's account" }).press("Enter")`). It turns visible on focus.
 
+**Reactions** (rule 10a in `docs/book-scene.md`, issue #54). Every pickable reacts with no extra code:
+hover or keyboard focus lifts it and rings it in the stage accent, a press squashes it, a pick plays a
+short hop. Optional `PickProps`: `disabledHint` ("not yet": shake plus a one-line hint, `onPick` is not
+called), `detail` (a slip after a pick, for exploring once the step is done) and `pickMotion`
+(`(object, t) => stillPlaying`, the object's own pick animation in place of the hop). Under reduced motion
+only the ring shows. All motion runs through `useAnimatedFrame` and settles. The pick button exposes
+`data-hover`, `data-pick="playing|idle"`, `data-hint` and `data-detail` for tests. The pure maths is in
+`reaction.ts` (unit tested); the component is `Pickable.tsx`.
+
 **Camera.** Give `InkStage` one `CameraView` (`{ position, target }`) per step. The rig eases there
 (jumps under reduced motion). `flat` looks straight down at the same target and turns off rotation.
 Orbit has no pan and clamped distance/angle; once the learner drags, the rig lets go until the step

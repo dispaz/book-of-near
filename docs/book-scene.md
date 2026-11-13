@@ -120,8 +120,21 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
     - **Reduced motion:** no lift, squash or shake. The outline and colour still change, and the pick's
       result appears without animation.
     - **Render on demand:** every reaction runs through `useAnimatedFrame` and settles (rule 12).
-    Build these into `Pickable` in the kit, so a lesson gets hover, focus, press and "not yet" for free and
-    supplies only its pick animation and its detail.
+    `Pickable` does all of this (issue #54), so a lesson gets hover, focus, press and "not yet" for free and
+    supplies only its words and, if it wants one, its own pick animation. Every kit object takes the props
+    (`PickProps`); a custom object is wrapped in `<Pickable label …>` itself:
+    - `disabledHint="Send coins first"`: "not yet". A pick shakes the object and shows the hint in a slip
+      above it; `onPick` is not called. Pass it only on the steps where the object can't be used yet.
+    - `detail="Balance: 8 NEAR"`: after a pick, a slip shows the detail. Pass it once the step is done.
+    - `pickMotion={(object, t) => …}`: the object's own pick animation. Called each frame with the seconds
+      since the pick, on the group holding the object (already posed for hover and press); move, turn or
+      scale it and return `true` while it plays. Without it the kit plays a short hop with a twist. Not
+      called under reduced motion.
+    - The hover ring takes the stage accent from the lesson page's `--accent`.
+    - Test hooks on the pick button: `data-hover="on|off"`, `data-pick="playing|idle"`, `data-hint`,
+      `data-detail`. `e2e/lessons/helpers.ts` checks them: `expectFocusMarksHover`,
+      `expectPickPlaysAndSettles` (with `page.addInitScript(countDrawnFrames)`), `expectNotYetHint`,
+      `expectPickDetail`. The scene kit demo (`e2e/scene-kit.spec.ts`, "3d reactions") is the reference.
 11. **The learner may move the camera.** Orbit (drag), zoom (wheel, pinch) and pan (right drag,
     shift / ctrl / cmd + drag, two-finger drag). In a book scene the pan slides across the desk and the
     camera's target is held inside the open book's footprint (`bookFootprint(spread)`: both pages plus a
@@ -190,8 +203,9 @@ export default function Scene3D({ m, reducedMotion, flat, mode }) {
   "not yet" hint; after the step is done, picking an object shows its detail.
 - The lesson's normal walk, reduced-motion and `?webgl=0` tests, in 2D and 3D.
 
-`--book` scaffolds the print, tour and phone e2e tests and the `tourFor` unit test; the author adds the
-rest as the lesson grows.
+`--book` scaffolds the print, tour, phone and reactions e2e tests (the reactions one for the template's
+block, from `REACTIONS` in `Scene3D.tsx`) and the `tourFor` unit test; the author adds the rest as the
+lesson grows, one reactions check per row of the script's "Reactions" table.
 
 Every test that draws a 3D scene calls `slow3d()` (`slow3d(view === "3d")` in a loop over both views, `slow3dUnless2d(info)` in a spec-wide `beforeEach`; all in `e2e/lessons/helpers.ts`) and waits for the 3D
 view to appear with `LOAD_3D`; no per-test timeouts. On a Mac the e2e browser draws WebGL on the GPU;

@@ -32,6 +32,16 @@ export function statusText(selected: Who | null, holder: Who): string {
   return `Selected: ${NAMES[selected]}. It holds ${n} ${n === 1 ? "coin" : "coins"}.`;
 }
 
+/**
+ * How the coin reacts to a pick (docs/book-scene.md rule 10a): "not yet" until it rests with Ben, then
+ * a detail for exploring. `shown` is where the coin was last seen at rest.
+ */
+export function coinPick(holder: Who, shown: Who): { disabledHint: string } | { detail: string } {
+  return holder === "ben" && shown === "ben"
+    ? { detail: "One coin. Ben's account holds it now." }
+    : { disabledHint: "Not yet: send the coin to Ben first." };
+}
+
 /** The demo's state machine, as a hook both scenes share. */
 export function useDemo({
   step,
@@ -57,6 +67,7 @@ export function useDemo({
     send: () => setSent(true),
     select: setSelected,
     onArrive,
+    coinPick: coinPick(holder, reducedMotion ? holder : shown),
     // Under reduced motion nothing travels: the coin is wherever it belongs.
     state: sceneState({ holder, shown: reducedMotion ? holder : shown, selected, view }),
     status: statusText(selected, holder),

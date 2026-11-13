@@ -1,5 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-import { LOAD_3D, seedRoute, slow3d } from "./lessons/helpers";
+import { expect, test } from "@playwright/test";
+import { countDrawnFrames, drawnFrames, expectSettled, LOAD_3D, seedRoute, slow3d } from "./lessons/helpers";
 
 /**
  * Render on demand (#44): once a 3D lesson's scene has settled, the canvas draws nothing until something
@@ -24,35 +24,6 @@ const LESSONS = [
 
 test.beforeEach(() => slow3d());
 
-/** Before any script: counts rAF callbacks that drew with WebGL (window.__drawnFrames). */
-function countDrawnFrames() {
-  const w = window as unknown as { __drawnFrames: number };
-  w.__drawnFrames = 0;
-  let draws = 0;
-  for (const C of [window.WebGLRenderingContext, window.WebGL2RenderingContext]) {
-    if (!C) continue;
-    const proto = C.prototype as unknown as Record<string, (...a: unknown[]) => unknown>;
-    for (const name of ["drawArrays", "drawElements", "drawArraysInstanced", "drawElementsInstanced"]) {
-      const orig = proto[name];
-      if (!orig) continue;
-      proto[name] = function (this: unknown, ...args: unknown[]) {
-        draws++;
-        return orig.apply(this, args);
-      };
-    }
-  }
-  const raf = window.requestAnimationFrame.bind(window);
-  window.requestAnimationFrame = (cb) =>
-    raf((t) => {
-      const before = draws;
-      cb(t);
-      if (draws > before) w.__drawnFrames++;
-    });
-}
-
-const drawn = (page: Page) =>
-  page.evaluate(() => (window as unknown as { __drawnFrames: number }).__drawnFrames);
-
 for (const id of LESSONS) {
   test(`an idle 3d scene draws no frames: ${id}`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -68,16 +39,16 @@ for (const id of LESSONS) {
     await expect
       .poll(
         async () => {
-          const a = await drawn(page);
+          const a = await drawnFrames(page);
           await page.waitForTimeout(1000);
-          return (await drawn(page)) - a;
+          return (await drawnFrames(page)) - a;
         },
         { timeout: 15_000, intervals: [0] },
       )
       .toBe(0);
-    const a = await drawn(page);
+    const a = await drawnFrames(page);
     await page.waitForTimeout(2000);
-    expect((await drawn(page)) - a).toBe(0);
+    expect((await drawnFrames(page)) - a).toBe(0);
   });
 }
 
@@ -93,27 +64,10 @@ test("a triggered 3d animation draws frames and then settles", async ({ page }) 
   await expect(stage).not.toHaveAttribute("data-pop", /./, { timeout: LOAD_3D });
   await expectSettled(page);
 
-  const before = await drawn(page);
+  const before = await drawnFrames(page);
   await page.locator(".action-slot").getByRole("button", { name: "Send", exact: true }).click();
   await expect(page.getByTestId("balance-Ben")).toHaveText("8");
   // The new block and its slip move over many frames, not one.
-  await expect.poll(async () => (await drawn(page)) - before, { timeout: 5_000 }).toBeGreaterThan(5);
+  await expect.poll(async () => (await drawnFrames(page)) - before, { timeout: 5_000 }).toBeGreaterThan(5);
   await expectSettled(page);
 });
-
-/** Waits until a whole second passes without a drawn frame, then checks the next two stay empty too. */
-async function expectSettled(page: Page) {
-  await expect
-    .poll(
-      async () => {
-        const a = await drawn(page);
-        await page.waitForTimeout(1000);
-        return (await drawn(page)) - a;
-      },
-      { timeout: 15_000, intervals: [0] },
-    )
-    .toBe(0);
-  const a = await drawn(page);
-  await page.waitForTimeout(2000);
-  expect((await drawn(page)) - a).toBe(0);
-}
