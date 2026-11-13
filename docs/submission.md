@@ -64,7 +64,7 @@ Recorded in demo mode on the production build (`localStorage bon:cover=off` skip
 | 5 | 0:50 | 20 s | Across shards in 3D (2.1) | Switch 2D to 3D; follow the receipts hop by hop | "Switch to 3D and follow your transaction across shards, chunks and blocks." |
 | 6 | 1:10 | 15 s | Deploy a contract (3.1) | Deploy, Increment, the failing callback's receipts | "Deploy a contract in one click, call it, and watch a cross-contract callback catch a failure." |
 | 7 | 1:25 | 20 s | One account signs for Ethereum (4.1) | Derive the address, request the MPC signature, the signer recovers | "Your NEAR account signs an Ethereum transaction with Chain Signatures. The signature recovers to your derived address." |
-| 8 | 1:45 | 10 s | An intent quote (4.2) | Fetch the quote; amount in, amount out, fees, time estimate | "Ask for a cross-chain swap with an intent: a real, signed quote from NEAR Intents, with no money moved." |
+| 8 | 1:45 | 10 s | An intent quote (4.2) | Fetch the quote; amount in, amount out, fees, time estimate | "Ask for a cross-chain swap with an intent: a signed quote from NEAR Intents (recorded from the live API), with no money moved." |
 | 9 | 1:55 | 10 s | Badge and "My book" | Claim the stage 0 badge, the shelf | "Finish a stage and claim a badge NFT on NEAR testnet. Every lesson ends with an honest take." |
 | 10 | 2:05 | 5 s | End card | `book-of-near.pages.dev`, "Built at NEAR HACKATHON" | "Try it: book-of-near.pages.dev. Demo mode needs no wallet." |
 
