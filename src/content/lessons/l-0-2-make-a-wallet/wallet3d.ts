@@ -170,6 +170,80 @@ export function labelsFor(step: number, compact: boolean): Shown {
   };
 }
 
+/** The words picked objects show (docs/lessons/stage-0/0.2.md, "Reactions"). Never a key value. */
+export const REACTION = {
+  noKeys: "Generate a key pair first",
+  noMessage: "Write a message first",
+  noAddress: "Turn it into an address first",
+  noSignature: "Sign the message first",
+  words: "12 BIP-39 seed words: they rebuild this key",
+  rebuilt: "Same key again: 12 BIP-39 words along the SLIP-10 path m/44'/397'/0'",
+  key: "ed25519 private key: secret, used to sign",
+  signature: "Signature: 64 bytes, made by this key",
+  implicit: "NEAR implicit address: 64 hex characters",
+  eth: "Ethereum address: 42 characters starting with 0x",
+  named: "Named account: a readable name, like ana.testnet",
+  sealed: "Sealed: a 64-byte ed25519 signature covers this text",
+  tampered: "One letter changed: the signature does not match",
+  cleared: "Memory cleared: 0 keys left on this page",
+} as const;
+
+/** What a pick does besides its action: a "not yet" hint, or a detail once the step is done. */
+export type Reaction = { disabledHint?: string; detail?: string };
+
+export interface ReactionState {
+  keys: boolean;
+  cleared: boolean;
+  /** The message box is not empty. */
+  message: boolean;
+  /** The current message is signed. */
+  signed: boolean;
+  rebuilt: boolean;
+  /** The address conversion has finished. */
+  addressDone: boolean;
+  /** Ethereum, implicit, named: whose rule was shown. */
+  flipped: readonly boolean[];
+  verdict: Verdict;
+}
+
+const hint = (text: string): Reaction => ({ disabledHint: text });
+const detail = (text: string): Reaction => ({ detail: text });
+const none: Reaction = {};
+
+/** The reaction of each clickable object at this step (rule 10a in docs/book-scene.md). */
+export function reactionsFor(step: number, s: ReactionState) {
+  const at = (...steps: number[]) => steps.includes(step);
+  return {
+    /** The empty places drawn before any key exists. */
+    ghost: s.cleared ? none : hint(REACTION.noKeys),
+    words: at(STEP.seed) ? (s.rebuilt ? detail(REACTION.rebuilt) : none) : detail(REACTION.words),
+    key: at(STEP.sign)
+      ? !s.message
+        ? hint(REACTION.noMessage)
+        : s.signed
+          ? detail(REACTION.signature)
+          : none
+      : detail(REACTION.key),
+    address: at(STEP.address)
+      ? s.addressDone
+        ? detail(REACTION.implicit)
+        : hint(REACTION.noAddress)
+      : at(STEP.compare) && !s.flipped[1]
+        ? none
+        : detail(REACTION.implicit),
+    eth: s.flipped[0] ? detail(REACTION.eth) : none,
+    named: s.flipped[2] ? detail(REACTION.named) : none,
+    card: !s.signed
+      ? hint(REACTION.noSignature)
+      : at(STEP.verify)
+        ? s.verdict === "fail"
+          ? detail(REACTION.tampered)
+          : none
+        : detail(REACTION.sealed),
+    bin: s.cleared ? detail(REACTION.cleared) : none,
+  };
+}
+
 /** What the 3D view shows, in one sentence, for screen readers. */
 export function describe3d(focus: ArtFocus, verdict: Verdict, cleared: boolean): string {
   if (focus === "warning") return "A warning sign. No practice keys exist yet.";

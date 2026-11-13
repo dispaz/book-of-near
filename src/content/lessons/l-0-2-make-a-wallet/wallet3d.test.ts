@@ -7,6 +7,8 @@ import {
   labelsFor,
   objectsFor,
   POS,
+  REACTION,
+  reactionsFor,
   shorten,
   shotFor,
 } from "./wallet3d";
@@ -142,5 +144,72 @@ describe("free frame", () => {
       bar: box(16, 660, 374, 740),
     });
     expect(f).toEqual({ left: 12, top: 302, right: 378, bottom: 458 });
+  });
+});
+
+describe("3D reactions (rule 10a)", () => {
+  const base = {
+    keys: true,
+    cleared: false,
+    message: true,
+    signed: false,
+    rebuilt: false,
+    addressDone: false,
+    flipped: [false, false, false],
+    verdict: null,
+  } as const;
+
+  it("says 'not yet' on the empty places before any key exists", () => {
+    expect(reactionsFor(STEP.generate, { ...base, keys: false }).ghost).toEqual({
+      disabledHint: REACTION.noKeys,
+    });
+    expect(reactionsFor(STEP.custody, { ...base, keys: false, cleared: true }).ghost).toEqual({});
+  });
+
+  it("rebuilds from the words, then shows their detail", () => {
+    expect(reactionsFor(STEP.seed, base).words).toEqual({});
+    expect(reactionsFor(STEP.seed, { ...base, rebuilt: true }).words.detail).toMatch(/m\/44'\/397'\/0'/);
+    expect(reactionsFor(STEP.custody, base).words.detail).toMatch(/12 BIP-39/);
+  });
+
+  it("never puts a key value in a detail or hint", () => {
+    for (let step = STEP.generate; step <= STEP.custody; step++) {
+      const r = reactionsFor(step, { ...base, signed: true, rebuilt: true, addressDone: true });
+      expect(JSON.stringify(r)).not.toMatch(/ed25519:[1-9A-Za-z]/);
+    }
+  });
+
+  it("asks for a message before the key can sign, and shows the signature size after", () => {
+    expect(reactionsFor(STEP.sign, { ...base, message: false }).key).toEqual({
+      disabledHint: REACTION.noMessage,
+    });
+    expect(reactionsFor(STEP.sign, base).key).toEqual({});
+    expect(reactionsFor(STEP.sign, { ...base, signed: true }).key.detail).toMatch(/64 bytes/);
+    expect(reactionsFor(STEP.seed, base).key.detail).toMatch(/secret/);
+  });
+
+  it("asks to turn the key into an address first, then shows its length", () => {
+    expect(reactionsFor(STEP.address, base).address).toEqual({ disabledHint: REACTION.noAddress });
+    expect(reactionsFor(STEP.address, { ...base, addressDone: true }).address.detail).toMatch(/64 hex/);
+    const compare = { ...base, addressDone: true };
+    expect(reactionsFor(STEP.compare, compare).address).toEqual({});
+    const all = reactionsFor(STEP.compare, { ...compare, flipped: [true, true, true] });
+    expect(all.address.detail).toMatch(/64 hex/);
+    expect(all.eth.detail).toMatch(/42 characters/);
+    expect(all.named.detail).toMatch(/ana\.testnet/);
+  });
+
+  it("the card waits for a signature, then shows the failed check after tampering", () => {
+    expect(reactionsFor(STEP.sign, base).card).toEqual({ disabledHint: REACTION.noSignature });
+    expect(reactionsFor(STEP.sign, { ...base, signed: true }).card.detail).toMatch(/signature/);
+    expect(reactionsFor(STEP.verify, { ...base, signed: true }).card).toEqual({});
+    expect(reactionsFor(STEP.verify, { ...base, signed: true, verdict: "fail" }).card.detail).toMatch(
+      /does not match/,
+    );
+  });
+
+  it("the bin shows that memory is clear once the keys are gone", () => {
+    expect(reactionsFor(STEP.custody, base).bin).toEqual({});
+    expect(reactionsFor(STEP.custody, { ...base, keys: false, cleared: true }).bin.detail).toMatch(/0 keys/);
   });
 });

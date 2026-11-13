@@ -26,6 +26,7 @@ import {
   inset,
   useInk,
   useStage,
+  type PickMotion,
   type Vec3,
   useAnimatedFrame,
 } from "../../../scene-kit";
@@ -39,7 +40,9 @@ import {
   shorten,
   shotFor,
   POS,
+  reactionsFor,
   type Drawn,
+  type Reaction,
   type Shown,
 } from "./wallet3d";
 import { shownSecret } from "./wallet";
@@ -78,6 +81,57 @@ function useTween(trigger: unknown, seconds: number, reducedMotion: boolean) {
 }
 
 type Clock = ReturnType<typeof useTween>;
+
+// ---------- pick animations (rule 10a): each object's own, replacing the kit's hop ----------
+
+/** A motion over `seconds`: `pose` gets the linear progress 0..1 and poses the object. */
+const motion =
+  (seconds: number, pose: (o: Parameters<PickMotion>[0], u: number) => void): PickMotion =>
+  (o, t) => {
+    const u = Math.min(1, t / seconds);
+    pose(o, u);
+    return u < 1;
+  };
+const bump = (u: number) => Math.sin(u * Math.PI);
+
+/** The key turns once, as in a lock (step 2: its cover lifts with the reveal). */
+const keyTurn = motion(0.8, (o, u) => {
+  o.position.y += 0.4 * bump(u);
+  o.rotation.y += 2 * Math.PI * easeInOut(u);
+});
+/** The key rises, tips and presses down: it stamps the seal (step 6). */
+const keyStamp = motion(0.9, (o, u) => {
+  const up = seg(u, 0, 0.45);
+  const down = seg(u, 0.45, 0.7);
+  const back = seg(u, 0.7, 1);
+  o.position.y += 0.9 * up - 1.05 * down + 0.15 * back;
+  o.rotation.z -= 0.45 * (up - down);
+});
+/** The word tiles nod toward the key they rebuild. */
+const wordsNod = motion(0.6, (o, u) => {
+  o.position.y += 0.3 * bump(u);
+  o.rotation.x += 0.25 * bump(u);
+});
+/** An address block jumps and flips end over end to show its rule. */
+const blockFlip = motion(0.8, (o, u) => {
+  o.position.y += 1.6 * bump(u);
+  o.rotation.x += 2 * Math.PI * easeInOut(u);
+});
+/** The message card squashes flat and springs back (a letter changes). */
+const cardSquash = motion(0.45, (o, u) => {
+  const s = bump(u);
+  o.scale.y *= 1 - 0.6 * s;
+  o.scale.x *= 1 + 0.12 * s;
+  o.scale.z *= 1 + 0.12 * s;
+});
+/** The bin rocks as the keys and words drop into it. */
+const binRock = motion(0.9, (o, u) => {
+  o.rotation.z += 0.22 * Math.sin(u * 4 * Math.PI) * (1 - u);
+  o.position.y += 0.15 * bump(u);
+});
+
+/** Whether a pick does anything at all (an action, a hint or a detail). */
+const reacts = (r: Reaction, onPick?: () => void) => !!(onPick || r.disabledHint || r.detail);
 
 export default function Scene3D({
   w,
@@ -148,12 +202,23 @@ function World({
   const alive = !!keys || cleared;
   const shown = labelsFor(step, compact);
   const objects = objectsFor(step);
+  const r = reactionsFor(step, {
+    keys: !!keys,
+    cleared,
+    message: !!w.message.trim(),
+    signed: !!w.signed && w.signed.message === w.message,
+    rebuilt: !!w.rebuilt,
+    addressDone: w.convert >= CONVERT_STAGES,
+    flipped: w.flipped,
+    verdict: w.verdict,
+  });
 
   return (
     <ShownContext.Provider value={shown}>
       {drawn === "warning" ? <WarningSign /> : null}
       {drawn === "ghosts" ? (
         <Ghosts
+          reaction={r.ghost}
           hint={
             cleared
               ? null
@@ -168,16 +233,18 @@ function World({
 
       {alive && shown.pipeline && drawn !== "warning" ? (
         <>
-          {objects.words ? <Words w={w} step={step} fold={fold} bin={bin} /> : null}
-          {objects.key ? <PrivateKey w={w} step={step} fold={fold} bin={bin} /> : null}
+          {objects.words ? <Words w={w} step={step} fold={fold} bin={bin} reaction={r.words} /> : null}
+          {objects.key ? <PrivateKey w={w} step={step} fold={fold} bin={bin} reaction={r.key} /> : null}
           {objects.lock ? <PublicKey w={w} step={step} fold={fold} bin={bin} /> : null}
           <Arrows show={!!keys} address={w.convert >= CONVERT_STAGES} step={step} />
         </>
       ) : null}
-      {objects.address ? <AddressBlock w={w} step={step} /> : null}
-      {step === STEP.compare && keys ? <OtherAddresses w={w} /> : null}
-      {(step === STEP.sign || step === STEP.verify) && keys ? <MessageCard w={w} step={step} /> : null}
-      {step === STEP.custody || cleared ? <Bin w={w} step={step} /> : null}
+      {objects.address ? <AddressBlock w={w} step={step} reaction={r.address} /> : null}
+      {step === STEP.compare && keys ? <OtherAddresses w={w} reactions={[r.eth, r.named]} /> : null}
+      {(step === STEP.sign || step === STEP.verify) && keys ? (
+        <MessageCard w={w} step={step} reaction={r.card} />
+      ) : null}
+      {step === STEP.custody || cleared ? <Bin w={w} step={step} reaction={r.bin} /> : null}
     </ShownContext.Provider>
   );
 }
@@ -229,7 +296,7 @@ function WarningSign() {
 }
 
 /** Empty places where the words, keys and address will appear. */
-function Ghosts({ hint }: { hint: string | null }) {
+function Ghosts({ hint, reaction }: { hint: string | null; reaction: Reaction }) {
   const paper = useInk(COLORS.paper);
   const spots: [Vec3, string][] = [
     [POS.words, "seed words"],
@@ -239,17 +306,29 @@ function Ghosts({ hint }: { hint: string | null }) {
   ];
   return (
     <>
-      {spots.map(([p, name]) => (
-        <group key={name} position={p}>
+      {spots.map(([p, name]) => {
+        const place = (
           <mesh position={[0, 0.03, 0]} material={paper}>
             <boxGeometry args={[1.8, 0.06, 1.2]} />
             <Outline />
           </mesh>
-          <Label position={[0, 0.35, 0]} variant="small">
-            {name}
-          </Label>
-        </group>
-      ))}
+        );
+        return (
+          <group key={name} position={p}>
+            {/* Rule 10a: an empty place says "not yet" instead of ignoring the click. */}
+            {reacts(reaction) ? (
+              <Pickable label={`Empty place: ${name}`} anchor={[0, 0.2, 0]} {...reaction}>
+                {place}
+              </Pickable>
+            ) : (
+              place
+            )}
+            <Label position={[0, 0.35, 0]} variant="small">
+              {name}
+            </Label>
+          </group>
+        );
+      })}
       {hint ? (
         <Label position={[2.6, 0.3, 0]} variant="hint">
           {hint}
@@ -262,7 +341,19 @@ function Ghosts({ hint }: { hint: string | null }) {
 const TILE: [number, number, number] = [1.05, 0.14, 0.46];
 
 /** The 12 seed words as tiles in a 3 × 4 grid. */
-function Words({ w, step, fold, bin }: { w: Wallet; step: number; fold: Clock; bin: Clock }) {
+function Words({
+  w,
+  step,
+  fold,
+  bin,
+  reaction,
+}: {
+  w: Wallet;
+  step: number;
+  fold: Clock;
+  bin: Clock;
+  reaction: Reaction;
+}) {
   const paper = useInk(COLORS.paper);
   const ref = useBinned(POS.words, bin, w.cleared);
   const tiles = useRef<(Group | null)[]>([]);
@@ -324,10 +415,19 @@ function Words({ w, step, fold, bin }: { w: Wallet; step: number; fold: Clock; b
       {w.keys && !w.cleared ? <Anchor name="words" position={[0, 0.3, 0]} /> : null}
     </group>
   );
+  // The pick nods the tiles; a rebuild also replays the fold, which flies them into the key.
+  const rebuild = step === STEP.seed && w.keys ? w.rebuild : undefined;
+  const live = !!w.keys && !w.cleared;
   return (
     <group ref={ref} position={POS.words}>
-      {step === STEP.seed && w.keys ? (
-        <Pickable label="Seed words: rebuild the key" onPick={w.rebuild} anchor={[0, 0.3, 0]}>
+      {live && reacts(reaction, rebuild) ? (
+        <Pickable
+          label={rebuild ? "Seed words: rebuild the key" : "Seed words"}
+          onPick={rebuild}
+          anchor={[0, 0.3, 0]}
+          pickMotion={wordsNod}
+          {...reaction}
+        >
           {body}
         </Pickable>
       ) : (
@@ -338,7 +438,19 @@ function Words({ w, step, fold, bin }: { w: Wallet; step: number; fold: Clock; b
 }
 
 /** The private key: a gold key under a paper cover that lifts only while the learner reveals it. */
-function PrivateKey({ w, step, fold, bin }: { w: Wallet; step: number; fold: Clock; bin: Clock }) {
+function PrivateKey({
+  w,
+  step,
+  fold,
+  bin,
+  reaction,
+}: {
+  w: Wallet;
+  step: number;
+  fold: Clock;
+  bin: Clock;
+  reaction: Reaction;
+}) {
   const paper = useInk(COLORS.paper);
   const keyRef = useRef<Group>(null);
   const cover = useRef<Group>(null);
@@ -406,20 +518,28 @@ function PrivateKey({ w, step, fold, bin }: { w: Wallet; step: number; fold: Clo
       ) : null}
     </>
   );
+  // Step 2 turns the key (its cover lifts with the reveal); step 6 stamps the seal with it.
   const pick =
-    step === STEP.generate && w.keys
-      ? { label: w.showSecret ? "Hide the private key" : "Show the private key", onPick: w.toggleSecret }
-      : step === STEP.sign && w.keys && w.message.trim()
-        ? { label: "Sign with the private key", onPick: w.doSign }
-        : null;
+    step === STEP.generate
+      ? {
+          label: w.showSecret ? "Hide the private key" : "Show the private key",
+          onPick: w.toggleSecret,
+          motion: keyTurn,
+        }
+      : step === STEP.sign
+        ? { label: "Sign with the private key", onPick: w.doSign, motion: keyStamp }
+        : { label: "Private key", onPick: undefined, motion: keyTurn };
+  const live = !!w.keys && !w.cleared;
   return (
     <group ref={ref} position={POS.key}>
-      {pick ? (
+      {live && reacts(reaction, pick.onPick) ? (
         <Pickable
           label={pick.label}
           selected={step === STEP.generate && w.showSecret}
           onPick={pick.onPick}
           anchor={[0, 0.8, 0]}
+          pickMotion={pick.motion}
+          {...reaction}
         >
           {body}
         </Pickable>
@@ -542,7 +662,7 @@ function GrowBlock({ height, color, size = 1.5 }: { height: number; color: strin
 const CONVERT_LABELS = ["", "public key (base58)", "32 bytes, 0–255", "64 hex characters"];
 
 /** The address: the public key turned into a block of hex. In step 5 it stands with the other styles. */
-function AddressBlock({ w, step }: { w: Wallet; step: number }) {
+function AddressBlock({ w, step, reaction }: { w: Wallet; step: number; reaction: Reaction }) {
   const paper = useInk(COLORS.paper);
   const shown = useContext(ShownContext);
   const { keys, convert } = w;
@@ -567,12 +687,14 @@ function AddressBlock({ w, step }: { w: Wallet; step: number }) {
       <group position={POS.address}>
         <SoftShadow position={[0, 0, 0.3]} size={[2.8, 1.8]} />
         <Anchor name="address" position={[0, Math.max(0.3, height / 2), 0]} />
-        {compare ? (
+        {keys && !w.cleared && reacts(reaction, compare ? () => w.flip(1) : undefined) ? (
           <Pickable
-            label="NEAR implicit account block"
-            selected={flipped}
-            onPick={() => w.flip(1)}
+            label={compare ? "NEAR implicit account block" : "Address block"}
+            selected={compare && flipped}
+            onPick={compare ? () => w.flip(1) : undefined}
             anchor={[0, 1, 0]}
+            pickMotion={blockFlip}
+            {...reaction}
           >
             {block}
           </Pickable>
@@ -647,16 +769,23 @@ const OTHERS = [
  * Step 5: the Ethereum address and a named account stand next to your implicit account. Each block is
  * as tall as its address is long (characters); picking one shows its rule, like the panel's cards.
  */
-function OtherAddresses({ w }: { w: Wallet }) {
+function OtherAddresses({ w, reactions }: { w: Wallet; reactions: [Reaction, Reaction] }) {
   const shown = useContext(ShownContext);
   return (
     <>
-      {OTHERS.map((o) => (
+      {OTHERS.map((o, k) => (
         <group key={o.pick} position={[o.x, 0, POS.address[2]]}>
           <SoftShadow position={[0, 0, 0.3]} size={[2.6, 1.6]} />
           {/* The note starts with Ethereum, and this block stands nearest to it (2D points at its Address box). */}
           {o.i === 0 ? <Anchor name="addresses" position={[0, addressHeight(o.len) / 2, 0]} /> : null}
-          <Pickable label={o.pick} selected={w.flipped[o.i]} onPick={() => w.flip(o.i)} anchor={[0, 0.6, 0]}>
+          <Pickable
+            label={o.pick}
+            selected={w.flipped[o.i]}
+            onPick={() => w.flip(o.i)}
+            anchor={[0, 0.6, 0]}
+            pickMotion={blockFlip}
+            {...reactions[k]}
+          >
             <GrowBlock height={addressHeight(o.len)} color={o.color} />
           </Pickable>
           <Label position={[0, addressHeight(o.len) + 0.6, 0]} variant={shown.compact ? "small" : "hand"}>
@@ -678,7 +807,7 @@ function OtherAddresses({ w }: { w: Wallet }) {
 }
 
 /** Steps 6 and 7: the message card. Signing stamps a seal on it; verifying checks the seal. */
-function MessageCard({ w, step }: { w: Wallet; step: number }) {
+function MessageCard({ w, step, reaction }: { w: Wallet; step: number; reaction: Reaction }) {
   const paper = useInk(COLORS.paper);
   const { signed, verdict } = w;
   const verifying = step === STEP.verify;
@@ -704,8 +833,14 @@ function MessageCard({ w, step }: { w: Wallet; step: number }) {
       <group position={POS.card}>
         <SoftShadow position={[0, 0, 0.2]} size={[3.4, 2.2]} />
         <Anchor name={verifying ? "check" : "message"} position={[-0.6, 0.15, 0]} />
-        {verifying && signed ? (
-          <Pickable label="Change one letter on the card" onPick={w.tamper} anchor={[0, 0.2, 0]}>
+        {reacts(reaction, verifying && signed ? w.tamper : undefined) ? (
+          <Pickable
+            label={verifying && signed ? "Change one letter on the card" : "Message card"}
+            onPick={verifying && signed ? w.tamper : undefined}
+            anchor={[0, 0.2, 0]}
+            pickMotion={cardSquash}
+            {...reaction}
+          >
             {card}
           </Pickable>
         ) : (
@@ -787,7 +922,7 @@ function Seal({ w, verifying }: { w: Wallet; verifying: boolean }) {
 }
 
 /** Step 8: the bin. Throwing the keys away drops the words and both keys into it. */
-function Bin({ w, step }: { w: Wallet; step: number }) {
+function Bin({ w, step, reaction }: { w: Wallet; step: number; reaction: Reaction }) {
   const ink = useInk(COLORS.slab);
   const black = useInk(INK);
   const body: ReactNode = (
@@ -813,8 +948,14 @@ function Bin({ w, step }: { w: Wallet; step: number }) {
   return (
     <group position={POS.bin}>
       <SoftShadow position={[0, 0, 0.2]} size={[2.4, 1.4]} />
-      {canThrow ? (
-        <Pickable label="Drop the keys in the bin" onPick={w.throwAway} anchor={[0, 0.8, 0]}>
+      {reacts(reaction, canThrow ? w.throwAway : undefined) ? (
+        <Pickable
+          label={canThrow ? "Drop the keys in the bin" : "Bin"}
+          onPick={canThrow ? w.throwAway : undefined}
+          anchor={[0, 0.8, 0]}
+          pickMotion={binRock}
+          {...reaction}
+        >
           {body}
         </Pickable>
       ) : (
