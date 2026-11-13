@@ -1,14 +1,15 @@
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import type { LessonManifest, StageEntry } from "../app/types";
+import { lessonNumber } from "./contents";
 
 /** How long one leaf takes to turn, the gap between leaves, and the pause on the lesson's opening page. */
-export const LEAF_MS = 560;
-export const STAGGER_MS = 95;
+const LEAF_MS = 560;
+const STAGGER_MS = 95;
 const LAND_MS = 380;
 
 /** The whole turn, from the first leaf lifting to the lesson's page filling the book. */
-export const turnDuration = (leaves: number) => LEAF_MS + (leaves - 1) * STAGGER_MS + LAND_MS;
+const turnDuration = (leaves: number) => LEAF_MS + (leaves - 1) * STAGGER_MS + LAND_MS;
 
 /**
  * The page turn from the contents to a lesson: `leaves` pages riffle over from right to left, uncovering
@@ -53,9 +54,9 @@ export function PageTurn({
         <p className="turn-kicker">
           Stage {stage.id} · {stage.name}
         </p>
-        <p className="turn-number">
-          Lesson {stage.id}.{lesson.order}
-        </p>
+        {lessonNumber(stage.id, lesson.order) ? (
+          <p className="turn-number">Lesson {lessonNumber(stage.id, lesson.order)}</p>
+        ) : null}
         <p className="turn-title">{lesson.title}</p>
         {lesson.summary ? <p className="turn-summary">{lesson.summary}</p> : null}
       </div>

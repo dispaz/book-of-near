@@ -11,7 +11,7 @@ import { LockedCard } from "./TopicCard";
 import { ClaimBadge } from "../badges/ClaimBadge";
 import { ruleFor } from "../badges/rules";
 import { useReducedMotion } from "./hooks";
-import { leafCount, stageEntry, type TurnedState } from "./contents";
+import { leafCount, lessonNumber, stageEntry, type TurnedState } from "./contents";
 import { PageTurn } from "./PageTurn";
 
 const TickIcon = () => (
@@ -55,6 +55,8 @@ export function ContentsPage() {
     return () => window.clearInterval(t);
   }, [hash]);
   const done = useMemo(() => new Set(completions.map((c) => c.lessonId)), [completions]);
+  // Only lessons still in the book: a completion of a lesson since removed does not count.
+  const readCount = bookOrder.filter((l) => done.has(l.id)).length;
   const resume = position ? registry.lessons.get(position.lessonId) : undefined;
   const canResume = !!resume && isOpen(resume);
   const start =
@@ -129,8 +131,8 @@ export function ContentsPage() {
         ) : null}
       </div>
       <p className="title-note">
-        {done.size > 0
-          ? `You have read ${done.size} of ${bookOrder.length} lessons.`
+        {readCount > 0
+          ? `You have read ${readCount} of ${bookOrder.length} lessons.`
           : `${bookOrder.length} lessons in ${registry.stages.length} stages. Pick one on the contents page.`}
       </p>
     </div>
@@ -180,7 +182,7 @@ export function ContentsPage() {
             </h2>
             <ul className="lessons">
               {visible.map((l) => {
-                const num = l.order < 10 ? `${s.id}.${l.order}` : "";
+                const num = lessonNumber(s.id, l.order);
                 if (l.status === "planned") {
                   return (
                     <li key={l.id}>

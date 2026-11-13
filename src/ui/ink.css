@@ -231,8 +231,10 @@ h3 {
 
 /* ---------- Lesson stage ---------- */
 /* The lesson is a page of an open book lying on a desk: paper, a shadow along the spine on the left
-   and the edges of the pages underneath on the right and at the bottom. */
-body:has(.lesson) {
+   and the edges of the pages underneath on the right and at the bottom. The contents page
+   (contents.css) is the same book on the same desk. */
+body:has(.lesson),
+body:has(.contents-book) {
   background: radial-gradient(circle at 30% 20%, #cfd8cd, #b7c3b5);
 }
 .lesson {

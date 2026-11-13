@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { leafCount, stageEntry, turnedHere } from "./contents";
+import { leafCount, lessonNumber, stageEntry, turnedHere } from "./contents";
+
+describe("lessonNumber", () => {
+  it("is stage.order for numbered lessons and empty for unnumbered backlog cards", () => {
+    expect(lessonNumber(2, 1)).toBe("2.1");
+    expect(lessonNumber(0, 12)).toBe("");
+  });
+});
 
 const lesson = (id: string, status: "ready" | "planned" = "ready", hidden = false) => ({
   id,

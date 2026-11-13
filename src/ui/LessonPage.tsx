@@ -71,6 +71,16 @@ function Lesson({ lesson }: { lesson: LessonManifest }) {
   // Arrived by turning the pages from the contents: the book is already open at this lesson.
   const location = useLocation();
   const [turned] = useState(() => turnedHere(location.state));
+  // Only this visit counts: wipe the mark from the history entry, so a reload (or coming back to this
+  // entry later) opens the lesson as its address does, closed. React Router keeps it in `usr`.
+  useEffect(() => {
+    if (!turned) return;
+    try {
+      window.history.replaceState({ ...window.history.state, usr: null }, "");
+    } catch {
+      // Not fatal: the cover is just skipped once more.
+    }
+  }, [turned]);
   const last = lesson.steps.length - 1;
   const step = Math.min(last, Math.max(0, Number(params.get("step") ?? "1") - 1 || 0));
   const reducedMotion = useReducedMotion();

@@ -74,6 +74,24 @@ test.describe("the contents book", () => {
     await expect(page.getByTestId("book-cover")).toBeVisible();
   });
 
+  test("reloading a lesson the pages turned to shows its cover again", async ({ page }) => {
+    await openContents(page);
+    await page
+      .getByRole("navigation", { name: "Contents" })
+      .getByRole("link", { name: /Make a wallet/ })
+      .click();
+    await expect(page).toHaveURL(/\/lesson\/l-0-2-make-a-wallet/);
+    await expect(page.getByText(/Step 1 of/)).toBeVisible();
+    await page.reload();
+    await expect(page.getByTestId("book-cover")).toBeVisible();
+  });
+
+  test("a #stage-N link brings that stage into view on the contents page", async ({ page }) => {
+    await page.addInitScript((s) => localStorage.setItem("bon:v1", JSON.stringify(s)), NEWCOMER);
+    await page.goto("/#stage-4");
+    await expect(page.locator("#stage-4")).toBeInViewport();
+  });
+
   test("on a phone the contents is one page that scrolls", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openContents(page);

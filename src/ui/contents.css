@@ -1,9 +1,6 @@
 /* The contents page: the first spread of the book, on the same desk as the lessons (see .lesson in
    ink.css). Wide screens show two pages (title page | contents) with the spine between them; narrower
    ones show one page holding both. Picking a lesson riffles leaves over the right page (.page-turn). */
-body:has(.contents-book) {
-  background: radial-gradient(circle at 30% 20%, #cfd8cd, #b7c3b5);
-}
 .contents-book {
   --book-gap: 12px;
   --shade: color-mix(in srgb, var(--ink) 13%, transparent);
@@ -127,7 +124,7 @@ body:has(.contents-book) {
   .title-page .path-bar {
     justify-content: center;
   }
-  /* A small ornament under the title, in NEAR's green. */
+  /* A small ink rule under the title. */
   .title-page h1::after {
     content: "";
     display: block;
@@ -136,7 +133,7 @@ body:has(.contents-book) {
     margin: 18px auto 0;
     border: 1.5px solid var(--ink);
     border-radius: 3px;
-    background: var(--near-green);
+    background: var(--ink);
   }
   .toc {
     width: 100%;
@@ -301,7 +298,7 @@ body:has(.contents-book) {
   border-radius: inherit;
   background:
     linear-gradient(var(--accent), var(--accent)) top / 100% 10px no-repeat,
-    linear-gradient(90deg, color-mix(in srgb, var(--ink) 13%, transparent) 0, transparent 34px),
+    linear-gradient(90deg, var(--shade) 0, transparent 34px),
     var(--page);
   transition: left 0.38s cubic-bezier(0.55, 0, 0.3, 1);
 }
@@ -309,7 +306,7 @@ body:has(.contents-book) {
   left: 0;
   z-index: 99;
 }
-.turn-target p {
+.turn-target > p {
   margin: 0;
 }
 .turn-kicker {
@@ -318,8 +315,8 @@ body:has(.contents-book) {
   text-transform: uppercase;
   color: var(--mute);
 }
-.turn-number {
-  margin-top: 8px !important;
+.turn-target > .turn-number {
+  margin-top: 8px;
   font: 600 28px/1 var(--hand);
 }
 .turn-title {
@@ -360,7 +357,7 @@ body:has(.contents-book) {
 }
 .leaf-front {
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--ink) 13%, transparent) 0, transparent 40px),
+    linear-gradient(90deg, var(--shade) 0, transparent 40px),
     repeating-linear-gradient(transparent 0 20px, color-mix(in srgb, var(--ink) 8%, transparent) 20px 23px)
       center / calc(100% - 140px) calc(100% - 200px) no-repeat,
     var(--page);
@@ -370,7 +367,7 @@ body:has(.contents-book) {
   transform: rotateY(180deg);
   border-radius: 14px 0 0 14px;
   background:
-    linear-gradient(270deg, color-mix(in srgb, var(--ink) 13%, transparent) 0, transparent 40px),
+    linear-gradient(270deg, var(--shade) 0, transparent 40px),
     repeating-linear-gradient(transparent 0 20px, color-mix(in srgb, var(--ink) 8%, transparent) 20px 23px)
       center / calc(100% - 140px) calc(100% - 200px) no-repeat,
     var(--page);

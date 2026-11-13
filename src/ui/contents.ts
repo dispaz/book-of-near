@@ -5,6 +5,11 @@ export function leafCount(index: number): number {
   return Math.min(8, 3 + Math.floor(Math.max(0, index) / 3));
 }
 
+/** A lesson's number as the book prints it ("2.1"). Backlog cards (order 10 and up) have none. */
+export function lessonNumber(stageId: number, order: number): string {
+  return order < 10 ? `${stageId}.${order}` : "";
+}
+
 interface EntryLesson {
   id: string;
   hidden?: boolean;
