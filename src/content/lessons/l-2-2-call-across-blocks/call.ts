@@ -124,32 +124,26 @@ export function contractHops(c: CrossCall): Hop[] {
   return c.hops.filter((h) => h.kind === "call" || h.kind === "callback");
 }
 
-export interface GasSplit {
+export interface GasUse {
   /** Gas burnt by the whole transaction, refunds included: the fee. */
   total: bigint;
-  /** Gas burnt running the contracts' receipts. */
+  /** Gas burnt running the contracts' receipts. All of it is burned. */
   contractGas: bigint;
-  /** About 70% of contractGas, burned for good (an estimate: see gasSplit). */
-  burned: bigint;
-  /** About 30% of contractGas, credited to the contracts that ran (an estimate: see gasSplit). */
-  rebate: bigint;
-  byContract: { accountId: string; gas: bigint; rebate: bigint }[];
+  /** The gas each contract's receipts burnt, in the order the contracts first ran. */
+  byContract: { accountId: string; gas: bigint }[];
 }
 
 /**
- * An estimate of the 70 / 30 split. The protocol rule (topic): 30% of the gas burnt running a function
- * call's code is credited to the contract's account. The chain does not report that share (spikes-seed
- * "Unverified"), and a receipt's gas_burnt also holds fixed fees the reward leaves out, so 30% of the
- * whole gas_burnt overstates it a little. Every label shows these numbers as "about".
+ * Where the call's gas went, exact from its own receipts. All of it is burned: the 30% contract reward
+ * ended with protocol version 87 (topic, NEAR docs; mainnet and testnet report burnt_gas_reward 0).
  */
-export function gasSplit(c: CrossCall): GasSplit {
+export function gasUse(c: CrossCall): GasUse {
   const total = c.hops.reduce((s, h) => s + h.gasBurnt, 0n);
   const by = new Map<string, bigint>();
   for (const h of contractHops(c)) by.set(h.to, (by.get(h.to) ?? 0n) + h.gasBurnt);
-  const byContract = [...by].map(([accountId, gas]) => ({ accountId, gas, rebate: (gas * 3n) / 10n }));
-  const contractGas = [...by.values()].reduce((s, g) => s + g, 0n);
-  const rebate = byContract.reduce((s, b) => s + b.rebate, 0n);
-  return { total, contractGas, burned: contractGas - rebate, rebate, byContract };
+  const byContract = [...by].map(([accountId, gas]) => ({ accountId, gas }));
+  const contractGas = byContract.reduce((s, b) => s + b.gas, 0n);
+  return { total, contractGas, byContract };
 }
 
 const num = (n: number) => n.toLocaleString("en-US");
@@ -157,13 +151,11 @@ const num = (n: number) => n.toLocaleString("en-US");
 /** The learner's own numbers for the manifest's placeholders. */
 export function varsFor(c: CrossCall): Record<string, string> {
   const [, b, cb] = contractHops(c);
-  const g = gasSplit(c);
+  const g = gasUse(c);
   return {
     firstBlock: b ? num(b.blockHeight) : "?",
     secondBlock: cb ? num(cb.blockHeight) : "?",
     gasSpent: formatTgas(g.contractGas),
-    burned: formatTgas(g.burned),
-    rebate: formatTgas(g.rebate),
   };
 }
 

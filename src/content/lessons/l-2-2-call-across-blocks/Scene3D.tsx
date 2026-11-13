@@ -30,10 +30,19 @@ import {
 } from "../../../scene-kit";
 import { STAGE_ACCENTS } from "../../../scene-kit/theme";
 import type { SceneProps } from "../../../app/types";
-import { formatTgas } from "../../../chain/units";
-import { gasSplit } from "./call";
 import { A, B, BLOCK_Z, boxOf, COLUMNS, FIGURE, METER, partsAt, ROW_Z, SLIP } from "./layout3d";
-import { calleeFailed, describe, Facts, namesOf, runningOn, shardOf, short, slotsOf, tagOf } from "./parts";
+import {
+  calleeFailed,
+  describe,
+  Facts,
+  meterParts,
+  namesOf,
+  runningOn,
+  shardOf,
+  short,
+  slotsOf,
+  tagOf,
+} from "./parts";
 import { CHECK, FAIL, HOOK, ORDER } from "./steps";
 import { tourFor, type Target } from "./tour";
 import type { CallState } from "./useCrossCall";
@@ -253,28 +262,28 @@ function Row({ c }: { c: CallState }) {
   );
 }
 
-/** Step 4: the contracts' gas as a flat bar, 70% burned (grey) and 30% to the contracts (accent). */
+/** Step 4: the contracts' gas as a flat bar, one grey part per contract, all of it burned. */
 function Meter({ c }: { c: CallState }) {
   const paper = useInk(COLORS.paper);
   const burn = useInk(COLORS.slab);
-  const rebate = useInk(ACCENT);
   const [cx, , cz] = METER.center;
   const len = METER.length;
-  const g = c.call ? gasSplit(c.call) : null;
+  const parts = c.call ? meterParts(c.call) : null;
+  const starts = parts?.map((_, i) => parts.slice(0, i).reduce((s, p) => s + p.frac, 0)) ?? [];
   return (
     <group position={[cx, 0, cz]}>
-      <Pickable label="Gas meter: inspect the gas rebate" onPick={c.pickMeter} anchor={[0, 0.4, 0]}>
-        {g ? (
-          <>
-            <mesh position={[-len / 2 + (len * 0.7) / 2, 0.08, 0]} material={burn}>
-              <boxGeometry args={[len * 0.7, 0.16, METER.depth]} />
+      <Pickable label="Gas meter: inspect the gas" onPick={c.pickMeter} anchor={[0, 0.4, 0]}>
+        {parts ? (
+          parts.map((p, i) => (
+            <mesh
+              key={p.label}
+              position={[-len / 2 + len * (starts[i]! + p.frac / 2), 0.08, 0]}
+              material={burn}
+            >
+              <boxGeometry args={[len * p.frac, 0.16, METER.depth]} />
               <Outline />
             </mesh>
-            <mesh position={[len / 2 - (len * 0.3) / 2, 0.08, 0]} material={rebate}>
-              <boxGeometry args={[len * 0.3, 0.16, METER.depth]} />
-              <Outline />
-            </mesh>
-          </>
+          ))
         ) : (
           <mesh position={[0, 0.06, 0]} material={paper}>
             <boxGeometry args={[len, 0.12, METER.depth]} />
@@ -282,14 +291,16 @@ function Meter({ c }: { c: CallState }) {
           </mesh>
         )}
       </Pickable>
-      {g ? (
+      {parts ? (
         <>
           <Label position={[-len / 2 + 1.4, 0.3, -0.45]} variant="small">
-            {`about 70% burned: ${formatTgas(g.burned)} Tgas`}
+            {parts[0]!.label}
           </Label>
-          <Label position={[len / 2 - 1.4, 0.3, 0.5]} variant="small">
-            {`about 30% to contracts: ${formatTgas(g.rebate)} Tgas`}
-          </Label>
+          {parts.length > 1 ? (
+            <Label position={[len / 2 - 1.4, 0.3, 0.5]} variant="small">
+              {parts[parts.length - 1]!.label}
+            </Label>
+          ) : null}
         </>
       ) : null}
       <Anchor name="meter" position={[-len / 2 + 0.4, 0.3, 0]} />

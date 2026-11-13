@@ -576,3 +576,9 @@ Agents append one entry per finished ticket: date, ticket, what changed, anythin
 - A lesson opened by its address still starts as a closed book.
 - E2E: `e2e/contents-book.spec.ts` (spread, page turn past the cover, stage pick, reduced motion, address still closed, phone without sideways scroll). Unit: `src/ui/contents.test.ts`.
 - Review fixes: the ornament under the title is ink, not NEAR green (palette rule 1); the desk background is shared with lessons in `ink.css`; the page-turn mark is wiped from the history entry, so a reload or Back/Forward to the lesson shows its cover again; "read N of M" counts only lessons still in the book; one `lessonNumber` helper. E2E adds reload and `/#stage-N` tests.
+
+## 2026-11-13 · Lessons 7.1 and 2.2: all gas is burned, no 30% to contracts (Closes #96)
+
+- The NEAR docs (https://docs.near.org/protocol/transactions/gas): "On protocol version 86 and earlier, contracts also receive 30% of the gas they burn while executing. From protocol version 87 (nearcore 2.14.0), all of it is burned." Mainnet and testnet run protocol 88 and report `burnt_gas_reward: [0, 1]` (13 Nov 2026).
+- 7.1: layer 4 now says all the gas is burned, none goes to the contract, with the 30% as history (topic, script, manifest, verifier note, gas rows).
+- 2.2: the same outdated claim drove step 4 (an estimated 70 / 30 split). It now shows the exact gas each contract burnt, all of it burned (`gasUse`, `meterParts` for both views), with a one-line history note. Quiz Q2, the button ("Inspect gas"), the honest take and the tour are updated. The 2.2 topic and spikes-seed note are resolved.

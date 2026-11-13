@@ -68,11 +68,6 @@
   stroke: var(--ink);
   stroke-width: 2.5;
 }
-.xcc-bar-rebate {
-  fill: var(--accent);
-  stroke: var(--ink);
-  stroke-width: 2.5;
-}
 .xcc-svg-label {
   font: 600 15px var(--ui);
   fill: var(--ink);
