@@ -29,7 +29,7 @@ Releases run one at a time. You can also start one by hand: Actions → Release 
 2. Create a Cloudflare API token with **Account → Cloudflare Pages → Edit**. Add **Workers Scripts → Edit** if you also deploy the Worker.
 3. In GitHub → Settings → Secrets and variables → Actions:
    - Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
-   - Variables (optional): `VITE_CHAIN_MODE` (default `demo`), `VITE_WORKER_URL`, `VITE_RETURN_ACCOUNT_ID`, `DEPLOY_WORKER=true` (only once `worker/wrangler.toml` has a real KV namespace id and the Worker secrets are set, see `worker/README.md`).
+   - Variables (optional): `VITE_CHAIN_MODE` (default `demo`), `VITE_WORKER_URL`, `VITE_RETURN_ACCOUNT_ID`, `VITE_ENABLE_MAINNET` (default off, so the build is testnet only; `true` brings back the learner's own mainnet wallet, the `/wallet` page and lesson 4.2's tiny real swap), `DEPLOY_WORKER=true` (only once `worker/wrangler.toml` has a real KV namespace id and the Worker secrets are set, see `worker/README.md`).
 4. Create the branch: `git push origin main:release`.
 5. Optional: protect `release` (Settings → Branches) so it only changes through PRs from `main`.
 
