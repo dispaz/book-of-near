@@ -16,6 +16,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "e2e": "playwright install chromium && playwright test",
+    "verify:demo": "playwright install chromium && playwright test e2e/judge-path.spec.ts e2e/build-output.spec.ts",
     "check-secrets": "node scripts/check-secrets.mjs --staged",
     "deploy": "npm run build && npx wrangler pages deploy dist --project-name book-of-near",
     "prepare": "git config core.hooksPath .githooks || true",

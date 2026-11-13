@@ -168,6 +168,8 @@ Tracks entered: `["open", "nfts", "security"]`. Explorer links use https://testn
 ## Tests
 
 ```sh
+npm run verify:demo    # the judge's path: every lesson, every badge claim, My book, /check and the final exam
+                       # in demo mode, one line per lesson; fails on any request outside the app (about 3 minutes)
 npm test               # Vitest unit tests (src/**/*.test.ts(x), scripts/**/*.test.ts)
 npm run lint           # ESLint + Prettier check
 npm run typecheck

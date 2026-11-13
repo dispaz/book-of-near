@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
-import { answerCheck, completionOf, nextStep, seedRoute } from "./lessons/helpers";
+import { play01, play02, play03 } from "./judge/walks";
+import { completionOf, seedRoute } from "./lessons/helpers";
 
 /** Demo mode. Completion records as the lessons write them (lesson ids, evidence keys: src/badges/rules.ts). */
 const done = (lessonId: string, evidence?: Record<string, string>) => ({
@@ -260,111 +261,8 @@ test.describe("badges in demo mode", () => {
 
 // The same flow with nothing seeded: the learner really plays lessons 0.1 to 0.3 (2D view, demo mode),
 // and the claim uses the records and the 0.3 transaction the lessons themselves wrote. Each walk does
-// only what opens each gate; the lesson specs (e2e/lessons/) check every step in detail.
-const dockButton = (page: Page, name: string) =>
-  page.locator(".action-slot").getByRole("button", { name, exact: true });
-
-async function finish(page: Page, lessonId: string) {
-  await expect(page.getByRole("region", { name: "Honest take" })).toBeVisible();
-  await page.getByRole("button", { name: "Finish lesson" }).click();
-  await expect(page.getByText("Lesson done")).toBeVisible();
-  expect(await completionOf(page, lessonId)).toMatchObject({ lessonId, stage: 0, mode: "demo" });
-}
-
-async function play01(page: Page) {
-  await page.goto("/lesson/l-0-1-blockchain-basics?view=2d");
-  await page.getByRole("button", { name: "Open Ben's notebook", exact: true }).click();
-  await nextStep(page);
-  await page.getByLabel("Amount (coins)").fill("3");
-  await dockButton(page, "Send").click();
-  await nextStep(page);
-  await page.getByRole("button", { name: "Open block #1", exact: true }).click();
-  await nextStep(page);
-  await page.getByLabel("Change the text").fill("Ana->Ben 4");
-  await nextStep(page);
-  await dockButton(page, "Send").click();
-  await expect(page.getByTestId("ledger-scene")).toHaveAttribute("data-scene-state", /blocks:3/);
-  await dockButton(page, "Send").click();
-  await nextStep(page);
-  await page.getByLabel("Amount in block #1").fill("9");
-  await nextStep(page);
-  await dockButton(page, "Compare copies").click();
-  await nextStep(page);
-  await answerCheck(page, [
-    "The block's hash changes, and the next block still stores the old hash.",
-    "The transaction is rejected and no balances change.",
-    "It acts as a fingerprint: any change to the block gives a different hash.",
-  ]);
-  await nextStep(page);
-  await finish(page, "l-0-1-blockchain-basics");
-}
-
-async function play02(page: Page) {
-  await page.goto("/lesson/l-0-2-make-a-wallet?view=2d");
-  await page.getByRole("checkbox", { name: /these keys are for practice only/ }).check();
-  await nextStep(page);
-  await page.getByRole("button", { name: "Generate", exact: true }).click();
-  await nextStep(page);
-  await page.getByRole("button", { name: "Rebuild from words" }).click();
-  await nextStep(page);
-  await page.getByRole("button", { name: "Turn it into an address" }).click();
-  await nextStep(page);
-  const wallet = page.getByRole("region", { name: "Practice wallet" });
-  for (let i = 0; i < 3; i++)
-    await wallet
-      .getByRole("button", { name: /^Show the .* rule$/ })
-      .first()
-      .click();
-  await nextStep(page);
-  await page.getByRole("button", { name: "Sign", exact: true }).click();
-  await nextStep(page);
-  await page.getByRole("button", { name: "Verify", exact: true }).click();
-  await page.getByRole("textbox", { name: "Message to check" }).fill("Hellp from Book of NEAR");
-  await page.getByRole("button", { name: "Verify", exact: true }).click();
-  await nextStep(page);
-  await page.getByRole("button", { name: "Throw the keys away" }).click();
-  await nextStep(page);
-  await answerCheck(page, [
-    "Close the page. Real wallets never need your seed phrase on a website.",
-    "Verification fails, because the signature no longer matches the message.",
-    "The 32-byte ed25519 public key written as 64 hex characters.",
-  ]);
-  await nextStep(page);
-  await finish(page, "l-0-2-make-a-wallet");
-}
-
-async function play03(page: Page): Promise<string> {
-  await page.goto("/lesson/l-0-3-send-a-transaction?view=2d");
-  await expect(page.getByTestId("practice-balance")).toHaveText("5 NEAR");
-  await nextStep(page);
-  await dockButton(page, "Build").click();
-  await nextStep(page);
-  await dockButton(page, "Got it").click();
-  await nextStep(page);
-  await dockButton(page, "Sign").click();
-  const hash = (await page.getByTestId("tx-hash").textContent())!;
-  await nextStep(page);
-  await dockButton(page, "Send").click();
-  await expect(page.getByTestId("pipeline").locator('[data-phase="final"]')).toHaveAttribute(
-    "data-lit",
-    "true",
-    { timeout: 30_000 },
-  );
-  await nextStep(page);
-  await nextStep(page);
-  await nextStep(page);
-  await dockButton(page, "Open the demo explorer").click();
-  await nextStep(page);
-  await answerCheck(page, [
-    "Build, sign, broadcast, included, final.",
-    "It passes your signed transaction into the network and answers questions about the chain.",
-    "So the same signed transaction cannot be sent again to move coins twice.",
-  ]);
-  await nextStep(page);
-  await finish(page, "l-0-3-send-a-transaction");
-  return hash;
-}
-
+// only what opens each gate (the walks are shared with the judge's path, e2e/judge/walks.ts); the lesson
+// specs (e2e/lessons/) check every step in detail.
 test("plays lessons 0.1 to 0.3 in demo mode, then claims the stage 0 badge and sees it in My book", async ({
   page,
 }) => {
@@ -372,8 +270,11 @@ test("plays lessons 0.1 to 0.3 in demo mode, then claims the stage 0 badge and s
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await seedRoute(page);
+  await page.goto("/lesson/l-0-1-blockchain-basics?view=2d");
   await play01(page);
+  await page.goto("/lesson/l-0-2-make-a-wallet?view=2d");
   await play02(page);
+  await page.goto("/lesson/l-0-3-send-a-transaction?view=2d");
   const hash = await play03(page);
   expect(await completionOf(page, "l-0-3-send-a-transaction")).toMatchObject({
     evidence: { txHash: hash, mode: "demo" },
