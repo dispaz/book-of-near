@@ -4,7 +4,7 @@
  */
 import { useMemo, type ReactNode } from "react";
 import { recordedDate } from "../../../chain/nearai";
-import { CHECK_LABELS, parseTdxQuote, hexToBytes, type CheckId } from "../../../chain/nearai/tdx";
+import { parseTdxQuote, hexToBytes } from "../../../chain/nearai/tdx";
 import { enclaveNoise, PICK_LABELS, PROMPTS, SERVER_RAM } from "./tutor";
 import { ENCLAVE, HOOK, PROMPT, QUOTE, VERIFY, type PrivateAi } from "./usePrivateAi";
 
@@ -16,6 +16,10 @@ function Row({ label, children, testId }: { label: string; children: ReactNode; 
     </>
   );
 }
+
+/** What the page does not check (tdx.ts header; the honest take says the same). */
+export const NOT_CHECKED =
+  "Not checked here: revocation lists (CRLs), the chip's firmware level (TCB), certificate dates, the quoting enclave's identity, MRSEAM (the identity of Intel's TDX module) and the NVIDIA GPU evidence.";
 
 const short = (s: string, n = 6) => (s.length > 2 * n + 1 ? `${s.slice(0, n)}…${s.slice(-n)}` : s);
 const NOISE = enclaveNoise(4);
@@ -37,6 +41,12 @@ export function Facts({ m, compact = false }: { m: PrivateAi; compact?: boolean 
   const q = useQuoteParts(a?.quote);
   return (
     <div className={`pai-facts${compact ? " compact" : ""}`}>
+      {/* First, so it cannot scroll out of view in the 3D panel. */}
+      {m.notice ? (
+        <p className="pai-warn" role="alert" data-testid="quote-notice">
+          {m.notice}
+        </p>
+      ) : null}
       {step === HOOK ? (
         <dl className="pai-dl">
           <Row label="HTTPS">protects your prompt only on the way to the server</Row>
@@ -135,22 +145,16 @@ export function Facts({ m, compact = false }: { m: PrivateAi; compact?: boolean 
               One byte changed:{" "}
               {m.tamper
                 .filter((c) => !c.ok)
-                .map((c) => `✗ ${CHECK_LABELS[c.id as CheckId]}`)
+                .map((c) => `✗ ${c.label}`)
                 .join(" ")}
             </p>
           ) : null}
-          <p className="pai-note">
-            Not checked here: revocation lists, the chip's firmware level (TCB), certificate dates and the
-            NVIDIA GPU evidence.
+          <p className="pai-note" data-testid="not-checked">
+            {NOT_CHECKED}
           </p>
         </>
       ) : null}
 
-      {m.notice ? (
-        <p className="pai-warn" role="alert" data-testid="quote-notice">
-          {m.notice}
-        </p>
-      ) : null}
       {m.picked && !m.picked.reaction.act ? (
         <p
           className={`pai-note${m.picked.reaction.hint ? " not-yet" : ""}`}

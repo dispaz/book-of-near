@@ -79,7 +79,9 @@ async function walk(page: Page) {
   await expect(page.getByTestId("verdict")).toHaveText(
     "Verified: a genuine Intel TDX enclave, checked in your browser.",
   );
-  await expect(page.getByTestId("verify-checks").locator('li[data-ok="yes"]')).toHaveCount(7);
+  await expect(page.getByTestId("verify-checks").locator('li[data-ok="yes"]')).toHaveCount(8);
+  await expect(page.getByTestId("verify-checks")).toContainText("not in debug mode");
+  await expect(page.getByTestId("not-checked")).toContainText("MRSEAM");
   // Change one byte: the same checks now fail.
   await dock(page).getByRole("button", { name: "Change one byte and verify again" }).click();
   await expect(page.getByTestId("tamper-result")).toContainText(
@@ -121,7 +123,7 @@ for (const view of ["2d", "3d"] as const)
           model: "Qwen/Qwen3.8-27B",
           quoteSource: "recorded",
           recordedOn: "2026-11-13",
-          checksPassed: "7",
+          checksPassed: "8",
         },
       });
       expect(errors).toEqual([]);
@@ -200,6 +202,42 @@ test.describe(`lesson ${ID}`, () => {
     await expect(page.getByTestId("quote-notice")).toContainText("recorded on 13 Nov 2026");
     expect(nonce).toMatch(/^[0-9a-f]{64}$/);
     await expect(scene(page)).toHaveAttribute("data-scene-state", /quote:recorded/);
+    await expect(next(page)).toBeEnabled();
+  });
+
+  test("testnet mode: a live quote that cannot be read falls back to the recorded one, and step 5 still opens", async ({
+    page,
+  }) => {
+    await page.route(/^https?:\/\/(?!localhost|127\.0\.0\.1)/, (route) => {
+      const url = new URL(route.request().url());
+      if (url.host !== "cloud-api.near.ai") return route.abort();
+      const nonce = url.searchParams.get("nonce") ?? "";
+      // A well-formed report for our nonce, but its quote is not a TDX quote.
+      const report = {
+        model_attestations: [
+          {
+            model_name: "Qwen/Qwen3.8-27B",
+            signing_address: "0x" + "11".repeat(20),
+            request_nonce: nonce,
+            intel_quote: "04000200" + "00".repeat(64),
+            info: {
+              app_name: "x",
+              compose_hash: "00",
+              tcb_info: { mrtd: "", rtmr0: "", rtmr1: "", rtmr2: "", rtmr3: "" },
+            },
+          },
+        ],
+      };
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(report) });
+    });
+    await page.goto(`/lesson/${ID}?view=2d&step=4&mode=testnet`);
+    await dock(page).getByRole("button", { name: "Fetch attestation quote" }).click();
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /quote:live/);
+    await go(page, "Verify the quote yourself");
+    await dock(page).getByRole("button", { name: "Verify in my browser" }).click();
+    await expect(page.getByTestId("quote-notice")).toContainText("The live quote could not be read");
+    await expect(page.getByTestId("quote-notice")).toContainText("recorded on 13 Nov 2026");
+    await expect(scene(page)).toHaveAttribute("data-scene-state", /quote:recorded;verify:ok/);
     await expect(next(page)).toBeEnabled();
   });
 

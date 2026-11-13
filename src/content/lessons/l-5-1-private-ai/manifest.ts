@@ -26,7 +26,7 @@ export default {
     {
       caption: "A Trusted Execution Environment (TEE) seals memory inside the chip.",
       explain:
-        "A TEE is a sealed area of a processor, such as Intel TDX. The chip encrypts the memory that the code inside uses, with keys that never leave the chip. The operating system, the cloud operator and a technician with the machine in hand are all locked out: NEAR AI calls this the triple lockout. Try it: read both machines' memory as root, the all-powerful admin.",
+        "A TEE is a sealed area of a processor, such as Intel TDX (Trust Domain Extensions: Intel's TEE, which seals a whole virtual machine). The chip encrypts the memory that the code inside uses, with keys that never leave the chip. The operating system, the cloud operator and a technician with the machine in hand are all locked out: NEAR AI calls this the triple lockout. Try it: read both machines' memory as root, the all-powerful admin.",
       explainAt: "enclave",
       action: { label: "read the memory as root", gate: true },
     },
@@ -47,7 +47,7 @@ export default {
     {
       caption: "Verify the quote yourself, in your browser.",
       explain:
-        "Your browser checks each signature: the report against the quote's key, that key against Intel's quoting enclave, then the chip's certificate up to Intel's root certificate, which Intel publishes. If a single byte of the report had changed, the check would fail. Try that too, once it passes.",
+        "Your browser checks each signature. The report is signed by an attestation key (a key made in the machine to sign reports). Intel's quoting enclave (a small Intel enclave beside it) vouches for that key. The chip's PCK certificate (Intel's certificate for this one chip) signs that, and it chains up to Intel's published root. Change one byte of the report and a check fails. Try it once it passes.",
       explainAt: "seal",
       action: { label: "verify the quote", gate: true },
     },

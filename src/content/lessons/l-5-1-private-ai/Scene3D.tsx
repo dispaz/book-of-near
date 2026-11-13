@@ -261,7 +261,7 @@ function Figure({ m, compact }: { m: PrivateAi; compact: boolean }) {
         position={QUOTE}
         size={0.95}
         color={ACCENT}
-        label={m.attestation ? "TDX quote" : undefined}
+        label={m.attestation ? `${m.attestation.source} quote` : undefined}
         fate={sealed ? "done" : "idle"}
         state={m.attestation ? "ok" : "pending"}
         {...props("quote")}

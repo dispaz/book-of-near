@@ -27,6 +27,9 @@ describe("parseTdxQuote (the recorded NEAR AI Cloud quote, 13 Nov 2026)", () => 
     // Report data: the model's signing address (padded to 32 bytes), then the request's nonce.
     expect(q.reportData.startsWith(recorded.signing_address.slice(2))).toBe(true);
     expect(q.reportData.endsWith(recorded.request_nonce)).toBe(true);
+    // TDATTRIBUTES 0000001000000000: the DEBUG bit (bit 0) is clear.
+    expect(q.tdAttributes).toBe("0000001000000000");
+    expect(q.debug).toBe(false);
     expect(q.certs.map((c) => c.name)).toEqual([
       "Intel SGX PCK Certificate",
       "Intel SGX PCK Platform CA",
@@ -53,6 +56,7 @@ describe("verifyTdxQuote", () => {
       "intel-root",
       "report-data",
       "measurements",
+      "not-debug",
     ]);
     expect(checks.every((c) => c.ok)).toBe(true);
     expect(INTEL_SGX_ROOT_SHA256).toBe("44a0196b2b99f889b8e149e95b807a350e7424964399e885a7cbb8ccfab674d3");
@@ -76,5 +80,43 @@ describe("verifyTdxQuote", () => {
   it("fails the root check when the chain ends somewhere other than Intel's root", async () => {
     const ok = okOf(await verifyTdxQuote(parseTdxQuote(bytes()), expected, { rootSha256: "ab".repeat(32) }));
     expect(ok["intel-root"]).toBe(false);
+  });
+
+  it("fails the debug check when the TD runs in debug mode", async () => {
+    const b = bytes();
+    b[48 + 120] = b[48 + 120]! | 0x01; // TDATTRIBUTES bit 0: DEBUG
+    const q = parseTdxQuote(b);
+    expect(q.debug).toBe(true);
+    const ok = okOf(await verifyTdxQuote(q, expected));
+    expect(ok["not-debug"]).toBe(false);
+    // The signed report changed, so its signature fails too; the rest still hold.
+    expect(ok["quote-signature"]).toBe(false);
+    expect(ok["measurements"]).toBe(true);
+    expect(ok["chain"]).toBe(true);
+  });
+
+  it("fails the debug check on its own merit, with the signature left valid", async () => {
+    const q = { ...parseTdxQuote(bytes()), debug: true };
+    const ok = okOf(await verifyTdxQuote(q, expected));
+    expect(ok["not-debug"]).toBe(false);
+    expect(ok["quote-signature"]).toBe(true);
+  });
+
+  it("fails the chain when the intermediate certificate's signature is broken", async () => {
+    const q = parseTdxQuote(bytes());
+    const platformCa = q.certs[1]!; // Intel SGX PCK Platform CA, signed by the root
+    platformCa.signature[10] = platformCa.signature[10]! ^ 0x01;
+    const ok = okOf(await verifyTdxQuote(q, expected));
+    expect(ok["chain"]).toBe(false);
+    expect(ok["qe-signature"]).toBe(true);
+    expect(ok["intel-root"]).toBe(true);
+  });
+
+  it("fails the quoting-enclave binding when its report data does not end in zeros", async () => {
+    const q = parseTdxQuote(bytes());
+    const qeReport = new Uint8Array(q.qeReport);
+    qeReport[360] = 1;
+    const ok = okOf(await verifyTdxQuote({ ...q, qeReport }, expected));
+    expect(ok["qe-binds-key"]).toBe(false);
   });
 });

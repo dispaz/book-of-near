@@ -80,7 +80,9 @@ export const PICK_LABELS: Record<Obj, string> = {
 export type Reaction = { act?: "dump" | "send" | "fetch" | "verify"; hint?: string; detail?: string };
 
 const short = (hex: string, n = 8) => `${hex.slice(0, n)}…${hex.slice(-n)}`;
-const verified = (s: LessonState) => s.verify.status === "done" && s.verify.ok;
+/** The quote's checks have run and all passed. */
+export const isVerified = (v: Verify) => v.status === "done" && v.ok;
+const verified = (s: LessonState) => isVerified(s.verify);
 
 export function reactionsFor(s: LessonState): Record<Obj, Reaction> {
   return {
@@ -92,7 +94,7 @@ export function reactionsFor(s: LessonState): Record<Obj, Reaction> {
     },
     enclave: {
       detail: `A hardware enclave (Intel TDX): the chip encrypts its memory, so root is locked out.${
-        s.answered ? " Your prompt is inside, sealed." : ""
+        s.answered ? " On NEAR AI Cloud, your prompt goes in here, sealed." : ""
       }`,
     },
     root: root(s),
@@ -104,7 +106,7 @@ export function reactionsFor(s: LessonState): Record<Obj, Reaction> {
 function terminal(s: LessonState): Reaction {
   if (s.answered && s.asked !== null)
     return {
-      detail: `You asked: "${PROMPTS[s.asked]!.question}" It went over an encrypted channel into the enclave.`,
+      detail: `You picked: "${PROMPTS[s.asked]!.question}" On NEAR AI Cloud, a prompt goes over an encrypted channel into the enclave. Here the answer is pre-written.`,
     };
   if (s.step === PROMPT && s.asked === null) return { act: "send" };
   if (s.asked !== null) return { detail: "The answer is arriving…" };
@@ -162,7 +164,7 @@ export function describe(s: LessonState): string {
         : "Root access, a key, stands between the open server and the sealed enclave.";
     case PROMPT:
       return s.answered
-        ? "Your prompt went into the enclave, sealed, and the tutor's answer came back to your terminal."
+        ? "On NEAR AI Cloud your prompt goes into the enclave, sealed. Here the tutor's pre-written answer is on your terminal."
         : "Your terminal is ready to send a prompt to the enclave.";
     case QUOTE:
       return s.attestation

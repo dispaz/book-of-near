@@ -73,10 +73,10 @@ function Page({ m }: { m: PrivateAi }) {
   // A "not yet" pick shakes the object. Two class names in turn, so a second click shakes it again.
   const shake = (o: Obj) =>
     m.picked?.what === o && m.picked.reaction.hint ? ` pai-shake${m.picked.n % 2}` : "";
-  // The object's own pick reaction (a short pulse), replayed on every pick.
-  const pulse = (o: Obj) =>
-    m.picked?.what === o && !m.picked.reaction.hint ? ` pai-pulse${m.picked.n % 2}` : "";
-  const cls = (o: Obj) => `${shake(o)}${pulse(o)}`.trim() || undefined;
+  // The object's own pick animation (scene.css, as in 3D), replayed on every pick.
+  const pickAnim = (o: Obj) =>
+    m.picked?.what === o && !m.picked.reaction.hint ? ` pai-pick-${o}${m.picked.n % 2}` : "";
+  const cls = (o: Obj) => `${shake(o)}${pickAnim(o)}`.trim() || undefined;
   const prompt = m.asked !== null ? PROMPT_AT.enclave : PROMPT_AT.home;
   const sealed = m.verified;
   return (
@@ -160,7 +160,7 @@ function Page({ m }: { m: PrivateAi }) {
           y={pz(QUOTE[2]) + 24}
           size={58}
           color={ACCENT}
-          label={m.attestation ? "TDX quote" : "no quote yet"}
+          label={m.attestation ? `${m.attestation.source} quote` : "no quote yet"}
           fate={sealed ? "done" : "idle"}
           state={m.attestation ? "ok" : "pending"}
           onPick={() => m.pick("quote")}

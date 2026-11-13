@@ -154,7 +154,7 @@ export default function Scene(props: SceneProps) {
           weaknesses={[
             "You still trust the chipmaker: the proof is only as good as Intel's (and NVIDIA's) hardware and root keys.",
             "Side channels: attacks that measure timing or power use can leak secrets from enclaves, and chipmakers keep patching their firmware.",
-            "This page checks the signatures, not everything: not revocation lists, not whether the chip's firmware is up to date, not the NVIDIA GPU evidence, and not what the measured code does. A full check uses Intel's verifier and NEAR AI's own.",
+            "This page checks the signatures and the debug flag, not everything: not revocation lists (CRLs), not whether the chip's firmware is up to date (TCB level), not certificate dates, not the quoting enclave's identity, not MRSEAM (the identity of Intel's TDX module), not the NVIDIA GPU evidence, and not what the measured code does. A full check uses Intel's verifier and NEAR AI's own.",
             "The tutor's answers here are pre-written: chat needs an API key, so this edition shows a real quote but not a live answer.",
             "Compared with: ordinary cloud AI (the operator can read every prompt, and there is nothing to verify) and Apple Private Cloud Compute (enclaves too, but closed and Apple-only).",
           ]}

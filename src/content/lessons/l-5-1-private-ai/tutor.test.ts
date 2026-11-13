@@ -41,11 +41,15 @@ group("reactionsFor (docs/lessons/stage-5/5.1.md, Reactions)", () => {
     expect(reactionsFor(at(ENCLAVE, { dumped: true })).root.detail).toMatch(/plain text.+noise/);
   });
 
-  it("terminal: sends the prompt on step 3, then says what you asked", () => {
+  it("terminal: sends the prompt on step 3, then says what you picked, without claiming it was sent", () => {
     expect(reactionsFor(at(PROMPT, { dumped: true })).terminal).toEqual({ act: "send" });
     expect(reactionsFor(at(PROMPT, { dumped: true, asked: 0, answered: true })).terminal.detail).toBe(
-      `You asked: "${PROMPTS[0]!.question}" It went over an encrypted channel into the enclave.`,
+      `You picked: "${PROMPTS[0]!.question}" On NEAR AI Cloud, a prompt goes over an encrypted channel into the enclave. Here the answer is pre-written.`,
     );
+    const answered = at(PROMPT, { dumped: true, asked: 0, answered: true });
+    expect(reactionsFor(answered).enclave.detail).toMatch(/On NEAR AI Cloud, your prompt goes in here/);
+    expect(describe(answered)).toMatch(/^On NEAR AI Cloud your prompt goes into the enclave/);
+    expect(describe(answered)).toMatch(/pre-written/);
   });
 
   it("quote: 'Send prompt first' before the prompt, fetches on step 4, verifies on step 5", () => {

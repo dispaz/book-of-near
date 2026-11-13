@@ -4,16 +4,25 @@
  *
  * What it checks, in order (each is one `Check`):
  * 1. quote-signature: the quote's report is signed by the attestation key inside the quote (ECDSA P-256).
- * 2. qe-binds-key:    Intel's quoting enclave vouches for that key (its report holds SHA-256(key ‖ auth data)).
+ * 2. qe-binds-key:    Intel's quoting enclave vouches for that key (its report data is SHA-256(key ‖ auth
+ *                    data), then 32 zero bytes).
  * 3. qe-signature:    the quoting enclave's report is signed by the chip's PCK certificate.
  * 4. chain:           PCK certificate → PCK Platform CA → Intel SGX Root CA, each signed by the next.
  * 5. intel-root:      that root is the one Intel publishes (SHA-256 of the certificate, pinned below).
  * 6. report-data:     the signed report data holds the model's signing address and the request's nonce.
  * 7. measurements:    the measurements the server reports (MRTD, RTMR0–3) are the ones the chip signed.
+ * 8. not-debug:       the TD is not in debug mode (TDATTRIBUTES bit 0 is clear): a debug TD's memory can
+ *                    be read by the host, so its quote proves nothing about privacy.
  *
- * What it does NOT check (the honest take says so): certificate revocation lists, the TCB level (whether
- * the chip's firmware is up to date), certificate dates, the NVIDIA GPU evidence, or what the measured
- * code is. A full check is Intel's DCAP verifier plus NEAR AI's own verifier. Pure: no network.
+ * What it does NOT check (the honest take says so):
+ * - certificate revocation lists (CRLs), so a revoked chip or CA would still pass;
+ * - the TCB level: whether the chip's firmware and microcode are up to date (Intel's TCB info);
+ * - the certificates' validity dates;
+ * - the quoting enclave's identity (Intel's QE identity: its MRSIGNER, ISV SVN and attributes);
+ * - MRSEAM, the measurement of the TDX module (Intel's firmware that runs the TD), against Intel's list;
+ * - the NVIDIA GPU evidence that comes with NEAR AI Cloud's report;
+ * - what the measured code actually does.
+ * A full check is Intel's DCAP verifier plus NEAR AI's own verifier. Pure: no network.
  */
 
 /** SHA-256 of Intel's SGX Root CA certificate (DER), from
@@ -26,6 +35,8 @@ const BODY = 584;
 const SIGNED = HEADER + BODY; // 632: what the attestation key signs
 const TEE_TDX = 0x81;
 const QE_REPORT = 384;
+/** TDATTRIBUTES, in the TD report body; its bit 0 is DEBUG. */
+const TD_ATTRIBUTES = 120;
 
 export interface Cert {
   /** The subject's common name, for example "Intel SGX Root CA". */
@@ -48,6 +59,10 @@ export interface TdxQuote {
   rtmr: [string, string, string, string];
   /** The 64 bytes the code inside put in the report (hex). */
   reportData: string;
+  /** TDATTRIBUTES (hex, 8 bytes). Bit 0 of the first byte is DEBUG. */
+  tdAttributes: string;
+  /** The TD runs in debug mode (its memory can be read by the host). */
+  debug: boolean;
   signed: Uint8Array;
   signature: Uint8Array;
   attestationKey: Uint8Array;
@@ -65,7 +80,8 @@ export type CheckId =
   | "chain"
   | "intel-root"
   | "report-data"
-  | "measurements";
+  | "measurements"
+  | "not-debug";
 
 export interface Check {
   id: CheckId;
@@ -80,8 +96,9 @@ export const CHECK_LABELS: Record<CheckId, string> = {
   "qe-signature": "The quoting enclave's report is signed by the chip's own certificate (PCK).",
   chain: "The chip's certificate chains up to Intel's root: each one is signed by the next.",
   "intel-root": "That root is the one Intel publishes (fingerprint matches).",
-  "report-data": "The signed report holds the model's signing address and this request's nonce.",
+  "report-data": "The signed report holds the model's signing address and the request's nonce.",
   measurements: "The measurements the server reports are the ones the chip signed.",
+  "not-debug": "The enclave is not in debug mode, which would let the host read its memory.",
 };
 
 export function hexToBytes(hex: string): Uint8Array {
@@ -132,6 +149,8 @@ export function parseTdxQuote(b: Uint8Array): TdxQuote {
     mrtd: at(136, 48),
     rtmr: [at(328, 48), at(376, 48), at(424, 48), at(472, 48)],
     reportData: at(520, 64),
+    tdAttributes: at(TD_ATTRIBUTES, 8),
+    debug: (body[TD_ATTRIBUTES]! & 0x01) === 1,
     signed: b.subarray(0, SIGNED),
     signature,
     attestationKey,
@@ -264,7 +283,9 @@ export async function verifyTdxQuote(
     both.set(q.attestationKey);
     both.set(q.qeAuth, q.attestationKey.length);
     const h = new Uint8Array(await subtle.digest("SHA-256", both));
-    return toHex(h) === toHex(q.qeReport.subarray(320, 352));
+    // The QE's 64 bytes of report data: the hash, then 32 zero bytes.
+    const zeros = q.qeReport.subarray(352, 384).every((x) => x === 0);
+    return zeros && toHex(h) === toHex(q.qeReport.subarray(320, 352));
   });
   const qeSig = await safe(async () =>
     subtle.verify(SHA256, await spkiKey(q.certs[0]!), buf(q.qeSignature), buf(q.qeReport)),
@@ -295,6 +316,7 @@ export async function verifyTdxQuote(
     ["intel-root", intelRoot],
     ["report-data", reportData],
     ["measurements", measurements],
+    ["not-debug", !q.debug],
   ];
   return results.map(([id, ok]) => ({ id, ok, label: CHECK_LABELS[id] }));
 }

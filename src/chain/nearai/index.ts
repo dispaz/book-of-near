@@ -66,8 +66,9 @@ interface ModelAttestation {
 /** Reads the model's part of a report (the shape recorded on 13 Nov 2026). Throws if it is missing. */
 export function parseReport(json: unknown, model = TUTOR_MODEL): Omit<Attestation, "source"> {
   const list = (json as { model_attestations?: ModelAttestation[] }).model_attestations;
-  const m = list?.find((a) => a.model_name === model) ?? list?.[0];
-  if (!m?.intel_quote || !m.info) throw new Error("NEAR AI Cloud sent no quote for the model.");
+  const m = list?.find((a) => a.model_name === model);
+  if (!m) throw new Error(`NEAR AI Cloud sent no report for ${model}.`);
+  if (!m.intel_quote || !m.info) throw new Error("NEAR AI Cloud sent no quote for the model.");
   const tcb = typeof m.info.tcb_info === "string" ? JSON.parse(m.info.tcb_info) : m.info.tcb_info;
   let gpus = { arch: "none", count: 0 };
   if (m.nvidia_payload) {
@@ -92,7 +93,51 @@ export function parseReport(json: unknown, model = TUTOR_MODEL): Omit<Attestatio
   };
 }
 
-/** Asks NEAR AI Cloud for a fresh report with our nonce. No key needed. */
+/** The most this page reads from the attestation endpoint (a real report is about 60 kB). */
+export const MAX_REPORT_BYTES = 1_000_000;
+
+const TOO_BIG = "NEAR AI Cloud sent more than 1 MB.";
+const NO_ANSWER = "NEAR AI Cloud did not answer.";
+
+/** Reads a response body as text, but never more than `max` bytes, and stops when `signal` aborts. */
+async function readCapped(res: Response, max: number, signal: AbortSignal): Promise<string> {
+  const declared = Number(res.headers.get("content-length"));
+  if (declared > max) throw new Error(TOO_BIG);
+  if (!res.body) return "";
+  const reader = res.body.getReader();
+  const aborted = new Promise<never>((_, reject) => {
+    const stop = () => reject(new Error(NO_ANSWER));
+    if (signal.aborted) stop();
+    else signal.addEventListener("abort", stop, { once: true });
+  });
+  aborted.catch(() => {});
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await Promise.race([reader.read(), aborted]);
+      if (done) break;
+      total += value.length;
+      if (total > max) throw new Error(TOO_BIG);
+      chunks.push(value);
+    }
+  } catch (e) {
+    void reader.cancel().catch(() => {});
+    throw e instanceof Error && e.message === TOO_BIG ? e : new Error(NO_ANSWER);
+  }
+  const all = new Uint8Array(total);
+  let o = 0;
+  for (const c of chunks) {
+    all.set(c, o);
+    o += c.length;
+  }
+  return new TextDecoder().decode(all);
+}
+
+/**
+ * Asks NEAR AI Cloud for a fresh report with our nonce. No key needed. Gives up after `timeoutMs`, refuses
+ * a body over 1 MB, and throws unless the report carries our nonce (so an old one cannot be replayed).
+ */
 export async function fetchAttestation(
   nonce: string,
   {
@@ -101,12 +146,23 @@ export async function fetchAttestation(
   }: { fetch?: Fetch; timeoutMs?: number } = {},
 ): Promise<Attestation> {
   const url = `${ATTESTATION_URL}?model=${encodeURIComponent(TUTOR_MODEL)}&nonce=${nonce}&signing_algo=ecdsa`;
+  const signal = AbortSignal.timeout(timeoutMs);
   let res: Response;
   try {
-    res = await f(url, { signal: AbortSignal.timeout(timeoutMs) });
+    res = await f(url, { signal });
   } catch {
-    throw new Error("NEAR AI Cloud did not answer.");
+    throw new Error(NO_ANSWER);
   }
   if (!res.ok) throw new Error(`NEAR AI Cloud answered ${res.status}.`);
-  return { source: "live", ...parseReport(await res.json()) };
+  const text = await readCapped(res, MAX_REPORT_BYTES, signal);
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new Error("NEAR AI Cloud sent a report that is not JSON.");
+  }
+  const a: Attestation = { source: "live", ...parseReport(json) };
+  if (a.nonce.toLowerCase() !== nonce.toLowerCase())
+    throw new Error("NEAR AI Cloud sent a quote for another nonce.");
+  return a;
 }

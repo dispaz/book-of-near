@@ -7,9 +7,24 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { SceneProps } from "../../../app/types";
 import { useChainMode } from "../../../chain/ChainContext";
-import { fetchAttestation, newNonce, RECORDED_ATTESTATION, type Attestation } from "../../../chain/nearai";
-import { hexToBytes, parseTdxQuote, quoteHash, verifyTdxQuote, type Check } from "../../../chain/nearai/tdx";
-import { PROMPTS, reactionsFor, type LessonState, type Obj, type Reaction, type Verify } from "./tutor";
+import {
+  fetchAttestation,
+  newNonce,
+  RECORDED_ATTESTATION,
+  recordedDate,
+  type Attestation,
+} from "../../../chain/nearai";
+import { hexToBytes, quoteHash, type Check } from "../../../chain/nearai/tdx";
+import {
+  isVerified,
+  PROMPTS,
+  reactionsFor,
+  type LessonState,
+  type Obj,
+  type Reaction,
+  type Verify,
+} from "./tutor";
+import { tamperCheck, verifyAttestation } from "./verify";
 import { ENCLAVE, PROMPT, QUOTE, VERIFY } from "./steps";
 
 export * from "./steps";
@@ -20,15 +35,7 @@ export type PrivateAi = ReturnType<typeof usePrivateAi>;
 const DEMO_FETCH_MS = 600;
 /** The answer arrives a few words at a time. */
 const WORD_MS = 45;
-/** The byte the tamper test changes: the first byte of MRTD in the signed report. */
-const TAMPER_AT = 48 + 136;
-
-const checkAgainst = (a: Attestation, bytes: Uint8Array) =>
-  verifyTdxQuote(parseTdxQuote(bytes), {
-    address: a.signingAddress,
-    nonce: a.nonce,
-    measurements: a.measurements,
-  });
+const RECORDED_ON = recordedDate(RECORDED_ATTESTATION.recordedOn!);
 
 export function usePrivateAi({
   step,
@@ -88,61 +95,41 @@ export function usePrivateAi({
         if (live.current) setAttestation(RECORDED_ATTESTATION);
         return;
       }
-      const nonce = newNonce();
-      const a = await fetchAttestation(nonce);
-      if (!live.current) return;
-      if (a.nonce !== nonce) throw new Error("NEAR AI Cloud sent a quote for another nonce.");
-      setAttestation(a);
+      const a = await fetchAttestation(newNonce());
+      if (live.current) setAttestation(a);
     } catch (e) {
       if (!live.current) return;
-      setNotice(`${(e as Error).message} Showing the quote recorded on 13 Nov 2026 instead.`);
+      setNotice(`${(e as Error).message} Showing the quote recorded on ${RECORDED_ON} instead.`);
       setAttestation(RECORDED_ATTESTATION);
     } finally {
       if (live.current) setFetching(false);
     }
   };
 
-  /** Step 5: every check, for real, in this browser. */
+  /** Step 5: every check, for real, in this browser. A live quote that fails or cannot be read falls
+   * back to the recorded one (with a notice), so the step can still be finished. */
   const runVerify = async () => {
-    if (!attestation || verify.status === "running" || (verify.status === "done" && verify.ok)) return;
+    if (!attestation || verify.status === "running" || isVerified(verify)) return;
     setVerify({ status: "running" });
-    let a = attestation;
-    let checks: Check[];
-    try {
-      checks = await checkAgainst(a, hexToBytes(a.quote));
-      if (!checks.every((c) => c.ok) && a.source === "live") {
-        // A live quote that fails: say so, and carry on with the recorded one.
-        if (live.current)
-          setNotice(
-            `The live quote failed: ${checks
-              .filter((c) => !c.ok)
-              .map((c) => c.label)
-              .join(" ")} Checking the quote recorded on 13 Nov 2026 instead.`,
-          );
-        a = RECORDED_ATTESTATION;
-        if (live.current) setAttestation(a);
-        checks = await checkAgainst(a, hexToBytes(a.quote));
-      }
-    } catch (e) {
-      if (live.current) {
-        setNotice(`The quote could not be read: ${(e as Error).message}`);
-        setVerify({ status: "idle" });
-      }
+    const v = await verifyAttestation(attestation);
+    if (!live.current) return;
+    if (v.notice) setNotice(v.notice);
+    if (v.attestation !== attestation) setAttestation(v.attestation);
+    if ("error" in v) {
+      setVerify({ status: "idle" });
       return;
     }
-    const h = await quoteHash(hexToBytes(a.quote));
+    const h = await quoteHash(hexToBytes(v.attestation.quote));
     if (!live.current) return;
     setHash(h);
-    setVerify({ status: "done", ok: checks.every((c) => c.ok), checks });
+    setVerify({ status: "done", ok: v.ok, checks: v.checks });
   };
 
   /** After a pass: change one byte of the signed report and check again. It must fail. */
   const tamperTest = async () => {
     if (!attestation) return;
-    const bytes = hexToBytes(attestation.quote);
-    bytes[TAMPER_AT] = bytes[TAMPER_AT]! ^ 0x01;
-    const checks = await checkAgainst(attestation, bytes);
-    if (live.current) setTamper(checks);
+    const checks = await tamperCheck(attestation);
+    if (live.current && checks) setTamper(checks);
   };
 
   // Opened at a later step (a link, a reload): do the free, offline steps so the page is not empty.
@@ -157,7 +144,7 @@ export function usePrivateAi({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, dumped, asked, attestation, fetching, verify.status]);
 
-  const ok = verify.status === "done" && verify.ok;
+  const ok = isVerified(verify);
 
   // Gates.
   useEffect(() => {
