@@ -14,8 +14,8 @@ export const BADGE_BASE_URI = "https://book-of-near.pages.dev/badges";
 /**
  * Number of stage badges (stages 0 to 7), one art file each in public/badges/. The testnet contract's
  * stage count is 8 (checked 13 Nov 2026, docs/badge-contract.md). A stage is only claimable once it has a
- * rule in rules.ts (stages 0 to 5 today): until then a stage with lessons shows "Badge not available yet"
- * and one without shows "Not open yet".
+ * rule in rules.ts (all eight, stages 0 to 7, today): a stage with lessons but no rule would show "Badge not
+ * available yet" and one without lessons "Not open yet".
  */
 export const STAGE_BADGES = 8;
 
