@@ -30,16 +30,16 @@ const QUESTIONS: CheckQuestion[] = [
     ],
   },
   {
-    prompt: "Where does the 30% gas rebate go?",
+    prompt: "What happens to the gas a contract's code burns?",
     options: [
-      { text: "To the account of the contract whose code ran.", correct: true },
+      { text: "All of it is burned. No account receives it.", correct: true },
       {
-        text: "To the NEAR Foundation treasury.",
-        why: "The protocol credits it to the contract's own account.",
+        text: "30% goes to the contract's account.",
+        why: "That was the rule up to protocol version 86. From version 87, all of it is burned.",
       },
       {
-        text: "Back to the user as a discount.",
-        why: "Users pay the normal gas price; the 70 / 30 split happens inside the protocol.",
+        text: "It goes back to the user as a discount.",
+        why: "Burnt gas is paid for and destroyed.",
       },
     ],
   },
@@ -64,7 +64,7 @@ const QUESTIONS: CheckQuestion[] = [
 
 /**
  * Lesson 2.2. The state lives in one hook (useCrossCall) and is drawn by the 2D or the 3D view. The step
- * actions (the order, the gas rebate, the failure, Check, Honest take) sit outside the views, so both
+ * actions (the order, the gas, the failure, Check, Honest take) sit outside the views, so both
  * use the same ones.
  */
 export default function Scene(props: SceneProps) {
@@ -96,7 +96,7 @@ export default function Scene(props: SceneProps) {
       ) : null}
       {step === GAS ? (
         <SceneAction onClick={c.inspect} disabled={!c.call} done={c.inspected}>
-          {c.inspected ? "Gas rebate shown ✓" : "Inspect gas rebate"}
+          {c.inspected ? "Gas shown ✓" : "Inspect gas"}
         </SceneAction>
       ) : null}
       {step === FAIL ? (
@@ -125,7 +125,6 @@ export default function Scene(props: SceneProps) {
         <HonestTake
           comparedWith="Ethereum"
           strengths={[
-            "Builders get paid by the protocol. 30% of the gas burnt running a contract's code goes to that contract's account, so useful code earns from its own use.",
             "No classic reentrancy. A call hands control away until a fresh callback receipt runs, which stops the kind of attack behind Ethereum's DAO hack before it starts.",
             "Calls cross shards. Asynchronous receipts let contracts on different shards work together without locking the whole network.",
           ]}
@@ -133,7 +132,6 @@ export default function Scene(props: SceneProps) {
             "No rollback across receipts. When a called contract fails, the caller's changes stay. Recovering needs careful callback code that restores state and refunds money.",
             "Slower round trips. Every hop between contracts waits for a later block, about a second each. Ethereum finishes a chain of calls inside one transaction.",
             "Callbacks can starve. If the attached gas runs out before the callback, it never runs and state can get stuck. Builders must keep gas for it.",
-            "Ethereum's calls are synchronous and atomic: if any call fails, the whole transaction reverts. It gives contract authors no share of the gas.",
           ]}
         />
       ) : null}

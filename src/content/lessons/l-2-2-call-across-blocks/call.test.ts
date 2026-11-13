@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { DemoChain } from "../../../chain/DemoChain";
 import { DEMO_BUYER, DEMO_SHOP } from "../../../chain/demo/shop";
 import { callMethod } from "../../../chain/ops";
-import { tgas } from "../../../chain/units";
-import { callFromOutcome, contractHops, gasSplit, illustrateFailure, varsFor } from "./call";
+import { formatTgas, tgas } from "../../../chain/units";
+import { callFromOutcome, contractHops, gasUse, illustrateFailure, varsFor } from "./call";
+import { meterParts } from "./parts";
 import { RECORDED } from "./recorded";
 
 async function order(outOfStock = false) {
@@ -38,16 +39,15 @@ describe("a cross-contract call read from the chain", () => {
     expect(call.receiptHops).toBe(2);
   });
 
-  it("splits the contracts' burnt gas 70 / 30, the 30% to each contract that ran", async () => {
+  it("adds up the gas each contract burnt (all of it burned: no 30% contract reward since protocol 87)", async () => {
     const { call } = await order();
-    const g = gasSplit(call);
+    const g = gasUse(call);
     const sum = contractHops(call).reduce((s, h) => s + h.gasBurnt, 0n);
     expect(g.contractGas).toBe(sum);
-    // 30%, rounded down per contract.
-    expect((sum * 3n) / 10n - g.rebate).toBeLessThanOrEqual(1n);
-    expect(g.burned + g.rebate).toBe(sum);
     expect(g.byContract.map((c) => c.accountId).sort()).toEqual([DEMO_BUYER, DEMO_SHOP].sort());
-    expect(g.byContract.reduce((s, c) => s + c.rebate, 0n)).toBe(g.rebate);
+    expect(g.byContract.reduce((s, c) => s + c.gas, 0n)).toBe(sum);
+    for (const c of g.byContract) expect(c.gas).toBeGreaterThan(0n);
+    expect(g).not.toHaveProperty("rebate");
     expect(g.total).toBeGreaterThanOrEqual(sum);
   });
 
@@ -63,6 +63,31 @@ describe("a cross-contract call read from the chain", () => {
     expect((await chain.viewCall(DEMO_BUYER, "reserved")).result).toBeNull();
   });
 
+  it("the gas meter has one burned part per contract, sized by its gas, A first", async () => {
+    const { call } = await order();
+    const parts = meterParts(call);
+    const g = gasUse(call);
+    expect(parts).toHaveLength(2);
+    expect(parts[0]!.label).toMatch(/^A · buyer burned \d+\.\d\d Tgas$/);
+    expect(parts[1]!.label).toMatch(/^B · shop burned \d+\.\d\d Tgas$/);
+    expect(parts.reduce((s, p) => s + p.frac, 0)).toBeCloseTo(1);
+    for (const p of parts) expect(p.frac).toBeGreaterThanOrEqual(0.2);
+    expect(parts[0]!.label).toContain(formatTgas(g.byContract[0]!.gas));
+    expect(parts.map((p) => [p.start, p.showLabel, p.align])).toEqual([
+      [0, true, "start"],
+      [parts[0]!.frac, true, "end"],
+    ]);
+  });
+
+  it("gives a third contract its own letter and keeps its label off the crowded bar", async () => {
+    const { call } = await order();
+    const extra = { ...contractHops(call)[1]!, to: "third.demo.testnet", index: 99 };
+    const parts = meterParts({ ...call, hops: [...call.hops, extra] });
+    expect(parts.map((p) => p.label.split(" burned")[0])).toEqual(["A · buyer", "B · shop", "C · third"]);
+    expect(parts.map((p) => p.showLabel)).toEqual([true, false, true]);
+    expect(parts[2]!.start + parts[2]!.frac).toBeCloseTo(1);
+  });
+
   it("gives the learner's numbers for the captions", async () => {
     const { call } = await order();
     const v = varsFor(call);
@@ -70,7 +95,7 @@ describe("a cross-contract call read from the chain", () => {
     expect(v.firstBlock).toBe(hops[1]!.blockHeight.toLocaleString("en-US"));
     expect(v.secondBlock).toBe(hops[2]!.blockHeight.toLocaleString("en-US"));
     expect(v.gasSpent).toMatch(/^\d+\.\d\d$/);
-    expect(v.rebate).toMatch(/^\d+\.\d\d$/);
+    expect(v).not.toHaveProperty("rebate");
   });
 });
 

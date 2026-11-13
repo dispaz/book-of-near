@@ -38,10 +38,9 @@ export default {
       explainAt: "shards",
     },
     {
-      caption:
-        "Layer 4: the contract runs as Wasm, and 30% of the gas it burns goes to the contract's account.",
+      caption: "Layer 4: the contract runs as Wasm, and the NEAR paid for its gas is destroyed.",
       explain:
-        "The verifier contract checks the intent's terms. It is WebAssembly (Wasm) code, like the contract you deployed in Stage 3. Its storage is paid for with staked NEAR that can be returned (storage staking). Of the gas the call burns, 70% is destroyed and 30% goes to the contract's account.",
+        "The verifier contract checks the intent's terms. It is WebAssembly (Wasm) code, like the contract you deployed in Stage 3. Its storage is paid for with staked NEAR that can be returned (storage staking). The NEAR paid for the gas the call uses is destroyed. Up to and including protocol version 86 (a version of NEAR's rules), the contract's account got 30% of it; from version 87, none.",
       explainAt: "verifier",
     },
     {

@@ -5,13 +5,22 @@
  * pick, as in 3D. Only draws the shared state from useCrossCall.
  */
 import type { SceneProps } from "../../../app/types";
-import { formatTgas } from "../../../chain/units";
 import { SvgPickable } from "../../../scene-kit/svg";
 import { SvgParcel, SvgReceiptSlip, SvgScroll } from "../../../scene-kit/svg/objects";
 import { STAGE_ACCENTS } from "../../../scene-kit/theme";
-import { gasSplit } from "./call";
 import { A, B, COLUMNS, FIGURE, METER, partsAt, ROW_Z, SLIP } from "./layout3d";
-import { calleeFailed, describe, Facts, namesOf, runningOn, shardOf, short, slotsOf, tagOf } from "./parts";
+import {
+  calleeFailed,
+  describe,
+  Facts,
+  meterParts,
+  namesOf,
+  runningOn,
+  shardOf,
+  short,
+  slotsOf,
+  tagOf,
+} from "./parts";
 import { CHECK, FAIL, HOOK, ORDER } from "./steps";
 import type { CallState } from "./useCrossCall";
 
@@ -171,33 +180,48 @@ function Row({ c }: { c: CallState }) {
   );
 }
 
-/** Step 4: the contracts' gas as a bar, 70% burned (grey) and 30% to the contracts (accent). */
+/** Step 4: the contracts' gas as a bar, one grey part per contract, all of it burned. */
 function Meter({ c }: { c: CallState }) {
   const w = METER.length * SCALE;
   const h = METER.depth * SCALE;
   const x = px(METER.center[0]) - w / 2;
   const y = pz(METER.center[2]) - h / 2 + 10;
-  const g = c.call ? gasSplit(c.call) : null;
+  const parts = c.call ? meterParts(c.call) : null;
   return (
     <g data-explain="meter">
       <SvgPickable
-        label="Gas meter: inspect the gas rebate"
+        label="Gas meter: inspect the gas"
         onPick={c.pickMeter}
         focus={[x - 6, y - 24, w + 12, h + 48]}
       >
         <rect x={x} y={y} width={w} height={h} rx={8} className="xcc-bar" />
-        {g ? (
-          <>
-            <rect x={x} y={y} width={w * 0.7} height={h} rx={8} className="xcc-bar-burn" />
-            <rect x={x + w * 0.7} y={y} width={w * 0.3} height={h} rx={8} className="xcc-bar-rebate" />
-            <text x={x} y={y - 6} className="xcc-svg-label small">
-              {`about 70% burned: ${formatTgas(g.burned)} Tgas`}
-            </text>
-            <text x={x + w} y={y - 6} textAnchor="end" className="xcc-svg-label small">
-              {`about 30% to contracts: ${formatTgas(g.rebate)} Tgas`}
-            </text>
-          </>
-        ) : null}
+        {parts
+          ? parts.map((p) => {
+              const end = p.align === "end";
+              return (
+                <g key={p.label}>
+                  <rect
+                    x={x + w * p.start}
+                    y={y}
+                    width={w * p.frac}
+                    height={h}
+                    rx={8}
+                    className="xcc-bar-burn"
+                  />
+                  {p.showLabel ? (
+                    <text
+                      x={end ? x + w : x}
+                      y={y - 6}
+                      textAnchor={end ? "end" : "start"}
+                      className="xcc-svg-label small"
+                    >
+                      {p.label}
+                    </text>
+                  ) : null}
+                </g>
+              );
+            })
+          : null}
       </SvgPickable>
     </g>
   );
