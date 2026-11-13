@@ -2,7 +2,7 @@
 
 An interactive course that teaches NEAR from zero, as a pop-up book you can touch. Each lesson is a scene in black ink on paper, in 2D and 3D. You make a key, send a transaction, give an app a key that can do only one thing, follow a transaction across shards and sign an Ethereum transaction from a NEAR account. Every lesson ends with an "Honest take": what NEAR does well and what it does badly. Finishing a stage lets you claim a non-transferable NFT badge on NEAR testnet.
 
-Built solo for the NEAR Hackathon 2026 (build window 1 Nov 00:00 UTC to 14 Nov 23:59 UTC). **This submission is testnet only:** the default build has every mainnet path switched off (build flag `VITE_ENABLE_MAINNET`, off unless set to `true`).
+Built solo for the NEAR Hackathon 2026 (build window 1 Nov 00:00 UTC to 14 Nov 23:59 UTC). **This submission is testnet only:** the default build has every mainnet wallet and signing path switched off (build flag `VITE_ENABLE_MAINNET`, off unless set to `true`).
 
 - **Live demo:** https://book-of-near.pages.dev (demo mode by default; no wallet needed)
 - **Repository:** https://github.com/dispaz/book-of-near
@@ -74,8 +74,7 @@ Stage 4, Any Chain (chain abstraction)
 Stage 5, Enclave (user-owned AI and privacy)
 
 - **5.1 Ask a private AI and verify it.** **Read the memory as root** on a normal server and in an enclave, **Send prompt** (the tutor's answers are pre-written), **Fetch attestation quote** from NEAR AI Cloud (recorded in demo mode, fresh in testnet mode) and **Verify in my browser**; **Change one byte and verify again** fails.
-
-- **5.2 An agent with no owner.** **Open the .env file** to see a bot whose key anyone with the file can use. **Start the agent**: it makes its own key inside the enclave. **Register the agent** with the agent contract (its checks run in the browser, written from the reference contract, with measurements recorded from 5.1's quote). **Sign as the developer** is refused ("Agent not registered"), and **Register a changed copy** fails ("Attestation verification failed"). **Run the agent**: it asks `v1.signer-prod.testnet` to sign for the contract's Ethereum address; nothing is sent.
+- **5.2 An agent with no owner.** **Open the .env file** to see a bot whose key anyone with the file can use. **Start the agent**: it makes its own key (made in your browser, standing in for the enclave). **Register the agent** with the agent contract (its checks run in the browser, written from the reference contract, with measurements recorded from 5.1's quote). **Sign as the developer** is refused ("Agent not registered"), and **Register a changed copy** fails ("Attestation verification failed"). **Run the agent**: the contract model builds the `sign` call it would send to `v1.signer-prod.testnet` (1 yoctoNEAR) and shows the Ethereum address it would sign for, derived in your browser. Nothing is sent or signed.
 
 Stage 6, Citizen (ecosystem and governance)
 

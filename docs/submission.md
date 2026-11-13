@@ -21,7 +21,7 @@ Everything the owner needs to submit Book of NEAR to the NEAR Hackathon 2026. Ru
 
 The live site, https://book-of-near.pages.dev, goes in the README and in the X post, not in the demo URL field.
 
-### "What you built" (1,617 characters)
+### "What you built" (1,635 characters)
 
 Count it again after any edit: copy the text between the markers into a file and run `wc -m`.
 
@@ -33,7 +33,7 @@ The problem: newcomers cannot realistically learn how NEAR works. Docs assume pr
 
 The product: 19 lessons in 8 stages. You make a key pair and its 12 recovery words, send a transaction and watch it reach finality, claim a name.testnet account, give an app a function-call key that can call one contract and watch the chain refuse its misuse, batch actions and see them roll back, follow a transaction across shards, deploy a contract and see a cross-contract callback fail, and sign an Ethereum Sepolia transaction from your NEAR account with Chain Signatures. A dry NEAR Intents quote shows a cross-chain swap.
 
-How NEAR fits in: in testnet mode the lessons run on real NEAR testnet through one Chain interface. Finishing a stage lets you claim a non-transferable NFT badge on our testnet contract (badges.bon-badges-mwe57oab.testnet). A Cloudflare Worker checks your own testnet transactions before signing the claim. "My book" shows your badges and /check verifies anyone's.
+How NEAR fits in: in testnet mode the lessons run on real NEAR testnet through one Chain interface. Finishing a stage lets you claim a non-transferable NFT badge on our testnet contract (badges.bon-badges-mwe57oab.testnet). A Cloudflare Worker checks your own testnet transactions before signing the claim for stages 0 to 4. "My book" shows your badges and /check verifies anyone's.
 
 Demo mode needs no wallet and no network, so judges can run it with one command: npm install && npm run dev. Live: https://book-of-near.pages.dev. Testnet only. Built with Claude Code agents, disclosed in the README.
 
