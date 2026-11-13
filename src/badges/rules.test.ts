@@ -25,13 +25,13 @@ const stage0 = (mode: "demo" | "testnet") => [
 ];
 
 describe("STAGE_RULES: the required lessons, in one place", () => {
-  it("lists every lesson a learner can open in stages 0 to 4, and nothing planned", () => {
+  it("lists every lesson a learner can open in stages 0 to 5, and nothing planned", () => {
     for (const rule of STAGE_RULES) {
       const stage = registry.stages.find((s) => s.id === rule.stage)!;
       const open = stage.lessons.filter(isOpen).map((l) => l.id);
       expect(rule.lessons).toEqual(open);
     }
-    expect(STAGE_RULES.map((r) => r.stage)).toEqual([0, 1, 2, 3, 4]);
+    expect(STAGE_RULES.map((r) => r.stage)).toEqual([0, 1, 2, 3, 4, 5]);
   });
 
   it("asks each evidence lesson for keys it really reports", () => {
@@ -46,8 +46,8 @@ describe("STAGE_RULES: the required lessons, in one place", () => {
 });
 
 describe("CLAIMABLE_BADGES: the total My book and the checker show", () => {
-  it("counts the stages with a rule (0 to 4), the same stages the demo contract knows", () => {
-    expect(CLAIMABLE_BADGES).toBe(5);
+  it("counts the stages with a rule (0 to 5), the same stages the demo contract knows", () => {
+    expect(CLAIMABLE_BADGES).toBe(6);
     expect(STAGE_RULES.map((r) => r.stage)).toEqual([...Array(CLAIMABLE_BADGES).keys()]);
     expect(DEMO_STAGE_COUNT).toBe(CLAIMABLE_BADGES);
   });
@@ -101,5 +101,21 @@ describe("claimReadiness", () => {
       "demo",
     );
     expect(all.ready).toBe(true);
+  });
+
+  it("stage 5 needs lessons 5.1 and 5.2 and nothing on chain: neither lesson sends a transaction", () => {
+    expect(STAGE_RULES[5]).toEqual({
+      stage: 5,
+      lessons: ["l-5-1-private-ai", "l-5-2-agent-with-no-owner"],
+      evidence: [],
+    });
+    const one = claimReadiness(5, [rec("l-5-1-private-ai", "demo")], "demo");
+    expect(one.missing).toEqual([
+      { lessonId: "l-5-2-agent-with-no-owner", reason: "not-finished", text: "Finish lesson 5.2." },
+    ]);
+    const both = [rec("l-5-1-private-ai", "demo"), rec("l-5-2-agent-with-no-owner", "demo")];
+    expect(claimReadiness(5, both, "demo")).toEqual({ ready: true, missing: [] });
+    // No evidence to redo on testnet; the badge contract still needs the stage 4 badge first.
+    expect(claimReadiness(5, both, "testnet").ready).toBe(true);
   });
 });

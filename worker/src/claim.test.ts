@@ -130,6 +130,21 @@ describe("claim (POST /claim): checks evidence on testnet, then signs", () => {
     expect((await claim({ accountId: ME, stage: 3, evidence: wrongContract }, deps)).status).toBe(403);
   });
 
+  it("stage 5 has no transaction to check: it signs without asking testnet (the contract needs stage 4 first)", async () => {
+    const k = await testKey();
+    const look = lookup({});
+    const deps = { contractId: CONTRACT, signingKey: k.secret, lookup: look, now: NOW };
+    const r = await claim({ accountId: ME, stage: 5, evidence: {} }, deps);
+    expect(r.status).toBe(200);
+    const body = r.body as { stage: number; expiresAtMs: number; signature: string };
+    expect(body.stage).toBe(5);
+    expect(await k.verify(body.signature, stageMessage(CONTRACT, ME, 5, body.expiresAtMs))).toBe(true);
+    expect(look.asked).toEqual([]);
+    // Stages 6 and 7 have no rule yet.
+    for (const stage of [6, 7])
+      expect((await claim({ accountId: ME, stage, evidence: {} }, deps)).status).toBe(400);
+  });
+
   it("stage 3 refuses someone else's deploy, even when the evidence names its parent", async () => {
     const k = await testKey();
     const txs = { ...stage1Txs, ALICE: ok("alice.testnet", "x.alice.testnet", [{ type: "DeployContract" }]) };

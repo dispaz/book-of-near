@@ -13,12 +13,23 @@ import { checkFunds } from "./funds";
 import { signWithConfirmation, type SigningOutcome } from "./signing";
 import type { FundsRequirement, MainnetWallet, SigningPreview, SigningRequest, WalletState } from "./types";
 import { formatNear } from "../units";
+import { ENABLE_MAINNET } from "../../app/flags";
 import "./wallet.css";
 
-/** Loads the real wallet (NEAR Connect) only when the learner asks for it. Replaceable in tests. */
+/**
+ * Loads the real wallet (NEAR Connect) only when the learner asks for it. Replaceable in tests. With
+ * VITE_ENABLE_MAINNET off (the default, testnet-only build) the import is dead code, so the NEAR Connect
+ * chunk is left out of the build entirely and the loader only refuses.
+ *
+ * The one place that reads the variable itself instead of `ENABLE_MAINNET` (src/app/flags.ts), with the
+ * same test: the bundler folds the condition only inside this module. Through the imported constant, the
+ * NEAR Connect chunks (about 62 KB) were still written to dist/, though never loaded.
+ */
 export type MainnetWalletLoader = () => Promise<MainnetWallet>;
-const loadReal: MainnetWalletLoader = async () =>
-  (await import("./NearConnectWallet")).createNearConnectWallet();
+const loadReal: MainnetWalletLoader =
+  import.meta.env.VITE_ENABLE_MAINNET === "true"
+    ? async () => (await import("./NearConnectWallet")).createNearConnectWallet()
+    : () => Promise.reject(new Error("This build is testnet only: the mainnet wallet is switched off."));
 
 interface MainnetWalletApi {
   // The wallet itself is deliberately not exposed: lessons can only sign through `sign`.
@@ -244,9 +255,16 @@ export function WalletPanel() {
         </p>
       ) : null}
       {notice ? <p role="status">{notice}</p> : null}
-      <button type="button" className="wallet-link" disabled={loading} onClick={() => setUseReal(simulated)}>
-        {loading ? "Loading…" : simulated ? "Use my own wallet" : "Back to the demo wallet"}
-      </button>
+      {ENABLE_MAINNET ? (
+        <button
+          type="button"
+          className="wallet-link"
+          disabled={loading}
+          onClick={() => setUseReal(simulated)}
+        >
+          {loading ? "Loading…" : simulated ? "Use my own wallet" : "Back to the demo wallet"}
+        </button>
+      ) : null}
     </section>
   );
 }

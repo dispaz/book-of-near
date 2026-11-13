@@ -207,7 +207,7 @@ Diff of everything built during the hackathon: https://github.com/dispaz/book-of
 
 ### Not part of this submission (present in the code, not verified live)
 
-- **Mainnet wallet sign-in** (`@hot-labs/near-connect`, page `/wallet`) and the **optional tiny real mainnet swap** at the end of lesson 4.2 ("Use my own wallet"). Both are switched off in the default build behind `VITE_ENABLE_MAINNET` (off unless set). A real mainnet sign-in and signature were never tested.
+- **Mainnet wallet sign-in** (`@hot-labs/near-connect`, page `/wallet`) and the **optional tiny real mainnet swap** at the end of lesson 4.2 ("Use my own wallet"). Both are switched off in the default build behind `VITE_ENABLE_MAINNET` (off unless set to `true`). A real mainnet sign-in and signature were never tested.
 - **Mainnet badge minting**: not built.
 
 ## More documents

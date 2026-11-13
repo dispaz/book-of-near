@@ -1,0 +1,38 @@
+/* Stage 5's flat enclave (SvgEnclave.tsx), shared by lessons 5.1 and 5.2. */
+.pai-perimeter {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+.pai-perimeter.on {
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-dasharray: none;
+}
+.pai-chip {
+  fill: var(--ink);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.pai-pins line {
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+.pai-lock {
+  fill: var(--accent);
+  stroke: var(--card);
+  stroke-width: 2;
+}
+.pai-shackle {
+  fill: none;
+  stroke: var(--card);
+  stroke-width: 2.5;
+}
+.pai-svg-note {
+  font: 600 13px var(--ui);
+  fill: var(--mute);
+}
+.pai-svg-note.mid {
+  text-anchor: middle;
+}
