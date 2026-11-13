@@ -1,13 +1,14 @@
 /** Closing card: the name, the promise, where to try it. */
 import { AbsoluteFill, spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { CARD, FONTS, INK, MUTE, NEAR } from "../theme";
+import { CARD, FONTS, INK, MUTE, NEAR, withAlpha } from "../theme";
 import { Paper, Scribble, WriteOn } from "../components/ink";
+import { NearCoin } from "../components/NearCoin";
 import { LINKS, TURN } from "../storyboard";
 
 export function Outro() {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const coin = spring({ frame: frame - TURN - 30, fps, config: { damping: 7 } });
+  const coin = spring({ frame: frame - TURN - 26, fps, config: { damping: 11, mass: 1.1 } });
   return (
     <Paper>
       <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", textAlign: "center" }}>
@@ -52,27 +53,26 @@ export function Outro() {
           Works in demo mode with no wallet, or for real on NEAR testnet.
         </div>
       </AbsoluteFill>
+      {/* A NEAR coin drops onto the page with a spin and settles, rocking gently. */}
       <div
         style={{
           position: "absolute",
-          right: 170,
-          top: 150,
-          width: 110,
-          height: 110,
-          borderRadius: "50%",
-          background: NEAR.green,
-          border: `6px solid ${INK}`,
-          transform: `scale(${coin}) rotateY(${(1 - coin) * 540}deg)`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: FONTS.serif,
-          fontWeight: 700,
-          fontSize: 58,
-          color: INK,
+          right: 160,
+          top: 120,
+          transform: `translateY(${(1 - coin) * -260}px) rotate(${Math.sin(frame / 14) * 3 * coin}deg)`,
+          opacity: Math.min(1, coin * 3),
         }}
       >
-        N
+        <NearCoin size={160} turn={(1 - coin) * 2} />
+        <div
+          style={{
+            margin: "6px auto 0",
+            width: 110 * coin,
+            height: 14,
+            borderRadius: "50%",
+            background: withAlpha(INK, 0.18),
+          }}
+        />
       </div>
     </Paper>
   );

@@ -2,14 +2,41 @@
  * The storyboard: the one place for the video's order, timing and copy. Edit here, then preview in
  * `npm run studio`. The total must stay under 60 s (checked in Root.tsx).
  *
- * `clip` names a recording made by `npm run capture` (capture/shots.ts has the same ids). A scene without
- * a recording yet shows a labelled placeholder, so the video always renders.
+ * `clip` names a recording made by `npm run capture` (capture/record.ts has the same ids). Beats are
+ * named moments the recorder writes into the manifest (seconds into the take): notes, push-ins and speed
+ * ramps are timed to them, so they stay in sync when a shot is re-recorded. A scene without a recording
+ * yet shows a labelled placeholder, so the video always renders.
  */
 export const FPS = 30;
 export const WIDTH = 1920;
 export const HEIGHT = 1080;
 
-export type ClipId = "home" | "book-open" | "learn" | "stages" | "check" | "claim" | "proof";
+export type ClipId = "contents" | "learn" | "check" | "claim" | "proof";
+
+export interface Note {
+  /** The beat the note appears at; the first note needs none (it appears as the page turns in). */
+  at?: string;
+  /** Small label over the note, like a chapter heading. */
+  eyebrow: string;
+  /** The margin note: plain English, short, no hype (CLAUDE.md "Learner copy"). */
+  note: string;
+}
+
+/** A camera move on the footage, eased in from the beat: scale, and the point to push in on (0..1). */
+export interface Push {
+  at?: string;
+  scale: number;
+  x?: number;
+  y?: number;
+}
+
+/** Play the footage between two beats faster, with a small on-screen tag saying so. */
+export interface Ramp {
+  from: string;
+  to: string;
+  rate: number;
+  label?: string;
+}
 
 export type Scene =
   | { kind: "intro"; id: string; seconds: number }
@@ -18,105 +45,115 @@ export type Scene =
       id: string;
       seconds: number;
       clip: ClipId;
-      /** Stage accent for the frame and the margin note. */
+      /** Stage accent for the frame and the margin notes. */
       stage: number;
-      /** Small label over the note, like a chapter heading. */
-      eyebrow: string;
-      /** The margin note: plain English, short, no hype (CLAUDE.md "Learner copy"). */
-      note: string;
-      /** Slow push-in on the footage: end scale (1 = none). */
-      zoom?: number;
-      /** Where the push-in heads, as CSS transform-origin. */
-      focus?: string;
+      notes: Note[];
+      push?: Push[];
+      ramps?: Ramp[];
     }
   | { kind: "badges"; id: string; seconds: number }
   | { kind: "wallet"; id: string; seconds: number }
   | { kind: "outro"; id: string; seconds: number };
 
 export const SCENES: Scene[] = [
-  { kind: "intro", id: "intro", seconds: 4 },
+  { kind: "intro", id: "intro", seconds: 4.5 },
   {
     kind: "clip",
-    id: "home",
-    clip: "home",
-    seconds: 5,
+    id: "contents",
+    clip: "contents",
+    seconds: 9,
     stage: 0,
-    eyebrow: "The contents",
-    note: "Eight stages, from a blank page to chain abstraction.",
-    zoom: 1.04,
-  },
-  {
-    kind: "clip",
-    id: "book-open",
-    clip: "book-open",
-    seconds: 6,
-    stage: 0,
-    eyebrow: "Every lesson is a book",
-    note: "Open it, and the page pops up into 3D.",
-    zoom: 1.06,
-    focus: "65% 55%",
+    notes: [
+      { eyebrow: "The contents", note: "Eight stages, from a blank page to chain abstraction." },
+      { at: "pick", eyebrow: "Pick a lesson", note: "The book turns to it, and the page pops up in 3D." },
+    ],
+    push: [
+      { scale: 1.06, x: 0.75, y: 0.35 },
+      { at: "pick", scale: 1 },
+    ],
   },
   {
     kind: "clip",
     id: "learn",
     clip: "learn",
-    seconds: 9,
+    seconds: 11,
     stage: 0,
-    eyebrow: "Learn by doing",
-    note: "Send coins, open blocks, break the chain and watch it heal.",
-    zoom: 1.03,
-  },
-  {
-    kind: "clip",
-    id: "stages",
-    clip: "stages",
-    seconds: 8,
-    stage: 2,
-    eyebrow: "Turn to any stage",
-    note: "Named accounts, shards, contracts, one account on every chain.",
+    notes: [
+      { eyebrow: "Learn by doing", note: "A lesson menu, and every object on the page reacts." },
+      { at: "block", eyebrow: "Take a closer look", note: "Open a block: inside is the transaction." },
+    ],
+    push: [{ scale: 1 }, { at: "block", scale: 1.45, x: 0.6, y: 0.62 }],
   },
   {
     kind: "clip",
     id: "check",
     clip: "check",
-    seconds: 4,
+    seconds: 10,
     stage: 0,
-    eyebrow: "Then a quick check",
-    note: "Three questions, and an honest take on NEAR.",
+    notes: [
+      { eyebrow: "Then a quick check", note: "Three questions on what you just did." },
+      { at: "wrong", eyebrow: "Not quite", note: "Read each question carefully. It tells you why." },
+      { at: "right", eyebrow: "All right", note: "Right answers let you finish the lesson." },
+    ],
+    ramps: [{ from: "retry", to: "right", rate: 1.6 }],
   },
   {
     kind: "clip",
     id: "claim",
     clip: "claim",
-    seconds: 6,
+    seconds: 10,
     stage: 0,
-    eyebrow: "Finish a stage, earn its badge",
-    // True for both takes: the demo capture (badge kept in the browser) and --testnet (a real NFT).
-    note: "Claim it. On testnet it is minted to your own account.",
-    zoom: 1.05,
-    focus: "50% 40%",
+    notes: [
+      { eyebrow: "Stage 0 finished", note: "Your badge is ready to claim." },
+      {
+        at: "claiming",
+        eyebrow: "On NEAR testnet",
+        note: "The app checks your work, your account sends the claim.",
+      },
+      { at: "claimed", eyebrow: "Claimed", note: "Minted to your own testnet account." },
+    ],
+    push: [
+      { scale: 1.12, x: 0.72, y: 0.45 },
+      { at: "shelf", scale: 1 },
+    ],
+    ramps: [{ from: "claiming", to: "claimed", rate: 3, label: "testnet confirms · sped up 3×" }],
   },
   {
     kind: "clip",
     id: "proof",
     clip: "proof",
-    seconds: 4,
+    seconds: 3.5,
     stage: 0,
-    eyebrow: "Anyone can check it",
-    note: "A real NFT on NEAR testnet. It cannot be sold or sent.",
+    notes: [{ eyebrow: "Anyone can check it", note: "A real NFT on testnet. It cannot be sold or sent." }],
   },
-  { kind: "badges", id: "badges", seconds: 6 },
+  { kind: "badges", id: "badges", seconds: 5 },
   { kind: "wallet", id: "wallet", seconds: 5 },
-  { kind: "outro", id: "outro", seconds: 4 },
+  { kind: "outro", id: "outro", seconds: 4.5 },
 ];
 
 /** Frames each scene overlaps the next (the page-turn transition). */
-export const TURN = 12;
+export const TURN = 20;
+
+export const framesOf = (s: Scene) => Math.round(s.seconds * FPS);
+
+/** Where each scene starts, in frames. */
+export const sceneStarts = (scenes: Scene[] = SCENES) => {
+  let from = 0;
+  return scenes.map((s) => {
+    const start = from;
+    from += framesOf(s) - TURN;
+    return start;
+  });
+};
 
 export const totalFrames = (scenes: Scene[] = SCENES) =>
-  scenes.reduce((n, s) => n + Math.round(s.seconds * FPS), 0) - TURN * (scenes.length - 1);
+  scenes.reduce((n, s) => n + framesOf(s), 0) - TURN * (scenes.length - 1);
 
 export const LINKS = {
   site: "book-of-near.pages.dev",
   repo: "github.com/dispaz/book-of-near",
 } as const;
+
+/** The soundtrack (generated by scripts/make-audio.mjs) and its level. */
+export const MUSIC = { src: "audio/music.wav", volume: 0.55, fadeIn: 1.2, fadeOut: 2.5 } as const;
+export const PAGE_SOUND = { src: "audio/page.wav", volume: 0.3 } as const;

@@ -2,5 +2,6 @@ node_modules/
 out/
 public/clips/
 public/badges/
+public/audio/
 .capture-profile/
 capture/testnet-progress.json

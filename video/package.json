@@ -5,11 +5,11 @@
   "type": "module",
   "description": "The Book of NEAR demo video: real app footage (Playwright) composed with ink-style animation (Remotion).",
   "scripts": {
-    "sync": "node scripts/sync-assets.mjs",
+    "sync": "node scripts/sync-assets.mjs && node scripts/make-audio.mjs",
     "capture": "node scripts/sync-assets.mjs && node --experimental-strip-types capture/record.ts",
-    "studio": "node scripts/sync-assets.mjs && remotion studio src/index.ts",
-    "render": "node scripts/sync-assets.mjs && remotion render src/index.ts DemoVideo out/book-of-near-demo.mp4",
-    "still": "node scripts/sync-assets.mjs && remotion still src/index.ts DemoVideo out/still.png --frame=60",
+    "studio": "npm run sync && remotion studio src/index.ts",
+    "render": "npm run sync && remotion render src/index.ts DemoVideo out/book-of-near-demo.mp4",
+    "still": "npm run sync && remotion still src/index.ts DemoVideo out/still.png --frame=60",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

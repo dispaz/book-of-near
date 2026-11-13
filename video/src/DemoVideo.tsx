@@ -1,46 +1,67 @@
 /**
- * The demo video: SCENES from storyboard.ts in order, each turning in over the last like a page.
+ * The demo video: SCENES from storyboard.ts in order, each turning in over the last like a page, over a
+ * calm soundtrack with a soft page sound on every turn.
  */
-import { AbsoluteFill, Sequence, spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { FPS, SCENES, TURN, type Scene } from "./storyboard";
-import { ClipFrame, type ClipManifest } from "./components/ClipFrame";
+import { AbsoluteFill, Audio, interpolate, Sequence, staticFile, useVideoConfig } from "remotion";
+import { framesOf, MUSIC, PAGE_SOUND, SCENES, sceneStarts, TURN, type Scene } from "./storyboard";
+import { ClipFrame } from "./components/ClipFrame";
 import { MarginNote, PageTurn, Paper } from "./components/ink";
 import { Intro } from "./scenes/Intro";
 import { Badges } from "./scenes/Badges";
 import { Wallet } from "./scenes/Wallet";
 import { Outro } from "./scenes/Outro";
-import { FONTS, INK, STAGES, accentOf } from "./theme";
+import { INK, accentOf } from "./theme";
+import { planClip, type ClipInfo } from "./timing";
+
+export type ClipManifest = Partial<Record<string, ClipInfo>>;
 
 export interface DemoVideoProps extends Record<string, unknown> {
   clips: ClipManifest;
+  /** Whether public/audio has the soundtrack (scripts/make-audio.mjs); checked in Root.tsx. */
+  audio: boolean;
 }
 
 const URLS: Record<string, string> = {
-  home: "book-of-near.pages.dev",
-  "book-open": "book-of-near.pages.dev/lesson/l-0-1-blockchain-basics",
+  contents: "book-of-near.pages.dev",
   learn: "book-of-near.pages.dev/lesson/l-0-1-blockchain-basics",
-  stages: "book-of-near.pages.dev/lesson/…",
   check: "book-of-near.pages.dev/lesson/l-0-1-blockchain-basics",
-  claim: "book-of-near.pages.dev/my-book",
-  proof: "book-of-near.pages.dev/check",
+  claim: "book-of-near.pages.dev/?mode=testnet",
+  proof: "book-of-near.pages.dev/check?mode=testnet",
 };
 
-export function DemoVideo({ clips }: DemoVideoProps) {
-  let from = 0;
+export function DemoVideo({ clips, audio }: DemoVideoProps) {
+  const { durationInFrames, fps } = useVideoConfig();
+  const starts = sceneStarts();
   return (
     <AbsoluteFill style={{ backgroundColor: INK }}>
-      {SCENES.map((scene) => {
-        const frames = Math.round(scene.seconds * FPS);
-        const start = from;
-        from += frames - TURN;
-        return (
-          <Sequence key={scene.id} from={start} durationInFrames={frames} name={scene.id}>
-            <PageTurn durationInFrames={frames}>
-              <SceneBody scene={scene} clips={clips} />
-            </PageTurn>
-          </Sequence>
-        );
-      })}
+      {SCENES.map((scene, i) => (
+        <Sequence key={scene.id} from={starts[i]} durationInFrames={framesOf(scene)} name={scene.id}>
+          <PageTurn durationInFrames={framesOf(scene)}>
+            <SceneBody scene={scene} clips={clips} />
+          </PageTurn>
+        </Sequence>
+      ))}
+      {audio ? (
+        <>
+          <Audio
+            src={staticFile(MUSIC.src)}
+            volume={(f) =>
+              MUSIC.volume *
+              interpolate(
+                f,
+                [0, MUSIC.fadeIn * fps, durationInFrames - MUSIC.fadeOut * fps, durationInFrames],
+                [0, 1, 1, 0],
+                { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+              )
+            }
+          />
+          {starts.slice(1).map((s) => (
+            <Sequence key={s} from={s} durationInFrames={TURN + 10} layout="none">
+              <Audio src={staticFile(PAGE_SOUND.src)} volume={PAGE_SOUND.volume} />
+            </Sequence>
+          ))}
+        </>
+      ) : null}
     </AbsoluteFill>
   );
 }
@@ -55,64 +76,50 @@ function SceneBody({ scene, clips }: { scene: Scene; clips: ClipManifest }) {
       return <Wallet />;
     case "outro":
       return <Outro />;
-    case "clip": {
-      const accent = accentOf(scene.stage);
-      return (
-        <Paper>
-          <ClipFrame
-            clip={scene.clip}
-            info={clips[scene.clip]}
-            accent={accent}
-            seconds={scene.seconds}
-            zoom={scene.zoom}
-            focus={scene.focus}
-            url={URLS[scene.clip] ?? ""}
-          />
-          {scene.clip === "stages" ? <StageChips seconds={scene.seconds} /> : null}
-          <MarginNote
-            eyebrow={scene.eyebrow}
-            note={scene.note}
-            accent={accent}
-            style={{ left: 60, bottom: 40, maxWidth: 640 }}
-          />
-        </Paper>
-      );
-    }
+    case "clip":
+      return <ClipScene scene={scene} info={clips[scene.clip]} />;
   }
 }
 
-/** The stage tabs along the top edge, the current one lifted, stepping along with the montage. */
-function StageChips({ seconds }: { seconds: number }) {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const shown = STAGES.slice(0, 5);
-  const per = (seconds * fps - TURN) / shown.length;
-  const current = Math.min(shown.length - 1, Math.floor(Math.max(0, frame - TURN) / per));
+function ClipScene({ scene, info }: { scene: Extract<Scene, { kind: "clip" }>; info?: ClipInfo }) {
+  const frames = framesOf(scene);
+  const accent = accentOf(scene.stage);
+  const plan = info ? planClip(info, frames, scene.ramps) : undefined;
+  const at = (beat: string | undefined, fallback: number) => plan?.beatFrame(beat, fallback) ?? fallback;
+  // Notes: the first lands as the page turns in, each later one on its beat (never too close together).
+  const noteFrames: number[] = [];
+  scene.notes.forEach((n, i) => {
+    const want = i === 0 ? TURN : at(n.at, TURN + i * 60);
+    noteFrames.push(Math.max(want, (noteFrames[i - 1] ?? -99) + 45));
+  });
+  const pushes = (scene.push ?? []).map((p) => ({ ...p, frame: p.at ? at(p.at, 0) : 0 }));
   return (
-    <div style={{ position: "absolute", right: 150, top: 18, display: "flex", gap: 14 }}>
-      {shown.map((s, i) => {
-        const lift = spring({ frame: frame - TURN - i * per, fps, config: { damping: 12 } });
-        const on = i === current;
-        return (
-          <div
-            key={s.id}
-            style={{
-              padding: "6px 18px",
-              border: `4px solid ${INK}`,
-              borderRadius: 12,
-              background: on ? accentOf(s.id) : "white",
-              transform: `translateY(${on ? -6 * lift : 0}px)`,
-              fontFamily: FONTS.ui,
-              fontWeight: 700,
-              fontSize: 24,
-              color: INK,
-              boxShadow: on ? `5px 5px 0 ${INK}` : "none",
-            }}
-          >
-            {s.id} · {s.name}
-          </div>
-        );
-      })}
-    </div>
+    <Paper>
+      <ClipFrame
+        clip={scene.clip}
+        info={info}
+        segments={plan?.segments ?? []}
+        pushes={pushes}
+        accent={accent}
+        url={URLS[scene.clip] ?? ""}
+      />
+      {scene.notes.map((n, i) => (
+        <Sequence
+          key={i}
+          from={noteFrames[i]! - 1}
+          durationInFrames={(noteFrames[i + 1] ?? frames + 1) - noteFrames[i]! + 1}
+          layout="none"
+        >
+          <MarginNote
+            eyebrow={n.eyebrow}
+            note={n.note}
+            accent={accent}
+            delay={1}
+            exitAt={i < scene.notes.length - 1 ? noteFrames[i + 1]! - noteFrames[i]! + 1 : undefined}
+            style={{ left: 56, bottom: 36, maxWidth: 620 }}
+          />
+        </Sequence>
+      ))}
+    </Paper>
   );
 }
