@@ -39,8 +39,20 @@ describe("reactionsFor: the device (build)", () => {
   it("shows the built fields once built", () => {
     const r = reactionsFor(at({ step: FEE, built: BUILT, amount: parseNear("0.01") }));
     expect(r.device).toEqual({
-      detail: "Built on your device: transfer 0.01 NEAR to book-of-near.testnet, nonce 7.",
+      detail:
+        "Built on your device: transfer 0.01 NEAR to book-of-near.testnet, nonce 7, recent block hash Hash1111.",
     });
+  });
+  it("says 'not yet' while the accounts are still loading on the Build step", () => {
+    expect(reactionsFor(at({ step: BUILD, me: null })).device).toEqual({
+      hint: "Not yet: your practice account is still loading.",
+    });
+    expect(reactionsFor(at({ step: BUILD, receiver: null })).device).toEqual({
+      hint: "Not yet: your practice account is still loading.",
+    });
+  });
+  it("stays pickable while building", () => {
+    expect(reactionsFor(at({ step: BUILD, busy: "build" })).device).toEqual({ detail: "Building…" });
   });
   it("asks to build first when a later step was opened directly", () => {
     expect(reactionsFor(at({ step: SIGN })).device.hint).toBe("Build the transaction first (step 2).");
@@ -58,6 +70,14 @@ describe("reactionsFor: the key (sign)", () => {
   });
   it("signs on the Sign step", () => {
     expect(reactionsFor(at({ step: SIGN, built: BUILT, canSign: true })).key).toEqual({ act: true });
+  });
+  it("stays pickable while signing", () => {
+    expect(reactionsFor(at({ step: SIGN, built: BUILT, busy: "sign" })).key).toEqual({ detail: "Signing…" });
+  });
+  it("asks to sign first when a later step was opened unsigned", () => {
+    expect(reactionsFor(at({ step: SEND, built: BUILT })).key).toEqual({
+      hint: "Sign the transaction first (step 4).",
+    });
   });
   it("shows the transaction ID once signed", () => {
     expect(reactionsFor(at({ step: SEND, built: BUILT, signed: SIGNED })).key).toEqual({
@@ -89,6 +109,16 @@ describe("reactionsFor: the RPC node (send)", () => {
   it("stays pickable while sending", () => {
     expect(reactionsFor(at({ step: SEND, signed: SIGNED, busy: "send" })).node).toEqual({
       detail: "Sending…",
+    });
+  });
+  it("asks to send first when a later step was opened unsent", () => {
+    expect(reactionsFor(at({ step: FINAL, signed: SIGNED })).node).toEqual({
+      hint: "Send the transaction first (step 5).",
+    });
+  });
+  it("says the send failed after an error", () => {
+    expect(reactionsFor(at({ step: SEND, signed: SIGNED, error: { title: "x" } })).node).toEqual({
+      hint: "Not sent: see the message.",
     });
   });
 });

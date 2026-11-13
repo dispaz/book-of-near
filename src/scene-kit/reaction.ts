@@ -64,6 +64,9 @@ export function approach(value: number, target: number, dt: number, seconds: num
   return value < target ? Math.min(target, value + step) : Math.max(target, value - step);
 }
 
+/** 0 → 1 → 0 over `seconds`, eased at both ends, then 0: the shape of most objects' own pick motions. */
+export const swell = (t: number, seconds: number) => Math.sin(Math.PI * Math.min(1, t / seconds));
+
 export type HopPose = { lift: number; turn: number; playing: boolean };
 
 /**

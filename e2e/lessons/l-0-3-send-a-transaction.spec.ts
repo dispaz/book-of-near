@@ -510,7 +510,7 @@ test.describe(`lesson ${ID}: both views`, () => {
     await expectPickDetail(
       page,
       "Build the transaction",
-      /^Built on your device: transfer 0\.01 NEAR to book-of-near\.testnet, nonce \d+\.$/,
+      /^Built on your device: transfer 0\.01 NEAR to book-of-near\.testnet, nonce \d+, recent block hash \S+\.$/,
     );
     await expectPickPlaysAndSettles(page, "Build the transaction");
     await nextStep(page);

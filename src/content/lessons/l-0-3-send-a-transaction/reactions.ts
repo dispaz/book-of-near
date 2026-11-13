@@ -5,6 +5,7 @@
  * never cut short) while the state moves on. Pure, no three.js at run time.
  */
 import type { Object3D } from "three";
+import { swell } from "../../../scene-kit/reaction";
 import { near, short } from "./tx";
 import { BUILD, SEND, SIGN, type Tx } from "./useTransaction";
 
@@ -23,7 +24,7 @@ export type ReactionInput = Pick<
   | "receiver"
 > & {
   me: { accountId: string } | null;
-  built: { receiverId: string; nonce: bigint } | null;
+  built: { receiverId: string; nonce: bigint; blockHash: string } | null;
   signed: { hash: string } | null;
   events: { broadcast?: unknown };
   error: unknown;
@@ -49,19 +50,25 @@ function receiver(tx: ReactionInput): Reaction {
   return { detail: `The app's return account${tx.receiver ? ` ${short(tx.receiver, 10, 6)}` : ""}${holds}.` };
 }
 
+/** While another action runs (it settles in a moment). */
+const WAIT: Reaction = { hint: "Not yet: wait a moment." };
+
 function device(tx: ReactionInput): Reaction {
-  if (tx.built)
+  const b = tx.built;
+  if (b)
     return {
       detail: `Built on your device: transfer ${tx.amount !== null ? near(tx.amount) : ""} to ${short(
-        tx.built.receiverId,
+        b.receiverId,
         10,
         6,
-      )}, nonce ${tx.built.nonce.toString()}.`,
+      )}, nonce ${b.nonce.toString()}, recent block hash ${short(b.blockHash, 6, 4)}.`,
     };
   if (tx.canBuild) return { act: true };
   if (tx.step < BUILD) return { hint: "Not yet: you build the transaction on step 2." };
-  if (tx.step === BUILD) return { detail: tx.busy === "build" ? "Building…" : "Type an amount, then build." };
-  return { hint: "Build the transaction first (step 2)." };
+  if (tx.step > BUILD) return { hint: "Build the transaction first (step 2)." };
+  if (tx.busy === "build") return { detail: "Building…" };
+  if (!tx.me || !tx.receiver) return { hint: "Not yet: your practice account is still loading." };
+  return WAIT;
 }
 
 function key(tx: ReactionInput): Reaction {
@@ -72,7 +79,9 @@ function key(tx: ReactionInput): Reaction {
   if (tx.canSign) return { act: true };
   if (!tx.built) return { hint: "Build the transaction first (step 2)." };
   if (tx.step < SIGN) return { hint: "Not yet: you sign on step 4." };
-  return { detail: "Signing…" };
+  if (tx.step > SIGN) return { hint: "Sign the transaction first (step 4)." };
+  if (tx.busy === "sign") return { detail: "Signing…" };
+  return WAIT;
 }
 
 function node(tx: ReactionInput): Reaction {
@@ -80,13 +89,13 @@ function node(tx: ReactionInput): Reaction {
   if (tx.canSend) return { act: true };
   if (!tx.signed) return { hint: "Sign the transaction first (step 4)." };
   if (tx.step < SEND) return { hint: "Not yet: you send on step 5." };
+  if (tx.busy === "send") return { detail: "Sending…" };
   if (tx.error) return { hint: "Not sent: see the message." };
-  return { detail: "Sending…" };
+  if (tx.step > SEND) return { hint: "Send the transaction first (step 5)." };
+  return WAIT;
 }
 
 // ---------- each object's own pick animation (Pickable's `pickMotion`) ----------
-
-const ease = (t: number, seconds: number) => Math.sin(Math.PI * Math.min(1, t / seconds));
 
 /**
  * The objects' pick animations, on the group Pickable hands over (already posed for hover and press:
@@ -97,7 +106,7 @@ export const MOTIONS = {
   account(o: Object3D, t: number) {
     const T = 0.6;
     if (t >= T) return false;
-    const k = ease(t, T);
+    const k = swell(t, T);
     o.position.y += 0.35 * k;
     o.scale.multiplyScalar(1 + 0.12 * k);
     return true;
@@ -106,16 +115,16 @@ export const MOTIONS = {
   device(o: Object3D, t: number) {
     const T = 0.5;
     if (t >= T) return false;
-    const k = ease(t, T);
+    const k = swell(t, T);
     o.scale.y *= 1 - 0.3 * k;
-    o.position.y += 0.15 * ease(t, T / 2) * (t < T / 2 ? 1 : 0);
+    o.position.y += 0.15 * swell(t, T / 2) * (t < T / 2 ? 1 : 0);
     return true;
   },
   /** The key tips down and stamps, like pressing a seal into wax. */
   key(o: Object3D, t: number) {
     const T = 0.7;
     if (t >= T) return false;
-    const k = ease(t, T);
+    const k = swell(t, T);
     o.position.y -= 0.6 * k;
     o.rotation.z -= 0.5 * k;
     return true;
@@ -125,7 +134,7 @@ export const MOTIONS = {
     const T = 0.8;
     if (t >= T) return false;
     o.rotation.z += 0.18 * Math.sin((t / T) * Math.PI * 2) * (1 - t / T);
-    o.position.y += 0.25 * ease(t, T);
+    o.position.y += 0.25 * swell(t, T);
     return true;
   },
 };
