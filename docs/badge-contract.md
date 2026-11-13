@@ -169,7 +169,7 @@ Page `/exam` (pill "Final exam" on the contents page). Code in `src/exam/`, Work
 - **Chain interface.** `claimFinal(claim)` sends `claim_final({ route, rarity, expires_at_ms, signature })` with no deposit; `finalBadgeOf(accountId)` reads the `extra.kind === "final"` token from `nft_tokens_for_owner`. DemoChain's badge contract has `claim_final`, `has_final_badge` and `get_route` with the contract's rules and the same routes as the exam gate; demo final badges are kept in `localStorage` (`bon:demo-final:v1`).
 - **UI.** A claim card on `/exam` under a pass (and on later visits while the kept result is a pass): ready (with the rarity and why), claiming, claimed, failed. `/my-book` and `/check` show a final badge slot under the stage shelf.
 - **Art.** `npm run badges:art` also writes `public/badges/final-<rarity>.svg` (a book with a seal; one to four stars, the ring and the ribbon tell the tiers apart without colour) and their hashes in `art.json`.
-- **Daily cap.** `claim_final` counts against the contract's `daily_cap` like a stage badge (sandbox test "daily cap"), and the Worker's `FINAL_GLOBAL_DAILY` caps signatures.
+- **Daily cap.** `claim_final` calls the same `count_mint` as `claim_stage`, so it counts against the contract's `daily_cap` (the sandbox test `daily_cap_stops_minting` covers that check on `claim_stage`), and the Worker's `FINAL_GLOBAL_DAILY` caps signatures.
 
 ### Owner steps for the testnet final badge (not run by the agent)
 
