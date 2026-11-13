@@ -26,7 +26,9 @@
     "build:artifact": "node scripts/build-artifact.mjs",
     "build:badge": "node scripts/build-badge.mjs",
     "test:badge": "npm run build:badge && cargo test --manifest-path contracts/badge/sandbox-tests/Cargo.toml",
-    "badges:art": "node scripts/badges-art.mjs"
+    "badges:art": "node scripts/badges-art.mjs",
+    "video": "node scripts/video/record.mjs && node scripts/video/render.mjs",
+    "video:render": "node scripts/video/render.mjs"
   },
   "dependencies": {
     "@fontsource/caveat": "^5.3.0",

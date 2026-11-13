@@ -179,6 +179,19 @@ npm run test:badge     # badge contract sandbox tests (needs Rust 1.86 and cargo
 
 On macOS the e2e browser draws 3D on the GPU; elsewhere it uses software WebGL with fewer workers (`E2E_GL=swiftshader`, `E2E_WORKERS` override). Opt-in live tests: `npm run test:testnet` and `npm run test:testnet:lessons` (need a funded testnet key in a file outside the repo; see `docs/chain.md`).
 
+## Demo video (made by an agent)
+
+The 2:14 demo video is recorded from the app, not by hand. `npm run video` builds the app, serves it on :4246, drives it in demo mode with Playwright (headless Chromium drawing 3D on the GPU, 1920×1080, every request off localhost blocked), then cuts the clips with ffmpeg, burns in captions and adds a macOS `say` voice-over.
+
+```sh
+FFMPEG=/path/to/ffmpeg npm run video   # or with ffmpeg on PATH
+```
+
+- **Needs** macOS (`say`, and the GPU for the 3D shots) and an ffmpeg with libx264 and libass. Without Homebrew, install the `ffmpeg-static` npm package in a scratch folder (`npm i ffmpeg-static`) and point `FFMPEG` at its `ffmpeg` binary.
+- **Writes** `video/book-of-near-demo.mp4` (voice-over and captions) and `video/book-of-near-demo-captions-only.mp4` (silent, for your own voice), both H.264 High, AAC 48 kHz, kept out of git; and `video/book-of-near-demo.srt` and `video/voiceover.txt`, which are committed.
+- **Change it** in `scripts/video/narration.json` (captions, voice-over, shot lengths) and `scripts/video/record.mjs` (one function per shot). `npm run video:render` re-cuts without recording again; `SHOTS=05 node scripts/video/record.mjs` re-records one shot. `VOICE=Samantha` picks another voice.
+- **Headless by default**, so the run never takes window focus while you work. It prints the WebGL renderer it got and warns if that is software (SwiftShader). `VIDEO_HEADED=1 npm run video` records in a visible Chromium instead: one window for all shots, parked off-screen (macOS may still bring Chromium forward once, at launch).
+
 ## AI disclosure and libraries (rule Q-005)
 
 The code in this repository was written with **Claude Code (Anthropic) agents**, under the owner's direction: the owner wrote and triaged the spec and tickets, made the product decisions, and reviewed and merged the pull requests. A separate reviewer agent reviewed every PR before merge. Facts in the lesson copy were researched by agents from primary sources and are listed per lesson in `docs/lessons/`.

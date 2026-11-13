@@ -1,0 +1,65 @@
+{
+  "note": "One entry per shot, in order. length: seconds in the final cut; a clip whose action runs longer is sped up to fit (at most 2x). caption: burned in and written to the .srt. voice: read by macOS say (spells the URL out). Every claim must be true of the app (check README.md).",
+  "shots": [
+    {
+      "id": "01-title",
+      "length": 8,
+      "caption": "Learning NEAR is hard. The docs assume you know crypto, and explainers are static. Book of NEAR lets you do the real thing.",
+      "voice": "Learning NEAR is hard. The docs assume you know crypto, and explainers are static. Book of NEAR lets you do the real thing."
+    },
+    {
+      "id": "02-quiz",
+      "length": 9,
+      "caption": "A first visit starts with three questions. They pick your path: newcomer, crypto veteran or developer.",
+      "voice": "A first visit starts with three questions. They pick your path: newcomer, crypto veteran, or developer."
+    },
+    {
+      "id": "03-transaction",
+      "length": 14,
+      "caption": "Demo mode simulates the chain in your browser, so you need no wallet. Build, sign and send a transaction, and watch it reach Final.",
+      "voice": "Demo mode simulates the chain in your browser, so you need no wallet. Build, sign and send a transaction, and watch it reach Final."
+    },
+    {
+      "id": "04-limited-key",
+      "length": 14,
+      "caption": "Give an app a key that can do only one thing. Then the app is hacked: the chain refuses each attack and says why.",
+      "voice": "Give an app a key that can do only one thing. Then the app is hacked. The chain refuses each attack, and says why."
+    },
+    {
+      "id": "05-shards-3d",
+      "length": 21,
+      "caption": "Every lesson has a flat view and a 3D pop-up book. Follow a recorded testnet transaction hop by hop across shards, chunks and blocks.",
+      "voice": "Every lesson has a flat view and a 3D pop-up book. Here you follow a recorded testnet transaction, hop by hop, across shards, chunks and blocks."
+    },
+    {
+      "id": "06-deploy",
+      "length": 18,
+      "caption": "Deploy a contract in one click, call it, then watch a cross-contract callback catch a failure.",
+      "voice": "Deploy a contract in one click, call it, then watch a cross-contract callback catch a failure."
+    },
+    {
+      "id": "07-chain-signatures",
+      "length": 20,
+      "caption": "Chain Signatures: one NEAR account signs for Ethereum. Derive an address, get a signature, and check it recovers to that address. In demo mode the app plays the signing network; the math is real.",
+      "voice": "With Chain Signatures, one NEAR account signs for Ethereum. Derive an address, get a signature, and check that it recovers to that address. In demo mode, the app plays the signing network. The math is real."
+    },
+    {
+      "id": "08-intent-quote",
+      "length": 11,
+      "caption": "Ask for a cross-chain swap with an intent. In demo mode it is a recorded example quote, not a live price. No money moves.",
+      "voice": "Ask for a cross-chain swap with an intent. In demo mode, it is a recorded example quote, not a live price. No money moves."
+    },
+    {
+      "id": "09-badge",
+      "length": 13,
+      "caption": "Every lesson ends with an honest take on NEAR. Finish a stage to claim its badge: an NFT on testnet, kept in your browser in demo mode.",
+      "voice": "Every lesson ends with an honest take on NEAR. Finish a stage to claim its badge. On testnet it is an NFT. In demo mode it is kept in your browser."
+    },
+    {
+      "id": "10-end",
+      "length": 6,
+      "caption": "Try it: book-of-near.pages.dev. Demo mode needs no wallet.",
+      "voice": "Try it at book of near dot pages dot dev. Demo mode needs no wallet."
+    }
+  ]
+}
