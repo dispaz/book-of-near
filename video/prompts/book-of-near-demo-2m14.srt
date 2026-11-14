@@ -1,0 +1,87 @@
+1
+00:00:00,200 --> 00:00:01,580
+Learning NEAR is hard.
+
+2
+00:00:01,580 --> 00:00:05,281
+The docs assume you know crypto, and explainers are static.
+
+3
+00:00:05,281 --> 00:00:07,920
+Book of NEAR lets you do the real thing.
+
+4
+00:00:08,200 --> 00:00:11,256
+A first visit starts with three questions.
+
+5
+00:00:11,256 --> 00:00:16,920
+They pick your path: newcomer, crypto veteran or developer.
+
+6
+00:00:17,200 --> 00:00:21,775
+Demo mode simulates the chain in your browser, so you need no wallet.
+
+7
+00:00:21,775 --> 00:00:30,920
+Build, sign and send a transaction, and watch it reach Final.
+
+8
+00:00:31,200 --> 00:00:34,137
+Give an app a key that can do only one thing.
+
+9
+00:00:34,137 --> 00:00:44,920
+Then the app is hacked: the chain refuses each attack and says why.
+
+10
+00:00:45,200 --> 00:00:48,999
+Every lesson has a flat view and a 3D pop-up book.
+
+11
+00:00:48,999 --> 00:01:05,920
+Follow a recorded testnet transaction hop by hop across shards, chunks and blocks.
+
+12
+00:01:06,200 --> 00:01:08,794
+Deploy a contract in one click, call it,
+
+13
+00:01:08,794 --> 00:01:23,920
+then watch a cross-contract callback catch a failure.
+
+14
+00:01:24,200 --> 00:01:28,028
+Chain Signatures: one NEAR account signs for Ethereum.
+
+15
+00:01:28,028 --> 00:01:33,273
+Derive an address, get a signature, and check it recovers to that address.
+
+16
+00:01:33,273 --> 00:01:43,920
+In demo mode the app plays the signing network; the math is real.
+
+17
+00:01:44,200 --> 00:01:47,249
+Ask for a cross-chain swap with an intent.
+
+18
+00:01:47,249 --> 00:01:51,751
+In demo mode it is a recorded example quote, not a live price.
+
+19
+00:01:51,751 --> 00:01:54,920
+No money moves.
+
+20
+00:01:55,200 --> 00:01:58,375
+Every lesson ends with an honest take on NEAR.
+
+21
+00:01:58,375 --> 00:02:07,920
+Finish a stage to claim its badge: an NFT on testnet, kept in your browser in demo mode.
+
+22
+00:02:08,200 --> 00:02:13,920
+Try it: book-of-near.pages.dev. Demo mode needs no wallet.
